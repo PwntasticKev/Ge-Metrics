@@ -1,14 +1,21 @@
-import React, {useEffect} from 'react'
-import Layout from "./layouts/Layout.jsx";
+import React, {useState} from 'react'
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
 import ErrorPage from "./pages/error-page.jsx";
-import Home from "./pages/Home.jsx";
-import {MantineProvider, Flex} from '@mantine/core';
+import AllItems from "./pages/AllItems.jsx";
+
+import CombinationItems from "./pages/CombinationItems.jsx";
+import MoneyMaking from "./pages/MoneyMaking.jsx";
+import Faq from "./pages/Faq.jsx";
+import {AppShell, MantineProvider, useMantineTheme} from '@mantine/core';
 import {QueryClient, QueryClientProvider} from "react-query";
+import NavHeader from './components/NavHeader.jsx'
+import NavMenu from './components/NavBar/NavBar.jsx'
 
 
 export default function App() {
     const queryClient = new QueryClient();
+    const theme = useMantineTheme();
+    const [opened, setOpened] = useState(false);
 
     return (
         <QueryClientProvider client={queryClient}>
@@ -32,18 +39,24 @@ export default function App() {
             }}>
 
                 <Router>
-                    <Flex mih={50}
-                          bg="rgba(0, 0, 0, .3)"
-                          gap="md"
-                          justify="flex-start"
-                          align="flex-start"
-                          direction="row">
-                        <Layout/>
+                    <AppShell
+                        navbarOffsetBreakpoint="sm"
+                        asideOffsetBreakpoint="sm"
+                        padding="md"
+                        navbar={<NavMenu opened={opened}/>}
+                        header={<NavHeader setOpened={setOpened} opened={opened}/>}
+                        styles={(theme) => ({
+                            main: {backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0]},
+                        })}
+                    >
                         <Routes>
-                            <Route path="/" element={<Home/>}/>
+                            <Route path="/" element={<AllItems/>}/>
+                            <Route path="/combination-items" element={<CombinationItems/>}/>
+                            <Route path="/money-making" element={<MoneyMaking/>}/>
+                            <Route path="/faq" element={<Faq/>}/>
                             <Route path="*" element={<ErrorPage/>}/>
                         </Routes>
-                    </Flex>
+                    </AppShell>
                 </Router>
 
             </MantineProvider>

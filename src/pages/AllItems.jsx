@@ -1,10 +1,11 @@
-import TableSort from '../components/TableSort.jsx';
+import TableSort from '../components/Table/TableSort.jsx';
 import {allItems, getMappingData, getPricingData} from "../utils/utils.jsx";
 import {useQuery} from "react-query";
-import {Center, Loader} from '@mantine/core'
+import {Box, Center, Loader} from '@mantine/core'
+
 //
 
-export default function Home() {
+export default function AllItems() {
 
     useQuery("mapData", getMappingData);
     const {status: priceStatus} = useQuery("priceData", getPricingData);
@@ -19,7 +20,9 @@ export default function Home() {
                 </Center>
             }
             {priceStatus === "success" && (
-                <TableSort data={allItems()}/>
+                <Box sx={{py: 4}}>
+                    <TableSort data={allItems()}/>
+                </Box>
             )}
 
         </>

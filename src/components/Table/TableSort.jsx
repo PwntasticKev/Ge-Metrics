@@ -1,21 +1,22 @@
 import {useState} from 'react';
 import {
-    createStyles,
-    Table,
-    ScrollArea,
-    UnstyledButton,
-    Group,
-    Text,
     Center,
-    TextInput,
-    rem,
+    createStyles,
+    Group,
     Image,
-    Pagination,
     Loader,
-    AspectRatio
+    Pagination,
+    rem,
+    ScrollArea,
+    Table,
+    Text,
+    TextInput,
+    UnstyledButton,
+    useMantineTheme
 } from '@mantine/core';
-import {keys} from '@mantine/utils';
-import {IconSelector, IconChevronDown, IconChevronUp, IconSearch} from '@tabler/icons-react';
+import {IconChevronDown, IconChevronUp, IconSearch, IconSelector} from '@tabler/icons-react';
+import TableSettingsMenu from "./components/TableSettingsMenu.jsx";
+import {Link} from 'react-router-dom';
 
 const useStyles = createStyles((theme) => ({
     th: {
@@ -42,6 +43,7 @@ const useStyles = createStyles((theme) => ({
         top: 0,
         backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
         transition: 'box-shadow 150ms ease',
+        zIndex: 2,
 
         '&::after': {
             content: '""',
@@ -101,10 +103,7 @@ function filterData(data, search) {
     );
 }
 
-function sortData(
-    data,
-    payload
-) {
+function sortData(data, payload) {
     const {sortBy} = payload;
 
     if (!sortBy) {
@@ -123,7 +122,10 @@ function sortData(
     );
 }
 
+
 export function TableSort({data}) {
+    const theme = useMantineTheme();
+
     const {classes, cx} = useStyles();
     const [search, setSearch] = useState('');
     const [sortedData, setSortedData] = useState(data);
@@ -132,7 +134,7 @@ export function TableSort({data}) {
     const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 100;
+    const itemsPerPage = 60;
 
 
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -144,7 +146,7 @@ export function TableSort({data}) {
         const reversed = field === sortBy ? !reverseSortDirection : false;
         setReverseSortDirection(reversed);
         setSortBy(field);
-        setSortedData(sortData(data, {sortBy: field, reversed, search}));
+        setSortedData(sortData(sortedData, {sortBy: field, reversed, search}));
     };
 
     const handleSearchChange = (event) => {
@@ -152,38 +154,48 @@ export function TableSort({data}) {
         setSearch(value);
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search: value}));
     };
-    const rows = currentPageData.map((row) => (
-        <tr key={row.name}>
-            <td>{row.id}</td>
-            <td>
-                {
-                    row.img ?
-                        <AspectRatio ratio={1 / 1} mah={40} mx="auto">
+    const rows = currentPageData.map((row) => {
+        const profitValue = Number(row.profit.replace(/,/g, ''))
+        return (
+            <tr key={row.name}>
+                {/*<td>{row.id}</td>*/}
+                <td>
+                    {
+                        row.img ?
                             <Image
                                 className={classes.image}
                                 fit="contain"
+                                height={40}
                                 placeholder={
                                     <Text align="center">Not available</Text>
                                 }
                                 src={row.img}
                                 withPlaceholder
                             />
-                        </AspectRatio>
-                        :
-                        <Loader/>
-                }
-            </td>
-            <td>{row.name}</td>
-            <td>{row.limit}</td>
-            <td>{row.low}</td>
-            <td>{row.high}</td>
-            <td>{row.profit}</td>
-        </tr>
-    ));
+                            :
+                            <Loader/>
+                    }
+                </td>
+
+                <td colSpan="2"><Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>{row.name}  </Link></td>
+
+                <td>{row.limit}</td>
+                <td>{row.low}</td>
+                <td>{row.high}</td>
+                <td style={{
+                    color: profitValue > 0 ? theme.colors.green[9] : theme.colors.red[9],
+                }}>
+                    {row.profit}
+                </td>
+                <td><TableSettingsMenu/></td>
+            </tr>
+        )
+    });
 
 
     return (
-        <ScrollArea h={800} onScrollPositionChange={({y}) => setScrolled(y !== 0)}>
+        <ScrollArea onScrollPositionChange={({y}) => setScrolled(y !== 0)}>
+
             <TextInput
                 placeholder="Search by any field"
                 mb="md"
@@ -191,51 +203,18 @@ export function TableSort({data}) {
                 value={search}
                 onChange={handleSearchChange}
             />
-            <Table horizontalSpacing="md" verticalSpacing="xs" miw={700} sx={{tableLayout: 'fixed'}}>
-                <thead className={cx(classes.header, {[classes.scrolled]: scrolled})}>
+            <Table verticalSpacing="xs" sx={{tableLayout: 'fixed'}}>
+
+                <thead className={cx(classes.header, classes.scrolled)}>
                 <tr>
-                    <Th
-                        sorted={sortBy === 'id'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('id')}
-                    >
-                        Id
-                    </Th>
-                    <Th
-                        sorted={sortBy === 'img'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('img')}
-                    >
-                        Img
-                    </Th>
-                    <Th
-                        sorted={sortBy === 'name'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('name')}
-                    >
+                    {/*<Th>Id</Th>*/}
+                    <Th>Img</Th>
+                    <Th colSpan={2}>
                         Name
                     </Th>
-                    <Th
-                        sorted={sortBy === 'limit'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('limit')}
-                    >
-                        Buy Limit
-                    </Th>
-                    <Th
-                        sorted={sortBy === 'buyPrice'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('buyPrice')}
-                    >
-                        Buy Price
-                    </Th>
-                    <Th
-                        sorted={sortBy === 'sellPrice'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('sellPrice')}
-                    >
-                        Sell Price
-                    </Th>
+                    <Th>Buy Limit</Th>
+                    <Th>Buy Price</Th>
+                    <Th>Sell Price</Th>
                     <Th
                         sorted={sortBy === 'profit'}
                         reversed={reverseSortDirection}
@@ -243,6 +222,7 @@ export function TableSort({data}) {
                     >
                         Profit
                     </Th>
+                    <Th>Settings</Th>
                 </tr>
                 </thead>
                 <tbody>
