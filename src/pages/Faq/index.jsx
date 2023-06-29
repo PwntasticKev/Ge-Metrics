@@ -1,4 +1,4 @@
-export default function CombinationItems() {
+export default function Faq() {
 
     return (
         <>

@@ -1,16 +1,15 @@
-import {useRouteError} from "react-router-dom";
+import {Link} from 'react-router-dom';
+import {Flex} from '@mantine/core'
 
 export default function ErrorPage() {
-    const error = useRouteError();
-    console.error(error);
 
     return (
-        <div id="error-page">
+        <Flex id="error-page">
             <h1>Oops!</h1>
             <p>Sorry, an unexpected error has occurred.</p>
             <p>
-                <i>{error?.statusText || error?.message}</i>
+                <Link to={'/login'} style={{textDecoration: 'none'}}><i>Login to see more</i></Link>
             </p>
-        </div>
+        </Flex>
     );
 }
