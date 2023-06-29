@@ -134,7 +134,7 @@ export function TableSort({data}) {
     const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 60;
+    const itemsPerPage = 30;
 
 
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -177,7 +177,7 @@ export function TableSort({data}) {
                     }
                 </td>
 
-                <td colSpan="2"><Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>{row.name}  </Link></td>
+                <td><Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>{row.name}  </Link></td>
 
                 <td>{row.limit}</td>
                 <td>{row.low}</td>
@@ -203,7 +203,7 @@ export function TableSort({data}) {
                 value={search}
                 onChange={handleSearchChange}
             />
-            <Table verticalSpacing="xs" sx={{tableLayout: 'fixed'}}>
+            <Table verticalSpacing="xs" sx={{tableLayout: 'fixed'}} highlightOnHover>
 
                 <thead className={cx(classes.header, classes.scrolled)}>
                 <tr>

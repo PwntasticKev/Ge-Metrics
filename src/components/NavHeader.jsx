@@ -9,7 +9,7 @@ export default function NavHeader({opened, setOpened}) {
         <Group sx={{height: '100%'}} px={20} position="apart">
             <Flex>
                 <IconCoins size={24} color="gold" sx={{mr: 2}}/>
-                RS-XChange
+                FLIP-R-US
             </Flex>
             <MediaQuery largerThan="sm" styles={{display: 'none'}}>
                 <Burger
