@@ -6,11 +6,12 @@ import AllItems from "./pages/AllItems";
 import CombinationItems from "./pages/CombinationItems";
 import MoneyMaking from "./pages/MoneyMaking";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Faq from "./pages/Faq";
 import {AppShell, MantineProvider, useMantineTheme} from '@mantine/core';
 import {QueryClient, QueryClientProvider} from "react-query";
-import NavHeader from './components/NavHeader.jsx'
-import NavMenu from './components/NavBar/NavBar.jsx'
+import NavHeader from './components/nav-header.jsx'
+import NavMenu from './components/NavBar/nav-bar.jsx'
 import {onAuthStateChanged} from "firebase/auth";
 import {auth} from './firebase.jsx';
 
@@ -65,6 +66,7 @@ export default function App() {
                     <Routes>
                         {/* Common routes accessible to all users */}
                         <Route path="/login" element={<Login/>}/>
+                        <Route path="/signup" element={<Signup/>}/>
 
                         {/* Protected routes accessible only to logged-in users */}
                         {loggedIn ? (

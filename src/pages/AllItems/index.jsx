@@ -1,4 +1,4 @@
-import TableSort from '../../components/Table/TableSort.jsx';
+import AllItemsTable from '../../components/Table/all-items-table.jsx';
 import {allItems, getMappingData, getPricingData} from "../../utils/utils.jsx";
 import {useQuery} from "react-query";
 import {Box, Center, Loader} from '@mantine/core'
@@ -21,7 +21,7 @@ export default function AllItems() {
             }
             {priceStatus === "success" && (
                 <Box sx={{py: 4}}>
-                    <TableSort data={allItems()}/>
+                    <AllItemsTable data={allItems()}/>
                 </Box>
             )}
 

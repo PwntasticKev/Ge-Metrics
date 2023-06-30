@@ -2,23 +2,24 @@ import {Burger, Flex, Group, Header, MediaQuery, useMantineTheme} from '@mantine
 import React from "react";
 import {IconCoins} from '@tabler/icons-react';
 import {signOut} from "firebase/auth";
-import {auth} from '../firebase.jsx';
 import {useNavigate} from 'react-router-dom';
+import {auth} from '../firebase.jsx'
+
 
 export default function NavHeader({opened, setOpened}) {
     const theme = useMantineTheme();
 
     const navigate = useNavigate();
-
     const handleLogout = () => {
         signOut(auth).then(() => {
             // Sign-out successful.
-            navigate("/login");
+            navigate("/");
             console.log("Signed out successfully")
         }).catch((error) => {
             // An error happened.
         });
     }
+
 
     return <Header height={60} p="xs">
         <Group sx={{height: '100%'}} px={20} position="apart">

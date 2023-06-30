@@ -123,7 +123,7 @@ function sortData(data, payload) {
 }
 
 
-export function TableSort({data}) {
+export function AllItemsTable({data}) {
     const theme = useMantineTheme();
 
     const {classes, cx} = useStyles();
@@ -251,4 +251,4 @@ export function TableSort({data}) {
     );
 }
 
-export default TableSort
+export default AllItemsTable
