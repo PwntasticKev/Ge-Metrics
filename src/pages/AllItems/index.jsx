@@ -31,14 +31,16 @@ export default function AllItems() {
     useEffect(() => {
         if (priceStatus === "success" && priceData && priceData.data) {
             setPricesById(priceData.data);
-            setAllItems(allItems(mapItems, pricesById.data));
+
         }
     }, [priceData, priceStatus]);
 
-    // useEffect(() => {
-    //     setAllItems(allItems(mapItems, pricesById.data));
-    //     // console.log(items, 'items')
-    // }, [mapItems, pricesById]);
+    useEffect(() => {
+        if (priceStatus === "success" && priceData && priceData.data) {
+            setAllItems(allItems(mapItems, pricesById.data));
+        }
+        // console.log(items, 'items')
+    }, [mapItems, pricesById]);
 
     return (
         <>

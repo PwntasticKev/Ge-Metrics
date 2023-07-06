@@ -8,7 +8,6 @@ export const AuthProvider = ({children}) => {
     const [loggedIn, setLoggedIn] = useState(null);
     const value = [loggedIn, setLoggedIn]
 
-
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
