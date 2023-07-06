@@ -8,7 +8,7 @@ import MoneyMaking from "./pages/MoneyMaking";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Faq from "./pages/Faq";
-import {AppShell, MantineProvider, useMantineTheme} from '@mantine/core';
+import {AppShell, MantineProvider} from '@mantine/core';
 import {QueryCache, QueryClient, QueryClientProvider} from "react-query";
 import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
@@ -19,7 +19,7 @@ export default function App() {
     const queryClient = new QueryClient();
     const queryCache = new QueryCache();
 
-    const theme = useMantineTheme();
+    // const theme = useMantineTheme();
     const [opened, setOpened] = useState(false);
     const {loggedIn} = useContext(AuthContext);
 

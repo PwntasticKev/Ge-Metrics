@@ -16,7 +16,7 @@ export default function TableSettingsMenu() {
             // Sign-out successful.
             navigate("/");
             console.log("Signed out successfully")
-        }).catch((error) => {
+        }).catch(() => {
             // An error happened.
         });
     }

@@ -12,7 +12,6 @@ export default function HeaderNav({opened, setOpened}) {
             <Flex>
                 <IconCoins size={24} color="gold" sx={{pr: 4}}/>
                 <Text style={{fontWeight: 'bold'}}>GE Metrics</Text>
-
             </Flex>
             <MediaQuery largerThan="sm" styles={{display: 'none'}}>
                 <Burger

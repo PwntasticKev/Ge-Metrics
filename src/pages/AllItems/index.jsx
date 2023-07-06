@@ -38,7 +38,7 @@ export default function AllItems() {
         if (mapItems.length && priceStatus === "success" && priceData && priceData.data) {
             setAllItems(allItems(mapItems, pricesById.data));
         }
-    }, [pricesById]);
+    }, [mapItems, priceData, priceStatus, pricesById]);
 
     return (
         <>
