@@ -31,23 +31,21 @@ export default function AllItems() {
     useEffect(() => {
         if (priceStatus === "success" && priceData && priceData.data) {
             setPricesById(priceData.data);
-
         }
     }, [priceData, priceStatus]);
 
     useEffect(() => {
-        if (priceStatus === "success" && priceData && priceData.data) {
+        if (mapItems.length && priceStatus === "success" && priceData && priceData.data) {
             setAllItems(allItems(mapItems, pricesById.data));
         }
-        // console.log(items, 'items')
-    }, [mapItems, pricesById]);
+    }, [pricesById]);
 
     return (
         <>
             {mapStatus === "error" || priceStatus === "error" && <p>Error fetching data</p>}
             {
                 mapStatus === "loading" || priceStatus === "loading" &&
-                <Center maw={400} h={100} mx="auto">
+                <Center maw={400} h={300} mx="auto">
                     <Loader/>
                 </Center>
             }

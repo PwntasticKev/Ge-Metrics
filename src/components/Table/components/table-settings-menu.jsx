@@ -1,4 +1,4 @@
-import {Menu} from '@mantine/core';
+import {Button, Menu, Tooltip} from '@mantine/core';
 import {IconArrowsLeftRight, IconReceipt, IconSchoolBell, IconSettings} from '@tabler/icons-react';
 
 
@@ -6,7 +6,9 @@ export default function TableSettingsMenu() {
     return (
         <Menu shadow="md" width={200}>
             <Menu.Target>
-                <IconSettings/>
+                <Tooltip label="Tooltip">
+                    <Button variant="subtle" size="sm"><IconSettings size={18}/></Button>
+                </Tooltip>
             </Menu.Target>
 
             <Menu.Dropdown>

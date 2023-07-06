@@ -21,7 +21,7 @@ export default function App() {
 
     const theme = useMantineTheme();
     const [opened, setOpened] = useState(false);
-    const [loggedIn] = useContext(AuthContext);
+    const {loggedIn} = useContext(AuthContext);
 
     return (
 

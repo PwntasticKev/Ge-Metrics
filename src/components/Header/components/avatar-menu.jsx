@@ -8,8 +8,7 @@ import {AuthContext} from '../../../utils/firebase/auth-context.jsx'
 
 
 export default function TableSettingsMenu() {
-    const {loggedIn} = useContext(AuthContext);
-    console.log(loggedIn, 'loggedIn')
+    const {user} = useContext(AuthContext);
 
     const navigate = useNavigate();
     const handleLogout = () => {
@@ -25,7 +24,7 @@ export default function TableSettingsMenu() {
     return (
         <Menu shadow="md" width={200}>
             <Menu.Target>
-                <Avatar src={null} alt="Vitaly Rtishchev" color="primary"></Avatar>
+                <Avatar src={null} alt={user.email} color="primary">{user.email.split('')[0].toUpperCase()}</Avatar>
             </Menu.Target>
 
             <Menu.Dropdown>

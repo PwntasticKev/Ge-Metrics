@@ -6,11 +6,12 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({children}) => {
     const [loggedIn, setLoggedIn] = useState(null);
-    const value = [loggedIn, setLoggedIn]
+    const [user, setUser] = useState(null)
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
+                setUser(user)
                 setLoggedIn(true);
                 // User is signed in, see docs for a list of available properties
                 // https://firebase.google.com/docs/reference/js/firebase.User
@@ -22,12 +23,11 @@ export const AuthProvider = ({children}) => {
                 // ...
                 console.log("user is logged out")
             }
-            return () => unsubscribe();
         });
     });
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{loggedIn, user}}>
             {children}
         </AuthContext.Provider>
     );
