@@ -15,7 +15,7 @@ import {
     useMantineTheme
 } from '@mantine/core';
 import {IconChevronDown, IconChevronUp, IconSearch, IconSelector} from '@tabler/icons-react';
-import TableSettingsMenu from "./components/TableSettingsMenu.jsx";
+import TableSettingsMenu from "./components/table-settings-menu.jsx";
 import {Link} from 'react-router-dom';
 
 const useStyles = createStyles((theme) => ({

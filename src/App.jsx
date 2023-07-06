@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react'
+import React, {useContext, useState} from 'react'
 import {BrowserRouter as Router, Outlet, Route, Routes} from "react-router-dom";
 import ErrorPage from "./pages/error-page.jsx";
 import AllItems from "./pages/AllItems";
@@ -9,40 +9,23 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Faq from "./pages/Faq";
 import {AppShell, MantineProvider, useMantineTheme} from '@mantine/core';
-import {QueryClient, QueryClientProvider} from "react-query";
-import NavHeader from './components/nav-header.jsx'
+import {QueryCache, QueryClient, QueryClientProvider} from "react-query";
+import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
-import {onAuthStateChanged} from "firebase/auth";
-import {auth} from './firebase.jsx';
 
+import {AuthContext} from './utils/firebase/auth-context.jsx'
 
 export default function App() {
     const queryClient = new QueryClient();
+    const queryCache = new QueryCache();
+
     const theme = useMantineTheme();
     const [opened, setOpened] = useState(false);
-    const [loggedIn, setLoggedIn] = useState(null);
-
-    useEffect(() => {
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setLoggedIn(true);
-                console.log('i see yourwe logged in')
-                // User is signed in, see docs for a list of available properties
-                // https://firebase.google.com/docs/reference/js/firebase.User
-                const uid = user.uid;
-                // ...
-                console.log("uid", uid)
-            } else {
-                // User is signed out
-                // ...
-                console.log("user is logged out")
-            }
-        });
-
-    }, [])
+    const [loggedIn] = useContext(AuthContext);
 
     return (
-        <QueryClientProvider client={queryClient}>
+
+        <QueryClientProvider client={queryClient} queryCache={queryCache}>
             <MantineProvider withGlobalStyles withNormalizeCSS theme={{
                 colorScheme: 'dark',
                 colors: {
@@ -77,7 +60,7 @@ export default function App() {
                                         asideOffsetBreakpoint="sm"
                                         padding="md"
                                         navbar={<NavMenu opened={opened}/>}
-                                        header={<NavHeader setOpened={setOpened} opened={opened}/>}
+                                        header={<HeaderNav setOpened={setOpened} opened={opened}/>}
                                         styles={(theme) => ({
                                             main: {
                                                 backgroundColor:
@@ -100,11 +83,13 @@ export default function App() {
                         ) : (
                             <Route path="*" element={<ErrorPage/>}/>
                         )}
+
                     </Routes>
                 </Router>
 
             </MantineProvider>
         </QueryClientProvider>
+
 
     );
 }

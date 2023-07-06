@@ -2,13 +2,16 @@ import React from 'react';
 import './styles/App.scss';
 import {createRoot} from 'react-dom/client';
 import App from './App.jsx';
+import {AuthProvider} from './utils/firebase/auth-context.jsx'
 // import {ApolloClient, InMemoryCache, ApolloProvider, gql} from '@apollo/client';
 
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         {/*<ApolloProvider client={client}>*/}
-        <App/>
+        <AuthProvider>
+            <App/>
+        </AuthProvider>
         {/*</ApolloProvider>*/}
     </React.StrictMode>
 );
