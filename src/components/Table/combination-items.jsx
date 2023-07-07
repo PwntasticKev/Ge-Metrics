@@ -120,7 +120,7 @@ function sortData(data, payload) {
     );
 }
 
-export function AllItemsTable({data}) {
+export function CombinationItemsTable({data}) {
     const theme = useMantineTheme();
 
     const {classes, cx} = useStyles();
@@ -149,6 +149,8 @@ export function AllItemsTable({data}) {
         setSearch(value);
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search: value}));
     };
+
+
     const rows = currentPageData.map((row) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
@@ -173,6 +175,9 @@ export function AllItemsTable({data}) {
                         {row.name}
                     </Link>
                 </td>
+                <td>
+                    {/*{itemPieces}*/}
+                </td>
                 <td>{row.low}</td>
                 <td>{row.high}</td>
                 <td style={{
@@ -186,7 +191,6 @@ export function AllItemsTable({data}) {
             </tr>
         )
     });
-
 
     return (
         <ScrollArea onScrollPositionChange={({y}) => setScrolled(y !== 0)}>
@@ -206,6 +210,7 @@ export function AllItemsTable({data}) {
                     <th colSpan={2}>
                         Name
                     </th>
+                    <Th>Pieces</Th>
                     <Th>Buy Price</Th>
                     <Th>Sell Price</Th>
                     <Th
@@ -215,8 +220,8 @@ export function AllItemsTable({data}) {
                     >
                         Profit
                     </Th>
-                    <Th>Buy Limit</Th>
-                    <Th>Settings</Th>
+                    <th>Buy Limit</th>
+                    <th>Settings</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -245,4 +250,4 @@ export function AllItemsTable({data}) {
     );
 }
 
-export default AllItemsTable
+export default CombinationItemsTable

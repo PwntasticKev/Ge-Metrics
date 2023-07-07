@@ -10,8 +10,8 @@ export default function HeaderNav({opened, setOpened}) {
     return <Header height={60} p="xs">
         <Group sx={{height: '100%'}} px={20} position="apart">
             <Flex>
-                <IconCoins size={24} color="gold" sx={{pr: 4}}/>
-                <Text style={{fontWeight: 'bold'}}>GE Metrics</Text>
+                <IconCoins size={24} color="gold"/>
+                <Text style={{fontWeight: 'bold', marginLeft: 10}}>GE Metrics</Text>
             </Flex>
             <MediaQuery largerThan="sm" styles={{display: 'none'}}>
                 <Burger
