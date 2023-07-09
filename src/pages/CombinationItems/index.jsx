@@ -2,10 +2,12 @@ import {useEffect, useState} from 'react'
 import {getMappingData, getPricingData} from '../../api/rs-wiki-api.jsx'
 import {useQuery} from "react-query";
 import {Box, Center, Loader} from '@mantine/core'
-import {itemSets} from '../../components/Table/data/item-set-filters.jsx'
+import {allItems, getItemSetProfit} from "../../utils/utils.jsx";
+import {itemRecipes} from '../../components/Table/data/item-set-filters.jsx'
+import AllItemsTable from '../../components/Table/all-items-table.jsx';
 
 
-export default function CombinationItems() {
+export default function AllItems() {
 
     const storedData = localStorage.getItem("mappingData");
 
@@ -17,10 +19,10 @@ export default function CombinationItems() {
         },
     });
 
-
     const [mapItems, setMapItems] = useState([]);
     const [pricesById, setPricesById] = useState({});
     const [items, setAllItems] = useState([])
+    const [itemSets, setItemSets] = useState([])
 
     useEffect(() => {
         if (mapStatus === "success") {
@@ -36,16 +38,20 @@ export default function CombinationItems() {
 
     useEffect(() => {
         if (mapItems.length && priceStatus === "success" && priceData && priceData.data) {
-//get the data of everything then for each item in itemSets i need to pass in the functino
-            // need to getItemSetProfit and pass in new table data. use the filters created that will build the data
+            setAllItems(allItems(mapItems, pricesById.data));
+            //after ive gotten the items available. I can then get the item sets.
 
-            // I have pricing data and the mapped items
-            const allItemSets = itemSets()
-            // get the item sets I need from the filters, then run through getItemSetProfit passing the data
-            // const pieces = currentPageData
-            setAllItems(allItemSets);
+            //We can have loop through an array of item recipes then output the data should should then be sent to the table
+            itemRecipes.forEach(recipe => {
+                const result = getItemSetProfit(recipe)
+                setItemSets(prev => [...result, ...prev])
+                return result
+            })
+            console.log(itemSets, 'itemSets')
+
         }
     }, [pricesById]);
+
 
     return (
         <>
@@ -58,7 +64,7 @@ export default function CombinationItems() {
             }
             {priceStatus === "success" && items.length > 0 && (
                 <Box sx={{py: 4}}>
-                    {/*<CombinationItemsTable data={items}/>*/}
+                    <AllItemsTable data={itemSets}/>
                 </Box>
             )}
 
