@@ -10,7 +10,12 @@ export default function AllItems() {
 
     const storedData = localStorage.getItem("mappingData");
 
-    const {data: priceData, status: priceStatus} = useQuery("priceData", getPricingData);
+    const {data: priceData, status: priceStatus} = useQuery(
+        {
+            queryKey: ['priceData'],
+            queryFn: async () => await getPricingData(),
+            refetchInterval: 60 * 1000,
+        });
     const {data: mapData, status: mapStatus} = useQuery("mapData", getMappingData, {
         initialData: storedData ? JSON.parse(storedData) : undefined,
         onSuccess: (data) => {
@@ -36,6 +41,7 @@ export default function AllItems() {
 
     useEffect(() => {
         if (mapItems.length && priceStatus === "success" && priceData && priceData.data) {
+            console.log('hit bro')
             setAllItems(allItems(mapItems, pricesById.data));
         }
     }, [pricesById]);

@@ -24,3 +24,15 @@ export const getMappingData = () => {
     });
 
 }
+
+export const getItemHistoryById = (time, itemId) => {
+    return (async () => {
+        try {
+            return axios.get(
+                `https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=${time}&id=${itemId}`
+            )
+        } catch (error) {
+            console.error('Error fetching item History:', error);
+        }
+    })();
+}

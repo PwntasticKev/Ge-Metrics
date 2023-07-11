@@ -14,6 +14,7 @@ import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
 
 import {AuthContext} from './utils/firebase/auth-context.jsx'
+import ItemDetails from "./pages/ItemDetails/index.jsx";
 
 export default function App() {
     const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ export default function App() {
                                 <Route path="/" element={<AllItems/>}/>
                                 <Route path="/combination-items" element={<CombinationItems/>}/>
                                 <Route path="/money-making" element={<MoneyMaking/>}/>
+                                <Route path="/item/:id" element={<ItemDetails/>}/>
                                 <Route path="/faq" element={<Faq/>}/>
                                 <Route path="*" element={<ErrorPage/>}/>
                             </Route>

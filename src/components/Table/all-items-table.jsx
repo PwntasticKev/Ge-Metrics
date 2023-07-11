@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {
     Center,
     createStyles,
@@ -137,6 +137,10 @@ export function AllItemsTable({data}) {
     const endIndex = startIndex + itemsPerPage;
     const currentPageData = sortedData.slice(startIndex, endIndex);
 
+    useEffect(() => {
+        setSortedData(data);
+    }, [data]);
+
     const setSorting = (field) => {
         const reversed = field === sortBy ? !reverseSortDirection : false;
         setReverseSortDirection(reversed);
@@ -149,16 +153,16 @@ export function AllItemsTable({data}) {
         setSearch(value);
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search: value}));
     };
-    const rows = currentPageData.map((row) => {
+    const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
-            <tr key={row.name}>
+            <tr key={idx}>
                 {/*<td>{row.id}</td>*/}
                 <td colSpan={1}>
                     <Image
                         className={classes.image}
                         fit="contain"
-                        height={40}
+                        height={25}
                         placeholder={
                             <Text align="center">Not available</Text>
                         }
@@ -170,7 +174,7 @@ export function AllItemsTable({data}) {
 
                 <td colSpan={2}>
                     <Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>
-                        {row.name}
+                        {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
                 </td>
                 <td>{row.low}</td>

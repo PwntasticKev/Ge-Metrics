@@ -67,15 +67,22 @@ export const getItemSetProfit = (
     );
     // console.log(totalPrice, 'totalPrice')
 
+    if (qty.qty) {
+        const item = getItemById(qty.id)
+        item.qty = qty.qty
+    }
+
     const originalItem = items.find(item => item.id === itemSet);
     //
     const itemAsSet = getModifiedItem(originalItem, totalPrice);
     //
+
     // console.log(totalPrice, originalItem, itemAsSet, '------')
     return [itemAsSet, ...getItemsById(itemsToCreateSet)];
 };
 
 export const getModifiedItem = (item, totalPrice) => {
+    // console.log('item high', item?.high)
     const highPriceWithoutCommas = item?.high
         ? parseInt(item.high.replace(/,/g, ''), 10)
         : 0;
@@ -83,7 +90,7 @@ export const getModifiedItem = (item, totalPrice) => {
 
     if (item) {
         return {
-            id: `SET-${item.name}`,
+            id: item.id,
             name: `${item.name} (set)`,
             img: item.img,
             high: formatter.format(highPriceWithoutCommas),
@@ -116,4 +123,3 @@ export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qt
     });
     return total + qtyItemNoCommas + conversionCost;
 }
-
