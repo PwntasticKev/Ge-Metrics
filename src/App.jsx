@@ -59,7 +59,6 @@ export default function App() {
                                     <AppShell
                                         navbarOffsetBreakpoint="sm"
                                         asideOffsetBreakpoint="sm"
-                                        padding="md"
                                         navbar={<NavMenu opened={opened}/>}
                                         header={<HeaderNav setOpened={setOpened} opened={opened}/>}
                                         styles={(theme) => ({

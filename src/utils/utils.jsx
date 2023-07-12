@@ -48,7 +48,7 @@ const getItemsById = (itemIds) => {
     return itemIds.map(itemId => items.find(item => item.id === itemId))
 }
 
-const getItemById = (itemId) => {
+export const getItemById = (itemId) => {
     return items.find(item => item.id === itemId)
 }
 
