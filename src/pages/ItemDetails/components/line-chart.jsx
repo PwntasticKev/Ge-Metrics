@@ -22,8 +22,7 @@ ChartJS.register(
 );
 
 
-export function LineChart(data, timeframe) {
-
+export function LineChart({data, timeframe}) {
     const options = {
         responsive: true,
         plugins: {
@@ -37,22 +36,28 @@ export function LineChart(data, timeframe) {
         },
     };
 
+    // Convert the data object into an array
+    const dataArray = Object.values(data);
+
+    // Sort the data based on the highTime property in ascending order
+    dataArray.sort((a, b) => a.highTime - b.highTime);
+
     const chartData = {
-        labels: data.data.map(item => item.timestamp),
+        labels: dataArray.map(item => item.highTime),
         datasets: [
             {
                 label: 'Average High Price',
-                data: data.data.map(item => item.avgHighPrice),
+                data: dataArray.map(item => item.high),
                 borderColor: 'red',
-                fill: false
+                fill: false,
             },
             {
                 label: 'Average Low Price',
-                data: data.data.map(item => item.avgLowPrice),
+                data: dataArray.map(item => item.low),
                 borderColor: 'blue',
-                fill: false
-            }
-        ]
+                fill: false,
+            },
+        ],
     };
 
     return <Line options={options} data={chartData}/>;

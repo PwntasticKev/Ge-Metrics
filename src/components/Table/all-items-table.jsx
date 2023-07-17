@@ -173,9 +173,10 @@ export function AllItemsTable({data}) {
                 </td>
 
                 <td colSpan={2}>
-                    <Link to={{pathName: `/item/${row.id}`, state: row}} style={{textDecoration: 'none'}}>
+                    <Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>
                         {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
+
                 </td>
                 <td>{row.low}</td>
                 <td>{row.high}</td>
