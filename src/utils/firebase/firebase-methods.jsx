@@ -1,8 +1,7 @@
 import {signInWithEmailAndPassword, signOut} from "firebase/auth";
 import {auth} from '../../firebase.jsx';
 
-
-export const HandleLogout = () => {
+export const handleLogout = () => {
     return signOut(auth).then(() => {
         window.location.href = "/login";
 
@@ -12,7 +11,7 @@ export const HandleLogout = () => {
     });
 }
 
-export const HandleLogin = (email, password) => {
+export const handleLogin = (email, password) => {
 
     return signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
@@ -27,3 +26,4 @@ export const HandleLogin = (email, password) => {
             console.log(errorCode, errorMessage)
         });
 }
+

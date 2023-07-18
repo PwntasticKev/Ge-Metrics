@@ -1,17 +1,14 @@
 import {useEffect, useState} from 'react'
 import {LineChart} from "./components/line-chart.jsx";
-import {useQuery} from "react-query";
-import {getItemHistoryById} from "../../api/rs-wiki-api.jsx";
 import {
     Accordion,
     Anchor,
     Card,
-    Center,
+    Container,
     createStyles,
     Divider,
     Grid,
     Group,
-    Loader,
     rem,
     SimpleGrid,
     Text,
@@ -57,7 +54,6 @@ export default function ItemDetails() {
     const {items} = ItemData();
     const {classes} = useStyles();
     const {id} = useParams();
-    const [timeframe, setTimeframe] = useState('1h')
     const [item, setItem] = useState('')
 
     const getColor = (color) => theme.colors[color][theme.colorScheme === 'dark' ? 5 : 7];
@@ -66,12 +62,6 @@ export default function ItemDetails() {
         setItem(() => items.find(i => Number(i.id) === Number(id)))
     }, [items, id]);
 
-
-    const {data, status: historyStatus} = useQuery({
-        queryKey: ['priceData'],
-        queryFn: async () => await getItemHistoryById(timeframe, id),
-        // refetchInterval: 60 * 1000,
-    });
 
     const options = [
         {
@@ -167,16 +157,10 @@ export default function ItemDetails() {
         }
 
 
-        {historyStatus === "error" && <p>Error fetching data</p>}
-        {
-            historyStatus === "loading" &&
-            <Center maw={400} h={300} mx="auto">
-                <Loader/>
-            </Center>
-        }
-        {historyStatus === "success" && (
-            <LineChart data={data} timeframe={timeframe}/>
-        )}
+        <Container size="70rem" px={0}>
+            <LineChart/>
+        </Container>
+
 
     </>
 }

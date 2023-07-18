@@ -1,11 +1,12 @@
 import React, {useContext, useState} from 'react'
 import {BrowserRouter as Router, Outlet, Route, Routes} from "react-router-dom";
+import LoggingIn from "./pages/logging-in.jsx";
 import ErrorPage from "./pages/error-page.jsx";
 import AllItems from "./pages/AllItems";
-
 import CombinationItems from "./pages/CombinationItems";
 import MoneyMaking from "./pages/MoneyMaking";
 import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 import Signup from "./pages/Signup";
 import Faq from "./pages/Faq";
 import {AppShell, MantineProvider} from '@mantine/core';
@@ -30,6 +31,7 @@ export default function App() {
             <MantineProvider withGlobalStyles withNormalizeCSS theme={{
                 colorScheme: 'dark',
                 colors: {
+                    primary: 'violet',
                     // override dark colors to change them for all components
                     dark: [
                         '#d5d7e0',
@@ -57,8 +59,8 @@ export default function App() {
                             <Route
                                 element={
                                     <AppShell
-                                        navbarOffsetBreakpoint="sm"
-                                        asideOffsetBreakpoint="sm"
+                                        navbarOffsetBreakpoint="xs"
+                                        asideOffsetBreakpoint="xs"
                                         navbar={<NavMenu opened={opened}/>}
                                         header={<HeaderNav setOpened={setOpened} opened={opened}/>}
                                         styles={(theme) => ({
@@ -67,7 +69,8 @@ export default function App() {
                                                     theme.colorScheme === 'dark'
                                                         ? theme.colors.dark[8]
                                                         : theme.colors.gray[0],
-                                            },
+
+                                            }
                                         })}
                                     >
                                         <Outlet/>
@@ -80,9 +83,10 @@ export default function App() {
                                 <Route path="/item/:id" element={<ItemDetails/>}/>
                                 <Route path="/faq" element={<Faq/>}/>
                                 <Route path="*" element={<ErrorPage/>}/>
+                                <Route path="/profile/:id" element={<Profile/>}/>
                             </Route>
                         ) : (
-                            <Route path="*" element={<ErrorPage/>}/>
+                            <Route path="*" element={<LoggingIn/>}/>
                         )}
 
                     </Routes>

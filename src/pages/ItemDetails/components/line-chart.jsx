@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
     CategoryScale,
     Chart as ChartJS,
@@ -10,6 +10,10 @@ import {
     Tooltip,
 } from 'chart.js';
 import {Line} from 'react-chartjs-2';
+import {useQuery} from "react-query";
+import {getItemHistoryById} from "../../../api/rs-wiki-api.jsx";
+import {Center, Container, Loader} from "@mantine/core";
+import {useParams} from "react-router-dom";
 
 ChartJS.register(
     CategoryScale,
@@ -22,7 +26,18 @@ ChartJS.register(
 );
 
 
-export function LineChart({data, timeframe}) {
+export function LineChart() {
+    const {id} = useParams();
+
+    const [timeframe, setTimeframe] = useState('1h')
+
+    const {data, status: historyStatus} = useQuery({
+        queryKey: ['priceData'],
+        queryFn: async () => await getItemHistoryById(timeframe, id),
+        // refetchInterval: 60 * 1000,
+    });
+
+
     const options = {
         responsive: true,
         plugins: {
@@ -36,29 +51,46 @@ export function LineChart({data, timeframe}) {
         },
     };
 
-    // Convert the data object into an array
-    const dataArray = Object.values(data);
+    let chartData = null;
 
-    // Sort the data based on the highTime property in ascending order
-    dataArray.sort((a, b) => a.highTime - b.highTime);
+    if (historyStatus === "success" && data) {
+        // Sort the data based on the highTime property in ascending order
+        console.log(data.data.data, 'datadatadatadatadata')
+        const sortedData = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
 
-    const chartData = {
-        labels: dataArray.map(item => item.highTime),
-        datasets: [
-            {
-                label: 'Average High Price',
-                data: dataArray.map(item => item.high),
-                borderColor: 'red',
-                fill: false,
-            },
-            {
-                label: 'Average Low Price',
-                data: dataArray.map(item => item.low),
-                borderColor: 'blue',
-                fill: false,
-            },
-        ],
-    };
+        chartData = {
+            labels: sortedData.map(item => item.avgHighPrice),
+            datasets: [
+                {
+                    label: 'Average High Price',
+                    data: sortedData.map(item => item.avgHighPrice),
+                    borderColor: 'violet',
+                    fill: false,
+                },
+                {
+                    label: 'Average Low Price',
+                    data: sortedData.map(item => item.avgLowPrice),
+                    borderColor: 'lightblue',
+                    fill: false,
+                },
+            ],
+        };
+    }
 
-    return <Line options={options} data={chartData}/>;
+    return (
+        <>
+            {historyStatus === "error" && <p>Error fetching data</p>}
+            {historyStatus === "loading" && (
+                <Center maw={400} h={300} mx="auto">
+                    <Loader/>
+                </Center>
+            )}
+            {historyStatus === "success" && chartData && (
+                <Container size="70rem" px={0}>
+                    <Line options={options} data={chartData}/>
+                </Container>
+            )}
+        </>
+    );
 }
+
