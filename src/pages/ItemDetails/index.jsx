@@ -55,31 +55,32 @@ export default function ItemDetails() {
     const {classes} = useStyles();
     const {id} = useParams();
     const [item, setItem] = useState('')
+    const [options, setItemOptions] = useState([])
 
     const getColor = (color) => theme.colors[color][theme.colorScheme === 'dark' ? 5 : 7];
 
     useEffect(() => {
         setItem(() => items.find(i => Number(i.id) === Number(id)))
+        setItemOptions([
+            {
+                title: "Buy Price",
+                data: item?.low
+            }, {
+                title: "Sell Price",
+                data: item?.high
+            },
+            {
+                title: "Profit",
+                data: item?.profit,
+                props: {
+                    color: Number(item?.profit) > 0 ? theme.colors.green[7] : theme.colors.red[9],
+                    fontWeight: 'bold'
+                }
+            }
+        ])
     }, [items, id]);
 
 
-    const options = [
-        {
-            title: "Buy Price",
-            data: item?.low
-        }, {
-            title: "Sell Price",
-            data: item?.high
-        },
-        {
-            title: "Profit",
-            data: item?.profit,
-            props: {
-                color: Number(item?.profit) > 0 ? theme.colors.green[7] : theme.colors.red[9],
-                fontWeight: 'bold'
-            }
-        }
-    ]
     const itemInfo = options.map((option, idx) => (
         <Group position="apart" style={{padding: '8px 0'}} key={idx}>
             <Text className={classes.title} size="sm">

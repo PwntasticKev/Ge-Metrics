@@ -14,12 +14,14 @@
     "@emotion/react": "^11.11.1",
     "@mantine/core": "^6.0.14",
     "@mantine/dates": "^6.0.16",
+    "@mantine/dropzone": "^6.0.17",
     "@mantine/form": "^6.0.15",
     "@mantine/hooks": "^6.0.14",
     "@mantine/utils": "^6.0.14",
     "@ravnhq/eslint-config": "^0.0.33",
     "@tabler/icons-react": "^2.23.0",
     "apexcharts": "^3.41.0",
+    "apollo-server": "^3.12.0",
     "axios": "^1.4.0",
     "chart.js": "^4.3.0",
     "dotenv": "^16.3.1",
@@ -45,6 +47,7 @@
     "eslint": "^8.38.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.3.4",
+    "prisma": "^5.0.0",
     "typescript": "^5.0.2",
     "vite": "^4.3.9"
   }

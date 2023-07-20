@@ -126,12 +126,11 @@ export function AllItemsTable({data}) {
     const {classes, cx} = useStyles();
     const [search, setSearch] = useState('');
     const [sortedData, setSortedData] = useState(data);
-    const [scrolled, setScrolled] = useState(false);
     const [sortBy, setSortBy] = useState(null);
     const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 20;
+    const itemsPerPage = 100;
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -156,7 +155,7 @@ export function AllItemsTable({data}) {
     const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
-            <tr key={idx}>
+            <tr key={idx} style={{background: row.background ? 'darkviolet' : ''}}>
                 {/*<td>{row.id}</td>*/}
                 <td colSpan={1}>
                     <Image
@@ -194,7 +193,7 @@ export function AllItemsTable({data}) {
 
 
     return (
-        <ScrollArea onScrollPositionChange={({y}) => setScrolled(y !== 0)}>
+        <>
             <TextInput
                 placeholder="Search by any field"
                 mb="md"
@@ -202,51 +201,54 @@ export function AllItemsTable({data}) {
                 value={search}
                 onChange={handleSearchChange}
             />
-            <Table verticalSpacing="xs" sx={{tableLayout: 'fixed'}} highlightOnHover>
+            <ScrollArea>
 
-                <thead className={cx(classes.header, classes.scrolled)}>
-                <tr>
-                    {/*<Th>Id</Th>*/}
-                    <th colSpan={1}>Img</th>
-                    <th colSpan={2}>
-                        Name
-                    </th>
-                    <Th>Buy Price</Th>
-                    <Th>Sell Price</Th>
-                    <Th
-                        sorted={sortBy === 'profit'}
-                        reversed={reverseSortDirection}
-                        onSort={() => setSorting('profit')}
-                    >
-                        Profit
-                    </Th>
-                    <Th>Buy Limit</Th>
-                    <Th>Settings</Th>
-                </tr>
-                </thead>
-                <tbody>
-                {rows.length > 0 ? (
-                    rows
-                ) : (
+                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover>
+
+                    <thead className={cx(classes.header, classes.scrolled)}>
                     <tr>
-                        <td colSpan={data.length && Object.keys(data[0]).length}>
-                            <Text weight={500} align="center">
-                                Nothing found
-                            </Text>
-                        </td>
+                        {/*<Th>Id</Th>*/}
+                        <th colSpan={1}>Img</th>
+                        <th colSpan={2}>
+                            Name
+                        </th>
+                        <th>Buy Price</th>
+                        <th>Sell Price</th>
+                        <th
+                            sorted={sortBy === 'profit'}
+                            reversed={reverseSortDirection}
+                            onSort={() => setSorting('profit')}
+                        >
+                            Profit
+                        </th>
+                        <th>Buy Limit</th>
+                        <th>Settings</th>
                     </tr>
-                )}
-                </tbody>
-            </Table>
-            <Pagination
-                total={Math.ceil(sortedData.length / itemsPerPage)}
-                value={currentPage}
-                onChange={setCurrentPage}
-                gutter="md"
-                mt="md"
-                mb="md"
-            />
-        </ScrollArea>
+                    </thead>
+                    <tbody>
+                    {rows.length > 0 ? (
+                        rows
+                    ) : (
+                        <tr>
+                            <td colSpan={data.length && Object.keys(data[0]).length}>
+                                <Text weight={500} align="center">
+                                    Nothing found
+                                </Text>
+                            </td>
+                        </tr>
+                    )}
+                    </tbody>
+                </Table>
+                <Pagination
+                    total={Math.ceil(sortedData.length / itemsPerPage)}
+                    value={currentPage}
+                    onChange={setCurrentPage}
+                    gutter="md"
+                    mt="md"
+                    mb="md"
+                />
+            </ScrollArea>
+        </>
     );
 }
 

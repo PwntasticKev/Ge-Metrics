@@ -91,6 +91,7 @@ export const getModifiedItem = (item, totalPrice) => {
     if (item) {
         return {
             id: item.id,
+            background: true,
             name: `${item.name} (set)`,
             img: item.img,
             high: formatter.format(highPriceWithoutCommas),
