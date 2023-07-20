@@ -15,7 +15,7 @@ import {
 } from '@mantine/core';
 import {IconChevronDown, IconChevronUp, IconSearch, IconSelector} from '@tabler/icons-react';
 import TableSettingsMenu from "./components/table-settings-menu.jsx";
-import {Link} from 'react-router-dom';
+import {Link, useLocation} from 'react-router-dom';
 
 const useStyles = createStyles((theme) => ({
     th: {
@@ -122,6 +122,7 @@ function sortData(data, payload) {
 
 export function AllItemsTable({data}) {
     const theme = useMantineTheme();
+    const location = useLocation();
 
     const {classes, cx} = useStyles();
     const [search, setSearch] = useState('');
@@ -155,7 +156,7 @@ export function AllItemsTable({data}) {
     const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
-            <tr key={idx} style={{background: row.background ? 'darkviolet' : ''}}>
+            <tr key={idx} style={{background: row.background ? '#7D7F99' : ''}}>
                 {/*<td>{row.id}</td>*/}
                 <td colSpan={1}>
                     <Image
@@ -203,7 +204,8 @@ export function AllItemsTable({data}) {
             />
             <ScrollArea>
 
-                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover>
+                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover
+                       striped={location.pathname !== "/combination-items"}>
 
                     <thead className={cx(classes.header, classes.scrolled)}>
                     <tr>
@@ -214,11 +216,7 @@ export function AllItemsTable({data}) {
                         </th>
                         <th>Buy Price</th>
                         <th>Sell Price</th>
-                        <th
-                            sorted={sortBy === 'profit'}
-                            reversed={reverseSortDirection}
-                            onSort={() => setSorting('profit')}
-                        >
+                        <th>
                             Profit
                         </th>
                         <th>Buy Limit</th>

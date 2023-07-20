@@ -15,6 +15,7 @@ import {
     TextInput,
     Title
 } from '@mantine/core';
+import {useForm} from "@mantine/form";
 
 const useStyles = createStyles((theme) => ({
     wrapper: {
@@ -45,6 +46,17 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const {classes} = useStyles();
     const navigate = useNavigate();
+
+    const form = useForm({
+        initialValues: {
+            name: '',
+            password: ''
+        },
+        validate: {
+            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+            password: (value) => (/^(?=.*[!@#$%^&*()_+])(?=.{6,}).*$/.test(value) ? null : 'Must have 6 digits, special char,'),
+        },
+    });
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -85,24 +97,29 @@ export default function Login() {
                 <Title order={2} className={classes.title} ta="center" mt="md" mb={50}>
                     Welcome back to Ge-Metrics!
                 </Title>
+                <form onSubmit={form.onSubmit((values) => console.log(values))}>
 
-                <TextInput
-                    label="Email address"
-                    placeholder="hello@gmail.com"
-                    size="md"
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                <PasswordInput
-                    label="Password"
-                    placeholder="Your password"
-                    mt="md"
-                    size="md"
-                    onChange={(e) => setPassword(e.target.value)}
-                />
-                <Checkbox label="Keep me logged in" mt="xl" size="md"/>
-                <Button fullWidth mt="xl" size="md" onClick={handleLogin}>
-                    Login
-                </Button>
+                    <TextInput
+                        label="Email address"
+                        placeholder="hello@gmail.com"
+                        size="md"
+                        onChange={(e) => setEmail(e.target.value)}
+                        {...form.getInputProps('email')}
+                    />
+
+                    <PasswordInput
+                        label="Password"
+                        placeholder="Your password"
+                        mt="md"
+                        size="md"
+                        onChange={(e) => setPassword(e.target.value)}
+                        {...form.getInputProps('password')}
+                    />
+                    <Checkbox label="Keep me logged in" mt="xl" size="md"/>
+                    <Button fullWidth mt="xl" size="md" onClick={handleLogin}>
+                        Login
+                    </Button>
+                </form>
                 <Divider/>
                 <Button
                     fullWidth

@@ -26,3 +26,7 @@ dist-ssr
 /.env
 *.env
 env
+/prisma/schema.prisma
+schema.prisma
+\prisma\schema.prisma
+\schema.prisma

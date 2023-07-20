@@ -4,8 +4,18 @@ import {Box, Button, Checkbox, createStyles, Group, Modal, TextInput, useMantine
 import {useForm} from '@mantine/form';
 import {useContext} from "react";
 import {AuthContext} from "../../../../utils/firebase/auth-context.jsx";
-import DropZone from '../../../../shared/dropzone.jsx'
+// import DropZone from '../../../../shared/dropzone.jsx'
+import {gql, useMutation} from '@apollo/client';
 
+const EDIT_USER = gql`
+  mutation EditUser($type: String!) {
+    editUser(type: $type) {
+      email
+      username
+      phone
+    }
+  }
+`;
 
 const useStyles = createStyles((theme) => ({
     editIcon: {
@@ -17,6 +27,7 @@ const useStyles = createStyles((theme) => ({
 }));
 
 export default function UserEdit() {
+    const [editUser, {data, loading, error}] = useMutation(EDIT_USER);
     const theme = useMantineTheme();
     const isMobile = useMediaQuery("(max-width: 50em)");
     const {user} = useContext(AuthContext);
@@ -25,18 +36,17 @@ export default function UserEdit() {
 
     const form = useForm({
         initialValues: {
-            email: '',
+            user: '', // Add the initial value for the username if available
+            phone: '', // Add the initial value for the phone if available
             termsOfService: false,
         },
-
         validate: {
-            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+            email: () => null,
             user: (value) => (/^[a-zA-Z]{3}$/.test(value) ? null : 'Invalid email'),
             phone: (value) => (/^(?:(?:\+|0{0,2})\d{1,4})?[ -]?\(?\d{1,4}\)?[ -]?\d{1,4}[ -]?\d{1,9}$/.test(value) ? null : 'Invalid email'),
-
-
         },
     });
+
     return (
         <>
             <Modal
@@ -47,15 +57,18 @@ export default function UserEdit() {
                 transitionProps={{transition: 'fade', duration: 200}}
             >
                 <Box maw={300} mx="auto">
-                    <form onSubmit={form.onSubmit((values) => console.log(values))}>
-                        <DropZone/>
+                    <form onSubmit={values => {
+                        console.log(values, 'values----')
+                        editUser({variables: values});
+                        values.preventDefault()
+                    }}>
+                        {/*<DropZone/>*/}
                         <TextInput
                             mt="sm"
                             withAsterisk
                             label="Email"
                             disabled
                             placeholder={user.email}
-                            {...form.getInputProps('email')}
                         />
 
                         <TextInput
@@ -81,7 +94,9 @@ export default function UserEdit() {
                         />
 
                         <Group position="right" mt="md">
-                            <Button type="submit">Save</Button>
+                            <Button type="submit" disabled={!form.valid}>
+                                Save
+                            </Button>
                         </Group>
                     </form>
                 </Box>

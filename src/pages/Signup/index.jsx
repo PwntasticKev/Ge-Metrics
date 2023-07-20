@@ -1,9 +1,10 @@
-import {useState} from 'react'
 import {NavLink, useNavigate} from 'react-router-dom'
 import {auth} from '../../firebase.jsx'
 import {createUserWithEmailAndPassword} from "firebase/auth";
+import {gql, useMutation} from '@apollo/client';
 
 import {Button, Checkbox, createStyles, Paper, PasswordInput, rem, Text, TextInput, Title,} from '@mantine/core';
+import {useForm} from "@mantine/form";
 
 
 const useStyles = createStyles((theme) => ({
@@ -33,18 +34,69 @@ const useStyles = createStyles((theme) => ({
     },
 }));
 
+const CREATE_USER_MUTATION = gql`
+    mutation createUser(
+        $name: String
+        $runescapeName: String
+        $email: String
+        $password: String
+        $timezone: String
+        $firebaseUid: Int
+    ) {
+        createUser(
+            name: $name
+            runescape_name: $runescapeName
+            email: $email
+            password: $password
+            timezone: $timezone
+            firebase_uid: $firebaseUid
+        ) {
+            name
+            created_at
+            email
+            password
+            runescape_name
+            timezone
+            firebase_uid
+        }
+    }
+`;
 export default function Signup() {
-    const [password, setPassword] = useState('')
-    const [email, setEmail] = useState('')
     const {classes} = useStyles();
     const navigate = useNavigate();
+    const [createUser, {loading, error}] = useMutation(CREATE_USER_MUTATION);
 
+    const form = useForm({
+        initialValues: {
+            name: '',
+        },
+
+        validate: {
+            rsName: (value) => (/^.{3}$/.test(value) ? null : 'Empty Field'),
+            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+            password: (value) => (/^(?=.*[!@#$%^&*()_+])(?=.{6,}).*$/.test(value) ? null : 'Must have 6 digits, special char,'),
+        },
+    });
     const handleUserRegistration = () => {
+        const {name, rsName, email, password} = form.values;
         createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
+            .then(async (userCredential) => {
                 // New user created successfully
                 const user = userCredential.user;
                 console.log('New user created:', user);
+
+                await createUser({
+                    variables: {
+                        name: name,
+                        runescapeName: rsName,
+                        firebase_uid: user.uid,
+                        membership: 0, // Replace 0 with the actual value of the user's membership status (if applicable)
+                        email,
+                        img: '', // Replace '' with the actual value of the user's image URL (if applicable)
+                        password,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', // Replace '' with the actual value of the user's timezone (if applicable)
+                    },
+                });
                 navigate('/')
             })
             .catch((error) => {
@@ -62,16 +114,38 @@ export default function Signup() {
                 <Title order={2} className={classes.title} ta="center" mt="md" mb={50}>
                     Sign up on Ge-Metrics
                 </Title>
+                <form onSubmit={form.onSubmit((values) => console.log(values))}>
 
-                <TextInput
-                    label="Email address" placeholder="hello@gmail.com" size="md"
-                    onChange={(e) => setEmail(e.target.value)}/>
-                <PasswordInput label="Password" placeholder="Your password" mt="md" size="md"
-                               onChange={(e) => setPassword(e.target.value)}/>
-                <Checkbox label="Keep me logged in" mt="xl" size="md"/>
-                <Button fullWidth mt="xl" size="md" onClick={handleUserRegistration}>
-                    Create
-                </Button>
+                    <TextInput
+                        label="Email address"
+                        placeholder="hello@gmail.com"
+                        size="md"
+                        onChange={(e) => setEmail(e.target.value)}
+                        {...form.getInputProps('email')}
+                    />
+
+                    <TextInput
+                        label="Runescape Name"
+                        placeholder="Your Runescape Name"
+                        size="md"
+                        mt="lg"
+                        onChange={(e) => setEmail(e.target.value)}
+                        {...form.getInputProps('rsName')}
+                    />
+
+                    <PasswordInput
+                        label="Password"
+                        placeholder="Your password"
+                        mt="lg"
+                        size="md"
+                        onChange={(e) => setPassword(e.target.value)}
+                        {...form.getInputProps('password')}
+                    />
+                    <Checkbox label="Keep me logged in" mt="xl" size="md"/>
+                    <Button fullWidth mt="xl" size="md" onClick={handleUserRegistration}>
+                        Create
+                    </Button>
+                </form>
 
 
                 <Text ta="center" mt="md">
@@ -84,3 +158,4 @@ export default function Signup() {
         </div>
     );
 }
+

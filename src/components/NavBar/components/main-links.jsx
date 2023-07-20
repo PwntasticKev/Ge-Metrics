@@ -1,36 +1,42 @@
 import React from 'react';
 import {IconBusinessplan, IconHelpHexagon, IconListDetails, IconLogout, IconSitemap} from '@tabler/icons-react';
-import {Group, Text, ThemeIcon, UnstyledButton} from '@mantine/core';
+import {Group, MediaQuery, Text, ThemeIcon, Tooltip, UnstyledButton} from '@mantine/core';
 import {Link} from 'react-router-dom';
 
 
 function MainLink({icon, color, label, link}) {
     return (
         <>
-            <Link to={link} style={{textDecoration: 'none'}}>
-                <UnstyledButton
-                    sx={(theme) => ({
-                        display: 'block',
-                        width: '100%',
-                        padding: theme.spacing.xs,
-                        borderRadius: theme.radius.sm,
-                        color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+            <Tooltip label={label} position="right" color={color}>
 
-                        '&:hover': {
-                            backgroundColor:
-                                theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
-                        },
-                    })}
-                >
-                    <Group>
-                        <ThemeIcon color={color} variant="light">
-                            {icon}
-                        </ThemeIcon>
+                <Link to={link} style={{textDecoration: 'none'}}>
+                    <UnstyledButton
+                        sx={(theme) => ({
+                            display: 'block',
+                            marginBottom: 15,
+                            padding: theme.spacing.xs,
+                            borderRadius: theme.radius.sm,
+                            color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
 
-                        <Text size="sm">{label}</Text>
-                    </Group>
-                </UnstyledButton>
-            </Link>
+                            '&:hover': {
+                                backgroundColor:
+                                    theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+                            },
+                        })}
+                    >
+
+                        <Group>
+                            <ThemeIcon color={color} variant="light" size="md">
+                                {icon}
+                            </ThemeIcon>
+                            <MediaQuery
+                                largerThan="sm" styles={{display: 'none'}}>
+                                <Text size="sm">{label}</Text>
+                            </MediaQuery>
+                        </Group>
+                    </UnstyledButton>
+                </Link>
+            </Tooltip>
         </>
     );
 }
@@ -40,7 +46,13 @@ const data = [
     {icon: <IconSitemap size="1rem"/>, color: 'teal', label: 'Combination Sets ', link: '/combination-items'},
     {icon: <IconBusinessplan size="1rem"/>, color: 'violet', label: 'Money Making', link: '/money-making'},
     {icon: <IconHelpHexagon size="1rem"/>, color: 'grape', label: 'Faq', link: '/faq'},
-    {icon: <IconLogout size="1rem"/>, color: 'grape', label: 'Log Out', link: '/login', onClick: '() => handleLogout'}
+    {
+        icon: <IconLogout size="1rem"/>,
+        color: 'grape',
+        label: 'Log Out',
+        link: '/login',
+        onClick: '() => handleLogout'
+    }
 ];
 
 export function MainLinks() {
