@@ -7,6 +7,8 @@ import CombinationItems from "./pages/CombinationItems";
 import MoneyMaking from "./pages/MoneyMaking";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import Herbs from "./pages/Herbs";
+import DeathsCoffer from "./pages/DeathsCoffer";
 import Signup from "./pages/Signup";
 import Faq from "./pages/Faq";
 import {AppShell, MantineProvider} from '@mantine/core';
@@ -16,6 +18,7 @@ import NavMenu from './components/NavBar/nav-bar.jsx'
 
 import {AuthContext} from './utils/firebase/auth-context.jsx'
 import ItemDetails from "./pages/ItemDetails/index.jsx";
+import Parties from "./pages/Parties/index.jsx";
 
 export default function App() {
     const queryClient = new QueryClient();
@@ -82,6 +85,9 @@ export default function App() {
                                 <Route path="/money-making" element={<MoneyMaking/>}/>
                                 <Route path="/item/:id" element={<ItemDetails/>}/>
                                 <Route path="/faq" element={<Faq/>}/>
+                                <Route path="/parties" element={<Parties/>}/>
+                                <Route path="/herbs" element={<Herbs/>}/>
+                                <Route path="/deaths-coffer" element={<DeathsCoffer/>}/>
                                 <Route path="*" element={<ErrorPage/>}/>
                                 <Route path="/profile/:id" element={<Profile/>}/>
                             </Route>

@@ -1,5 +1,14 @@
 import React from 'react';
-import {IconBusinessplan, IconHelpHexagon, IconListDetails, IconLogout, IconSitemap} from '@tabler/icons-react';
+import {
+    IconBoxMultiple3,
+    IconCoffin,
+    IconCoin,
+    IconHelpHexagon,
+    IconListDetails,
+    IconLogout,
+    IconPlant2,
+    IconUsersGroup
+} from '@tabler/icons-react';
 import {Group, MediaQuery, Text, ThemeIcon, Tooltip, UnstyledButton} from '@mantine/core';
 import {Link} from 'react-router-dom';
 
@@ -43,8 +52,11 @@ function MainLink({icon, color, label, link}) {
 
 const data = [
     {icon: <IconListDetails size="1rem"/>, color: 'blue', label: 'All Items', link: '/'},
-    {icon: <IconSitemap size="1rem"/>, color: 'teal', label: 'Combination Sets ', link: '/combination-items'},
-    {icon: <IconBusinessplan size="1rem"/>, color: 'violet', label: 'Money Making', link: '/money-making'},
+    {icon: <IconBoxMultiple3 size="1rem"/>, color: 'teal', label: 'Combination Sets ', link: '/combination-items'},
+    {icon: <IconPlant2 size="1rem"/>, color: 'violet', label: 'Herblore Profit', link: '/herblore'},
+    {icon: <IconCoffin size="1rem"/>, color: 'violet', label: 'Deaths Coffer', link: '/deaths-coffer'},
+    {icon: <IconUsersGroup size="1rem"/>, color: 'blue', label: 'Parties', link: '/parties'},
+    {icon: <IconCoin size="1rem"/>, color: 'violet', label: 'Money Making', link: '/money-making'},
     {icon: <IconHelpHexagon size="1rem"/>, color: 'grape', label: 'Faq', link: '/faq'},
     {
         icon: <IconLogout size="1rem"/>,

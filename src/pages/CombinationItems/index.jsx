@@ -1,5 +1,5 @@
 import {Box, Center, Loader} from '@mantine/core'
-import AllItemsTable from "../../components/Table/all-items-table.jsx";
+import ItemSetsTable from "../../components/Table/item-sets-table.jsx";
 import ItemData from "../../utils/item-data.jsx";
 
 
@@ -17,7 +17,7 @@ export default function AllItems() {
             }
             {priceStatus === "success" && items.length > 0 && (
                 <Box sx={{py: 4}}>
-                    <AllItemsTable data={itemSets}/>
+                    <ItemSetsTable data={itemSets}/>
                 </Box>
             )}
 

@@ -77,7 +77,7 @@ export const getItemSetProfit = (
     const itemAsSet = getModifiedItem(originalItem, totalPrice);
     //
 
-    // console.log(totalPrice, originalItem, itemAsSet, '------')
+    // console.log('---sheeee', [itemAsSet, ...getItemsById(itemsToCreateSet)])
     return [itemAsSet, ...getItemsById(itemsToCreateSet)];
 };
 

@@ -4,6 +4,8 @@ import {getMappingData, getPricingData} from '../api/rs-wiki-api.jsx'
 import {allItems, getItemSetProfit} from "../utils/utils.jsx";
 import {itemRecipes} from "../components/Table/data/item-set-filters.jsx";
 
+
+console.log('itemRecipes', itemRecipes)
 const ItemData = () => {
     const storedData = localStorage.getItem('mappingData');
 
