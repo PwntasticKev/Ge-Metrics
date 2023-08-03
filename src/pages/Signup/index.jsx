@@ -2,6 +2,7 @@ import {NavLink, useNavigate} from 'react-router-dom'
 import {auth} from '../../firebase.jsx'
 import {createUserWithEmailAndPassword} from "firebase/auth";
 import {gql, useMutation} from '@apollo/client';
+import bg from '../../assets/gehd.png';
 
 import {Button, Checkbox, createStyles, Paper, PasswordInput, rem, Text, TextInput, Title,} from '@mantine/core';
 import {useForm} from "@mantine/form";
@@ -9,17 +10,16 @@ import {useForm} from "@mantine/form";
 
 const useStyles = createStyles((theme) => ({
     wrapper: {
-        minHeight: rem(900),
+        minHeight: rem(300),
         backgroundSize: 'cover',
-        backgroundImage:
-            'url(https://images.unsplash.com/photo-1484242857719-4b9144542727?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1280&q=80)',
+        backgroundImage: `url(${bg})`
     },
 
     form: {
         borderRight: `${rem(1)} solid ${
             theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[3]
         }`,
-        minHeight: rem(900),
+        minHeight: '100vh',
         maxWidth: rem(450),
         paddingTop: rem(80),
 
@@ -38,18 +38,19 @@ const CREATE_USER_MUTATION = gql`
     mutation createUser(
         $name: String
         $runescapeName: String
+        $firebaseUid: String
         $email: String
         $password: String
         $timezone: String
-        $firebaseUid: Int
+
     ) {
         createUser(
             name: $name
             runescape_name: $runescapeName
+            firebase_uid: $firebaseUid
             email: $email
             password: $password
             timezone: $timezone
-            firebase_uid: $firebaseUid
         ) {
             name
             created_at
@@ -68,7 +69,14 @@ export default function Signup() {
 
     const form = useForm({
         initialValues: {
-            name: '',
+            rsName: '',
+            email: ''
+        },
+
+        initialErrors: {
+            password: '',
+            rsName: '',
+            firebase: ''
         },
 
         validate: {
@@ -77,34 +85,41 @@ export default function Signup() {
             password: (value) => (/^(?=.*[!@#$%^&*()_+])(?=.{6,}).*$/.test(value) ? null : 'Must have 6 digits, special char,'),
         },
     });
-    const handleUserRegistration = () => {
-        const {name, rsName, email, password} = form.values;
-        createUserWithEmailAndPassword(auth, email, password)
-            .then(async (userCredential) => {
-                // New user created successfully
-                const user = userCredential.user;
-                console.log('New user created:', user);
 
+    const handleUserRegistration = async () => {
+        const {name, rsName, email, password} = form.values;
+
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            const user = auth.currentUser;
+
+            if (user && user.uid) {
+                console.log('New user uid created:', user.uid);
                 await createUser({
                     variables: {
                         name: name,
                         runescapeName: rsName,
-                        firebase_uid: user.uid,
-                        membership: 0, // Replace 0 with the actual value of the user's membership status (if applicable)
+                        firebaseUid: user.uid,
                         email,
-                        img: '', // Replace '' with the actual value of the user's image URL (if applicable)
-                        password,
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', // Replace '' with the actual value of the user's timezone (if applicable)
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                     },
                 });
                 navigate('/')
-            })
-            .catch((error) => {
-                // Error occurred during user creation
-                const errorCode = error.code;
-                const errorMessage = error.message;
-                console.error('Error creating user:', errorCode, errorMessage);
-            });
+            } else {
+                console.log('Could not find user.id');
+            }
+        } catch (error) {
+            // Handle Firebase authentication error
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            console.error('Error creating user:', errorCode, errorMessage);
+
+            if (errorCode === 'auth/email-already-in-use') {
+                form.setErrors({email: 'Email is already in use'});
+            } else {
+                form.setErrors({firebase: 'An error occurred during registration'});
+            }
+        }
     };
 
 
@@ -120,27 +135,26 @@ export default function Signup() {
                         label="Email address"
                         placeholder="hello@gmail.com"
                         size="md"
-                        onChange={(e) => setEmail(e.target.value)}
+                        error={form.errors.email}
                         {...form.getInputProps('email')}
                     />
-
                     <TextInput
                         label="Runescape Name"
                         placeholder="Your Runescape Name"
                         size="md"
                         mt="lg"
-                        onChange={(e) => setEmail(e.target.value)}
+                        error={form.errors.password}
                         {...form.getInputProps('rsName')}
                     />
-
                     <PasswordInput
                         label="Password"
                         placeholder="Your password"
                         mt="lg"
                         size="md"
-                        onChange={(e) => setPassword(e.target.value)}
+                        error={form.errors.password}
                         {...form.getInputProps('password')}
                     />
+
                     <Checkbox label="Keep me logged in" mt="xl" size="md"/>
                     <Button fullWidth mt="xl" size="md" onClick={handleUserRegistration}>
                         Create

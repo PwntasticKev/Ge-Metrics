@@ -156,7 +156,7 @@ export function AllItemsTable({data}) {
     const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
-            <tr key={idx} style={{background: row.background ? '#7D7F99' : ''}}>
+            <tr key={idx} style={{background: row.background ? theme.colors.gray[7] : ''}}>
                 {/*<td>{row.id}</td>*/}
                 <td colSpan={1}>
                     <Image

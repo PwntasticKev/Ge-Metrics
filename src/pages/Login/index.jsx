@@ -16,18 +16,19 @@ import {
     Title
 } from '@mantine/core';
 import {useForm} from "@mantine/form";
+import bg from "../../assets/gehd.png";
 
 const useStyles = createStyles((theme) => ({
     wrapper: {
         minHeight: rem(900),
         backgroundSize: 'cover',
-        backgroundImage: 'url(https://images.unsplash.com/photo-1484242857719-4b9144542727?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1280&q=80)',
+        backgroundImage: `url(${bg})`
     },
     form: {
         borderRight: `${rem(1)} solid ${
             theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[3]
         }`,
-        minHeight: rem(900),
+        minHeight: '100vh',
         maxWidth: rem(450),
         paddingTop: rem(80),
 
