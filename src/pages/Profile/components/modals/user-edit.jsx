@@ -8,13 +8,13 @@ import {AuthContext} from "../../../../utils/firebase/auth-context.jsx";
 import {gql, useMutation} from '@apollo/client';
 
 const EDIT_USER = gql`
-  mutation EditUser($type: String!) {
-    editUser(type: $type) {
-      email
-      username
-      phone
+    mutation EditUser($type: String!) {
+        editUser(type: $type) {
+            email
+            username
+            phone
+        }
     }
-  }
 `;
 
 const useStyles = createStyles((theme) => ({
@@ -58,7 +58,6 @@ export default function UserEdit() {
             >
                 <Box maw={300} mx="auto">
                     <form onSubmit={values => {
-                        console.log(values, 'values----')
                         editUser({variables: values});
                         values.preventDefault()
                     }}>

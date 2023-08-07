@@ -66,12 +66,10 @@ export default function Login() {
                 // Signed in
                 const user = userCredential.user;
                 navigate('/');
-                console.log(user);
             })
             .catch((error) => {
                 const errorCode = error.code;
                 const errorMessage = error.message;
-                console.log(errorCode, errorMessage);
             });
     };
 
@@ -82,7 +80,6 @@ export default function Login() {
             .then((userCredential) => {
                 // User signed in successfully
                 const user = userCredential.user;
-                console.log('Signed in with Google:', user);
             })
             .catch((error) => {
                 // Error occurred during sign-in

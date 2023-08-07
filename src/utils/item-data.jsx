@@ -4,8 +4,6 @@ import {getMappingData, getPricingData} from '../api/rs-wiki-api.jsx'
 import {allItems, getItemSetProfit} from "../utils/utils.jsx";
 import {itemRecipes} from "../components/Table/data/item-set-filters.jsx";
 
-
-console.log('itemRecipes', itemRecipes)
 const ItemData = () => {
     const storedData = localStorage.getItem('mappingData');
 
@@ -50,16 +48,15 @@ const ItemData = () => {
             priceData &&
             priceData.data
         ) {
-
             setAllItems(allItems(mapItems, pricesById.data));
 
-            itemRecipes.forEach(recipe => {
-                const result = getItemSetProfit(recipe)
-                // this sends the data down in an array of array sets
-                setItemSets(prev => [...result, ...prev])
-            })
+            const itemSets = itemRecipes.map(recipe => {
+                return getItemSetProfit(recipe);
+            }).sort((a, b) => a.profit - b.profit);
+
+            setItemSets([...itemSets]);
         }
-    }, [pricesById]);
+    }, [priceData, pricesById]);
 
     return {
         priceStatus,

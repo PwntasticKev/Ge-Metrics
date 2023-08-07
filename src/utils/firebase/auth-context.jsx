@@ -17,7 +17,6 @@ export const AuthProvider = ({children}) => {
                 // https://firebase.google.com/docs/reference/js/firebase.User
                 const uid = user.uid;
                 // ...
-                console.log("uid", uid)
             } else {
                 // User is signed out
                 // ...

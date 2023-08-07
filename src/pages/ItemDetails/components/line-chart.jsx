@@ -54,7 +54,6 @@ export function LineChart() {
     let chartData = null;
 
     if (historyStatus === "success" && data) {
-        console.log(data, 'data----')
         // Sort the data based on the highTime property in ascending order
         const sortedData = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
 

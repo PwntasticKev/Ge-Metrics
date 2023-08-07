@@ -65,8 +65,6 @@ export const getItemSetProfit = (
         conversionCost,
         qty
     );
-    // console.log(totalPrice, 'totalPrice')
-
     if (qty.qty) {
         const item = getItemById(qty.id)
         item.qty = qty.qty
@@ -74,25 +72,24 @@ export const getItemSetProfit = (
 
     const originalItem = items.find(item => item.id === itemSet);
     //
-    const itemAsSet = getModifiedItem(originalItem, totalPrice);
+    const itemAsSet = getModifiedItem(originalItem, totalPrice, itemsToCreateSet);
     //
 
-    // console.log('---sheeee', [itemAsSet, ...getItemsById(itemsToCreateSet)])
-    return [itemAsSet, ...getItemsById(itemsToCreateSet)];
+    return itemAsSet;
 };
 
-export const getModifiedItem = (item, totalPrice) => {
-    // console.log('item high', item?.high)
+export const getModifiedItem = (item, totalPrice, itemsToCreateSet) => {
     const highPriceWithoutCommas = item?.high
         ? parseInt(item.high.replace(/,/g, ''), 10)
         : 0;
     const formatter = new Intl.NumberFormat();
-
+    const convertedItems = itemsToCreateSet.map(itemId => items.find(item => item.id === itemId));
     if (item) {
         return {
             id: item.id,
             background: true,
             name: `${item.name} (set)`,
+            items: convertedItems,
             img: item.img,
             high: formatter.format(highPriceWithoutCommas),
             profit: formatter.format(

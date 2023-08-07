@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {
     Center,
     createStyles,
+    Flex,
     Group,
     Image,
     Pagination,
@@ -10,6 +11,7 @@ import {
     Table,
     Text,
     TextInput,
+    Tooltip,
     UnstyledButton,
     useMantineTheme
 } from '@mantine/core';
@@ -138,8 +140,9 @@ export function AllItemsTable({data}) {
     const currentPageData = sortedData.slice(startIndex, endIndex);
 
     useEffect(() => {
-        setSortedData(data);
-    }, [data]);
+        // Keep the search term intact when new data is grabbed
+        setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search}));
+    }, [data, sortBy, reverseSortDirection, search]);
 
     const setSorting = (field) => {
         const reversed = field === sortBy ? !reverseSortDirection : false;
@@ -153,12 +156,18 @@ export function AllItemsTable({data}) {
         setSearch(value);
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search: value}));
     };
+
+    const shouldResetField = () => {
+        setSearch('');
+    }
+
     const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
-            <tr key={idx} style={{background: row.background ? theme.colors.gray[7] : ''}}>
+            <tr key={idx}>
                 {/*<td>{row.id}</td>*/}
-                <td colSpan={1}>
+                <td colSpan={1} style={{verticalAlign: 'middle'}}>
+
                     <Image
                         className={classes.image}
                         fit="contain"
@@ -172,24 +181,37 @@ export function AllItemsTable({data}) {
 
                 </td>
 
-                <td colSpan={2}>
+                <td style={{verticalAlign: 'middle'}}>
                     <Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>
                         {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
 
                 </td>
-                <td>
-                    {/*// this is where i want to loop through each item on the item set data*/}
-                    items
+                <td colSpan={2} style={{verticalAlign: 'middle'}}>
+                    {row.items.map((item, idx) => (
+                        <Flex key={idx}>
+                            <Tooltip label={
+                                item.qty
+                                    ? `${item.name} (${item.qty})`
+                                    : item.name
+                            } position="left">
+                                <Image fit="contain" width={25} height={25} src={item.img}
+                                       style={{marginRight: '8px'}}></Image>
+                            </Tooltip>
+                            <div>{item.low}</div>
+                        </Flex>
+                    ))}
                 </td>
-                <td>{row.high}</td>
+
+                <td style={{verticalAlign: 'middle'}}>{row.high}</td>
                 <td style={{
                     color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
                     fontWeight: 'bold',
+                    verticalAlign: 'middle'
                 }}>
                     {row.profit}
                 </td>
-                <td><TableSettingsMenu itemId={row.id}/></td>
+                <td style={{verticalAlign: 'middle'}}><TableSettingsMenu itemId={row.id}/></td>
             </tr>
         )
     });
@@ -203,20 +225,20 @@ export function AllItemsTable({data}) {
                 icon={<IconSearch size="0.9rem" stroke={1.5}/>}
                 value={search}
                 onChange={handleSearchChange}
+                onClick={shouldResetField}
             />
             <ScrollArea>
 
-                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover
-                       striped={location.pathname !== "/combination-items"}>
+                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover>
 
                     <thead className={cx(classes.header, classes.scrolled)}>
                     <tr>
                         {/*<Th>Id</Th>*/}
                         <th colSpan={1}>Img</th>
-                        <th colSpan={2}>
+                        <th>
                             Name
                         </th>
-                        <th>Items</th>
+                        <th colSpan={2}>Items</th>
                         <th>Sell Price</th>
                         <th>
                             Profit

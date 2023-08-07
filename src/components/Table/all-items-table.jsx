@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {
+    Button,
     Center,
     createStyles,
     Group,
@@ -13,9 +14,9 @@ import {
     UnstyledButton,
     useMantineTheme
 } from '@mantine/core';
-import {IconChevronDown, IconChevronUp, IconSearch, IconSelector} from '@tabler/icons-react';
-import TableSettingsMenu from "./components/table-settings-menu.jsx";
+import {IconChevronDown, IconChevronUp, IconReceipt, IconSearch, IconSelector} from '@tabler/icons-react';
 import {Link, useLocation} from 'react-router-dom';
+import UsrTransactionModal from '../../shared/modals/user-transaction.jsx'
 
 const useStyles = createStyles((theme) => ({
     th: {
@@ -127,6 +128,7 @@ export function AllItemsTable({data}) {
     const {classes, cx} = useStyles();
     const [search, setSearch] = useState('');
     const [sortedData, setSortedData] = useState(data);
+    const [transactionModal, setTransactionModal] = useState(true)
     const [sortBy, setSortBy] = useState(null);
     const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
@@ -138,8 +140,9 @@ export function AllItemsTable({data}) {
     const currentPageData = sortedData.slice(startIndex, endIndex);
 
     useEffect(() => {
-        setSortedData(data);
-    }, [data]);
+        // Keep the search term intact when new data is grabbed
+        setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search}));
+    }, [data, sortBy, reverseSortDirection, search]);
 
     const setSorting = (field) => {
         const reversed = field === sortBy ? !reverseSortDirection : false;
@@ -158,7 +161,7 @@ export function AllItemsTable({data}) {
         return (
             <tr key={idx} style={{background: row.background ? theme.colors.gray[7] : ''}}>
                 {/*<td>{row.id}</td>*/}
-                <td colSpan={1}>
+                <td colSpan={1} style={{verticalAlign: 'middle'}}>
                     <Image
                         className={classes.image}
                         fit="contain"
@@ -172,22 +175,25 @@ export function AllItemsTable({data}) {
 
                 </td>
 
-                <td colSpan={2}>
+                <td colSpan={2} style={{verticalAlign: 'middle'}}>
                     <Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>
                         {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
 
                 </td>
-                <td>{row.low}</td>
-                <td>{row.high}</td>
+                <td style={{verticalAlign: 'middle'}}>{row.low}</td>
+                <td style={{verticalAlign: 'middle'}}>{row.high}</td>
                 <td style={{
                     color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
                     fontWeight: 'bold',
+                    verticalAlign: 'middle'
                 }}>
                     {row.profit}
                 </td>
-                <td>{row.limit}</td>
-                <td><TableSettingsMenu itemId={row.id}/></td>
+                <td style={{verticalAlign: 'middle'}}>{row.limit}</td>
+                <td style={{verticalAlign: 'middle'}}>
+                    <Button variant="light" onClick={() => setTransactionModal(true)}><IconReceipt size={14}/></Button>
+                </td>
             </tr>
         )
     });
@@ -195,6 +201,7 @@ export function AllItemsTable({data}) {
 
     return (
         <>
+            <UsrTransactionModal opened={transactionModal} setOpened={setTransactionModal}/>
             <TextInput
                 placeholder="Search by any field"
                 mb="md"

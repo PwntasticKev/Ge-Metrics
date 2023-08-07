@@ -57,7 +57,6 @@ export const resolvers = {
     Query: {
         async users() {
             const users = await prisma.users.findMany();
-            console.log("users", users);
             return users;
         },
         async user(_, {id}, ctx) {
@@ -71,7 +70,6 @@ export const resolvers = {
 
     Mutation: {
         async createUser(_, args) {
-            console.log("payload:", args.firebase_uid);
             // Connect to the Prisma Client
             try {
                 await prisma.$connect();

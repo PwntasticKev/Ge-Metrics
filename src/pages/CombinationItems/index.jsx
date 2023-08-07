@@ -3,9 +3,8 @@ import ItemSetsTable from "../../components/Table/item-sets-table.jsx";
 import ItemData from "../../utils/item-data.jsx";
 
 
-export default function AllItems() {
+export default function CombinationItems() {
     const {items, itemSets, mapStatus, priceStatus} = ItemData();
-
     return (
         <>
             {mapStatus === "error" || priceStatus === "error" && <p>Error fetching data</p>}
