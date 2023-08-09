@@ -27,13 +27,19 @@ ChartJS.register(
 
 export default function LineChart({id}) {
 
-console.log(id,'id---------------')
+    const [sortedData, setSortedData] = useState([]);
+
     const [timeframe, setTimeframe] = useState('1h')
 
     const {data, status: historyStatus} = useQuery({
         queryKey: ['priceData'],
         queryFn: async () => await getItemHistoryById(timeframe, id),
         // refetchInterval: 60 * 1000,
+        onSuccess: (data) => {
+            // Sort the data and update the sortedData state
+            const sorted = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
+            setSortedData(sorted);
+        },
     });
 
 
@@ -54,10 +60,12 @@ console.log(id,'id---------------')
 
     if (historyStatus === "success" && data) {
         // Sort the data based on the highTime property in ascending order
-        // const sortedData = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
-        const sortedData = []
+        console.log(sortedData,'sortedData')
         chartData = {
-            labels: sortedData.map(item => item.avgHighPrice),
+            labels: sortedData.map(item => {
+                const localDate = new Date(item.timestamp * 1000).toLocaleString(); // Convert UNIX timestamp to local time
+                return localDate;
+            }),
             datasets: [
                 {
                     label: 'Average High Price',
@@ -84,9 +92,13 @@ console.log(id,'id---------------')
                 </Center>
             )}
             {historyStatus === "success" && chartData && (
-                <Container size="70rem" px={0}>
-                    <Line options={options} data={chartData}/>
-                </Container>
+               <>
+                   <button onClick={() => setTimeframe('1hr')}>1hr</button>
+                   <button onClick={() => setTimeframe('24hr')}>24hr</button>
+                   <Container px={0}>
+                       <Line options={options} data={chartData}/>
+                   </Container>
+               </>
             )}
         </>
     );
