@@ -11,9 +11,8 @@ import {
 } from 'chart.js';
 import {Line} from 'react-chartjs-2';
 import {useQuery} from "react-query";
-import {getItemHistoryById} from "../../../api/rs-wiki-api.jsx";
+import {getItemHistoryById} from "../api/rs-wiki-api.jsx";
 import {Center, Container, Loader} from "@mantine/core";
-import {useParams} from "react-router-dom";
 
 ChartJS.register(
     CategoryScale,
@@ -26,9 +25,9 @@ ChartJS.register(
 );
 
 
-export function LineChart() {
-    const {id} = useParams();
+export default function LineChart({id}) {
 
+console.log(id,'id---------------')
     const [timeframe, setTimeframe] = useState('1h')
 
     const {data, status: historyStatus} = useQuery({
@@ -55,8 +54,8 @@ export function LineChart() {
 
     if (historyStatus === "success" && data) {
         // Sort the data based on the highTime property in ascending order
-        const sortedData = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
-
+        // const sortedData = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
+        const sortedData = []
         chartData = {
             labels: sortedData.map(item => item.avgHighPrice),
             datasets: [

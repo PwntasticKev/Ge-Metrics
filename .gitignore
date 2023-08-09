@@ -30,3 +30,6 @@ env
 schema.prisma
 \prisma\schema.prisma
 \schema.prisma
+prisma/schema.prisma
+exchange-rs/prisma/schema.prisma
+/schema.prisma

@@ -38,7 +38,7 @@ export const itemRecipes = [
     },
     {
         name: 'dragonfireShield',
-        itemSet: 22003,
+        itemSet: 11284,
         itemsToCreateSet: [11286, 1540]
     },
     {
@@ -163,6 +163,18 @@ export const itemRecipes = [
         itemSet: 26374,
         itemsToCreateSet: [11785, 26372, 26231],
         qty: {id: 26231, qty: 250}
+    },
+    {
+        name: 'Partyhat and Specs',
+        itemSet: 12399,
+        itemsToCreateSet: [1042, 12399],
+        conversionCost: 500,
+    },
+    {
+        name: 'Pirate Hat',
+        itemSet: 8928,
+        itemsToCreateSet: [2651, 19724],
+        conversionCost: 500,
     }
 ]
 

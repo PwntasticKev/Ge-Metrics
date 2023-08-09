@@ -1,9 +1,8 @@
 import {useEffect, useState} from 'react';
 import {
     Button,
-    Center,
     createStyles,
-    Group,
+    Flex,
     Image,
     Pagination,
     rem,
@@ -11,12 +10,12 @@ import {
     Table,
     Text,
     TextInput,
-    UnstyledButton,
     useMantineTheme
 } from '@mantine/core';
-import {IconChevronDown, IconChevronUp, IconReceipt, IconSearch, IconSelector} from '@tabler/icons-react';
+import {IconChartHistogram, IconReceipt, IconSearch} from '@tabler/icons-react';
 import {Link, useLocation} from 'react-router-dom';
 import UsrTransactionModal from '../../shared/modals/user-transaction.jsx'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 const useStyles = createStyles((theme) => ({
     th: {
@@ -70,25 +69,6 @@ const useStyles = createStyles((theme) => ({
     },
 }));
 
-function Th({children, reversed, sorted, onSort}) {
-    const {classes} = useStyles();
-    const Icon = sorted ? (reversed ? IconChevronUp : IconChevronDown) : IconSelector;
-    return (
-        <th className={classes.th}>
-            <UnstyledButton onClick={onSort} className={classes.control}>
-                <Group position="apart">
-                    <Text fz="sm">
-                        {children}
-                    </Text>
-                    <Center className={classes.icon}>
-                        <Icon size="0.9rem" stroke={1.5}/>
-                    </Center>
-                </Group>
-            </UnstyledButton>
-        </th>
-    );
-}
-
 function filterData(data, search) {
     const query = search.toLowerCase().trim();
     return data.filter((item) =>
@@ -128,7 +108,9 @@ export function AllItemsTable({data}) {
     const {classes, cx} = useStyles();
     const [search, setSearch] = useState('');
     const [sortedData, setSortedData] = useState(data);
-    const [transactionModal, setTransactionModal] = useState(true)
+    const [transactionModal, setTransactionModal] = useState(false)
+    const [graphModal, setGraphModal] = useState(false)
+    const [selectedItem, setSelectedItem] = useState(null)
     const [sortBy, setSortBy] = useState(null);
     const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
@@ -144,18 +126,17 @@ export function AllItemsTable({data}) {
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search}));
     }, [data, sortBy, reverseSortDirection, search]);
 
-    const setSorting = (field) => {
-        const reversed = field === sortBy ? !reverseSortDirection : false;
-        setReverseSortDirection(reversed);
-        setSortBy(field);
-        setSortedData(sortData(sortedData, {sortBy: field, reversed, search}));
-    };
+    const setGraphInfo = (id) => {
+        setGraphModal(true)
+        setSelectedItem(id)
+    }
 
     const handleSearchChange = (event) => {
         const {value} = event.currentTarget;
         setSearch(value);
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search: value}));
     };
+
     const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
@@ -192,7 +173,14 @@ export function AllItemsTable({data}) {
                 </td>
                 <td style={{verticalAlign: 'middle'}}>{row.limit}</td>
                 <td style={{verticalAlign: 'middle'}}>
-                    <Button variant="light" onClick={() => setTransactionModal(true)}><IconReceipt size={14}/></Button>
+                    <Flex gap="1">
+                        <Button variant="light" onClick={() => setTransactionModal(true)}>
+                            <IconReceipt size={14}/>
+                        </Button>
+                        <Button variant="light" onClick={() => setGraphInfo(row.id)}>
+                            <IconChartHistogram size={14}/>
+                        </Button>
+                    </Flex>
                 </td>
             </tr>
         )
@@ -202,6 +190,8 @@ export function AllItemsTable({data}) {
     return (
         <>
             <UsrTransactionModal opened={transactionModal} setOpened={setTransactionModal}/>
+            <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem}/>
+
             <TextInput
                 placeholder="Search by any field"
                 mb="md"

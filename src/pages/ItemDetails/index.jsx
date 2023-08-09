@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react'
-import {LineChart} from "./components/line-chart.jsx";
+import LineChart from "../../shared/line-chart.jsx";
 import {
     Accordion,
     Anchor,
