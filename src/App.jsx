@@ -51,7 +51,7 @@ export default function App() {
                 },
             }}>
 
-                <Router basename="/">
+                <Router>
                     <Routes>
                         {/* Common routes accessible to all users */}
                         <Route path="/login" element={<Login/>}/>
