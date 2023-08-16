@@ -173,8 +173,34 @@ export const itemRecipes = [
     {
         name: 'Pirate Hat',
         itemSet: 8928,
-        itemsToCreateSet: [2651, 19724],
+        itemsToCreateSet: [2651, 1025],
+        conversionCost: 500,
+    },
+    {
+        name: 'Double Eye patch',
+        itemSet: 19727,
+        itemsToCreateSet: [1025, 19724],
+        conversionCost: 500,
+    },
+    {
+        name: 'Pirate hat & patch',
+        itemSet: 8928,
+        itemsToCreateSet: [12355, 1025],
+        conversionCost: 500,
+    },
+    {
+        name: 'Cavalier mask',
+        itemSet: 11280,
+        itemsToCreateSet: [2643, 2631],
+        conversionCost: 500,
+    },
+    {
+        name: 'Top hat & monocle',
+        itemSet: 12434,
+        itemsToCreateSet: [12432, 12353],
         conversionCost: 500,
     }
+
+
 ]
 

@@ -31,8 +31,8 @@ export default function LineChart({id}) {
 
     const [timeframe, setTimeframe] = useState('1h')
 
-    const {data, status: historyStatus} = useQuery({
-        queryKey: ['priceData'],
+    const {data, status: historyStatus, refetch } = useQuery({
+        queryKey: ['historyData', timeframe, id],
         queryFn: async () => await getItemHistoryById(timeframe, id),
         // refetchInterval: 60 * 1000,
         onSuccess: (data) => {
@@ -93,8 +93,10 @@ export default function LineChart({id}) {
             )}
             {historyStatus === "success" && chartData && (
                <>
-                   <button onClick={() => setTimeframe('1hr')}>1hr</button>
-                   <button onClick={() => setTimeframe('24hr')}>24hr</button>
+                   <button onClick={() => setTimeframe('5m')}>5m</button>
+                   <button onClick={() => setTimeframe('1h')}>1hr</button>
+                   <button onClick={() => setTimeframe('6h')}>6hr</button>
+                   <button onClick={() => setTimeframe('24h')}>24hr</button>
                    <Container px={0}>
                        <Line options={options} data={chartData}/>
                    </Container>

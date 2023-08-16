@@ -5,8 +5,9 @@ import App from './App.jsx';
 import {AuthProvider} from './utils/firebase/auth-context.jsx'
 import {ApolloClient, ApolloProvider, InMemoryCache} from '@apollo/client';
 
+
 const client = new ApolloClient({
-    uri: 'http://localhost:4000/graphql',
+    uri: import.meta.env.VITE_APOLLO_URI,
     cache: new InMemoryCache(),
 });
 

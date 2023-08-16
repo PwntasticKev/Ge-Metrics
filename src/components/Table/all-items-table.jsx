@@ -141,7 +141,7 @@ export function AllItemsTable({data}) {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
             <tr key={idx} style={{background: row.background ? theme.colors.gray[7] : ''}}>
-                {/*<td>{row.id}</td>*/}
+                <td>{row.id}</td>
                 <td colSpan={1} style={{verticalAlign: 'middle'}}>
                     <Image
                         className={classes.image}
@@ -206,7 +206,7 @@ export function AllItemsTable({data}) {
 
                     <thead className={cx(classes.header, classes.scrolled)}>
                     <tr>
-                        {/*<Th>Id</Th>*/}
+                        <th>Id</th>
                         <th colSpan={1}>Img</th>
                         <th colSpan={2}>
                             Name
