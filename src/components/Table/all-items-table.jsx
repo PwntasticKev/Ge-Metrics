@@ -173,7 +173,7 @@ export function AllItemsTable({data}) {
                 </td>
                 <td style={{verticalAlign: 'middle'}}>{row.limit}</td>
                 <td style={{verticalAlign: 'middle'}}>
-                    <Flex gap="1">
+                    <Flex gap="xs">
                         <Button variant="light" onClick={() => setTransactionModal(true)}>
                             <IconReceipt size={14}/>
                         </Button>

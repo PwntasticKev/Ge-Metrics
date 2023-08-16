@@ -12,7 +12,7 @@ import {
 import {Line} from 'react-chartjs-2';
 import {useQuery} from "react-query";
 import {getItemHistoryById} from "../api/rs-wiki-api.jsx";
-import {Center, Container, Loader} from "@mantine/core";
+import {Button, Center, Container, Flex, Loader} from "@mantine/core";
 
 ChartJS.register(
     CategoryScale,
@@ -93,10 +93,12 @@ export default function LineChart({id}) {
             )}
             {historyStatus === "success" && chartData && (
                <>
-                   <button onClick={() => setTimeframe('5m')}>5m</button>
-                   <button onClick={() => setTimeframe('1h')}>1hr</button>
-                   <button onClick={() => setTimeframe('6h')}>6hr</button>
-                   <button onClick={() => setTimeframe('24h')}>24hr</button>
+                   <Flex gap="xs">
+                      <Button variant="light" onClick={() => setTimeframe('5m')}>5m</Button>
+                      <Button variant="light" onClick={() => setTimeframe('1h')}>1hr</Button>
+                      <Button variant="light" onClick={() => setTimeframe('6h')}>6hr</Button>
+                      <Button variant="light" onClick={() => setTimeframe('24h')}>24hr</Button>
+                   </Flex>
                    <Container px={0}>
                        <Line options={options} data={chartData}/>
                    </Container>
