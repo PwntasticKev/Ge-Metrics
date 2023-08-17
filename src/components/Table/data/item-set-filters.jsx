@@ -77,19 +77,22 @@ export const itemRecipes = [
         itemsToCreateSet: [11931, 11932, 11933]
     },
     {
-        name: 'masoriChapsF',
-        itemSet: 27232,
-        itemsToCreateSet: [27232, 27269]
-    },
-    {
         name: 'masoriHelmF',
-        itemSet: 27226,
-        itemsToCreateSet: [27226, 27269]
+        itemSet: 27235,
+        itemsToCreateSet: [27226, 27269],
+        qty: {id: 27269, qty: 1}
     },
     {
         name: 'masoriPlateF',
-        itemSet: 27229,
-        itemsToCreateSet: [27229, 27269]
+        itemSet: 27238,
+        itemsToCreateSet: [27229, 27269],
+        qty: {id: 27269, qty: 4}
+    },
+    {
+        name: 'masoriChapsF',
+        itemSet: 27241,
+        itemsToCreateSet: [27232, 27269],
+        qty: {id: 27269, qty: 3}
     },
     {
         name: 'masoriSetF',

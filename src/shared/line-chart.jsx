@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     CategoryScale,
     Chart as ChartJS,
@@ -13,6 +13,7 @@ import {Line} from 'react-chartjs-2';
 import {useQuery} from "react-query";
 import {getItemHistoryById} from "../api/rs-wiki-api.jsx";
 import {Button, Center, Container, Flex, Loader} from "@mantine/core";
+import {getItemById} from "../utils/utils.jsx";
 
 ChartJS.register(
     CategoryScale,
@@ -26,7 +27,11 @@ ChartJS.register(
 
 
 export default function LineChart({id}) {
+    const [item, setItem] = useState(null)
 
+    useEffect(() => {
+        setItem(getItemById(id))
+    }, [id])
     const [sortedData, setSortedData] = useState([]);
 
     const [timeframe, setTimeframe] = useState('1h')
@@ -37,8 +42,7 @@ export default function LineChart({id}) {
         // refetchInterval: 60 * 1000,
         onSuccess: (data) => {
             // Sort the data and update the sortedData state
-            const sorted = data.data.data.sort((a, b) => a.avgHighPrice - b.avgHighPrice);
-            setSortedData(sorted);
+            setSortedData(data.data.data);
         },
     });
 
@@ -51,7 +55,7 @@ export default function LineChart({id}) {
             },
             title: {
                 display: true,
-                text: `GE Metric data ${timeframe}`,
+                text: `${item?.name}: Time: ${timeframe}`,
             },
         },
     };

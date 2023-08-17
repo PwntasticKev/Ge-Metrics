@@ -4,7 +4,7 @@ import LineChart from '../../shared/line-chart.jsx'
 export default function UserTransaction({opened, setOpened, id}) {
     return (
         <>
-            <Modal opened={opened} onClose={() => setOpened(false)} title={`Chart Interval`} centered size="xl">
+            <Modal opened={opened} onClose={() => setOpened(false)} centered size="xl">
 
                 <Box>
                     <Container px={0}>
