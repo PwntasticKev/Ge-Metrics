@@ -1,6 +1,5 @@
 import React, {useContext, useState} from 'react'
 import {BrowserRouter as Router, Outlet, Route, Routes} from "react-router-dom";
-import LoggingIn from "./pages/logging-in.jsx";
 import ErrorPage from "./pages/error-page.jsx";
 import AllItems from "./pages/AllItems";
 import CombinationItems from "./pages/CombinationItems";
@@ -53,12 +52,10 @@ export default function App() {
 
                 <Router>
                     <Routes>
-                        {/* Common routes accessible to all users */}
-                        <Route path="/login" element={<Login/>}/>
                         <Route path="/signup" element={<Signup/>}/>
 
-                        {/* Protected routes accessible only to logged-in users */}
-                        {loggedIn ? (
+                        {
+                            loggedIn ? (
                             <Route
                                 element={
                                     <AppShell
@@ -93,8 +90,7 @@ export default function App() {
                             </Route>
                         ) : (
 
-                            user ? <Route path="*" element={<LoggingIn/>}/> :
-                                <Route path="/login" element={<Login/>}/>
+                                <Route path="/" element={<Login/>}/>
 
                         )}
 

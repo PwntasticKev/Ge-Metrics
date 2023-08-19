@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup} from 'firebase/auth';
 import {IconBrandGoogle} from '@tabler/icons-react';
@@ -43,16 +42,20 @@ const useStyles = createStyles((theme) => ({
 }));
 
 export default function Login() {
-    const [password, setPassword] = useState('');
-    const [email, setEmail] = useState('');
     const {classes} = useStyles();
     const navigate = useNavigate();
 
     const form = useForm({
         initialValues: {
-            name: '',
+            email: '',
             password: ''
         },
+
+        initialErrors: {
+            password: '',
+            email: '',
+        },
+
         validate: {
             email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
             password: (value) => (/^(?=.*[!@#$%^&*()_+])(?=.{6,}).*$/.test(value) ? null : 'Must have 6 digits, special char,'),
@@ -60,7 +63,9 @@ export default function Login() {
     });
 
     const handleLogin = (e) => {
+        const {email, password} = form.values;
         e.preventDefault();
+        console.log(email, password,'email, password')
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
                 // Signed in
@@ -101,7 +106,6 @@ export default function Login() {
                         label="Email address"
                         placeholder="hello@gmail.com"
                         size="md"
-                        onChange={(e) => setEmail(e.target.value)}
                         {...form.getInputProps('email')}
                     />
 
@@ -110,7 +114,6 @@ export default function Login() {
                         placeholder="Your password"
                         mt="md"
                         size="md"
-                        onChange={(e) => setPassword(e.target.value)}
                         {...form.getInputProps('password')}
                     />
                     <Checkbox label="Keep me logged in" mt="xl" size="md"/>
