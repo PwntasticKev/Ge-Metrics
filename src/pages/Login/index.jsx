@@ -66,16 +66,25 @@ export default function Login() {
         const {email, password} = form.values;
         e.preventDefault();
         console.log(email, password,'email, password')
-        signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                // Signed in
-                const user = userCredential.user;
-                navigate('/');
-            })
-            .catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
-            });
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // Signed in
+                    const user = userCredential.user;
+                    navigate('/');
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error('Error Logging in user:', errorCode, errorMessage);
+
+                    if (errorCode === 'auth/email-already-in-use') {
+                        form.setErrors({email: 'Email is already in use'});
+                    } else {
+                        form.setErrors({firebase: 'An error occurred during registration'});
+                    }
+                });
+
     };
 
     const handleSignInWithGoogle = () => {
@@ -106,6 +115,7 @@ export default function Login() {
                         label="Email address"
                         placeholder="hello@gmail.com"
                         size="md"
+                        error={form.errors.email}
                         {...form.getInputProps('email')}
                     />
 
@@ -114,6 +124,7 @@ export default function Login() {
                         placeholder="Your password"
                         mt="md"
                         size="md"
+                        error={form.errors.password}
                         {...form.getInputProps('password')}
                     />
                     <Checkbox label="Keep me logged in" mt="xl" size="md"/>
