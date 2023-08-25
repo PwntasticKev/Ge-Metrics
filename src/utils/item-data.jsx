@@ -59,32 +59,32 @@ const ItemData = () => {
         }
     }, [priceData, pricesById]);
 
-    useEffect(() => {
-        const allItemsByDeathsCoffer = mapItems.reduce((accumulated, item) => {
-            const priceById = pricesById?.[item.id] || {};
-            const profit =
-                priceById.highalch !== undefined && priceById.low !== undefined
-                    ? new Intl.NumberFormat().format(
-                        Math.floor(Number(priceById.highalch) - Number(priceById.low))
-                    )
-                    : '';
-            const low =
-                priceById.low !== undefined
-                    ? new Intl.NumberFormat().format(parseInt(priceById.low, 10))
-                    : '';
-
-            const newItem = {
-                ...item,
-                ...priceById,
-                profit,
-                low,
-            };
-
-            accumulated.push(newItem);
-            return accumulated;
-        })
-        setDeathsCofferItems(allItemsByDeathsCoffer)
-    }, [priceData, pricesById]);
+    // useEffect(() => {
+    //     const allItemsByDeathsCoffer = mapItems.reduce((accumulated, item) => {
+    //         const priceById = pricesById?.[item.id] || {};
+    //         const profit =
+    //             priceById.highalch !== undefined && priceById.low !== undefined
+    //                 ? new Intl.NumberFormat().format(
+    //                     Math.floor(Number(priceById.highalch) - Number(priceById.low))
+    //                 )
+    //                 : '';
+    //         const low =
+    //             priceById.low !== undefined
+    //                 ? new Intl.NumberFormat().format(parseInt(priceById.low, 10))
+    //                 : '';
+    //
+    //         const newItem = {
+    //             ...item,
+    //             ...priceById,
+    //             profit,
+    //             low,
+    //         };
+    //
+    //         accumulated.push(newItem);
+    //         return accumulated;
+    //     })
+    //     setDeathsCofferItems(allItemsByDeathsCoffer)
+    // }, [priceData, pricesById]);
 
     return {
         priceStatus,
