@@ -1,5 +1,3 @@
-import React from 'react'
-
 export const itemRecipes = [
     {
         name: 'abyssalDagger',
@@ -85,14 +83,12 @@ export const itemRecipes = [
     {
         name: 'masoriPlateF',
         itemSet: 27238,
-        itemsToCreateSet: [27229, 27269],
-        qty: {id: 27269, qty: 4}
+        itemsToCreateSet: [27229, 11828]
     },
     {
         name: 'masoriChapsF',
         itemSet: 27241,
-        itemsToCreateSet: [27232, 27269],
-        qty: {id: 27269, qty: 3}
+        itemsToCreateSet: [27232, 11830]
     },
     {
         name: 'masoriSetF',
@@ -134,14 +130,12 @@ export const itemRecipes = [
     {
         name: 'torvaLegs',
         itemSet: 26386,
-        itemsToCreateSet: [26380, 26394],
-        qty: {id: 26394, qty: 2}
+        itemsToCreateSet: [26380, 11834]
     },
     {
         name: 'torvaPlate',
         itemSet: 26384,
-        itemsToCreateSet: [26378, 26394],
-        qty: {id: 26394, qty: 2}
+        itemsToCreateSet: [26378, 11832]
     },
     {
         name: 'toxicStaff',
