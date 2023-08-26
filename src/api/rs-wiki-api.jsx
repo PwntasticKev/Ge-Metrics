@@ -12,6 +12,18 @@ export const getPricingData = () => {
     })();
 };
 
+export const getDmmPricingData = () => {
+    return (async () => {
+        try {
+            return axios.get(
+                'https://prices.runescape.wiki/api/v1/osrs/latest'
+            )
+        } catch (error) {
+            console.error('Error fetching Pricing data:', error);
+        }
+    })();
+};
+
 export const getMappingData = () => {
     return axios.get(
         'https://prices.runescape.wiki/api/v1/osrs/mapping'

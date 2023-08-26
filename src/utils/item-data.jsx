@@ -1,15 +1,15 @@
 import {useEffect, useState} from 'react';
 import {useQuery} from 'react-query';
-import {getMappingData, getPricingData} from '../api/rs-wiki-api.jsx'
+import {getDmmPricingData, getMappingData, getPricingData} from '../api/rs-wiki-api.jsx'
 import {allItems, getItemSetProfit} from "../utils/utils.jsx";
 import {itemRecipes} from "../components/Table/data/item-set-filters.jsx";
 
 const ItemData = () => {
     const storedData = localStorage.getItem('mappingData');
-
+    const gameMode = localStorage.getItem('gameMode')
     const {data: priceData, status: priceStatus} = useQuery({
         queryKey: ['priceData'],
-        queryFn: async () => await getPricingData(),
+        queryFn: async () => gameMode === 'dmm' ? await getDmmPricingData() : await getPricingData(),
         refetchInterval: 60 * 1000,
     });
 
