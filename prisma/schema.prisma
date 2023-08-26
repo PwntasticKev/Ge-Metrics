@@ -1,11 +1,86 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("POSTGRES_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model favorites {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  visibility Boolean?
+  updated_at DateTime? @db.Timestamptz(6)
+}
+
+model goals {
+  id         Int       @id
+  user_id    Int?
+  goal_price Int?
+  updated_at DateTime? @db.Timestamptz(6)
+}
+
+model subscriptions {
+  id                Int       @id
+  user_id           Int?
+  plan              String?   @db.Char
+  start_date        DateTime? @db.Timestamptz(6)
+  end_date          DateTime? @db.Timestamptz(6)
+  status            String?   @db.Char
+  payment_method    String?   @db.Char
+  last_payment_date DateTime? @db.Timestamptz(6)
+  next_payment_date DateTime? @db.Timestamptz(6)
+  auto_renewal      String?   @db.Char
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model transactions {
+  id          Int       @default(autoincrement())
+  user_id     Int?
+  date        DateTime? @db.Timestamptz(6)
+  description String?   @db.VarChar(300)
+  amount      BigInt?
+  notes       String?   @db.Char
+  created_at  DateTime? @db.Timestamp(6)
+  updated_at  DateTime? @db.Timestamp(6)
+  deleted_at  DateTime? @db.Timestamp(6)
+
+  @@ignore
+}
+
+model users {
+  id             Int       @id @default(autoincrement())
+  name           String?   @db.VarChar(50)
+  runescape_name String?   @db.VarChar(50)
+  membership     Int?
+  email          String?   @db.VarChar(50)
+  img            String?
+  password       String?   @db.VarChar(50)
+  timezone       String?   @db.VarChar
+  created_at     DateTime? @db.Timestamp(6)
+  deleted_at     DateTime? @db.Time(6)
+  updated_at     DateTime? @db.Time(6)
+  firebase_uid   String?   @db.VarChar(100)
+}
+
+model parties {
+  party_id       Int      @id
+  user_id        Int?
+  clan_id        Int?
+  creator_id     Int?
+  is_invite_only Boolean?
+}
+
+model party_items {
+  id       Int  @id
+  item_id  Int?
+  party_id Int?
+}
+
+model party_members {
+  id       Int  @id
+  user_id  Int?
+  party_id Int?
 }
