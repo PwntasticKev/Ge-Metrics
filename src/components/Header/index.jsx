@@ -20,14 +20,15 @@ export default function HeaderNav({opened, setOpened}) {
                 <Flex>
                     <IconCoins size={24} color="gold"/>
                     <Text style={{fontWeight: 'bold', marginLeft: 10}}>GE Metrics</Text>
-                    <Switch
-                        checked={checked}
-                        onLabel="DMM"
-                        offLabel="Normal"
-                        onChange={setGameMode}
-                    />
+
                 </Flex>
             </Link>
+            <Switch
+                checked={checked}
+                onLabel="DMM"
+                offLabel="Normal"
+                onChange={setGameMode}
+            />
             <Flex justify="space-between" align="center">
                 <AvatarMenu/>
                 <MediaQuery largerThan="sm" styles={{display: 'none'}}>
