@@ -1,5 +1,5 @@
 import {Burger, Flex, Group, Header, MediaQuery, Switch, Text, useMantineTheme} from '@mantine/core';
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {IconCoins} from '@tabler/icons-react';
 import AvatarMenu from './components/avatar-menu.jsx'
 import {Link} from "react-router-dom";
@@ -11,7 +11,7 @@ export default function HeaderNav({opened, setOpened}) {
 
     useEffect(() => {
         setChecked(localStorage.getItem('gameMode'))
-    })
+    }, [checked])
     const setGameMode = (e) => {
         setChecked(e.currentTarget.checked)
         localStorage.setItem('gameMode', checked ? JSON.stringify('') : JSON.stringify('dmm'))
