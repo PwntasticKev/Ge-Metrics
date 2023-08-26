@@ -16,10 +16,10 @@ export const getDmmPricingData = () => {
     return (async () => {
         try {
             return axios.get(
-                'https://prices.runescape.wiki/api/v1/osrs/latest'
+                'prices.runescape.wiki/api/v1/dmm/latest'
             )
         } catch (error) {
-            console.error('Error fetching Pricing data:', error);
+            console.error('Error fetching Pricing data for DMM:', error);
         }
     })();
 };
