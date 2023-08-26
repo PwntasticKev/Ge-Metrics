@@ -9,9 +9,12 @@ export default function HeaderNav({opened, setOpened}) {
     const theme = useMantineTheme();
     const [checked, setChecked] = useState(false);
 
+    useEffect(() => {
+        setChecked(localStorage.getItem('gameMode'))
+    })
     const setGameMode = (e) => {
         setChecked(e.currentTarget.checked)
-        localStorage.setItem('gameMode', checked ? JSON.stringify('dmm') : JSON.stringify(''))
+        localStorage.setItem('gameMode', checked ? JSON.stringify('') : JSON.stringify('dmm'))
     }
 
     return <Header height={60} p="xs">
