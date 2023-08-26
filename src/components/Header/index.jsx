@@ -11,7 +11,7 @@ export default function HeaderNav({opened, setOpened}) {
 
     useEffect(() => {
         setChecked(localStorage.getItem('gameMode'))
-    }, [checked])
+    }, [])
     const setGameMode = (e) => {
         setChecked(e.currentTarget.checked)
         localStorage.setItem('gameMode', checked ? JSON.stringify('') : JSON.stringify('dmm'))
