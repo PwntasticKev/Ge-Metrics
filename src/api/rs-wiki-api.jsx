@@ -3,6 +3,7 @@ import axios from "axios";
 export const getPricingData = () => {
     return (async () => {
         try {
+            console.log('latest greatest')
             return axios.get(
                 'https://prices.runescape.wiki/api/v1/osrs/latest'
             )
@@ -14,9 +15,10 @@ export const getPricingData = () => {
 
 export const getDmmPricingData = () => {
     return (async () => {
+        console.log('dmm')
         try {
             return axios.get(
-                'prices.runescape.wiki/api/v1/dmm/latest'
+                'https://prices.runescape.wiki/api/v1/dmm/latest'
             )
         } catch (error) {
             console.error('Error fetching Pricing data for DMM:', error);

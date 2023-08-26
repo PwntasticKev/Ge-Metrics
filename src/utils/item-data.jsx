@@ -7,9 +7,10 @@ import {itemRecipes} from "../components/Table/data/item-set-filters.jsx";
 const ItemData = () => {
     const storedData = localStorage.getItem('mappingData');
     const gameMode = localStorage.getItem('gameMode')
+    console.log(JSON.stringify(JSON.parse(gameMode)))
     const {data: priceData, status: priceStatus} = useQuery({
-        queryKey: ['priceData'],
-        queryFn: async () => gameMode === 'dmm' ? await getDmmPricingData() : await getPricingData(),
+        queryKey: ['priceData', gameMode],
+        queryFn: async () => JSON.parse(gameMode) === 'dmm' ? await getDmmPricingData() : await getPricingData(),
         refetchInterval: 60 * 1000,
     });
 
