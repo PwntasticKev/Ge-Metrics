@@ -27,6 +27,7 @@ export default function HeaderNav({opened, setOpened}) {
                 checked={checked}
                 onLabel="DMM"
                 offLabel="Normal"
+                size="lg"
                 onChange={setGameMode}
             />
             <Flex justify="space-between" align="center">
