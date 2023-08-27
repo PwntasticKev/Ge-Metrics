@@ -1,9 +1,8 @@
 import {useEffect, useState} from 'react';
 import {
-    Center,
+    Button,
     createStyles,
     Flex,
-    Group,
     Image,
     Pagination,
     rem,
@@ -11,13 +10,12 @@ import {
     Table,
     Text,
     TextInput,
-    Tooltip,
-    UnstyledButton,
     useMantineTheme
 } from '@mantine/core';
-import {IconChevronDown, IconChevronUp, IconSearch, IconSelector} from '@tabler/icons-react';
-import TableSettingsMenu from "./components/table-settings-menu.jsx";
+import {IconChartHistogram, IconReceipt, IconSearch} from '@tabler/icons-react';
 import {Link, useLocation} from 'react-router-dom';
+import UsrTransactionModal from '../../shared/modals/user-transaction.jsx'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 const useStyles = createStyles((theme) => ({
     th: {
@@ -71,25 +69,6 @@ const useStyles = createStyles((theme) => ({
     },
 }));
 
-function Th({children, reversed, sorted, onSort}) {
-    const {classes} = useStyles();
-    const Icon = sorted ? (reversed ? IconChevronUp : IconChevronDown) : IconSelector;
-    return (
-        <th className={classes.th}>
-            <UnstyledButton onClick={onSort} className={classes.control}>
-                <Group position="apart">
-                    <Text fz="sm">
-                        {children}
-                    </Text>
-                    <Center className={classes.icon}>
-                        <Icon size="0.9rem" stroke={1.5}/>
-                    </Center>
-                </Group>
-            </UnstyledButton>
-        </th>
-    );
-}
-
 function filterData(data, search) {
     const query = search.toLowerCase().trim();
     return data.filter((item) =>
@@ -124,10 +103,14 @@ function sortData(data, payload) {
 
 export function DeathsCofferTable({data}) {
     const theme = useMantineTheme();
+    const location = useLocation();
 
     const {classes, cx} = useStyles();
     const [search, setSearch] = useState('');
     const [sortedData, setSortedData] = useState(data);
+    const [transactionModal, setTransactionModal] = useState(false)
+    const [graphModal, setGraphModal] = useState(false)
+    const [selectedItem, setSelectedItem] = useState(null)
     const [sortBy, setSortBy] = useState(null);
     const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
@@ -143,23 +126,23 @@ export function DeathsCofferTable({data}) {
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search}));
     }, [data, sortBy, reverseSortDirection, search]);
 
+    const setGraphInfo = (id) => {
+        setGraphModal(true)
+        setSelectedItem(id)
+    }
+
     const handleSearchChange = (event) => {
         const {value} = event.currentTarget;
         setSearch(value);
         setSortedData(sortData(data, {sortBy, reversed: reverseSortDirection, search: value}));
     };
 
-    const shouldResetField = () => {
-        setSearch('');
-    }
-
     const rows = currentPageData.map((row, idx) => {
         const profitValue = Number(row.profit.replace(/,/g, ''))
         return (
-            <tr key={idx}>
-                {/*<td>{row.id}</td>*/}
+            <tr key={idx} style={{background: row.background ? theme.colors.gray[7] : ''}}>
+                <td>{row.id}</td>
                 <td colSpan={1} style={{verticalAlign: 'middle'}}>
-
                     <Image
                         className={classes.image}
                         fit="contain"
@@ -173,29 +156,14 @@ export function DeathsCofferTable({data}) {
 
                 </td>
 
-                <td style={{verticalAlign: 'middle'}}>
+                <td colSpan={2} style={{verticalAlign: 'middle'}}>
                     <Link to={`/item/${row.id}`} style={{textDecoration: 'none'}}>
                         {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
 
                 </td>
-                <td colSpan={2} style={{verticalAlign: 'middle'}}>
-                    {row.items.map((item, idx) => (
-                        <Flex key={idx}>
-                            <Tooltip label={
-                                item.qty
-                                    ? `${item.name} (${item.qty})`
-                                    : item.name
-                            } position="left">
-                                <Image fit="contain" width={25} height={25} src={item.img}
-                                       style={{marginRight: '8px'}}></Image>
-                            </Tooltip>
-                            <div>{item.low}</div>
-                        </Flex>
-                    ))}
-                </td>
-
-                <td style={{verticalAlign: 'middle'}}>{row.high}</td>
+                <td style={{verticalAlign: 'middle'}}>{row.low}</td>
+                <td style={{verticalAlign: 'middle'}}>{row.highalch}</td>
                 <td style={{
                     color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
                     fontWeight: 'bold',
@@ -203,8 +171,16 @@ export function DeathsCofferTable({data}) {
                 }}>
                     {row.profit}
                 </td>
+                <td style={{verticalAlign: 'middle'}}>{row.limit}</td>
                 <td style={{verticalAlign: 'middle'}}>
-                    <TableSettingsMenu itemId={row.id}/>
+                    <Flex gap="xs">
+                        <Button variant="light" onClick={() => setTransactionModal(true)}>
+                            <IconReceipt size={14}/>
+                        </Button>
+                        <Button variant="light" onClick={() => setGraphInfo(row.id)}>
+                            <IconChartHistogram size={14}/>
+                        </Button>
+                    </Flex>
                 </td>
             </tr>
         )
@@ -213,30 +189,34 @@ export function DeathsCofferTable({data}) {
 
     return (
         <>
+            <UsrTransactionModal opened={transactionModal} setOpened={setTransactionModal}/>
+            <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem}/>
+
             <TextInput
                 placeholder="Search by any field"
                 mb="md"
                 icon={<IconSearch size="0.9rem" stroke={1.5}/>}
                 value={search}
                 onChange={handleSearchChange}
-                onClick={shouldResetField}
             />
             <ScrollArea>
 
-                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover>
+                <Table sx={{minWidth: 800}} verticalSpacing="xs" highlightOnHover
+                       striped={location.pathname !== "/combination-items"}>
 
                     <thead className={cx(classes.header, classes.scrolled)}>
                     <tr>
-                        {/*<Th>Id</Th>*/}
+                        <th>Id</th>
                         <th colSpan={1}>Img</th>
-                        <th>
+                        <th colSpan={2}>
                             Name
                         </th>
-                        <th colSpan={2}>Items</th>
-                        <th>Sell Price</th>
+                        <th>Buy Price</th>
+                        <th>Alch Price</th>
                         <th>
                             Profit
                         </th>
+                        <th>Buy Limit</th>
                         <th>Settings</th>
                     </tr>
                     </thead>

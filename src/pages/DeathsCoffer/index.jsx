@@ -1,10 +1,11 @@
 import {Box, Center, Loader} from '@mantine/core'
-import ItemSetsTable from "../../components/Table/item-sets-table.jsx";
+import DeathsCofferTable from "../../components/Table/deaths-coffer-table.jsx";
 import ItemData from "../../utils/item-data.jsx";
 
 
 export default function DeathsCoffer() {
     const {deathsCofferItems, mapStatus, priceStatus} = ItemData();
+
     return (
         <>
             {mapStatus === "error" || priceStatus === "error" && <p>Error fetching data</p>}
@@ -16,7 +17,7 @@ export default function DeathsCoffer() {
             }
             {priceStatus === "success" && deathsCofferItems.length > 0 && (
                 <Box sx={{py: 4}}>
-                    <ItemSetsTable data={deathsCofferItems}/>
+                    <DeathsCofferTable data={deathsCofferItems}/>
                 </Box>
             )}
 

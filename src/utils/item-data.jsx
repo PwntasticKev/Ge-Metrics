@@ -7,7 +7,7 @@ import {itemRecipes} from "../components/Table/data/item-set-filters.jsx";
 const ItemData = () => {
     const storedData = localStorage.getItem('mappingData');
     const gameMode = localStorage.getItem('gameMode')
-    console.log(JSON.stringify(JSON.parse(gameMode)))
+
     const {data: priceData, status: priceStatus} = useQuery({
         queryKey: ['priceData', gameMode],
         queryFn: async () => JSON.parse(gameMode) === 'dmm' ? await getDmmPricingData() : await getPricingData(),
@@ -60,8 +60,40 @@ const ItemData = () => {
         }
     }, [priceData, pricesById]);
 
+    useEffect(() => {
+        if (items.length > 0) {
+            const allItemsByDeathsCoffer = items.reduce((accumulated, item) => {
+                const priceById = pricesById?.[item.id] || {};
+                const natureRune = pricesById?.[561] || {};
+console.log('priceById', priceById, natureRune)
+                const profit =
+                    priceById.highalch !== undefined && priceById.low !== undefined
+                        ? new Intl.NumberFormat().format(
+                            Math.floor(Number(priceById.highalch) - Number(priceById.low) - natureRune.low)
+                        )
+                        : '';
+                const low =
+                    priceById.low !== undefined
+                        ? new Intl.NumberFormat().format(parseInt(priceById.low, 10))
+                        : '';
+
+                const newItem = {
+                    ...item,
+                    ...priceById,
+                    profit,
+                    low,
+                };
+
+                accumulated.push(newItem);
+                return accumulated;
+            }, []); // Provide an empty array as the initial value for 'accumulated'
+            setDeathsCofferItems(allItemsByDeathsCoffer);
+        }
+    }, [priceData, pricesById, items]);
+
+
     // useEffect(() => {
-    //     const allItemsByDeathsCoffer = mapItems.reduce((accumulated, item) => {
+    //     const allItemsByHighAlch = mapItems.reduce((accumulated, item) => {
     //         const priceById = pricesById?.[item.id] || {};
     //         const profit =
     //             priceById.highalch !== undefined && priceById.low !== undefined
@@ -84,7 +116,7 @@ const ItemData = () => {
     //         accumulated.push(newItem);
     //         return accumulated;
     //     })
-    //     setDeathsCofferItems(allItemsByDeathsCoffer)
+    //     setDeathsCofferItems(allItemsByHighAlch)
     // }, [priceData, pricesById]);
 
     return {

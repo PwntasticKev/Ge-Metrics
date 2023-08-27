@@ -65,7 +65,6 @@ export default function Login() {
     const handleLogin = (e) => {
         const {email, password} = form.values;
         e.preventDefault();
-        console.log(email, password,'email, password')
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
