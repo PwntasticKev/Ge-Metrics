@@ -25,7 +25,8 @@ export default function App () {
 
   // const theme = useMantineTheme();
   const [opened, setOpened] = useState(false)
-  const { loggedIn, user } = useContext(AuthContext)
+  //   const { loggedIn, user } = useContext(AuthContext)
+  const loggedIn = true
 
   return (
 
@@ -53,6 +54,10 @@ export default function App () {
                 <Router>
                     <Routes>
                         <Route path="/signup" element={<Signup/>}/>
+
+                        {
+                            loggedIn
+                              ? (
                             <Route
                                 element={
                                     <AppShell
@@ -85,6 +90,12 @@ export default function App () {
                                 <Route path="*" element={<ErrorPage/>}/>
                                 <Route path="/profile/:id" element={<Profile/>}/>
                             </Route>
+                                )
+                              : (
+
+                                <Route path="/" element={<Login/>}/>
+
+                                )}
 
                     </Routes>
                 </Router>
