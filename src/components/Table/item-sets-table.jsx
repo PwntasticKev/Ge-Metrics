@@ -115,17 +115,17 @@ function sortData (data, payload) {
       let aValue = a[sortBy]
       let bValue = b[sortBy]
 
-      // Handle numeric sorting for profit
+      // Handle profit specifically for numeric sorting
       if (sortBy === 'profit') {
         aValue = parseFloat(aValue.replace(/,/g, '')) || 0
         bValue = parseFloat(bValue.replace(/,/g, '')) || 0
       }
 
-      // Sort direction
+      // Handle numeric comparisons
       if (reversed) {
-        return aValue < bValue ? 1 : -1
+        return bValue - aValue // Descending
       }
-      return aValue > bValue ? 1 : -1
+      return aValue - bValue // Ascending
     }),
     search
   )
