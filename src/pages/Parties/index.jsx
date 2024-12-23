@@ -1,7 +1,7 @@
-import {Flex, Grid} from '@mantine/core';
+import { Flex, Grid } from '@mantine/core'
 
-export default function Parties() {
-    return <>
+export default function Parties () {
+  return <>
         <Grid grow>
             <Grid.Col span={4}>
                 <Flex direction="column">

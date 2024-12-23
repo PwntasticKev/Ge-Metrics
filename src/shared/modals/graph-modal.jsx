@@ -1,8 +1,8 @@
-import {Box, Container, Modal} from "@mantine/core";
+import { Box, Container, Modal } from '@mantine/core'
 import LineChart from '../../shared/line-chart.jsx'
 
-export default function UserTransaction({opened, setOpened, id}) {
-    return (
+export default function UserTransaction ({ opened, setOpened, id }) {
+  return (
         <>
             <Modal opened={opened} onClose={() => setOpened(false)} centered size="xl">
 
@@ -13,5 +13,5 @@ export default function UserTransaction({opened, setOpened, id}) {
                 </Box>
             </Modal>
         </>
-    );
+  )
 }

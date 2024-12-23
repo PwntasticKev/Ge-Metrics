@@ -1,108 +1,107 @@
-import {Link, useNavigate} from 'react-router-dom';
-import {GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup} from 'firebase/auth';
-import {IconBrandGoogle} from '@tabler/icons-react';
-import {auth} from '../../firebase.jsx';
+import { Link, useNavigate } from 'react-router-dom'
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
+import { IconBrandGoogle } from '@tabler/icons-react'
+import { auth } from '../../firebase.jsx'
 import {
-    Button,
-    Checkbox,
-    createStyles,
-    Divider,
-    Paper,
-    PasswordInput,
-    rem,
-    Text,
-    TextInput,
-    Title
-} from '@mantine/core';
-import {useForm} from "@mantine/form";
-import bg from "../../assets/gehd.png";
+  Button,
+  Checkbox,
+  createStyles,
+  Divider,
+  Paper,
+  PasswordInput,
+  rem,
+  Text,
+  TextInput,
+  Title
+} from '@mantine/core'
+import { useForm } from '@mantine/form'
+import bg from '../../assets/gehd.png'
 
 const useStyles = createStyles((theme) => ({
-    wrapper: {
-        minHeight: rem(900),
-        backgroundSize: 'cover',
-        backgroundImage: `url(${bg})`
-    },
-    form: {
-        borderRight: `${rem(1)} solid ${
+  wrapper: {
+    minHeight: rem(900),
+    backgroundSize: 'cover',
+    backgroundImage: `url(${bg})`
+  },
+  form: {
+    borderRight: `${rem(1)} solid ${
             theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[3]
         }`,
-        minHeight: '100vh',
-        maxWidth: rem(450),
-        paddingTop: rem(80),
+    minHeight: '100vh',
+    maxWidth: rem(450),
+    paddingTop: rem(80),
 
-        [theme.fn.smallerThan('sm')]: {
-            maxWidth: '100%',
-        },
+    [theme.fn.smallerThan('sm')]: {
+      maxWidth: '100%'
+    }
+  },
+  title: {
+    color: theme.colorScheme === 'dark' ? theme.white : theme.black,
+    fontFamily: `Greycliff CF, ${theme.fontFamily}`
+  }
+}))
+
+export default function Login () {
+  const { classes } = useStyles()
+  const navigate = useNavigate()
+
+  const form = useForm({
+    initialValues: {
+      email: '',
+      password: ''
     },
-    title: {
-        color: theme.colorScheme === 'dark' ? theme.white : theme.black,
-        fontFamily: `Greycliff CF, ${theme.fontFamily}`,
+
+    initialErrors: {
+      password: '',
+      email: ''
     },
-}));
 
-export default function Login() {
-    const {classes} = useStyles();
-    const navigate = useNavigate();
+    validate: {
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+      password: (value) => (/^(?=.*[!@#$%^&*()_+])(?=.{6,}).*$/.test(value) ? null : 'Must have 6 digits, special char,')
+    }
+  })
 
-    const form = useForm({
-        initialValues: {
-            email: '',
-            password: ''
-        },
+  const handleLogin = (e) => {
+    const { email, password } = form.values
+    e.preventDefault()
 
-        initialErrors: {
-            password: '',
-            email: '',
-        },
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed in
+        const user = userCredential.user
+        navigate('/')
+      })
+      .catch((error) => {
+        const errorCode = error.code
+        const errorMessage = error.message
+        console.error('Error Logging in user:', errorCode, errorMessage)
 
-        validate: {
-            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
-            password: (value) => (/^(?=.*[!@#$%^&*()_+])(?=.{6,}).*$/.test(value) ? null : 'Must have 6 digits, special char,'),
-        },
-    });
+        if (errorCode === 'auth/email-already-in-use') {
+          form.setErrors({ email: 'Email is already in use' })
+        } else {
+          form.setErrors({ firebase: 'An error occurred during registration' })
+        }
+      })
+  }
 
-    const handleLogin = (e) => {
-        const {email, password} = form.values;
-        e.preventDefault();
+  const handleSignInWithGoogle = () => {
+    const provider = new GoogleAuthProvider()
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    // Signed in
-                    const user = userCredential.user;
-                    navigate('/');
-                })
-                .catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    console.error('Error Logging in user:', errorCode, errorMessage);
+    signInWithPopup(auth, provider)
+      .then((userCredential) => {
+        // User signed in successfully
+        const user = userCredential.user
+      })
+      .catch((error) => {
+        // Error occurred during sign-in
+        const errorCode = error.code
+        const errorMessage = error.message
+        console.error('Error signing in with Google:', errorCode, errorMessage)
+      })
+  }
 
-                    if (errorCode === 'auth/email-already-in-use') {
-                        form.setErrors({email: 'Email is already in use'});
-                    } else {
-                        form.setErrors({firebase: 'An error occurred during registration'});
-                    }
-                });
-
-    };
-
-    const handleSignInWithGoogle = () => {
-        const provider = new GoogleAuthProvider();
-
-        signInWithPopup(auth, provider)
-            .then((userCredential) => {
-                // User signed in successfully
-                const user = userCredential.user;
-            })
-            .catch((error) => {
-                // Error occurred during sign-in
-                const errorCode = error.code;
-                const errorMessage = error.message;
-                console.error('Error signing in with Google:', errorCode, errorMessage);
-            });
-    };
-
-    return (
+  return (
         <div className={classes.wrapper}>
             <Paper className={classes.form} radius={0} p={30}>
                 <Title order={2} className={classes.title} ta="center" mt="md" mb={50}>
@@ -151,5 +150,5 @@ export default function Login() {
                 </Text>
             </Paper>
         </div>
-    );
+  )
 }

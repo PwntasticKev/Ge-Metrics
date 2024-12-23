@@ -1,8 +1,7 @@
-export default function MoneyMaking() {
-
-    return (
+export default function MoneyMaking () {
+  return (
         <>
             MoneyMaking
         </>
-    )
+  )
 }

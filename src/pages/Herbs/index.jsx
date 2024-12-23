@@ -1,8 +1,8 @@
-export default function Herbs() {
-    // get the data for the herbs.
+export default function Herbs () {
+  // get the data for the herbs.
 
-    //clean herbs, decant herbs, make potions, unfinished potions
-    return <>
-        {/*<AllItemsTable data={items}/>*/}
+  // clean herbs, decant herbs, make potions, unfinished potions
+  return <>
+        {/* <AllItemsTable data={items}/> */}
     </>
 }

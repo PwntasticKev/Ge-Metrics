@@ -1,8 +1,7 @@
-export default function Faq() {
-
-    return (
+export default function Faq () {
+  return (
         <>
             FAQ
         </>
-    )
+  )
 }

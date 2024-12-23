@@ -1,53 +1,51 @@
-import React, {useState} from 'react';
-import {Button, Container, Flex, Input} from '@mantine/core';
+import React, { useState } from 'react'
+import { Button, Container, Flex, Input } from '@mantine/core'
 
-export default function ProfitCalculator() {
+export default function ProfitCalculator () {
+  const [inputValue, setInputValue] = useState('')
 
-    const [inputValue, setInputValue] = useState('');
+  const handleButtonClick = (value) => {
+    setInputValue(prev => prev + value)
+  }
 
-    const handleButtonClick = (value) => {
-        setInputValue(prev => prev + value);
-    };
+  const handleClear = () => {
+    setInputValue('')
+  }
 
-    const handleClear = () => {
-        setInputValue('');
-    };
+  const handleConvertToThousands = () => {
+    const parsedValue = parseFloat(inputValue.replace(/,/g, ''))
+    if (!isNaN(parsedValue)) {
+      setInputValue((parsedValue * 1000).toLocaleString())
+    }
+  }
 
-    const handleConvertToThousands = () => {
-        const parsedValue = parseFloat(inputValue.replace(/,/g, ''));
-        if (!isNaN(parsedValue)) {
-            setInputValue((parsedValue * 1000).toLocaleString());
-        }
-    };
+  const handleConvertToMillions = () => {
+    const parsedValue = parseFloat(inputValue.replace(/,/g, ''))
+    if (!isNaN(parsedValue)) {
+      setInputValue((parsedValue * 1000000).toLocaleString())
+    }
+  }
 
-    const handleConvertToMillions = () => {
-        const parsedValue = parseFloat(inputValue.replace(/,/g, ''));
-        if (!isNaN(parsedValue)) {
-            setInputValue((parsedValue * 1000000).toLocaleString());
-        }
-    };
+  const handleEnter = () => {
+    // Here, you can implement the logic to submit the value or perform calculations
+    console.log('Submitted value:', inputValue)
+  }
 
+  const formattedInputValue = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
-    const handleEnter = () => {
-        // Here, you can implement the logic to submit the value or perform calculations
-        console.log('Submitted value:', inputValue);
-    };
-
-    const formattedInputValue = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-    return (
-        <Container size="xs" style={{position: 'relative'}}>
-            <div style={{position: 'absolute', top: 0, right: 0, zIndex: 2}}>
+  return (
+        <Container size="xs" style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}>
                 <Button onClick={handleClear}>Clear</Button>
             </div>
 
             <Input
                 readOnly
                 value={formattedInputValue}
-                style={{letterSpacing: '2px', paddingRight: '40px', textAlign: 'right'}}
+                style={{ letterSpacing: '2px', paddingRight: '40px', textAlign: 'right' }}
             />
 
-            <Flex gutter="sm" style={{marginTop: '8px'}} justify="space-between">
+            <Flex gutter="sm" style={{ marginTop: '8px' }} justify="space-between">
                 {/* Buttons for row 1 */}
                 {[1, 2, 3].map((value, index) => (
                     <div span={3} key={index}>
@@ -81,12 +79,12 @@ export default function ProfitCalculator() {
                 ))}
             </Flex>
 
-            <Flex gutter="sm" style={{marginTop: '8px'}}>
+            <Flex gutter="sm" style={{ marginTop: '8px' }}>
                 {/* Button for Enter */}
                 <div span={6}>
                     <Button size="lg" onClick={handleEnter}>Enter</Button>
                 </div>
             </Flex>
         </Container>
-    );
+  )
 }
