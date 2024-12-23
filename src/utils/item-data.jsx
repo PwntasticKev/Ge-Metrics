@@ -60,64 +60,6 @@ const ItemData = () => {
         }
     }, [priceData, pricesById]);
 
-    useEffect(() => {
-        if (items.length > 0) {
-            const allItemsByDeathsCoffer = items.reduce((accumulated, item) => {
-                const priceById = pricesById?.[item.id] || {};
-                const natureRune = pricesById?.[561] || {};
-console.log('priceById', priceById, natureRune)
-                const profit =
-                    priceById.highalch !== undefined && priceById.low !== undefined
-                        ? new Intl.NumberFormat().format(
-                            Math.floor(Number(priceById.highalch) - Number(priceById.low) - natureRune.low)
-                        )
-                        : '';
-                const low =
-                    priceById.low !== undefined
-                        ? new Intl.NumberFormat().format(parseInt(priceById.low, 10))
-                        : '';
-
-                const newItem = {
-                    ...item,
-                    ...priceById,
-                    profit,
-                    low,
-                };
-
-                accumulated.push(newItem);
-                return accumulated;
-            }, []); // Provide an empty array as the initial value for 'accumulated'
-            setDeathsCofferItems(allItemsByDeathsCoffer);
-        }
-    }, [priceData, pricesById, items]);
-
-
-    // useEffect(() => {
-    //     const allItemsByHighAlch = mapItems.reduce((accumulated, item) => {
-    //         const priceById = pricesById?.[item.id] || {};
-    //         const profit =
-    //             priceById.highalch !== undefined && priceById.low !== undefined
-    //                 ? new Intl.NumberFormat().format(
-    //                     Math.floor(Number(priceById.highalch) - Number(priceById.low))
-    //                 )
-    //                 : '';
-    //         const low =
-    //             priceById.low !== undefined
-    //                 ? new Intl.NumberFormat().format(parseInt(priceById.low, 10))
-    //                 : '';
-    //
-    //         const newItem = {
-    //             ...item,
-    //             ...priceById,
-    //             profit,
-    //             low,
-    //         };
-    //
-    //         accumulated.push(newItem);
-    //         return accumulated;
-    //     })
-    //     setDeathsCofferItems(allItemsByHighAlch)
-    // }, [priceData, pricesById]);
 
     return {
         priceStatus,

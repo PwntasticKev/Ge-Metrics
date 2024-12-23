@@ -1,6 +1,7 @@
 import {NavLink, useNavigate} from 'react-router-dom'
+import {useState} from 'react'
 import {auth} from '../../firebase.jsx'
-import {createUserWithEmailAndPassword} from "firebase/auth";
+import {getAuth, createUserWithEmailAndPassword, sendEmailVerification} from "firebase/auth";
 import {gql, useMutation} from '@apollo/client';
 import bg from '../../assets/gehd.png';
 
@@ -70,7 +71,8 @@ export default function Signup() {
     const form = useForm({
         initialValues: {
             rsName: '',
-            email: ''
+            email: '',
+            password: '', // Add this line to initialize the password field
         },
 
         initialErrors: {
@@ -95,16 +97,13 @@ export default function Signup() {
 
             if (user && user.uid) {
                 console.log('New user uid created:', user.uid);
-                await createUser({
-                    variables: {
-                        name: name,
-                        runescapeName: rsName,
-                        firebaseUid: user.uid,
-                        email,
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                    },
-                });
-                navigate('/')
+
+                // Send email verification link
+                const response = await sendEmailVerification(auth.currentUser);
+
+                console.log(response, 'response')
+                // navigate('/');
+
             } else {
                 console.log('Could not find user.id');
             }
@@ -155,7 +154,8 @@ export default function Signup() {
                         {...form.getInputProps('password')}
                     />
 
-                    <Checkbox label="Keep me logged in" mt="xl" size="md"/>
+                    {/*<Checkbox label="Keep me logged in" mt="xl" size="md"/>*/}
+
                     <Button fullWidth mt="xl" size="md" onClick={handleUserRegistration}>
                         Create
                     </Button>

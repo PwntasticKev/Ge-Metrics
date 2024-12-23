@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "subscriptions" ALTER COLUMN "plan" SET DATA TYPE CHAR,
+ALTER COLUMN "status" SET DATA TYPE CHAR,
+ALTER COLUMN "payment_method" SET DATA TYPE CHAR,
+ALTER COLUMN "auto_renewal" SET DATA TYPE CHAR;
+
+-- AlterTable
+ALTER TABLE "transactions" ALTER COLUMN "notes" SET DATA TYPE CHAR;

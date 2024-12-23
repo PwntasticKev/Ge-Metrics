@@ -138,7 +138,9 @@ export function DeathsCofferTable({data}) {
     };
 
     const rows = currentPageData.map((row, idx) => {
-        const profitValue = Number(row.profit.replace(/,/g, ''))
+        const profitString = row.profit;
+        const profitValue = typeof profitString === "string" ? Number(profitString.replace(/[^0-9.-]+/g, "")) : 0;
+
         return (
             <tr key={idx} style={{background: row.background ? theme.colors.gray[7] : ''}}>
                 <td>{row.id}</td>
@@ -162,7 +164,7 @@ export function DeathsCofferTable({data}) {
                     </Link>
 
                 </td>
-                <td style={{verticalAlign: 'middle'}}>{row.low}</td>
+                <td style={{verticalAlign: 'middle'}}>{isNaN(row.low) ? "N/A" : row.low}</td>
                 <td style={{verticalAlign: 'middle'}}>{row.highalch}</td>
                 <td style={{
                     color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
@@ -171,7 +173,6 @@ export function DeathsCofferTable({data}) {
                 }}>
                     {row.profit}
                 </td>
-                <td style={{verticalAlign: 'middle'}}>{row.limit}</td>
                 <td style={{verticalAlign: 'middle'}}>
                     <Flex gap="xs">
                         <Button variant="light" onClick={() => setTransactionModal(true)}>
@@ -216,7 +217,6 @@ export function DeathsCofferTable({data}) {
                         <th>
                             Profit
                         </th>
-                        <th>Buy Limit</th>
                         <th>Settings</th>
                     </tr>
                     </thead>
