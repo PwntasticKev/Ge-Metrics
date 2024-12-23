@@ -1,23 +1,23 @@
-import {useState} from 'react';
-import {Group, rem, Text, useMantineTheme} from '@mantine/core';
-import {IconPhoto, IconUpload, IconX} from '@tabler/icons-react';
-import {Dropzone, IMAGE_MIME_TYPE} from '@mantine/dropzone';
+import { useState } from 'react'
+import { Group, rem, Text, useMantineTheme } from '@mantine/core'
+import { IconPhoto, IconUpload, IconX } from '@tabler/icons-react'
+import { Dropzone, IMAGE_MIME_TYPE } from '@mantine/dropzone'
 
-export default function DropZone(props) {
-    const theme = useMantineTheme();
-    const [file, setFile] = useState(null);
+export default function DropZone (props) {
+  const theme = useMantineTheme()
+  const [file, setFile] = useState(null)
 
-    const handleDrop = (files) => {
-        if (files.length > 0) {
-            setFile(files[0]);
-        }
-    };
+  const handleDrop = (files) => {
+    if (files.length > 0) {
+      setFile(files[0])
+    }
+  }
 
-    const handleRemove = () => {
-        setFile(null);
-    };
+  const handleRemove = () => {
+    setFile(null)
+  }
 
-    return (
+  return (
         <Dropzone
             onDrop={handleDrop}
             onReject={(files) => console.log('rejected files', files)}
@@ -25,26 +25,28 @@ export default function DropZone(props) {
             accept={IMAGE_MIME_TYPE}
             {...props}
         >
-            <Group position="center" spacing="xl" style={{minHeight: rem(220), pointerEvents: 'none'}}>
-                {file ? (
-                    <div style={{position: 'relative'}}>
-                        <img src={URL.createObjectURL(file)} alt="Uploaded" style={{maxWidth: '100%', height: 'auto'}}/>
+            <Group position="center" spacing="xl" style={{ minHeight: rem(220), pointerEvents: 'none' }}>
+                {file
+                  ? (
+                    <div style={{ position: 'relative' }}>
+                        <img src={URL.createObjectURL(file)} alt="Uploaded" style={{ maxWidth: '100%', height: 'auto' }}/>
                         <button
                             onClick={handleRemove}
                             style={{
-                                position: 'absolute',
-                                top: '8px',
-                                right: '8px',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 0,
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0
                             }}
                         >
                             <IconX size="1.6rem" stroke={1.5} color="red"/>
                         </button>
                     </div>
-                ) : (
+                    )
+                  : (
                     <>
                         <Dropzone.Accept>
                             <IconUpload
@@ -72,8 +74,8 @@ export default function DropZone(props) {
                             </Text>
                         </div>
                     </>
-                )}
+                    )}
             </Group>
         </Dropzone>
-    );
+  )
 }
