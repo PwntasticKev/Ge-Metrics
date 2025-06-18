@@ -16,6 +16,7 @@ import { IconChartHistogram, IconReceipt, IconSearch } from '@tabler/icons-react
 import { Link, useLocation } from 'react-router-dom'
 import UsrTransactionModal from '../../shared/modals/user-transaction.jsx'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
+import MiniChart from '../charts/MiniChart.jsx'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -172,6 +173,9 @@ export function AllItemsTable ({ data }) {
                     {row.profit}
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>{row.limit}</td>
+                <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+                    <MiniChart itemId={row.id} width={120} height={40} />
+                </td>
                 <td style={{ verticalAlign: 'middle' }}>
                     <Flex gap="xs">
                         <Button variant="light" onClick={() => setTransactionModal(true)}>
@@ -216,6 +220,7 @@ export function AllItemsTable ({ data }) {
                             Profit
                         </th>
                         <th>Buy Limit</th>
+                        <th>Chart</th>
                         <th>Settings</th>
                     </tr>
                     </thead>

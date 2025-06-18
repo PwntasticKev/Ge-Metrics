@@ -1,0 +1,41 @@
+{
+  "description": "RuneScape Wiki API timeseries response structure",
+  "endpoint": "https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep={timeframe}&id={itemId}",
+  "structure": {
+    "data": [
+      {
+        "timestamp": "UNIX timestamp in seconds",
+        "avgHighPrice": "number or null - average high price for this time period",
+        "avgLowPrice": "number or null - average low price for this time period", 
+        "highPriceVolume": "number - volume of high price trades",
+        "lowPriceVolume": "number - volume of low price trades"
+      }
+    ],
+    "itemId": "number - the item ID requested"
+  },
+  "example": {
+    "data": [
+      {
+        "timestamp": 1734062400,
+        "avgHighPrice": 59164266,
+        "avgLowPrice": null,
+        "highPriceVolume": 1,
+        "lowPriceVolume": 0
+      },
+      {
+        "timestamp": 1734073200,
+        "avgHighPrice": 59118310,
+        "avgLowPrice": 59118310,
+        "highPriceVolume": 2,
+        "lowPriceVolume": 2
+      }
+    ],
+    "itemId": 29622
+  },
+  "notes": [
+    "timestamp is UNIX timestamp in seconds, needs to be converted to milliseconds for JS Date",
+    "avgHighPrice and avgLowPrice can be null if no trades occurred",
+    "Chart should handle null values gracefully",
+    "Common timeframes: 5m, 1h, 6h, 24h"
+  ]
+} 
