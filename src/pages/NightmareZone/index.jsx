@@ -194,22 +194,26 @@ export default function NightmareZone () {
                   <NumberInput
                     label="Points per hour"
                     description="Average NMZ points you earn per hour"
-                    value={pointsPerHour}
+                    value={pointsPerHour || 50000}
+                    defaultValue={50000}
                     onChange={setPointsPerHour}
                     min={10000}
                     max={300000}
                     step={10000}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '50,000'}
+                    parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '50000'}
                   />
                   <NumberInput
                     label="Hours per day"
                     description="How many hours you plan to train daily"
-                    value={hoursPerDay}
+                    value={hoursPerDay || 4}
+                    defaultValue={4}
                     onChange={setHoursPerDay}
                     min={1}
                     max={24}
                     step={1}
+                    parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '4'}
+                    formatter={(value) => value ? `${Number(value)}` : '4'}
                   />
                 </Stack>
               </Card>

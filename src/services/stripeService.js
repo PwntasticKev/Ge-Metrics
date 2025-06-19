@@ -3,8 +3,9 @@
 
 class StripeService {
   constructor () {
-    this.apiKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_example'
-    this.serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000'
+    // Use import.meta.env for Vite instead of process.env
+    this.apiKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_example'
+    this.serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
     this.stripe = null
     this.initialized = false
   }
@@ -334,7 +335,9 @@ class StripeService {
           'Advanced analytics',
           'Priority support',
           'Export data',
-          'API access'
+          'API access',
+          'Real-time notifications',
+          'Custom watchlists'
         ]
       },
       yearly: {
@@ -350,15 +353,9 @@ class StripeService {
           'Advanced market predictions',
           'Custom notifications',
           'Dedicated support',
-          'Beta feature access'
-        ]
-      },
-      trial: {
-        days: 30,
-        features: [
-          '10 price alerts',
-          'Basic analytics',
-          'Email support'
+          'Beta feature access',
+          'Priority customer support',
+          'Advanced analytics dashboard'
         ]
       }
     }

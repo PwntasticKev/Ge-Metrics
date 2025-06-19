@@ -391,19 +391,21 @@ export function AllItemsTable ({ data }) {
                 <Group spacing="xs">
                   <NumberInput
                     placeholder="Min price"
-                    value={priceMin}
+                    value={priceMin || 0}
+                    defaultValue={0}
                     onChange={setPriceMin}
                     min={0}
-                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                    parser={(value) => value?.replace(/\$\s?|(,*)/g, '')}
+                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
+                    parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                   />
                   <NumberInput
                     placeholder="Max price"
-                    value={priceMax}
+                    value={priceMax || 0}
+                    defaultValue={0}
                     onChange={setPriceMax}
                     min={0}
-                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                    parser={(value) => value?.replace(/\$\s?|(,*)/g, '')}
+                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
+                    parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                   />
                 </Group>
               </Stack>
@@ -413,17 +415,19 @@ export function AllItemsTable ({ data }) {
                 <Group spacing="xs">
                   <NumberInput
                     placeholder="Min profit"
-                    value={profitMin}
+                    value={profitMin || 0}
+                    defaultValue={0}
                     onChange={setProfitMin}
-                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                    parser={(value) => value?.replace(/\$\s?|(,*)/g, '')}
+                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
+                    parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                   />
                   <NumberInput
                     placeholder="Max profit"
-                    value={profitMax}
+                    value={profitMax || 0}
+                    defaultValue={0}
                     onChange={setProfitMax}
-                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                    parser={(value) => value?.replace(/\$\s?|(,*)/g, '')}
+                    formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
+                    parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                   />
                 </Group>
               </Stack>

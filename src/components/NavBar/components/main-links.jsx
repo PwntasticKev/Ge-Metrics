@@ -25,7 +25,12 @@ import {
   IconLeaf,
   IconActivity,
   IconTrophy,
-  IconUsers
+  IconUsers,
+  IconSkull,
+  IconDatabase,
+  IconPackages,
+  IconBookmark,
+  IconCrystalBall
 } from '@tabler/icons-react'
 import { Group, MediaQuery, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
@@ -328,19 +333,19 @@ const LinksGroup = ({ icon: Icon, label, initiallyOpened, links }) => {
 
 // Navigation structure
 export const mockdata = [
-  { label: 'Dashboard', icon: 'IconGauge', link: '/' },
-  { label: 'All Items', icon: 'IconDatabase', link: '/all-items' },
-  { label: 'Item Sets', icon: 'IconPackages', link: '/item-sets' },
-  { label: 'High Volume', icon: 'IconTrendingUp', link: '/high-volume' },
-  { label: 'Deaths Coffer', icon: 'IconSkull', link: '/deaths-coffer' },
-  { label: 'Market Watch', icon: 'IconEye', link: '/market-watch' },
-  { label: 'Watchlist', icon: 'IconBookmark', link: '/watchlist' },
-  { label: 'Future Items', icon: 'IconCrystalBall', link: '/future-items' },
-  { label: 'Community', icon: 'IconUsers', link: '/community' },
-  { label: 'Status', icon: 'IconHeartbeat', link: '/status' },
+  { label: 'Dashboard', icon: IconListDetails, link: '/' },
+  { label: 'All Items', icon: IconDatabase, link: '/all-items' },
+  { label: 'Item Sets', icon: IconPackages, link: '/item-sets' },
+  { label: 'High Volume', icon: IconTrendingUp, link: '/high-volume' },
+  { label: 'Deaths Coffer', icon: IconSkull, link: '/deaths-coffer' },
+  { label: 'Market Watch', icon: IconEye, link: '/market-watch' },
+  { label: 'Watchlist', icon: IconBookmark, link: '/watchlist' },
+  { label: 'Future Items', icon: IconCrystalBall, link: '/future-items' },
+  { label: 'Community', icon: IconUsers, link: '/community' },
+  { label: 'Status', icon: IconHeartbeat, link: '/status' },
   {
     label: 'Admin',
-    icon: 'IconSettings',
+    icon: IconSettings,
     links: [
       { label: 'Billing Dashboard', link: '/admin/billing' },
       { label: 'User Management', link: '/admin/users' },

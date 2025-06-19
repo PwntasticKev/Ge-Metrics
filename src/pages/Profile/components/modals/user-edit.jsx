@@ -2,8 +2,7 @@ import { IconDots } from '@tabler/icons-react'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Box, Button, Checkbox, createStyles, Group, Modal, TextInput, useMantineTheme } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { useContext } from 'react'
-import { AuthContext } from '../../../../utils/firebase/auth-context.jsx'
+import authService from '../../../../services/authService'
 // import DropZone from '../../../../shared/dropzone.jsx'
 import { gql, useMutation } from '@apollo/client'
 
@@ -30,7 +29,7 @@ export default function UserEdit () {
   const [editUser, { data, loading, error }] = useMutation(EDIT_USER)
   const theme = useMantineTheme()
   const isMobile = useMediaQuery('(max-width: 50em)')
-  const { user } = useContext(AuthContext)
+  const user = authService.getCurrentUser() || { email: 'guest@example.com' }
   const { classes } = useStyles()
   const [opened, { open, close }] = useDisclosure(false)
 

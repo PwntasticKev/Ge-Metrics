@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run validate:icons && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
+    "validate:icons": "node scripts/validate-icons-simple.js",
     "collect-history": "node scripts/collectHistoryData.js",
     "collect-all-history": "node scripts/collectAllHistoricalData.js",
     "monitor-alerts": "node scripts/monitorVolumeAlerts.js",
@@ -26,6 +27,7 @@
     "@mantine/dates": "^6.0.16",
     "@mantine/form": "^6.0.15",
     "@mantine/hooks": "^6.0.14",
+    "@mantine/notifications": "^6.0.16",
     "@mantine/utils": "^6.0.14",
     "@prisma/client": "^5.0.0",
     "@ravnhq/eslint-config": "^0.0.33",
@@ -52,6 +54,7 @@
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.13.0",
+    "recharts": "^2.15.3",
     "sass": "^1.63.4"
   },
   "devDependencies": {

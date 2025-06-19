@@ -38,7 +38,7 @@ import {
 import { useForm } from '@mantine/form'
 import { useNavigate } from 'react-router-dom'
 import { stripeService } from '../../services/stripeService'
-import { securityService } from '../../services/securityService'
+import securityService from '../../services/securityService'
 import bg from '../../assets/gehd.png'
 
 const SignupFlow = () => {
@@ -128,13 +128,13 @@ const SignupFlow = () => {
       const passwordValidation = securityService.validateInput(form.values.password, 'password')
       const nameValidation = securityService.validateInput(form.values.name, 'text')
 
-      if (!emailValidation.isValid) {
+      if (!emailValidation.valid) {
         throw new Error(emailValidation.error)
       }
-      if (!passwordValidation.isValid) {
+      if (!passwordValidation.valid) {
         throw new Error(passwordValidation.error)
       }
-      if (!nameValidation.isValid) {
+      if (!nameValidation.valid) {
         throw new Error(nameValidation.error)
       }
 
@@ -198,29 +198,6 @@ const SignupFlow = () => {
       setError(stripeService.handleStripeError(error))
     } finally {
       setPaymentProcessing(false)
-    }
-  }
-
-  const startFreeTrial = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Create customer for trial
-      const customer = await stripeService.createCustomer(
-        form.values.email,
-        form.values.name
-      )
-
-      // Set up trial subscription (no payment required)
-      console.log('Starting free trial for customer:', customer.id)
-
-      // Redirect to success page
-      navigate('/signup/success?trial=true')
-    } catch (error) {
-      setError('Failed to start trial. Please try again.')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -364,41 +341,28 @@ const SignupFlow = () => {
           <Stepper.Step label="Plan" description="Choose your plan" icon={<IconCreditCard size={18} />}>
             <Stack spacing="md">
               <Text size="lg" weight={500} align="center" mb="md">
-                Choose Your Plan
+                Choose Your Subscription Plan
               </Text>
 
-              <Group grow spacing="md">
+              <Text size="sm" color="dimmed" align="center" mb="lg">
+                Get unlimited access to all GE Metrics premium features. No free tier available.
+              </Text>
+
+              <Group grow spacing="lg" align="stretch">
                 <PlanCard plan={plans.monthly} planKey="monthly" />
                 <PlanCard plan={plans.yearly} planKey="yearly" isPopular />
               </Group>
 
-              <Card withBorder p="md" style={{ backgroundColor: '#f8f9fa' }}>
-                <Group position="apart" align="center">
-                  <div>
-                    <Text weight={500}>Start with Free Trial</Text>
-                    <Text size="sm" color="dimmed">
-                      {plans.trial.days} days free, then ${plans.yearly.monthlyPrice}/month
+              <Card withBorder p="lg" style={{ backgroundColor: '#f8f9fa' }}>
+                <Group position="center" spacing="md">
+                  <IconCheck size={20} color="#51cf66" />
+                  <div style={{ textAlign: 'center' }}>
+                    <Text weight={500} size="md">All Plans Include</Text>
+                    <Text size="sm" color="dimmed" mt={4}>
+                      Unlimited price alerts • Advanced analytics • Priority support • API access • Export data
                     </Text>
                   </div>
-                  <Button variant="outline" onClick={startFreeTrial} loading={loading}>
-                    Start Free Trial
-                  </Button>
                 </Group>
-
-                <List
-                  spacing="xs"
-                  size="sm"
-                  mt="md"
-                  icon={
-                    <ThemeIcon color="blue" size={16} radius="xl">
-                      <IconCheck size={10} />
-                    </ThemeIcon>
-                  }
-                >
-                  {plans.trial.features.map((feature, index) => (
-                    <List.Item key={index}>{feature}</List.Item>
-                  ))}
-                </List>
               </Card>
 
               {error && (

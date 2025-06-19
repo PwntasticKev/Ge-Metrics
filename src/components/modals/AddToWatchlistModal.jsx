@@ -204,10 +204,13 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                       label="Volume Alert Threshold"
                       description="Get alerted when volume exceeds this amount"
                       placeholder="e.g., 50000"
-                      value={volumeThreshold}
+                      value={volumeThreshold || 0}
+                      defaultValue={0}
                       onChange={setVolumeThreshold}
                       min={0}
                       rightSection={<IconEye size={16} />}
+                      parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+                      formatter={(value) => value ? `${Number(value).toLocaleString()}` : '0'}
                     />
                     <div>
                       <Text size="sm" weight={500} mb="xs">Price Change Alert</Text>
@@ -218,19 +221,25 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                         label="Price Change Percentage (%)"
                         description="Alert when price changes by this % in either direction"
                         placeholder="e.g., 15"
-                        value={priceChangePercentage}
+                        value={priceChangePercentage || 0}
+                        defaultValue={0}
                         onChange={setPriceChangePercentage}
                         min={0}
                         max={100}
+                        parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+                        formatter={(value) => value ? `${Number(value).toFixed(1)}` : '0'}
                       />
                     </div>
                     <NumberInput
                       label="Absolute Price Drop Threshold"
                       description="Alert when price drops below this absolute amount"
                       placeholder="e.g., 1000"
-                      value={priceDropThreshold}
+                      value={priceDropThreshold || 0}
+                      defaultValue={0}
                       onChange={setPriceDropThreshold}
                       min={0}
+                      parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+                      formatter={(value) => value ? `${Number(value).toLocaleString()}` : '0'}
                     />
                   </>
                 )}

@@ -210,11 +210,14 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
             : isEditing
               ? (
             <NumberInput
-              value={editValues.volume_threshold}
+              value={editValues.volume_threshold || 0}
+              defaultValue={0}
               onChange={(value) => setEditValues(prev => ({ ...prev, volume_threshold: value }))}
               size="xs"
               min={0}
               placeholder="Volume threshold"
+              parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+              formatter={(value) => value ? `${Number(value).toLocaleString()}` : '0'}
             />
                 )
               : (
@@ -233,7 +236,8 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
             : isEditing
               ? (
             <NumberInput
-              value={editValues.price_drop_threshold}
+              value={editValues.price_drop_threshold || 0}
+              defaultValue={0}
               onChange={(value) => setEditValues(prev => ({ ...prev, price_drop_threshold: value }))}
               size="xs"
               min={0}
@@ -241,6 +245,8 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
               step={0.1}
               placeholder="% drop"
               rightSection={<Text size="xs">%</Text>}
+              parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+              formatter={(value) => value ? `${Number(value).toFixed(1)}` : '0'}
             />
                 )
               : (

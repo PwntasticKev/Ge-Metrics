@@ -23,7 +23,10 @@ import {
   Tooltip,
   UnstyledButton,
   NumberInput,
-  Textarea
+  Textarea,
+  Autocomplete,
+  Image,
+  ScrollArea
 } from '@mantine/core'
 import {
   IconTrophy,
@@ -42,8 +45,12 @@ import {
   IconChevronDown,
   IconMedal,
   IconCoin,
-  IconReceipt
+  IconReceipt,
+  IconSearch
 } from '@tabler/icons-react'
+import ItemData from '../../utils/item-data.jsx'
+import tradeService from '../../services/tradeService.js'
+import { showNotification } from '@mantine/notifications'
 
 // Ranking system configuration
 const RANKING_TIERS = [
@@ -132,6 +139,7 @@ const mockClans = [
 ]
 
 export default function CommunityLeaderboard () {
+  const { items, mapStatus, priceStatus } = ItemData()
   const [activeTab, setActiveTab] = useState('global')
   const [inviteModalOpened, setInviteModalOpened] = useState(false)
   const [createClanModalOpened, setCreateClanModalOpened] = useState(false)
@@ -144,11 +152,19 @@ export default function CommunityLeaderboard () {
   const [loading, setLoading] = useState(false)
 
   // Add Trade modal state
-  const [tradeItemName, setTradeItemName] = useState('')
-  const [tradeBuyPrice, setTradeBuyPrice] = useState('')
-  const [tradeSellPrice, setTradeSellPrice] = useState('')
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [itemSearchQuery, setItemSearchQuery] = useState('')
+  const [tradeType, setTradeType] = useState('buy')
+  const [tradeBuyPrice, setTradeBuyPrice] = useState(0)
+  const [tradeSellPrice, setTradeSellPrice] = useState(0)
   const [tradeQuantity, setTradeQuantity] = useState(1)
   const [tradeNotes, setTradeNotes] = useState('')
+
+  // Filter items based on search query
+  const filteredItems = items.filter(item =>
+    item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) ||
+    item.id.toString().includes(itemSearchQuery)
+  ).slice(0, 20) // Limit to 20 results for performance
 
   // Mock current user data
   const currentUser = {
@@ -210,37 +226,50 @@ export default function CommunityLeaderboard () {
   }
 
   const handleAddTrade = async () => {
-    if (!tradeItemName.trim() || !tradeBuyPrice || !tradeSellPrice) return
+    if (!selectedItem || !tradeQuantity) return
+
+    const price = tradeType === 'buy' ? tradeBuyPrice : tradeSellPrice
+    if (!price || price <= 0) return
 
     setLoading(true)
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const tradeData = {
+        item_id: selectedItem.id,
+        item_name: selectedItem.name,
+        trade_type: tradeType,
+        quantity: tradeQuantity,
+        price_per_item: price,
+        notes: tradeNotes,
+        trade_date: new Date()
+      }
 
-      const buyPrice = Number(tradeBuyPrice)
-      const sellPrice = Number(tradeSellPrice)
-      const quantity = Number(tradeQuantity)
-      const profit = (sellPrice - buyPrice) * quantity
+      const result = tradeService.addTrade(1, tradeData) // Current user ID
 
-      // In real app, make API call to save trade
-      console.log('Adding trade:', {
-        itemName: tradeItemName,
-        buyPrice,
-        sellPrice,
-        quantity,
-        profit,
-        notes: tradeNotes
-      })
+      if (result.success) {
+        showNotification({
+          title: 'Success',
+          message: 'Trade record added successfully',
+          color: 'green'
+        })
 
-      // Reset form
-      setTradeItemName('')
-      setTradeBuyPrice('')
-      setTradeSellPrice('')
-      setTradeQuantity(1)
-      setTradeNotes('')
-      setAddTradeModalOpened(false)
+        // Reset form
+        setSelectedItem(null)
+        setItemSearchQuery('')
+        setTradeType('buy')
+        setTradeBuyPrice(0)
+        setTradeSellPrice(0)
+        setTradeQuantity(1)
+        setTradeNotes('')
+        setAddTradeModalOpened(false)
+      } else {
+        throw new Error(result.error)
+      }
     } catch (error) {
-      console.error('Failed to add trade:', error)
+      showNotification({
+        title: 'Error',
+        message: error.message || 'Failed to add trade',
+        color: 'red'
+      })
     } finally {
       setLoading(false)
     }
@@ -595,48 +624,112 @@ export default function CommunityLeaderboard () {
         opened={addTradeModalOpened}
         onClose={() => setAddTradeModalOpened(false)}
         title="Add Trade Record"
-        size="md"
+        size="lg"
       >
         <Stack spacing="md">
-          <TextInput
-            label="Item Name"
-            placeholder="e.g., Twisted bow, Dragon claws, etc."
-            value={tradeItemName}
-            onChange={(e) => setTradeItemName(e.target.value)}
+          {/* Item Selection */}
+          <div>
+            <Text size="sm" weight={500} mb="xs">Select Item</Text>
+            <TextInput
+              placeholder="Search for an item..."
+              icon={<IconSearch size={16} />}
+              value={itemSearchQuery}
+              onChange={(e) => setItemSearchQuery(e.target.value)}
+              mb="xs"
+            />
+
+            {itemSearchQuery && (
+              <ScrollArea style={{ height: 200 }}>
+                <Stack spacing="xs">
+                  {filteredItems.map((item) => (
+                    <UnstyledButton
+                      key={item.id}
+                      onClick={() => {
+                        setSelectedItem(item)
+                        setItemSearchQuery(item.name)
+                      }}
+                      style={{
+                        padding: '8px',
+                        border: selectedItem?.id === item.id ? '2px solid #339af0' : '1px solid #495057',
+                        borderRadius: '4px',
+                        backgroundColor: selectedItem?.id === item.id ? '#2b2c3d' : '#1d1e30',
+                        width: '100%'
+                      }}
+                    >
+                      <Group spacing="sm">
+                        <Image
+                          src={item.img}
+                          width={24}
+                          height={24}
+                          fit="contain"
+                          withPlaceholder
+                        />
+                        <div style={{ flex: 1, textAlign: 'left' }}>
+                          <Text size="sm" weight={500}>{item.name}</Text>
+                          <Text size="xs" color="dimmed">
+                            ID: {item.id} | Current Price: {item.high ? `${item.high.toLocaleString()} GP` : 'N/A'}
+                          </Text>
+                        </div>
+                      </Group>
+                    </UnstyledButton>
+                  ))}
+                  {filteredItems.length === 0 && (
+                    <Text size="sm" color="dimmed" align="center" py="md">
+                      No items found matching "{itemSearchQuery}"
+                    </Text>
+                  )}
+                </Stack>
+              </ScrollArea>
+            )}
+
+            {selectedItem && (
+              <Alert color="blue" mt="xs">
+                Selected: <strong>{selectedItem.name}</strong> (ID: {selectedItem.id})
+              </Alert>
+            )}
+          </div>
+
+          {/* Trade Type */}
+          <Select
+            label="Trade Type"
+            value={tradeType}
+            onChange={setTradeType}
+            data={[
+              { value: 'buy', label: 'Buy' },
+              { value: 'sell', label: 'Sell' }
+            ]}
             required
           />
 
+          {/* Price and Quantity */}
           <Group grow>
             <NumberInput
-              label="Buy Price (GP)"
+              label={`${tradeType === 'buy' ? 'Buy' : 'Sell'} Price (GP)`}
               placeholder="0"
-              value={tradeBuyPrice}
-              onChange={setTradeBuyPrice}
+              value={tradeType === 'buy' ? tradeBuyPrice : tradeSellPrice}
+              defaultValue={0}
+              onChange={tradeType === 'buy' ? setTradeBuyPrice : setTradeSellPrice}
               min={0}
               required
               hideControls
+              parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+              formatter={(value) => value ? `${Number(value).toLocaleString()}` : '0'}
             />
             <NumberInput
-              label="Sell Price (GP)"
-              placeholder="0"
-              value={tradeSellPrice}
-              onChange={setTradeSellPrice}
-              min={0}
+              label="Quantity"
+              placeholder="1"
+              value={tradeQuantity || 1}
+              defaultValue={1}
+              onChange={setTradeQuantity}
+              min={1}
               required
-              hideControls
+              parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '1'}
+              formatter={(value) => value ? `${Number(value).toLocaleString()}` : '1'}
             />
           </Group>
 
-          <NumberInput
-            label="Quantity"
-            placeholder="1"
-            value={tradeQuantity}
-            onChange={setTradeQuantity}
-            min={1}
-            required
-          />
-
-          {tradeBuyPrice && tradeSellPrice && tradeQuantity && (
+          {/* Profit Calculator (only show for completed buy/sell pairs) */}
+          {tradeBuyPrice > 0 && tradeSellPrice > 0 && tradeQuantity && (
             <Alert color="green" icon={<IconCoin size={16} />}>
               <Text weight={500}>
                 Profit: {((Number(tradeSellPrice) - Number(tradeBuyPrice)) * Number(tradeQuantity)).toLocaleString()} GP
@@ -659,7 +752,7 @@ export default function CommunityLeaderboard () {
             <Button
               onClick={handleAddTrade}
               loading={loading}
-              disabled={!tradeItemName.trim() || !tradeBuyPrice || !tradeSellPrice}
+              disabled={!selectedItem || !tradeQuantity || (tradeType === 'buy' ? !tradeBuyPrice : !tradeSellPrice)}
               leftIcon={<IconReceipt size={16} />}
             >
               Add Trade

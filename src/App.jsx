@@ -28,15 +28,17 @@ import NightmareZone from './pages/NightmareZone'
 import FutureItems from './pages/FutureItems'
 import CommunityLeaderboard from './pages/CommunityLeaderboard'
 import BillingDashboard from './pages/Admin/BillingDashboard'
+import UserManagement from './pages/Admin/UserManagement'
 import { AppShell, MantineProvider } from '@mantine/core'
+import { Notifications } from '@mantine/notifications'
 import { getTheme } from './theme/index.js'
 import { QueryCache, QueryClient, QueryClientProvider } from 'react-query'
 import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
 
-import { AuthContext } from './utils/firebase/auth-context.jsx'
+// Firebase removed - using new auth system
 import ItemDetails from './pages/ItemDetails/index.jsx'
-import SignupSuccess from './pages/Signup/SignupSuccess'
+import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
 
 export default function App () {
   const queryClient = new QueryClient()
@@ -51,7 +53,7 @@ export default function App () {
 
         <QueryClientProvider client={queryClient} queryCache={queryCache}>
             <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme('dark')}>
-
+                <Notifications />
                 <Router>
                     <Routes>
                         <Route path="/signup" element={<Signup/>}/>
@@ -87,7 +89,7 @@ export default function App () {
                                 <Route path="/settings" element={<Settings/>}/>
                                 <Route path="/admin" element={<AdminPanel/>}/>
                                 <Route path="/admin/billing" element={<BillingDashboard/>}/>
-                                <Route path="/admin/users" element={<div>User Management - Coming Soon</div>}/>
+                                <Route path="/admin/users" element={<UserManagement/>}/>
                                 <Route path="/admin/settings" element={<div>System Settings - Coming Soon</div>}/>
                                 <Route path="/admin/security" element={<div>Security Logs - Coming Soon</div>}/>
                                 <Route path="/access-denied" element={<AccessDenied/>}/>

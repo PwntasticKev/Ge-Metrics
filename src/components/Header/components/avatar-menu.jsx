@@ -11,13 +11,12 @@ import {
   IconSettings,
   IconBrandDiscord
 } from '@tabler/icons-react'
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { AuthContext } from '../../../utils/firebase/auth-context.jsx'
-import { handleLogout } from '../../../utils/firebase/firebase-methods.jsx'
+import authService from '../../../services/authService'
 
 export default function AvatarMenu () {
-  const { user } = useContext(AuthContext)
+  const user = authService.getCurrentUser() || { email: 'guest@example.com' }
   const [themeColor, setThemeColor] = useState('#339af0')
   const [darkMode, setDarkMode] = useState(true)
 
@@ -142,7 +141,7 @@ export default function AvatarMenu () {
 
         <Menu.Item
           icon={<IconLogout2 size={14}/>}
-          onClick={handleLogout}
+          onClick={() => authService.logout()}
           color="red"
         >
           <Text color="red">Logout</Text>

@@ -472,12 +472,6 @@ export default function BillingDashboard () {
         <Tabs.Panel value="subscriptions" pt="md">
           <Group mb="md">
             <Button
-              leftIcon={<IconGift size={16} />}
-              onClick={() => setTrialModalOpened(true)}
-            >
-              Grant Free Trial
-            </Button>
-            <Button
               leftIcon={<IconEdit size={16} />}
               variant="light"
               onClick={() => setEditSubscriptionModalOpened(true)}
@@ -488,7 +482,7 @@ export default function BillingDashboard () {
 
           {/* Subscription management content */}
           <Alert icon={<IconAlertTriangle size={16} />} title="Subscription Management">
-            Use the customer table to manage individual subscriptions, or use the buttons above for bulk operations.
+            Use the customer table to grant free trials to individual users, or use the button above for bulk subscription modifications.
           </Alert>
         </Tabs.Panel>
 
@@ -527,10 +521,13 @@ export default function BillingDashboard () {
           <NumberInput
             label="Refund Amount"
             placeholder="Leave empty for full refund"
-            value={refundForm.amount}
+            value={refundForm.amount || 0}
+            defaultValue={0}
             onChange={(value) => setRefundForm({ ...refundForm, amount: value })}
             precision={2}
             min={0}
+            parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
+            formatter={(value) => value ? `$${Number(value).toFixed(2)}` : '$0.00'}
           />
           <Textarea
             label="Reason"
@@ -557,24 +554,35 @@ export default function BillingDashboard () {
         title="Grant Free Trial"
       >
         <Stack spacing="md">
-          <TextInput
-            label="User ID"
-            placeholder="user_..."
-            value={trialForm.userId}
-            onChange={(e) => setTrialForm({ ...trialForm, userId: e.target.value })}
-            required
+          {trialForm.userId && (
+            <Alert color="blue">
+              Granting free trial to user: <strong>{trialForm.userId}</strong>
+            </Alert>
+          )}
+          <NumberInput
+            label="Trial Duration (Days)"
+            placeholder="30"
+            value={30}
+            min={1}
+            max={365}
+            defaultValue={30}
           />
           <Textarea
             label="Admin Note"
             placeholder="Reason for granting trial..."
             value={trialForm.adminNote}
             onChange={(e) => setTrialForm({ ...trialForm, adminNote: e.target.value })}
+            required
           />
           <Group position="right">
             <Button variant="light" onClick={() => setTrialModalOpened(false)}>
               Cancel
             </Button>
-            <Button color="green" onClick={handleGrantTrial}>
+            <Button
+              color="green"
+              onClick={handleGrantTrial}
+              disabled={!trialForm.userId || !trialForm.adminNote.trim()}
+            >
               Grant Trial
             </Button>
           </Group>
