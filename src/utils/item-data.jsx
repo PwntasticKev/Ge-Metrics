@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from 'react-query'
-import { getDmmPricingData, getMappingData, getPricingData } from '../api/rs-wiki-api.jsx'
+import { getDmmPricingData, getMappingData, getPricingData, getVolumeData } from '../api/rs-wiki-api.jsx'
 import { allItems, getItemSetProfit } from '../utils/utils.jsx'
 import { itemRecipes } from '../components/Table/data/item-set-filters.jsx'
 
@@ -25,8 +25,15 @@ const ItemData = () => {
     }
   )
 
+  const { data: volumeData, status: volumeStatus } = useQuery({
+    queryKey: ['volumeData', gameMode],
+    queryFn: async () => JSON.parse(gameMode) === 'dmm' ? await getPricingData() : await getVolumeData(),
+    refetchInterval: 60 * 1000
+  })
+
   const [mapItems, setMapItems] = useState([])
   const [pricesById, setPricesById] = useState({})
+  const [volumesById, setVolumesById] = useState({})
   const [items, setAllItems] = useState([])
   const [itemSets, setItemSets] = useState([])
   const [deathsCofferItems, setDeathsCofferItems] = useState([])
@@ -44,13 +51,22 @@ const ItemData = () => {
   }, [priceData, priceStatus])
 
   useEffect(() => {
+    if (volumeStatus === 'success' && volumeData && volumeData.data) {
+      setVolumesById(volumeData.data.data || volumeData.data)
+    }
+  }, [volumeData, volumeStatus])
+
+  useEffect(() => {
     if (
       mapItems.length &&
             priceStatus === 'success' &&
             priceData &&
-            priceData.data
+            priceData.data &&
+            volumeStatus === 'success' &&
+            volumeData &&
+            volumeData.data
     ) {
-      setAllItems(allItems(mapItems, pricesById.data))
+      setAllItems(allItems(mapItems, pricesById.data || pricesById, volumesById))
 
       const itemSets = itemRecipes
         .map(recipe => getItemSetProfit(recipe))
@@ -62,7 +78,7 @@ const ItemData = () => {
 
       setItemSets([...itemSets])
     }
-  }, [priceData, pricesById, mapItems])
+  }, [priceData, pricesById, volumeData, volumesById, mapItems])
 
   return {
     priceStatus,

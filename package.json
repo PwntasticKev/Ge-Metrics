@@ -7,7 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "collect-history": "node scripts/collectHistoryData.js",
+    "collect-all-history": "node scripts/collectAllHistoricalData.js",
+    "monitor-alerts": "node scripts/monitorVolumeAlerts.js",
+    "db:migrate": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy"
   },
   "dependencies": {
     "@apollo/client": "^3.7.17",
@@ -27,6 +36,7 @@
     "apollo-server-express": "^3.12.0",
     "axios": "^1.4.0",
     "chart.js": "^4.3.0",
+    "chartjs-plugin-annotation": "^2.2.1",
     "dotenv": "^16.3.1",
     "eslint-plugin-react": "^7.32.2",
     "express": "^4.18.2",
@@ -45,6 +55,8 @@
     "sass": "^1.63.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/react": "^18.0.37",
     "@types/react-dom": "^18.2.6",
     "@types/react-router-dom": "^5.3.3",
@@ -54,8 +66,10 @@
     "eslint": "^8.38.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.3.4",
+    "jsdom": "^26.1.0",
     "prisma": "^5.0.0",
     "typescript": "^5.0.2",
-    "vite": "^4.3.9"
+    "vite": "^4.3.9",
+    "vitest": "^3.2.4"
   }
 }
