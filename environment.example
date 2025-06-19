@@ -1,0 +1,70 @@
+# GE Metrics Environment Variables
+# Copy this file to .env.local for local development
+
+# Application Configuration
+REACT_APP_VERSION=1.0.0
+NODE_ENV=development
+
+# API Configuration
+REACT_APP_API_URL=http://localhost:3001/api
+
+# Stripe Configuration (for subscriptions)
+REACT_APP_STRIPE_PUBLISHABLE_KEY_DEV=pk_test_your_development_key_here
+REACT_APP_STRIPE_PUBLISHABLE_KEY_PROD=pk_live_your_production_key_here
+REACT_APP_STRIPE_PRICE_ID_MONTHLY_DEV=price_development_monthly_id
+REACT_APP_STRIPE_PRICE_ID_MONTHLY_PROD=price_production_monthly_id
+
+# Firebase Configuration (if using Firebase for authentication)
+REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+REACT_APP_FIREBASE_PROJECT_ID=your-firebase-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+REACT_APP_FIREBASE_APP_ID=your_firebase_app_id
+
+# Discord Integration
+REACT_APP_DISCORD_WEBHOOK=https://discord.com/api/webhooks/your/webhook/url
+REACT_APP_DISCORD_INVITE=https://discord.gg/your-server-invite
+
+# Analytics
+REACT_APP_GA_ID=G-XXXXXXXXXX
+REACT_APP_HOTJAR_ID=your_hotjar_id
+REACT_APP_MIXPANEL_TOKEN=your_mixpanel_token
+
+# Feature Flags
+REACT_APP_ENABLE_SUBSCRIPTIONS=true
+REACT_APP_ENABLE_COMMUNITY=true
+REACT_APP_ENABLE_ADMIN=true
+REACT_APP_ENABLE_ANALYTICS=true
+REACT_APP_ENABLE_NOTIFICATIONS=true
+
+# Development/Debug Settings
+REACT_APP_ENABLE_LOGGING=true
+REACT_APP_LOG_LEVEL=debug
+REACT_APP_USE_MOCK_DATA=false
+REACT_APP_MOCK_API=false
+
+# Database Configuration (for local development only)
+# These would typically be in a separate server .env file
+DATABASE_URL=postgresql://username:password@localhost:5432/ge_metrics_dev
+REDIS_URL=redis://localhost:6379
+
+# Server Configuration (for local API development)
+PORT=3001
+JWT_SECRET=your_jwt_secret_key_here
+SESSION_SECRET=your_session_secret_here
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Email Configuration (for notifications/invites)
+SMTP_HOST=smtp.your-email-provider.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+FROM_EMAIL=noreply@ge-metrics.com
+
+# External API Keys
+OSRS_API_KEY=your_osrs_api_key_if_needed
+RUNELITE_API_KEY=your_runelite_api_key_if_needed 

@@ -1,22 +1,62 @@
 let items = []
+
+// Utility functions for safe number operations
+export const safeToFixed = (value, decimals = 2) => {
+  if (value === null || value === undefined || isNaN(value)) return '0'
+  return Number(value).toFixed(decimals)
+}
+
+export const safeParseInt = (value, defaultValue = 0) => {
+  if (value === null || value === undefined) return defaultValue
+  const parsed = parseInt(String(value).replace(/[^0-9.-]/g, ''), 10)
+  return isNaN(parsed) ? defaultValue : parsed
+}
+
+export const safeParseFloat = (value, defaultValue = 0) => {
+  if (value === null || value === undefined) return defaultValue
+  const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''))
+  return isNaN(parsed) ? defaultValue : parsed
+}
+
+export const formatNumber = (num) => {
+  if (num === null || num === undefined) return 'N/A'
+  if (typeof num !== 'number') return 'N/A'
+  return num.toLocaleString()
+}
+
+export const formatPrice = (price) => {
+  if (price === null || price === undefined) return 'N/A'
+  if (typeof price !== 'number') return 'N/A'
+  return `${price.toLocaleString()} GP`
+}
+
+export const formatPercentage = (value) => {
+  if (value === null || value === undefined) return 'N/A'
+  if (typeof value !== 'number') return 'N/A'
+  return `${value.toFixed(2)}%`
+}
+
 export const allItems = (mapItems, pricesById, volumesById = {}) => {
   const allItems = mapItems.reduce((accumulated, item) => {
     const priceById = pricesById?.[item.id] || {}
     const volumeById = volumesById?.[item.id] || {}
-    const profit =
-            priceById.high !== undefined && priceById.low !== undefined
-              ? new Intl.NumberFormat().format(
-                Math.floor(Number(priceById.high) * 0.98 - Number(priceById.low))
-              )
-              : ''
-    const low =
-            priceById.low !== undefined
-              ? new Intl.NumberFormat().format(parseInt(priceById.low, 10))
-              : ''
-    const high =
-            priceById.high !== undefined
-              ? new Intl.NumberFormat().format(parseInt(priceById.high, 10))
-              : ''
+
+    const highPrice = safeParseFloat(priceById.high, 0)
+    const lowPrice = safeParseFloat(priceById.low, 0)
+
+    const profit = (highPrice && lowPrice)
+      ? new Intl.NumberFormat().format(
+        Math.floor(highPrice * 0.98 - lowPrice)
+      )
+      : '0'
+
+    const low = priceById.low !== undefined
+      ? new Intl.NumberFormat().format(safeParseInt(priceById.low))
+      : '0'
+
+    const high = priceById.high !== undefined
+      ? new Intl.NumberFormat().format(safeParseInt(priceById.high))
+      : '0'
 
     const newItem = {
       ...item,
@@ -30,15 +70,15 @@ export const allItems = (mapItems, pricesById, volumesById = {}) => {
     accumulated.push(newItem)
     return accumulated
   }, []).sort((a, b) => {
-    const has3rdInNameA = a.name.includes('3rd')
-    const has3rdInNameB = b.name.includes('3rd')
+    const has3rdInNameA = a.name?.includes('3rd') || false
+    const has3rdInNameB = b.name?.includes('3rd') || false
 
     if (has3rdInNameA && has3rdInNameB) return 0
-    if (has3rdInNameA) return 1 // Move items with '3rd' in their name to the end
-    if (has3rdInNameB) return -1 // Move items with '3rd' in their name to the end
+    if (has3rdInNameA) return 1
+    if (has3rdInNameB) return -1
 
-    const profitA = parseInt(a.profit.replace(/,/g, ''), 10) || 0
-    const profitB = parseInt(b.profit.replace(/,/g, ''), 10) || 0
+    const profitA = safeParseInt(a.profit, 0)
+    const profitB = safeParseInt(b.profit, 0)
     return profitB - profitA
   })
   items = allItems

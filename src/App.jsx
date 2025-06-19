@@ -26,13 +26,17 @@ import RaidsIndex from './pages/MarketWatch/RaidsIndex.jsx'
 import HerbsIndex from './pages/MarketWatch/HerbsIndex.jsx'
 import NightmareZone from './pages/NightmareZone'
 import FutureItems from './pages/FutureItems'
+import CommunityLeaderboard from './pages/CommunityLeaderboard'
+import BillingDashboard from './pages/Admin/BillingDashboard'
 import { AppShell, MantineProvider } from '@mantine/core'
+import { getTheme } from './theme/index.js'
 import { QueryCache, QueryClient, QueryClientProvider } from 'react-query'
 import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
 
 import { AuthContext } from './utils/firebase/auth-context.jsx'
 import ItemDetails from './pages/ItemDetails/index.jsx'
+import SignupSuccess from './pages/Signup/SignupSuccess'
 
 export default function App () {
   const queryClient = new QueryClient()
@@ -46,29 +50,12 @@ export default function App () {
   return (
 
         <QueryClientProvider client={queryClient} queryCache={queryCache}>
-            <MantineProvider withGlobalStyles withNormalizeCSS theme={{
-              colorScheme: 'dark',
-              colors: {
-                primary: 'violet',
-                // override dark colors to change them for all components
-                dark: [
-                  '#d5d7e0',
-                  '#acaebf',
-                  '#8c8fa3',
-                  '#666980',
-                  '#4d4f66',
-                  '#34354a',
-                  '#2b2c3d',
-                  '#1d1e30',
-                  '#0c0d21',
-                  '#01010a'
-                ]
-              }
-            }}>
+            <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme('dark')}>
 
                 <Router>
                     <Routes>
                         <Route path="/signup" element={<Signup/>}/>
+                        <Route path="/signup/success" element={<SignupSuccess/>}/>
 
                         {
                             loggedIn
@@ -99,6 +86,10 @@ export default function App () {
                                 <Route path="/watchlist" element={<Watchlist/>}/>
                                 <Route path="/settings" element={<Settings/>}/>
                                 <Route path="/admin" element={<AdminPanel/>}/>
+                                <Route path="/admin/billing" element={<BillingDashboard/>}/>
+                                <Route path="/admin/users" element={<div>User Management - Coming Soon</div>}/>
+                                <Route path="/admin/settings" element={<div>System Settings - Coming Soon</div>}/>
+                                <Route path="/admin/security" element={<div>Security Logs - Coming Soon</div>}/>
                                 <Route path="/access-denied" element={<AccessDenied/>}/>
                                 <Route path="/combination-items" element={<CombinationItems/>}/>
                                 <Route path="/money-making" element={<MoneyMaking/>}/>
@@ -117,6 +108,7 @@ export default function App () {
                                 <Route path="/market-watch/herbs" element={<HerbsIndex/>}/>
                                 <Route path="/nightmare-zone" element={<NightmareZone/>}/>
                                 <Route path="/future-items" element={<FutureItems/>}/>
+                                <Route path="/community" element={<CommunityLeaderboard/>}/>
                                 <Route path="*" element={<ErrorPage/>}/>
                                 <Route path="/profile/:id" element={<Profile/>}/>
                             </Route>

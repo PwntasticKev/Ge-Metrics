@@ -23,10 +23,66 @@ import {
   IconFlask,
   IconSword,
   IconLeaf,
-  IconActivity
+  IconActivity,
+  IconTrophy,
+  IconUsers
 } from '@tabler/icons-react'
-import { Group, MediaQuery, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea } from '@mantine/core'
+import { Group, MediaQuery, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
+import { employeeService } from '../../../services/employeeService'
+
+const useStyles = createStyles((theme) => ({
+  control: {
+    fontWeight: 500,
+    display: 'block',
+    width: '100%',
+    padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+    color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+    fontSize: theme.fontSizes.sm,
+
+    '&:hover': {
+      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[0],
+      color: theme.colorScheme === 'dark' ? theme.white : theme.black
+    }
+  },
+
+  link: {
+    fontWeight: 500,
+    display: 'block',
+    textDecoration: 'none',
+    padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+    paddingLeft: theme.spacing.xl,
+    marginLeft: theme.spacing.md,
+    fontSize: theme.fontSizes.sm,
+    color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[7],
+    borderLeft: `1px solid ${
+      theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]
+    }`,
+
+    '&:hover': {
+      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[0],
+      color: theme.colorScheme === 'dark' ? theme.white : theme.black
+    }
+  },
+
+  chevron: {
+    transition: 'transform 200ms ease'
+  },
+
+  mainLink: {
+    display: 'block',
+    marginBottom: 8,
+    padding: expanded => expanded ? '8px 12px' : '8px 8px',
+    borderRadius: theme.radius.sm,
+    color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+    textDecoration: 'none',
+    transition: 'all 0.2s ease',
+
+    '&:hover': {
+      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+    }
+  }
+}))
 
 // Market Watch Index Data
 const marketWatchIndexes = {
@@ -77,142 +133,34 @@ const marketWatchIndexes = {
 }
 
 function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded }) {
-  return (
-        <>
-            <Tooltip label={label} position="right" color={color} disabled={expanded}>
-                <Link to={link} style={{ textDecoration: 'none' }} onClick={onClick}>
-                    <UnstyledButton
-                        sx={(theme) => ({
-                          display: 'block',
-                          marginBottom: 8,
-                          padding: '6px 8px',
-                          borderRadius: theme.radius.sm,
-                          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+  const { classes } = useStyles()
 
-                          '&:hover': {
-                            backgroundColor:
-                                    theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
-                          }
-                        })}
-                    >
-                        <Group spacing="xs" style={{ width: '100%', flexWrap: 'nowrap' }}>
-                            <ThemeIcon color={color} variant="light" size="md" style={{ flexShrink: 0 }}>
-                                {icon}
-                            </ThemeIcon>
-                            {expanded && (
-                                <Text
-                                  size="sm"
-                                  weight={500}
-                                  style={{
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    flexGrow: 1,
-                                    minWidth: 0
-                                  }}
-                                >
-                                  {label}
-                                </Text>
-                            )}
-                        </Group>
-                    </UnstyledButton>
-                </Link>
-            </Tooltip>
-        </>
-  )
-}
-
-function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, expanded }) {
   return (
-    <>
-      <Tooltip label={label} position="right" color={color} disabled={expanded}>
+    <Tooltip label={label} position="right" color={color} disabled={expanded}>
+      <Link to={link} style={{ textDecoration: 'none' }} onClick={onClick}>
         <UnstyledButton
-          onClick={onToggle}
+          className={classes.mainLink}
           sx={(theme) => ({
             display: 'block',
             marginBottom: 8,
-            padding: '6px 8px',
+            padding: expanded ? '8px 12px' : '8px 8px',
             borderRadius: theme.radius.sm,
             color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
             width: '100%',
-            backgroundColor: isOpen && expanded ? theme.colors.dark[5] : 'transparent',
 
             '&:hover': {
-              backgroundColor:
-                theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
             }
           })}
         >
-          <Group spacing="xs" style={{ width: '100%', flexWrap: 'nowrap' }}>
+          <Group spacing={expanded ? 'xs' : 0} style={{ width: '100%', flexWrap: 'nowrap', justifyContent: expanded ? 'flex-start' : 'center' }}>
             <ThemeIcon color={color} variant="light" size="md" style={{ flexShrink: 0 }}>
               {icon}
             </ThemeIcon>
             {expanded && (
-              <Group position="apart" style={{ width: '100%', flexWrap: 'nowrap', minWidth: 0 }}>
-                <Text
-                  size="sm"
-                  weight={500}
-                  style={{
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    flexGrow: 1,
-                    minWidth: 0
-                  }}
-                >
-                  {label}
-                </Text>
-                <div style={{ flexShrink: 0 }}>
-                  {isOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                </div>
-              </Group>
-            )}
-          </Group>
-        </UnstyledButton>
-      </Tooltip>
-      <Collapse in={isOpen && expanded}>
-        <div style={{
-          backgroundColor: expanded ? 'rgba(55, 58, 64, 0.3)' : 'transparent',
-          borderRadius: '4px',
-          padding: expanded ? '4px' : '0',
-          marginLeft: '8px',
-          marginBottom: '8px'
-        }}>
-          <Stack spacing="xs">
-            {children}
-          </Stack>
-        </div>
-      </Collapse>
-    </>
-  )
-}
-
-function SubmenuItem ({ icon, color, label, link, expanded }) {
-  return (
-    <Tooltip label={label} position="right" color={color} disabled={expanded}>
-      <Link to={link} style={{ textDecoration: 'none' }}>
-        <UnstyledButton
-          sx={(theme) => ({
-            display: 'block',
-            marginBottom: 4,
-            padding: '4px 6px',
-            borderRadius: theme.radius.sm,
-            color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-            width: '100%',
-
-            '&:hover': {
-              backgroundColor:
-                theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
-            }
-          })}
-        >
-          <Group spacing="xs" style={{ width: '100%', flexWrap: 'nowrap' }}>
-            <ThemeIcon color={color} variant="light" size="sm" style={{ flexShrink: 0 }}>
-              {icon}
-            </ThemeIcon>
-            {expanded && (
               <Text
-                size="xs"
+                size="sm"
+                weight={500}
                 style={{
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -231,22 +179,208 @@ function SubmenuItem ({ icon, color, label, link, expanded }) {
   )
 }
 
+function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, expanded }) {
+  return (
+    <>
+      <Tooltip label={label} position="right" color={color} disabled={expanded}>
+        <UnstyledButton
+          onClick={onToggle}
+          sx={(theme) => ({
+            display: 'block',
+            marginBottom: 8,
+            padding: expanded ? '8px 12px' : '8px 8px',
+            borderRadius: theme.radius.sm,
+            color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+            width: '100%',
+            backgroundColor: isOpen && expanded ? theme.colors.dark[5] : 'transparent',
+
+            '&:hover': {
+              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+            }
+          })}
+        >
+          <Group spacing={expanded ? 'xs' : 0} style={{ width: '100%', flexWrap: 'nowrap', justifyContent: expanded ? 'space-between' : 'center' }}>
+            <Group spacing="xs" style={{ flexWrap: 'nowrap', minWidth: 0 }}>
+              <ThemeIcon color={color} variant="light" size="md" style={{ flexShrink: 0 }}>
+                {icon}
+              </ThemeIcon>
+              {expanded && (
+                <Text
+                  size="sm"
+                  weight={500}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    flexGrow: 1,
+                    minWidth: 0
+                  }}
+                >
+                  {label}
+                </Text>
+              )}
+            </Group>
+            {expanded && (
+              <IconChevronDown
+                size={16}
+                style={{
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 200ms ease'
+                }}
+              />
+            )}
+          </Group>
+        </UnstyledButton>
+      </Tooltip>
+      {expanded && (
+        <Collapse in={isOpen}>
+          <Stack spacing={4} style={{ paddingLeft: '12px', marginBottom: '8px' }}>
+            {children}
+          </Stack>
+        </Collapse>
+      )}
+    </>
+  )
+}
+
+function SubmenuItem ({ icon, color, label, link, expanded }) {
+  return (
+    <Link to={link} style={{ textDecoration: 'none' }}>
+      <UnstyledButton
+        sx={(theme) => ({
+          display: 'block',
+          width: '100%',
+          padding: '6px 8px',
+          borderRadius: theme.radius.sm,
+          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[7],
+          fontSize: theme.fontSizes.sm,
+          borderLeft: `2px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`,
+          marginLeft: '8px',
+
+          '&:hover': {
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+            borderLeftColor: theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[5]
+          }
+        })}
+      >
+        <Group spacing="xs" style={{ flexWrap: 'nowrap' }}>
+          <ThemeIcon color={color} variant="light" size="sm" style={{ flexShrink: 0 }}>
+            {icon}
+          </ThemeIcon>
+          <Text
+            size="sm"
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              flexGrow: 1,
+              minWidth: 0
+            }}
+          >
+            {label}
+          </Text>
+        </Group>
+      </UnstyledButton>
+    </Link>
+  )
+}
+
+const LinksGroup = ({ icon: Icon, label, initiallyOpened, links }) => {
+  const { classes, theme } = useStyles()
+  const hasLinks = Array.isArray(links)
+  const [opened, setOpened] = useState(initiallyOpened || false)
+  const ChevronIcon = opened ? IconChevronDown : IconChevronRight
+
+  const items = (hasLinks ? links : []).map((link) => (
+    <Text
+      component={Link}
+      className={classes.link}
+      to={link.link}
+      key={link.label}
+    >
+      {link.label}
+    </Text>
+  ))
+
+  return (
+    <>
+      <UnstyledButton onClick={() => setOpened((o) => !o)} className={classes.control}>
+        <Group position="apart" spacing={0}>
+          <Group>
+            <Icon size={18} />
+            <Text>{label}</Text>
+          </Group>
+          {hasLinks && (
+            <ChevronIcon
+              className={classes.chevron}
+              size={16}
+              style={{
+                transform: opened ? 'rotate(0deg)' : 'rotate(-90deg)'
+              }}
+            />
+          )}
+        </Group>
+      </UnstyledButton>
+      {hasLinks ? <Collapse in={opened}>{items}</Collapse> : null}
+    </>
+  )
+}
+
+// Navigation structure
+export const mockdata = [
+  { label: 'Dashboard', icon: 'IconGauge', link: '/' },
+  { label: 'All Items', icon: 'IconDatabase', link: '/all-items' },
+  { label: 'Item Sets', icon: 'IconPackages', link: '/item-sets' },
+  { label: 'High Volume', icon: 'IconTrendingUp', link: '/high-volume' },
+  { label: 'Deaths Coffer', icon: 'IconSkull', link: '/deaths-coffer' },
+  { label: 'Market Watch', icon: 'IconEye', link: '/market-watch' },
+  { label: 'Watchlist', icon: 'IconBookmark', link: '/watchlist' },
+  { label: 'Future Items', icon: 'IconCrystalBall', link: '/future-items' },
+  { label: 'Community', icon: 'IconUsers', link: '/community' },
+  { label: 'Status', icon: 'IconHeartbeat', link: '/status' },
+  {
+    label: 'Admin',
+    icon: 'IconSettings',
+    links: [
+      { label: 'Billing Dashboard', link: '/admin/billing' },
+      { label: 'User Management', link: '/admin/users' },
+      { label: 'System Settings', link: '/admin/settings' },
+      { label: 'Security Logs', link: '/admin/security' },
+      { label: 'API Keys', link: '/admin/api-keys' },
+      { label: 'Database', link: '/admin/database' }
+    ]
+  }
+]
+
 export function MainLinks ({ expanded }) {
   const [moneyMakingOpen, setMoneyMakingOpen] = useState(false)
   const [marketWatchOpen, setMarketWatchOpen] = useState(false)
   const [flippingUtilsOpen, setFlippingUtilsOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
 
-  // Mock user role check - in real app, get from auth context
-  const isAdmin = true // This should come from your auth context
+  // Get user role from employee service
+  // TODO: Replace with actual user email from auth context
+  const currentUserEmail = 'admin@ge-metrics.com' // This should come from auth context
+  const userRole = employeeService.getUserRole(currentUserEmail)
+  const isEmployee = employeeService.isEmployee(currentUserEmail)
+  const userPermissions = employeeService.getUserPermissions(currentUserEmail)
+
+  // Check specific permissions
+  const canViewBilling = employeeService.hasPermission(currentUserEmail, 'billing:read')
+  const canManageUsers = employeeService.hasPermission(currentUserEmail, 'users:read')
+  const canViewSystemSettings = employeeService.hasPermission(currentUserEmail, 'system:settings')
+  const canViewSecurityLogs = employeeService.hasPermission(currentUserEmail, 'system:logs')
 
   const handleLogout = () => {
     // Handle logout logic here
     console.log('Logging out...')
   }
 
+  const links = mockdata.map((item) => <LinksGroup {...item} key={item.label} />)
+
   return (
-    <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
-      <div style={{ padding: '4px' }}>
+    <ScrollArea style={{ height: 'calc(100vh - 120px)', padding: expanded ? '8px' : '4px' }}>
+      <div>
         <MainLink
           icon={<IconListDetails size="1rem"/>}
           color="blue"
@@ -269,8 +403,8 @@ export function MainLinks ({ expanded }) {
           expanded={expanded}
         />
 
-        {/* Admin Only - Arbitrage Tracker */}
-        {isAdmin && (
+        {/* Employee Only - Arbitrage Tracker */}
+        {isEmployee && (
           <MainLink
             icon={<IconBoxMultiple3 size="1rem"/>}
             color="teal"
@@ -419,6 +553,14 @@ export function MainLinks ({ expanded }) {
         </SubmenuLink>
 
         <MainLink
+          icon={<IconTrophy size="1rem"/>}
+          color="gold"
+          label="Community"
+          link="/community"
+          expanded={expanded}
+        />
+
+        <MainLink
           icon={<IconSettings size="1rem"/>}
           color="gray"
           label="Settings"
@@ -434,24 +576,60 @@ export function MainLinks ({ expanded }) {
           expanded={expanded}
         />
 
-        {/* Admin Only Links */}
-        {isAdmin && (
-          <>
-            <MainLink
-              icon={<IconShield size="1rem"/>}
-              color="red"
-              label="Admin"
-              link="/admin"
-              expanded={expanded}
-            />
-            <MainLink
-              icon={<IconHeartbeat size="1rem"/>}
+        {/* Admin Submenu - Only for employees with proper permissions */}
+        {isEmployee && (
+          <SubmenuLink
+            icon={<IconSettings size="1rem"/>}
+            color="red"
+            label="Admin"
+            isOpen={adminOpen}
+            onToggle={() => setAdminOpen(!adminOpen)}
+            expanded={expanded}
+          >
+            {canViewBilling && (
+              <SubmenuItem
+                icon={<IconCoin size="0.8rem"/>}
+                color="green"
+                label="Billing Dashboard"
+                link="/admin/billing"
+                expanded={expanded}
+              />
+            )}
+            {canManageUsers && (
+              <SubmenuItem
+                icon={<IconUsers size="0.8rem"/>}
+                color="blue"
+                label="User Management"
+                link="/admin/users"
+                expanded={expanded}
+              />
+            )}
+            {canViewSystemSettings && (
+              <SubmenuItem
+                icon={<IconSettings size="0.8rem"/>}
+                color="gray"
+                label="System Settings"
+                link="/admin/settings"
+                expanded={expanded}
+              />
+            )}
+            {canViewSecurityLogs && (
+              <SubmenuItem
+                icon={<IconShield size="0.8rem"/>}
+                color="red"
+                label="Security Logs"
+                link="/admin/security"
+                expanded={expanded}
+              />
+            )}
+            <SubmenuItem
+              icon={<IconHeartbeat size="0.8rem"/>}
               color="lime"
               label="API Status"
               link="/status"
               expanded={expanded}
             />
-          </>
+          </SubmenuLink>
         )}
 
         <MainLink
@@ -462,6 +640,8 @@ export function MainLinks ({ expanded }) {
           onClick={handleLogout}
           expanded={expanded}
         />
+
+        {links}
       </div>
     </ScrollArea>
   )

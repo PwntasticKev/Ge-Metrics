@@ -142,6 +142,17 @@ jest.mock('./pages/MarketWatch/HerbsIndex.jsx', () => {
   }
 })
 
+jest.mock('./pages/CommunityLeaderboard', () => {
+  return function MockCommunityLeaderboard () {
+    return <div data-testid="community-leaderboard-page">Community Leaderboard</div>
+  }
+})
+
+// Mock theme
+jest.mock('./theme/index.js', () => ({
+  getTheme: () => ({ colorScheme: 'dark' })
+}))
+
 // Mock subscription component
 jest.mock('./components/Subscription/index.jsx', () => {
   return {

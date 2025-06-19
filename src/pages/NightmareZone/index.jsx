@@ -72,6 +72,7 @@ export default function NightmareZone () {
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedStrategy, setSelectedStrategy] = useState('dharoks')
+  const [activeTab, setActiveTab] = useState('calculator')
 
   // Calculator states
   const [pointsPerHour, setPointsPerHour] = useState(100000)
@@ -174,7 +175,7 @@ export default function NightmareZone () {
         ))}
       </SimpleGrid>
 
-      <Tabs value="calculator" variant="outline">
+      <Tabs value={activeTab} onTabChange={setActiveTab} variant="outline">
         <Tabs.List>
           <Tabs.Tab value="calculator" icon={<IconCalculator size={16} />}>
             Profit Calculator
