@@ -9,6 +9,20 @@ export default function AllItems () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [favoriteItems, setFavoriteItems] = useState(new Set())
+
+  // Load favorites from localStorage on mount
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('favoriteItems')
+    if (savedFavorites) {
+      setFavoriteItems(new Set(JSON.parse(savedFavorites)))
+    }
+  }, [])
+
+  // Save favorites to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('favoriteItems', JSON.stringify([...favoriteItems]))
+  }, [favoriteItems])
 
   useEffect(() => {
     if (priceStatus === 'success') {
@@ -23,6 +37,16 @@ export default function AllItems () {
     }, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  const toggleFavorite = (itemId) => {
+    const newFavorites = new Set(favoriteItems)
+    if (newFavorites.has(itemId)) {
+      newFavorites.delete(itemId)
+    } else {
+      newFavorites.add(itemId)
+    }
+    setFavoriteItems(newFavorites)
+  }
 
   return (
         <>
@@ -53,7 +77,12 @@ export default function AllItems () {
                       </Group>
                     </Card>
 
-                    <AllItemsTable data={items}/>
+                    <AllItemsTable
+                      data={items}
+                      favoriteItems={favoriteItems}
+                      onToggleFavorite={toggleFavorite}
+                      showFavoriteColumn={true}
+                    />
                 </Box>
             )}
 

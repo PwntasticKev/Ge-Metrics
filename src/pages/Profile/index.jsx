@@ -214,7 +214,7 @@ export default function Profile () {
                   <Badge
                     color={getSubscriptionBadgeColor()}
                     variant="light"
-                    leftSection={<IconCrown size={12} />}
+                    leftIcon={<IconCrown size={12} />}
                   >
                     {userStats.subscriptionPlan.toUpperCase()} MEMBER
                   </Badge>

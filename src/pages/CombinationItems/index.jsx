@@ -46,7 +46,7 @@ export default function CombinationItems () {
               <Badge
                 color="blue"
                 size="lg"
-                leftSection={<IconClock size={14} />}
+                leftIcon={<IconClock size={14} />}
               >
                 {getRelativeTime(lastFetchTime, currentTime)}
               </Badge>
@@ -68,7 +68,7 @@ export default function CombinationItems () {
                   {itemSets.length} combination sets tracked
                 </Text>
               </div>
-              <Badge color="green" leftSection={<IconRefresh size={12} />}>
+              <Badge color="green" leftIcon={<IconRefresh size={12} />}>
                 Live Data
               </Badge>
             </Group>

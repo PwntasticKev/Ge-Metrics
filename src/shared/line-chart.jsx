@@ -235,7 +235,7 @@ export default function LineChart ({ id }) {
             Live Updates
           </Badge>
           {isFetching && (
-            <Badge color="blue" variant="light" leftSection={<IconRefresh size={12} />}>
+            <Badge color="blue" variant="light" leftIcon={<IconRefresh size={12} />}>
               Updating...
             </Badge>
           )}

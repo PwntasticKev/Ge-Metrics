@@ -166,7 +166,7 @@ export function ProfitModifier ({ item }) {
         <Badge
           color={totalProfit >= 0 ? 'green' : 'red'}
           variant="light"
-          leftSection={totalProfit >= 0 ? <IconTrendingUp size={12} /> : <IconTrendingDown size={12} />}
+          leftIcon={totalProfit >= 0 ? <IconTrendingUp size={12} /> : <IconTrendingDown size={12} />}
         >
           {formatCurrency(totalProfit)} GP
         </Badge>

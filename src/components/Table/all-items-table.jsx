@@ -28,7 +28,9 @@ import {
   IconFilter,
   IconFilterOff,
   IconChevronDown,
-  IconChevronUp
+  IconChevronUp,
+  IconHeart,
+  IconHeartFilled
 } from '@tabler/icons-react'
 import { Link, useLocation } from 'react-router-dom'
 import UsrTransactionModal from '../../shared/modals/user-transaction.jsx'
@@ -142,17 +144,17 @@ function filterData (data, filters) {
     }
 
     // Price range filters
-    if (priceMin !== null || priceMax !== null) {
+    if (priceMin > 0 || priceMax > 0) {
       const price = parseInt((item.high || '0').replace(/,/g, ''))
-      if (priceMin && price < priceMin) return false
-      if (priceMax && price > priceMax) return false
+      if (priceMin > 0 && price < priceMin) return false
+      if (priceMax > 0 && price > priceMax) return false
     }
 
     // Profit range filters
-    if (profitMin !== null || profitMax !== null) {
+    if (profitMin > 0 || profitMax > 0) {
       const profit = parseInt((item.profit || '0').replace(/,/g, ''))
-      if (profitMin && profit < profitMin) return false
-      if (profitMax && profit > profitMax) return false
+      if (profitMin > 0 && profit < profitMin) return false
+      if (profitMax > 0 && profit > profitMax) return false
     }
 
     return true
@@ -179,7 +181,12 @@ function sortData (data, payload) {
   )
 }
 
-export function AllItemsTable ({ data }) {
+export function AllItemsTable ({
+  data,
+  favoriteItems = new Set(),
+  onToggleFavorite = null,
+  showFavoriteColumn = false
+}) {
   const theme = useMantineTheme()
   const location = useLocation()
   const { classes, cx } = useStyles()
@@ -198,10 +205,10 @@ export function AllItemsTable ({ data }) {
   const [thirdAge, setThirdAge] = useState(false)
   const [volumeFilter, setVolumeFilter] = useState('')
   const [raidsItems, setRaidsItems] = useState(false)
-  const [priceMin, setPriceMin] = useState(null)
-  const [priceMax, setPriceMax] = useState(null)
-  const [profitMin, setProfitMin] = useState(null)
-  const [profitMax, setProfitMax] = useState(null)
+  const [priceMin, setPriceMin] = useState(0)
+  const [priceMax, setPriceMax] = useState(0)
+  const [profitMin, setProfitMin] = useState(0)
+  const [profitMax, setProfitMax] = useState(0)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -245,24 +252,26 @@ export function AllItemsTable ({ data }) {
     setThirdAge(false)
     setVolumeFilter('')
     setRaidsItems(false)
-    setPriceMin(null)
-    setPriceMax(null)
-    setProfitMin(null)
-    setProfitMax(null)
+    setPriceMin(0)
+    setPriceMax(0)
+    setProfitMin(0)
+    setProfitMax(0)
   }
 
   const activeFiltersCount = [
     thirdAge,
     volumeFilter,
     raidsItems,
-    priceMin !== null,
-    priceMax !== null,
-    profitMin !== null,
-    profitMax !== null
+    priceMin > 0,
+    priceMax > 0,
+    profitMin > 0,
+    profitMax > 0
   ].filter(Boolean).length
 
   const rows = currentPageData.map((row, idx) => {
     const profitValue = Number((row.profit || '0').replace(/,/g, ''))
+    const isFavorite = favoriteItems.has(row.id)
+
     return (
       <tr key={idx} style={{ background: row.background ? theme.colors.gray[7] : '' }}>
         <td>{row.id}</td>
@@ -296,6 +305,16 @@ export function AllItemsTable ({ data }) {
         </td>
         <td style={{ verticalAlign: 'middle' }}>
           <Flex gap="xs">
+            {showFavoriteColumn && onToggleFavorite && (
+              <ActionIcon
+                variant="light"
+                color={isFavorite ? 'red' : 'gray'}
+                onClick={() => onToggleFavorite(row.id)}
+                title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {isFavorite ? <IconHeartFilled size={14}/> : <IconHeart size={14}/>}
+              </ActionIcon>
+            )}
             <Button variant="light" onClick={() => setTransactionModal(true)}>
               <IconReceipt size={14}/>
             </Button>
@@ -391,7 +410,7 @@ export function AllItemsTable ({ data }) {
                 <Group spacing="xs">
                   <NumberInput
                     placeholder="Min price"
-                    value={priceMin || 0}
+                    value={priceMin}
                     defaultValue={0}
                     onChange={setPriceMin}
                     min={0}
@@ -400,7 +419,7 @@ export function AllItemsTable ({ data }) {
                   />
                   <NumberInput
                     placeholder="Max price"
-                    value={priceMax || 0}
+                    value={priceMax}
                     defaultValue={0}
                     onChange={setPriceMax}
                     min={0}
@@ -415,7 +434,7 @@ export function AllItemsTable ({ data }) {
                 <Group spacing="xs">
                   <NumberInput
                     placeholder="Min profit"
-                    value={profitMin || 0}
+                    value={profitMin}
                     defaultValue={0}
                     onChange={setProfitMin}
                     formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
@@ -423,7 +442,7 @@ export function AllItemsTable ({ data }) {
                   />
                   <NumberInput
                     placeholder="Max profit"
-                    value={profitMax || 0}
+                    value={profitMax}
                     defaultValue={0}
                     onChange={setProfitMax}
                     formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}

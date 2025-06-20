@@ -135,7 +135,7 @@ export default function HeaderNav ({ opened, setOpened }) {
               color="yellow"
               variant="filled"
               size="lg"
-              leftSection={<IconCrown size={12} />}
+              leftIcon={<IconCrown size={12} />}
             >
               PREMIUM
             </Badge>

@@ -203,7 +203,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
         <td style={{ verticalAlign: 'middle' }}>
           {row.abnormal_activity
             ? (
-            <Badge color="violet" size="sm" leftSection="🧠">
+            <Badge color="violet" size="sm" leftIcon="🧠">
               AI Detection
             </Badge>
               )
@@ -229,7 +229,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
         <td style={{ verticalAlign: 'middle' }}>
           {row.abnormal_activity
             ? (
-            <Badge color="violet" size="sm" leftSection="📊">
+            <Badge color="violet" size="sm" leftIcon="📊">
               Smart Alerts
             </Badge>
               )

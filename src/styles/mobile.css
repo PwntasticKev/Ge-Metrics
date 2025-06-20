@@ -1,0 +1,460 @@
+/* Mobile Responsive Styles for GE Metrics */
+
+/* Base responsive styles */
+@media (max-width: 768px) {
+  /* Ensure full width on mobile */
+  .mantine-Container-root {
+    max-width: 100% !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  /* Tables responsive */
+  .mantine-Table-root {
+    font-size: 12px !important;
+  }
+  
+  .mantine-Table-root th,
+  .mantine-Table-root td {
+    padding: 4px 6px !important;
+  }
+
+  /* Cards responsive */
+  .mantine-Card-root {
+    padding: 12px !important;
+  }
+
+  /* Buttons responsive */
+  .mantine-Button-root {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    height: auto !important;
+  }
+
+  /* Text inputs responsive */
+  .mantine-TextInput-root,
+  .mantine-Select-root,
+  .mantine-NumberInput-root {
+    margin-bottom: 8px !important;
+  }
+
+  .mantine-TextInput-input,
+  .mantine-Select-input,
+  .mantine-NumberInput-input {
+    font-size: 14px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* Modal responsive */
+  .mantine-Modal-modal {
+    margin: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100vh - 32px) !important;
+  }
+
+  /* Grid responsive */
+  .mantine-Grid-root {
+    margin: 0 !important;
+  }
+  
+  .mantine-Grid-col {
+    padding: 4px !important;
+  }
+
+  /* Header responsive adjustments */
+  .mantine-Header-root {
+    padding: 8px 12px !important;
+  }
+
+  /* Badge responsive */
+  .mantine-Badge-root {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* ActionIcon responsive */
+  .mantine-ActionIcon-root {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Group spacing adjustments */
+  .mantine-Group-root {
+    gap: 8px !important;
+  }
+
+  /* Stack spacing adjustments */
+  .mantine-Stack-root {
+    gap: 8px !important;
+  }
+
+  /* Pagination responsive */
+  .mantine-Pagination-root {
+    justify-content: center !important;
+  }
+
+  .mantine-Pagination-control {
+    font-size: 12px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+  }
+
+  /* Charts responsive */
+  .recharts-wrapper {
+    font-size: 10px !important;
+  }
+
+  /* Tooltip responsive */
+  .mantine-Tooltip-tooltip {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Tabs responsive */
+  .mantine-Tabs-tab {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+  }
+
+  /* Accordion responsive */
+  .mantine-Accordion-control {
+    padding: 8px 12px !important;
+  }
+
+  .mantine-Accordion-content {
+    padding: 8px 12px !important;
+  }
+
+  /* Switch responsive */
+  .mantine-Switch-root {
+    font-size: 12px !important;
+  }
+
+  /* Avatar responsive */
+  .mantine-Avatar-root {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Menu responsive */
+  .mantine-Menu-dropdown {
+    min-width: 160px !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .mantine-Menu-item {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
+}
+
+/* Small mobile devices (phones in portrait) */
+@media (max-width: 480px) {
+  .mantine-Container-root {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  .mantine-Card-root {
+    padding: 8px !important;
+  }
+
+  .mantine-Button-root {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+
+  .mantine-Table-root {
+    font-size: 10px !important;
+  }
+
+  .mantine-Table-root th,
+  .mantine-Table-root td {
+    padding: 2px 4px !important;
+  }
+
+  /* Hide less important columns on very small screens */
+  .mobile-hide {
+    display: none !important;
+  }
+
+  /* Stack elements vertically on small screens */
+  .mobile-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .mobile-stack > * {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mantine-Modal-modal {
+    max-height: calc(100vh - 16px) !important;
+    margin: 8px !important;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .mantine-Button-root,
+  .mantine-ActionIcon-root,
+  .mantine-UnstyledButton-root {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Improve select dropdowns */
+  .mantine-Select-item {
+    padding: 12px !important;
+    font-size: 14px !important;
+  }
+
+  /* Better scrolling areas */
+  .mantine-ScrollArea-viewport {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Print styles */
+@media print {
+  .mantine-Header-root,
+  .mantine-Navbar-root,
+  .mantine-Button-root {
+    display: none !important;
+  }
+
+  .mantine-AppShell-main {
+    padding: 0 !important;
+  }
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure icons and images look crisp */
+  .mantine-ThemeIcon-root svg,
+  .mantine-ActionIcon-root svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Utility classes for mobile responsiveness */
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
+  
+  .mobile-center {
+    text-align: center !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-no-margin {
+    margin: 0 !important;
+  }
+  
+  .mobile-small-text {
+    font-size: 12px !important;
+  }
+}
+
+/* Mobile and responsive styles */
+
+/* Ensure body doesn't have unwanted margins */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Header positioning */
+.mantine-AppShell-header,
+.header-nav {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  height: 60px;
+}
+
+/* Main content spacing for fixed navbar */
+.main-content {
+  padding-top: 60px; /* Account for fixed header */
+  min-height: calc(100vh - 60px);
+  transition: margin-left 0.3s ease;
+}
+
+/* Desktop navbar spacing */
+@media (min-width: 769px) {
+  .main-content {
+    margin-left: 80px; /* Default collapsed navbar width */
+  }
+  
+  .main-content.navbar-expanded {
+    margin-left: 240px; /* Expanded navbar width */
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 8px;
+    padding-top: 68px; /* Extra space for mobile header */
+  }
+
+  /* Hide desktop navbar on mobile */
+  .navbar-desktop {
+    display: none !important;
+  }
+
+  /* Mobile drawer styles */
+  .mantine-Drawer-root {
+    z-index: 300;
+  }
+
+  /* Mobile burger menu */
+  .mobile-burger {
+    display: block;
+  }
+
+  /* Hide expand/collapse button on mobile */
+  .navbar-expand-button {
+    display: none;
+  }
+
+  /* Mobile navigation items */
+  .mobile-nav-item {
+    padding: 12px 16px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-nav-item:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Mobile submenu items */
+  .mobile-submenu-item {
+    padding: 8px 24px;
+    font-size: 14px;
+  }
+}
+
+/* Tablet and medium screen adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-content {
+    padding: 16px;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1025px) {
+  .main-content {
+    padding: 24px;
+  }
+}
+
+/* Navbar transition animations */
+.navbar-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Content area adjustments */
+.content-wrapper {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure tables and other components are responsive */
+.responsive-table {
+  overflow-x: auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .responsive-table {
+    font-size: 14px;
+  }
+  
+  .responsive-table th,
+  .responsive-table td {
+    padding: 8px 4px;
+    min-width: 100px;
+  }
+}
+
+/* Fix for Mantine components on mobile */
+@media (max-width: 768px) {
+  .mantine-Table-root {
+    font-size: 14px;
+  }
+  
+  .mantine-Button-root {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+  
+  .mantine-TextInput-root,
+  .mantine-Select-root {
+    margin-bottom: 12px;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Dark mode scrollbar */
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Light mode scrollbar */
+[data-mantine-color-scheme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-mantine-color-scheme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+} 

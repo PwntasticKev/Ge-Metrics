@@ -22,9 +22,9 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
-  const [volumeThreshold, setVolumeThreshold] = useState('')
-  const [priceDropThreshold, setPriceDropThreshold] = useState('')
-  const [priceChangePercentage, setPriceChangePercentage] = useState('')
+  const [volumeThreshold, setVolumeThreshold] = useState(0)
+  const [priceDropThreshold, setPriceDropThreshold] = useState(0)
+  const [priceChangePercentage, setPriceChangePercentage] = useState(0)
   const [abnormalActivity, setAbnormalActivity] = useState(false)
 
   // Mock check for Mailchimp API key - in real app, get from user context
@@ -54,9 +54,9 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
 
     // Reset form
     setSelectedItem(null)
-    setVolumeThreshold('')
-    setPriceDropThreshold('')
-    setPriceChangePercentage('')
+    setVolumeThreshold(0)
+    setPriceDropThreshold(0)
+    setPriceChangePercentage(0)
     setAbnormalActivity(false)
     setSearchQuery('')
   }
@@ -64,9 +64,9 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
   const handleClose = () => {
     setOpened(false)
     setSelectedItem(null)
-    setVolumeThreshold('')
-    setPriceDropThreshold('')
-    setPriceChangePercentage('')
+    setVolumeThreshold(0)
+    setPriceDropThreshold(0)
+    setPriceChangePercentage(0)
     setAbnormalActivity(false)
     setSearchQuery('')
   }
@@ -204,7 +204,7 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                       label="Volume Alert Threshold"
                       description="Get alerted when volume exceeds this amount"
                       placeholder="e.g., 50000"
-                      value={volumeThreshold || 0}
+                      value={volumeThreshold}
                       defaultValue={0}
                       onChange={setVolumeThreshold}
                       min={0}
@@ -221,7 +221,7 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                         label="Price Change Percentage (%)"
                         description="Alert when price changes by this % in either direction"
                         placeholder="e.g., 15"
-                        value={priceChangePercentage || 0}
+                        value={priceChangePercentage}
                         defaultValue={0}
                         onChange={setPriceChangePercentage}
                         min={0}
@@ -234,7 +234,7 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                       label="Absolute Price Drop Threshold"
                       description="Alert when price drops below this absolute amount"
                       placeholder="e.g., 1000"
-                      value={priceDropThreshold || 0}
+                      value={priceDropThreshold}
                       defaultValue={0}
                       onChange={setPriceDropThreshold}
                       min={0}

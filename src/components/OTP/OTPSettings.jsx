@@ -130,12 +130,12 @@ export default function OTPSettings ({ user, onUpdate }) {
           <Text size="lg" weight={600}>Two-Factor Authentication</Text>
           {otpEnabled
             ? (
-            <Badge color="green" size="sm" leftSection={<IconShieldCheck size={12} />}>
+            <Badge color="green" size="sm" leftIcon={<IconShieldCheck size={12} />}>
               Enabled
             </Badge>
               )
             : (
-            <Badge color="red" size="sm" leftSection={<IconShieldX size={12} />}>
+            <Badge color="red" size="sm" leftIcon={<IconShieldX size={12} />}>
               Disabled
             </Badge>
               )}

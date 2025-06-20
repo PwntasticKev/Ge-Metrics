@@ -1,376 +1,374 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState } from 'react'
 import {
-  Box,
-  Card,
-  Center,
-  Group,
-  Loader,
+  Container,
+  Title,
   Text,
+  Card,
+  Group,
   Badge,
-  Grid,
   Stack,
-  SimpleGrid,
-  Divider,
-  Alert,
+  Grid,
   Button,
   Progress,
   Tabs,
-  Table,
+  Alert,
+  Timeline,
+  ThemeIcon,
+  Divider,
   ActionIcon,
   Tooltip
 } from '@mantine/core'
 import {
-  IconClock,
+  IconCalendar,
   IconTrendingUp,
-  IconWand,
-  IconActivity,
-  IconTarget,
-  IconBrain,
-  IconFlask,
+  IconClock,
   IconStar,
-  IconAlertTriangle,
+  IconInfoCircle,
+  IconChartLine,
+  IconCoin,
+  IconFlame,
+  IconShield,
+  IconSword,
+  IconWand,
   IconEye,
-  IconHeart
+  IconBell
 } from '@tabler/icons-react'
-import ItemData from '../../utils/item-data.jsx'
-import { getRelativeTime } from '../../utils/utils.jsx'
-
-// Mock AI predictions data - in real app, this would come from ML models
-const generateFuturePredictions = (items) => {
-  if (!items || items.length === 0) return []
-
-  // Mock prediction algorithm based on volume trends, seasonal patterns, etc.
-  const predictions = items
-    .filter(item => parseInt(item.volume?.toString().replace(/,/g, '') || '0') > 1000)
-    .map(item => {
-      const volume = parseInt(item.volume?.toString().replace(/,/g, '') || '0')
-      const currentPrice = parseInt(item.high?.toString().replace(/,/g, '') || '0')
-      const profit = parseInt(item.profit?.toString().replace(/,/g, '') || '0')
-
-      // Mock prediction logic
-      const trendScore = Math.random() * 100
-      const volatility = Math.random() * 50
-      const confidence = Math.max(20, 100 - volatility)
-
-      const predictedChange = (Math.random() - 0.5) * 0.4 // -20% to +20%
-      const predictedPrice = Math.floor(currentPrice * (1 + predictedChange))
-      const predictedProfit = predictedPrice - currentPrice
-
-      // Determine prediction type
-      let predictionType = 'hold'
-      let reasoning = 'Stable market conditions expected'
-
-      if (predictedChange > 0.1) {
-        predictionType = 'buy'
-        reasoning = 'Strong upward trend detected'
-      } else if (predictedChange < -0.1) {
-        predictionType = 'sell'
-        reasoning = 'Potential price decline forecasted'
-      }
-
-      return {
-        ...item,
-        trendScore,
-        confidence: Math.floor(confidence),
-        predictedPrice,
-        predictedProfit,
-        predictedChange: (predictedChange * 100).toFixed(1),
-        predictionType,
-        reasoning,
-        timeframe: '24-72 hours',
-        riskLevel: volatility < 20 ? 'Low' : volatility < 35 ? 'Medium' : 'High'
-      }
-    })
-    .sort((a, b) => parseFloat(Math.abs(b.predictedChange)) - parseFloat(Math.abs(a.predictedChange)))
-    .slice(0, 50)
-
-  return predictions
-}
-
-const predictionCategories = {
-  hot: {
-    name: '🔥 Hot Picks',
-    description: 'Items with highest profit potential',
-    color: 'red',
-    filter: (predictions) => predictions.filter(p => p.predictionType === 'buy' && Math.abs(parseFloat(p.predictedChange)) > 8)
-  },
-  stable: {
-    name: '💎 Stable Investments',
-    description: 'Low risk, consistent returns',
-    color: 'blue',
-    filter: (predictions) => predictions.filter(p => p.riskLevel === 'Low' && parseFloat(p.predictedChange) > 0)
-  },
-  risky: {
-    name: '⚡ High Risk/Reward',
-    description: 'High volatility with big potential',
-    color: 'orange',
-    filter: (predictions) => predictions.filter(p => p.riskLevel === 'High' && Math.abs(parseFloat(p.predictedChange)) > 10)
-  }
-}
 
 export default function FutureItems () {
-  const { items, mapStatus, priceStatus } = ItemData()
-  const [lastFetchTime, setLastFetchTime] = useState(new Date())
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [selectedCategory, setSelectedCategory] = useState('hot')
-  const [watchlist, setWatchlist] = useState(new Set())
+  const [activeTab, setActiveTab] = useState('upcoming')
 
-  useEffect(() => {
-    if (priceStatus === 'success') {
-      setLastFetchTime(new Date())
+  const upcomingItems = [
+    {
+      id: 1,
+      name: 'Torva Platebody (or)',
+      category: 'Armor',
+      releaseDate: '2024-02-15',
+      confidence: 85,
+      predictedPrice: '2.1B - 2.8B',
+      description: 'Ornament kit variant of Torva platebody expected with next update',
+      icon: IconShield,
+      rarity: 'Legendary',
+      source: 'Nex Drop Table Enhancement'
+    },
+    {
+      id: 2,
+      name: 'Enhanced Crystal Bow',
+      category: 'Weapon',
+      releaseDate: '2024-03-01',
+      confidence: 72,
+      predictedPrice: '450M - 650M',
+      description: 'Upgraded version of Crystal Bow with special attack',
+      icon: IconSword,
+      rarity: 'Rare',
+      source: 'Gauntlet Expansion'
+    },
+    {
+      id: 3,
+      name: 'Lunar Spellbook Runes',
+      category: 'Magic',
+      releaseDate: '2024-02-28',
+      confidence: 90,
+      predictedPrice: '15K - 25K each',
+      description: 'New rune type for enhanced lunar spells',
+      icon: IconWand,
+      rarity: 'Common',
+      source: 'Magic Rework Update'
+    },
+    {
+      id: 4,
+      name: 'Dragon Slayer III Rewards',
+      category: 'Quest Rewards',
+      releaseDate: '2024-04-12',
+      confidence: 60,
+      predictedPrice: 'Variable',
+      description: 'Multiple high-tier rewards from the anticipated quest',
+      icon: IconStar,
+      rarity: 'Legendary',
+      source: 'Quest Line Continuation'
     }
-  }, [priceStatus, items])
+  ]
 
-  // Update current time every second for live ticker
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const predictions = useMemo(() => generateFuturePredictions(items), [items])
-  const categorizedPredictions = useMemo(() => {
-    const result = {}
-    Object.keys(predictionCategories).forEach(key => {
-      result[key] = predictionCategories[key].filter(predictions)
-    })
-    return result
-  }, [predictions])
-
-  const toggleWatchlist = (itemId) => {
-    const newWatchlist = new Set(watchlist)
-    if (newWatchlist.has(itemId)) {
-      newWatchlist.delete(itemId)
-    } else {
-      newWatchlist.add(itemId)
+  const marketTrends = [
+    {
+      category: 'Pre-Release Speculation',
+      items: ['Torva pieces', 'Crystal equipment', 'Dragon items'],
+      trend: 'Rising',
+      change: '+15-30%',
+      reason: 'Players stockpiling in anticipation'
+    },
+    {
+      category: 'Materials & Components',
+      items: ['Crystal shards', 'Dragon scales', 'Rare ores'],
+      trend: 'Volatile',
+      change: '±20%',
+      reason: 'Uncertain crafting requirements'
+    },
+    {
+      category: 'Legacy Equipment',
+      items: ['Whips', 'Barrows items', 'God Wars gear'],
+      trend: 'Declining',
+      change: '-5-10%',
+      reason: 'Expected to be outclassed by new items'
     }
-    setWatchlist(newWatchlist)
+  ]
+
+  const timeline = [
+    {
+      title: 'Winter 2024 Update',
+      date: 'February 15, 2024',
+      description: 'Nex drop table enhancements and ornament kits',
+      status: 'upcoming',
+      impact: 'High'
+    },
+    {
+      title: 'Magic System Rework',
+      date: 'February 28, 2024',
+      description: 'New runes and spell mechanics',
+      status: 'upcoming',
+      impact: 'Medium'
+    },
+    {
+      title: 'Gauntlet Expansion',
+      date: 'March 1, 2024',
+      description: 'New tiers and crystal equipment upgrades',
+      status: 'upcoming',
+      impact: 'High'
+    },
+    {
+      title: 'Dragon Slayer III',
+      date: 'April 12, 2024',
+      description: 'Major quest with multiple high-tier rewards',
+      status: 'speculated',
+      impact: 'Very High'
+    }
+  ]
+
+  const getConfidenceColor = (confidence) => {
+    if (confidence >= 80) return 'green'
+    if (confidence >= 60) return 'yellow'
+    return 'red'
   }
 
-  if (mapStatus === 'loading' || priceStatus === 'loading') {
-    return (
-      <Center h={300}>
-        <Loader size="lg" />
-      </Center>
-    )
+  const getRarityColor = (rarity) => {
+    switch (rarity) {
+      case 'Legendary': return 'grape'
+      case 'Rare': return 'blue'
+      case 'Uncommon': return 'green'
+      default: return 'gray'
+    }
+  }
+
+  const getTrendColor = (trend) => {
+    switch (trend) {
+      case 'Rising': return 'green'
+      case 'Declining': return 'red'
+      case 'Volatile': return 'yellow'
+      default: return 'gray'
+    }
   }
 
   return (
-    <Box sx={{ py: 4 }}>
-      {/* Header */}
-      <Group position="apart" mb="xl">
+    <Container size="xl" py="md">
+      <Stack spacing="lg">
+        {/* Header */}
         <div>
-          <Text size="xl" weight={700} color="white">🔮 Future Items Predictor</Text>
-          <Text size="sm" color="rgba(255, 255, 255, 0.7)">
-            AI-powered predictions for upcoming market opportunities
+          <Group spacing="xs" align="center" mb="xs">
+            <IconCalendar size={28} color="#4DABF7" />
+            <Title order={1} color="white">Future Items</Title>
+          </Group>
+          <Text size="lg" color="dimmed">
+            Upcoming OSRS content, market predictions, and release speculation
           </Text>
         </div>
-        <Group spacing="md">
-          <Badge
-            color="blue"
-            size="lg"
-            leftSection={<IconClock size={14} />}
-          >
-            {getRelativeTime(lastFetchTime, currentTime)}
-          </Badge>
-          <Badge color="purple" size="lg">
-            {predictions.length} Predictions
-          </Badge>
-        </Group>
-      </Group>
 
-      {/* AI Confidence Overview */}
-      <Card withBorder p="md" mb="xl">
-        <Group position="apart" mb="md">
-          <Group>
-            <IconBrain size={20} color="purple" />
-            <Text weight={500}>AI Market Analysis</Text>
-          </Group>
-          <Badge color="green" variant="light">
-            Model Accuracy: 73.2%
-          </Badge>
-        </Group>
-        <Grid>
-          <Grid.Col span={4}>
-            <Stack spacing="xs">
-              <Text size="sm" color="dimmed">Market Sentiment</Text>
-              <Group>
-                <Progress
-                  value={68}
-                  color="green"
-                  size="sm"
-                  style={{ flex: 1 }}
-                />
-                <Text size="sm" weight={500}>Bullish</Text>
-              </Group>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={4}>
-            <Stack spacing="xs">
-              <Text size="sm" color="dimmed">Volatility Index</Text>
-              <Group>
-                <Progress
-                  value={42}
-                  color="orange"
-                  size="sm"
-                  style={{ flex: 1 }}
-                />
-                <Text size="sm" weight={500}>Moderate</Text>
-              </Group>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={4}>
-            <Stack spacing="xs">
-              <Text size="sm" color="dimmed">Data Quality</Text>
-              <Group>
-                <Progress
-                  value={91}
-                  color="blue"
-                  size="sm"
-                  style={{ flex: 1 }}
-                />
-                <Text size="sm" weight={500}>Excellent</Text>
-              </Group>
-            </Stack>
-          </Grid.Col>
-        </Grid>
-      </Card>
+        {/* Alert */}
+        <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
+          <Text size="sm">
+            <strong>Disclaimer:</strong> All predictions are speculative based on community discussions,
+            dev blogs, and market analysis. Actual release dates and item stats may vary.
+          </Text>
+        </Alert>
 
-      {/* Prediction Categories */}
-      <Tabs value={selectedCategory} onTabChange={setSelectedCategory} variant="outline">
-        <Tabs.List>
-          {Object.entries(predictionCategories).map(([key, category]) => (
-            <Tabs.Tab
-              key={key}
-              value={key}
-              icon={<IconTarget size={16} />}
-            >
-              <div>
-                <Text size="sm" weight={500}>{category.name}</Text>
-                <Text size="xs" color="dimmed">{category.description}</Text>
-              </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onTabChange={setActiveTab}>
+          <Tabs.List>
+            <Tabs.Tab value="upcoming" icon={<IconClock size={16} />}>
+              Upcoming Items
             </Tabs.Tab>
-          ))}
-        </Tabs.List>
+            <Tabs.Tab value="trends" icon={<IconTrendingUp size={16} />}>
+              Market Trends
+            </Tabs.Tab>
+            <Tabs.Tab value="timeline" icon={<IconCalendar size={16} />}>
+              Release Timeline
+            </Tabs.Tab>
+          </Tabs.List>
 
-        {Object.entries(predictionCategories).map(([key, category]) => (
-          <Tabs.Panel key={key} value={key} pt="md">
-            {categorizedPredictions[key]?.length > 0
-              ? (
-              <Table striped highlightOnHover>
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Current Price</th>
-                    <th>Predicted Price</th>
-                    <th>Change</th>
-                    <th>Confidence</th>
-                    <th>Risk</th>
-                    <th>Timeframe</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categorizedPredictions[key].slice(0, 20).map((prediction, idx) => (
-                    <tr key={idx}>
-                      <td>
-                        <Group spacing="xs">
-                          <Text weight={500} size="sm">{prediction.name}</Text>
-                          <Badge size="xs" color="gray">ID: {prediction.id}</Badge>
+          {/* Upcoming Items Tab */}
+          <Tabs.Panel value="upcoming" pt="md">
+            <Grid>
+              {upcomingItems.map((item) => (
+                <Grid.Col key={item.id} span={12} md={6}>
+                  <Card withBorder p="lg" radius="md" h="100%">
+                    <Stack spacing="md">
+                      {/* Header */}
+                      <Group position="apart" align="flex-start">
+                        <Group spacing="sm">
+                          <ThemeIcon size="lg" variant="light" color="blue">
+                            <item.icon size={20} />
+                          </ThemeIcon>
+                          <div>
+                            <Text weight={600} size="lg">{item.name}</Text>
+                            <Text size="sm" color="dimmed">{item.category}</Text>
+                          </div>
                         </Group>
-                      </td>
-                      <td>
-                        <Text size="sm">{prediction.high}</Text>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={500}>
-                          {prediction.predictedPrice.toLocaleString()} gp
-                        </Text>
-                      </td>
-                      <td>
-                        <Badge
-                          color={parseFloat(prediction.predictedChange) >= 0 ? 'green' : 'red'}
-                          variant="light"
-                        >
-                          {parseFloat(prediction.predictedChange) >= 0 ? '+' : ''}{prediction.predictedChange}%
-                        </Badge>
-                      </td>
-                      <td>
-                        <Group spacing="xs">
-                          <Progress
-                            value={prediction.confidence}
-                            color={prediction.confidence > 70 ? 'green' : prediction.confidence > 50 ? 'yellow' : 'red'}
-                            size="sm"
-                            style={{ width: 60 }}
-                          />
-                          <Text size="xs">{prediction.confidence}%</Text>
-                        </Group>
-                      </td>
-                      <td>
-                        <Badge
-                          color={prediction.riskLevel === 'Low' ? 'green' : prediction.riskLevel === 'Medium' ? 'yellow' : 'red'}
-                          size="sm"
-                        >
-                          {prediction.riskLevel}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Text size="sm" color="dimmed">{prediction.timeframe}</Text>
-                      </td>
-                      <td>
                         <Group spacing="xs">
                           <Tooltip label="Add to watchlist">
-                            <ActionIcon
-                              color={watchlist.has(prediction.id) ? 'red' : 'gray'}
-                              variant="light"
-                              size="sm"
-                              onClick={() => toggleWatchlist(prediction.id)}
-                            >
-                              <IconHeart size={14} />
+                            <ActionIcon variant="light" color="yellow">
+                              <IconEye size={16} />
                             </ActionIcon>
                           </Tooltip>
-                          <Tooltip label="View details">
-                            <ActionIcon
-                              color="blue"
-                              variant="light"
-                              size="sm"
-                            >
-                              <IconEye size={14} />
+                          <Tooltip label="Set price alert">
+                            <ActionIcon variant="light" color="blue">
+                              <IconBell size={16} />
                             </ActionIcon>
                           </Tooltip>
                         </Group>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-                )
-              : (
-              <Center h={200}>
-                <Stack align="center" spacing="md">
-                  <IconFlask size={48} color="gray" />
-                  <Text color="dimmed">No predictions available for this category</Text>
-                </Stack>
-              </Center>
-                )}
-          </Tabs.Panel>
-        ))}
-      </Tabs>
+                      </Group>
 
-      {/* Disclaimer */}
-      <Alert
-        icon={<IconAlertTriangle size={16} />}
-        title="Important Disclaimer"
-        color="yellow"
-        mt="xl"
-      >
-        <Text size="sm">
-          These predictions are generated using AI algorithms and historical data analysis.
-          They should be used for informational purposes only and do not guarantee future performance.
-          Always conduct your own research and consider market risks before making trading decisions.
-        </Text>
-      </Alert>
-    </Box>
+                      {/* Badges */}
+                      <Group spacing="xs">
+                        <Badge color={getRarityColor(item.rarity)} variant="light">
+                          {item.rarity}
+                        </Badge>
+                        <Badge color={getConfidenceColor(item.confidence)} variant="light">
+                          {item.confidence}% confidence
+                        </Badge>
+                      </Group>
+
+                      {/* Details */}
+                      <Stack spacing="xs">
+                        <Group position="apart">
+                          <Text size="sm" color="dimmed">Release Date:</Text>
+                          <Text size="sm" weight={500}>{item.releaseDate}</Text>
+                        </Group>
+                        <Group position="apart">
+                          <Text size="sm" color="dimmed">Predicted Price:</Text>
+                          <Text size="sm" weight={500} color="green">{item.predictedPrice}</Text>
+                        </Group>
+                        <Group position="apart">
+                          <Text size="sm" color="dimmed">Source:</Text>
+                          <Text size="sm">{item.source}</Text>
+                        </Group>
+                      </Stack>
+
+                      {/* Confidence Bar */}
+                      <div>
+                        <Group position="apart" mb={5}>
+                          <Text size="xs" color="dimmed">Prediction Confidence</Text>
+                          <Text size="xs" color="dimmed">{item.confidence}%</Text>
+                        </Group>
+                        <Progress
+                          value={item.confidence}
+                          color={getConfidenceColor(item.confidence)}
+                          size="sm"
+                        />
+                      </div>
+
+                      {/* Description */}
+                      <Text size="sm" color="dimmed">
+                        {item.description}
+                      </Text>
+
+                      {/* Action Button */}
+                      <Button variant="light" leftIcon={<IconChartLine size={16} />} fullWidth>
+                        View Market Analysis
+                      </Button>
+                    </Stack>
+                  </Card>
+                </Grid.Col>
+              ))}
+            </Grid>
+          </Tabs.Panel>
+
+          {/* Market Trends Tab */}
+          <Tabs.Panel value="trends" pt="md">
+            <Stack spacing="lg">
+              <Text size="lg" weight={600}>Pre-Release Market Impact</Text>
+
+              {marketTrends.map((trend, index) => (
+                <Card key={index} withBorder p="lg">
+                  <Stack spacing="md">
+                    <Group position="apart" align="center">
+                      <Text weight={600} size="lg">{trend.category}</Text>
+                      <Group spacing="xs">
+                        <Badge color={getTrendColor(trend.trend)} variant="light">
+                          {trend.trend}
+                        </Badge>
+                        <Badge color={getTrendColor(trend.trend)} variant="filled">
+                          {trend.change}
+                        </Badge>
+                      </Group>
+                    </Group>
+
+                    <Group spacing="xs">
+                      <Text size="sm" color="dimmed">Affected Items:</Text>
+                      {trend.items.map((item, i) => (
+                        <Badge key={i} size="sm" variant="outline">
+                          {item}
+                        </Badge>
+                      ))}
+                    </Group>
+
+                    <Text size="sm" color="dimmed">
+                      <strong>Reason:</strong> {trend.reason}
+                    </Text>
+                  </Stack>
+                </Card>
+              ))}
+            </Stack>
+          </Tabs.Panel>
+
+          {/* Timeline Tab */}
+          <Tabs.Panel value="timeline" pt="md">
+            <Stack spacing="lg">
+              <Text size="lg" weight={600}>Content Release Timeline</Text>
+
+              <Timeline active={0} bulletSize={24} lineWidth={2}>
+                {timeline.map((event, index) => (
+                  <Timeline.Item
+                    key={index}
+                    bullet={<IconCalendar size={12} />}
+                    title={event.title}
+                  >
+                    <Stack spacing="xs">
+                      <Group spacing="xs">
+                        <Text size="sm" color="dimmed">{event.date}</Text>
+                        <Badge
+                          size="xs"
+                          color={event.status === 'upcoming' ? 'blue' : 'gray'}
+                          variant="light"
+                        >
+                          {event.status}
+                        </Badge>
+                        <Badge
+                          size="xs"
+                          color={event.impact === 'Very High' ? 'red' : event.impact === 'High' ? 'orange' : 'blue'}
+                          variant="light"
+                        >
+                          {event.impact} Impact
+                        </Badge>
+                      </Group>
+                      <Text size="sm" color="dimmed">
+                        {event.description}
+                      </Text>
+                    </Stack>
+                  </Timeline.Item>
+                ))}
+              </Timeline>
+            </Stack>
+          </Tabs.Panel>
+        </Tabs>
+      </Stack>
+    </Container>
   )
 }

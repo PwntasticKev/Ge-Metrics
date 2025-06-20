@@ -350,7 +350,7 @@ export default function AdminPanel () {
               Manage user access, permissions, and account approvals
             </Text>
           </div>
-          <Badge color="red" size="lg" leftSection={<IconShield size={16} />}>
+          <Badge color="red" size="lg" leftIcon={<IconShield size={16} />}>
             Administrator Access
           </Badge>
         </Group>

@@ -22,10 +22,18 @@ import {
   Alert,
   ScrollArea,
   Progress,
-  Tooltip
+  Tooltip,
+  Container,
+  Title,
+  Grid,
+  Divider,
+  Notification,
+  Switch,
+  Menu,
+  LoadingOverlay
 } from '@mantine/core'
+import { DatePicker } from '@mantine/dates'
 import {
-  IconCurrency,
   IconUsers,
   IconTrendingUp,
   IconTrendingDown,
@@ -40,10 +48,19 @@ import {
   IconX,
   IconDownload,
   IconSearch,
-  IconFilter
+  IconFilter,
+  IconDots,
+  IconBan,
+  IconPlayerPlay,
+  IconPlayerPause,
+  IconQuestionMark,
+  IconInfoCircle,
+  IconCash,
+  IconCurrencyDollar
 } from '@tabler/icons-react'
 import billingService from '../../../services/billingService'
 import { formatPrice, formatPercentage } from '../../../utils/utils'
+import { notifications } from '@mantine/notifications'
 
 export default function BillingDashboard () {
   const [loading, setLoading] = useState(true)
@@ -59,7 +76,7 @@ export default function BillingDashboard () {
   const [editSubscriptionModalOpened, setEditSubscriptionModalOpened] = useState(false)
 
   // Form states
-  const [refundForm, setRefundForm] = useState({ paymentId: '', amount: '', reason: '' })
+  const [refundForm, setRefundForm] = useState({ paymentId: '', amount: 0, reason: '' })
   const [trialForm, setTrialForm] = useState({ userId: '', adminNote: '' })
   const [subscriptionForm, setSubscriptionForm] = useState({ subscriptionId: '', newPlanId: '' })
 
@@ -99,7 +116,7 @@ export default function BillingDashboard () {
 
       if (result.success) {
         setRefundModalOpened(false)
-        setRefundForm({ paymentId: '', amount: '', reason: '' })
+        setRefundForm({ paymentId: '', amount: 0, reason: '' })
         loadDashboardData()
         alert('Refund processed successfully')
       } else {
@@ -160,9 +177,9 @@ export default function BillingDashboard () {
     return matchesSearch && matchesStatus && matchesPlan
   })
 
-  const MetricCard = ({ title, value, icon: Icon, color, change, subtitle }) => (
+  const MetricCard = ({ title, value, icon, color, change, subtitle }) => (
     <Card withBorder p="md">
-      <Group position="apart">
+      <Group justify="space-between">
         <div>
           <Text size="xs" color="dimmed" weight={500}>{title}</Text>
           <Text size="xl" weight={700} color={color}>
@@ -173,14 +190,14 @@ export default function BillingDashboard () {
           )}
           {change && (
             <Group spacing="xs" mt="xs">
-              <Icon size={16} color={change >= 0 ? 'green' : 'red'} />
+              {React.cloneElement(icon, { size: 16, color: change >= 0 ? 'green' : 'red' })}
               <Text size="sm" color={change >= 0 ? 'green' : 'red'}>
                 {change >= 0 ? '+' : ''}{change}%
               </Text>
             </Group>
           )}
         </div>
-        <Icon size={24} color={color} />
+        {React.cloneElement(icon, { size: 24, color })}
       </Group>
     </Card>
   )
@@ -297,34 +314,40 @@ export default function BillingDashboard () {
   }
 
   return (
-    <Box>
-      <Group position="apart" mb="xl">
-        <div>
-          <Text size="xl" weight={700}>Billing Dashboard</Text>
-          <Text color="dimmed">Manage subscriptions, payments, and refunds</Text>
-        </div>
+    <Container size="xl" py="md">
+      <LoadingOverlay visible={loading} />
+
+      <Group justify="space-between" mb="lg">
+        <Title order={2}>Billing Dashboard</Title>
         <Group>
-          <Button leftIcon={<IconRefresh size={16} />} onClick={loadDashboardData}>
+          <Button
+            leftIcon={<IconRefresh size={16} />}
+            variant="light"
+            onClick={loadDashboardData}
+          >
             Refresh
           </Button>
-          <Button leftIcon={<IconDownload size={16} />} variant="light">
-            Export Data
+          <Button
+            leftIcon={<IconDownload size={16} />}
+            variant="light"
+          >
+            Export Report
           </Button>
         </Group>
       </Group>
 
       <Tabs value={activeTab} onTabChange={setActiveTab}>
         <Tabs.List>
-          <Tabs.Tab value="overview" icon={<IconTrendingUp size={16} />}>
+          <Tabs.Tab value="overview" leftIcon={<IconTrendingUp size={16} />}>
             Overview
           </Tabs.Tab>
-          <Tabs.Tab value="customers" icon={<IconUsers size={16} />}>
+          <Tabs.Tab value="customers" leftIcon={<IconUsers size={16} />}>
             Customers ({filteredCustomers.length})
           </Tabs.Tab>
-          <Tabs.Tab value="subscriptions" icon={<IconCreditCard size={16} />}>
+          <Tabs.Tab value="subscriptions" leftIcon={<IconCreditCard size={16} />}>
             Subscriptions
           </Tabs.Tab>
-          <Tabs.Tab value="payments" icon={<IconReceipt size={16} />}>
+          <Tabs.Tab value="payments" leftIcon={<IconReceipt size={16} />}>
             Payments & Refunds
           </Tabs.Tab>
         </Tabs.List>
@@ -334,28 +357,28 @@ export default function BillingDashboard () {
             <MetricCard
               title="Monthly Recurring Revenue"
               value={`$${revenueMetrics.monthlyRevenue?.toFixed(2) || '0.00'}`}
-              icon={IconCurrency}
+              icon={<IconCurrencyDollar />}
               color="green"
               change={12.5}
             />
             <MetricCard
               title="Active Subscriptions"
               value={subscriptionStats.active}
-              icon={IconUsers}
+              icon={<IconUsers />}
               color="blue"
               subtitle={`${subscriptionStats.trials} trials`}
             />
             <MetricCard
               title="Total Revenue"
               value={`$${revenueMetrics.totalRevenue?.toFixed(2) || '0.00'}`}
-              icon={IconTrendingUp}
+              icon={<IconTrendingUp />}
               color="violet"
               change={8.3}
             />
             <MetricCard
               title="Churn Rate"
               value="2.1%"
-              icon={IconTrendingDown}
+              icon={<IconTrendingDown />}
               color="red"
               change={-0.5}
             />
@@ -365,19 +388,19 @@ export default function BillingDashboard () {
             <Card withBorder p="md">
               <Text weight={500} mb="md">Subscription Breakdown</Text>
               <Stack spacing="sm">
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">Monthly Plans</Text>
                   <Badge variant="light">{subscriptionStats.monthly}</Badge>
                 </Group>
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">Yearly Plans</Text>
                   <Badge variant="light">{subscriptionStats.yearly}</Badge>
                 </Group>
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">Free Trials</Text>
                   <Badge variant="light">{subscriptionStats.trials}</Badge>
                 </Group>
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">Canceled</Text>
                   <Badge color="red" variant="light">{subscriptionStats.canceled}</Badge>
                 </Group>
@@ -387,19 +410,19 @@ export default function BillingDashboard () {
             <Card withBorder p="md">
               <Text weight={500} mb="md">Revenue Metrics</Text>
               <Stack spacing="sm">
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">This Month</Text>
                   <Text weight={500}>${revenueMetrics.monthlyRevenue?.toFixed(2)}</Text>
                 </Group>
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">This Year</Text>
                   <Text weight={500}>${revenueMetrics.yearlyRevenue?.toFixed(2)}</Text>
                 </Group>
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">Refunds (Month)</Text>
                   <Text color="red">${revenueMetrics.monthlyRefunds?.toFixed(2)}</Text>
                 </Group>
-                <Group position="apart">
+                <Group justify="space-between">
                   <Text size="sm">Net Revenue</Text>
                   <Text weight={500} color="green">
                     ${revenueMetrics.netMonthlyRevenue?.toFixed(2)}
@@ -416,7 +439,7 @@ export default function BillingDashboard () {
             <Group>
               <TextInput
                 placeholder="Search customers..."
-                icon={<IconSearch size={16} />}
+                leftIcon={<IconSearch size={16} />}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ flex: 1 }}
@@ -517,11 +540,25 @@ export default function BillingDashboard () {
             value={refundForm.paymentId}
             onChange={(e) => setRefundForm({ ...refundForm, paymentId: e.target.value })}
             required
+            rightSection={
+              <Tooltip
+                label="Payment Intent ID from Stripe Dashboard. Format: pay_1234567890abcdef or pi_1234567890abcdef"
+                multiline
+                width={300}
+                withArrow
+                position="top-end"
+              >
+                <ActionIcon size="sm" variant="subtle">
+                  <IconQuestionMark size={16} />
+                </ActionIcon>
+              </Tooltip>
+            }
+            description="Find this in your Stripe Dashboard under Payments → [Payment] → Payment Intent ID"
           />
           <NumberInput
             label="Refund Amount"
             placeholder="Leave empty for full refund"
-            value={refundForm.amount || 0}
+            value={refundForm.amount}
             defaultValue={0}
             onChange={(value) => setRefundForm({ ...refundForm, amount: value })}
             precision={2}
@@ -536,7 +573,7 @@ export default function BillingDashboard () {
             onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value })}
             required
           />
-          <Group position="right">
+          <Group justify="flex-end">
             <Button variant="light" onClick={() => setRefundModalOpened(false)}>
               Cancel
             </Button>
@@ -574,7 +611,7 @@ export default function BillingDashboard () {
             onChange={(e) => setTrialForm({ ...trialForm, adminNote: e.target.value })}
             required
           />
-          <Group position="right">
+          <Group justify="flex-end">
             <Button variant="light" onClick={() => setTrialModalOpened(false)}>
               Cancel
             </Button>
@@ -654,6 +691,6 @@ export default function BillingDashboard () {
           </Stack>
         </Modal>
       )}
-    </Box>
+    </Container>
   )
 }

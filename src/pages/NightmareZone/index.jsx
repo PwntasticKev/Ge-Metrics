@@ -131,7 +131,7 @@ export default function NightmareZone () {
           <Badge
             color="blue"
             size="lg"
-            leftSection={<IconClock size={14} />}
+            leftIcon={<IconClock size={14} />}
           >
             {getRelativeTime(lastFetchTime, currentTime)}
           </Badge>

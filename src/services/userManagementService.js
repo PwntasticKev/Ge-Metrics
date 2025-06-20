@@ -12,9 +12,12 @@ class UserManagementService {
     this.permissions = new Map()
     this.auditLog = []
     this.subscriptionVerifier = null
+    this.onlineUsers = new Set()
+    this.messageTemplates = this.getDefaultMessageTemplates()
 
     this.initializeRoles()
     this.initializeMockData()
+    this.initializeRealTimeTracking()
   }
 
   /**
@@ -140,7 +143,34 @@ class UserManagementService {
         last_login: new Date(),
         login_count: 150,
         is_blocked: false,
-        session_id: 'sess_admin_001'
+        session_id: 'sess_admin_001',
+        status: 'active',
+        subscription: {
+          type: 'premium',
+          status: 'active',
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2024-12-31'),
+          autoRenew: true
+        },
+        freeTrial: {
+          used: false,
+          startDate: null,
+          endDate: null,
+          notes: ''
+        },
+        isOnline: true,
+        lastSeen: new Date(),
+        ipAddress: '127.0.0.1',
+        location: 'New York, US',
+        device: 'Desktop',
+        joinDate: new Date('2024-01-01'),
+        totalSessions: 45,
+        avgSessionTime: 25, // minutes
+        preferences: {
+          emailNotifications: true,
+          smsNotifications: false,
+          marketingEmails: true
+        }
       },
       {
         id: 'user_jmod_001',
@@ -157,7 +187,34 @@ class UserManagementService {
         last_login: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
         login_count: 45,
         is_blocked: false,
-        session_id: 'sess_jmod_001'
+        session_id: 'sess_jmod_001',
+        status: 'active',
+        subscription: {
+          type: 'premium',
+          status: 'active',
+          startDate: new Date('2024-02-15'),
+          endDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 6 months
+          autoRenew: true
+        },
+        freeTrial: {
+          used: false,
+          startDate: null,
+          endDate: null,
+          notes: ''
+        },
+        isOnline: true,
+        lastSeen: new Date(),
+        ipAddress: '192.168.1.100',
+        location: 'New York, US',
+        device: 'Desktop',
+        joinDate: new Date('2024-02-15'),
+        totalSessions: 45,
+        avgSessionTime: 25, // minutes
+        preferences: {
+          emailNotifications: true,
+          smsNotifications: false,
+          marketingEmails: true
+        }
       },
       {
         id: 'user_mod_001',
@@ -174,7 +231,34 @@ class UserManagementService {
         last_login: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
         login_count: 12,
         is_blocked: false,
-        session_id: 'sess_mod_001'
+        session_id: 'sess_mod_001',
+        status: 'active',
+        subscription: {
+          type: 'trial',
+          status: 'active',
+          startDate: new Date('2024-03-01'),
+          endDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
+          autoRenew: false
+        },
+        freeTrial: {
+          used: true,
+          startDate: new Date('2024-03-01'),
+          endDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
+          notes: ''
+        },
+        isOnline: true,
+        lastSeen: new Date(),
+        ipAddress: '192.168.1.101',
+        location: 'California, US',
+        device: 'Mobile',
+        joinDate: new Date('2024-03-01'),
+        totalSessions: 12,
+        avgSessionTime: 18,
+        preferences: {
+          emailNotifications: true,
+          smsNotifications: false,
+          marketingEmails: false
+        }
       },
       {
         id: 'user_regular_001',
@@ -191,7 +275,34 @@ class UserManagementService {
         last_login: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
         login_count: 8,
         is_blocked: false,
-        session_id: null
+        session_id: null,
+        status: 'active',
+        subscription: {
+          type: 'free',
+          status: 'expired',
+          startDate: new Date('2024-03-10'),
+          endDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+          autoRenew: false
+        },
+        freeTrial: {
+          used: true,
+          startDate: new Date('2024-03-10'),
+          endDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+          notes: ''
+        },
+        isOnline: false,
+        lastSeen: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        ipAddress: null,
+        location: null,
+        device: null,
+        joinDate: new Date('2024-03-10'),
+        totalSessions: 8,
+        avgSessionTime: 8,
+        preferences: {
+          emailNotifications: false,
+          smsNotifications: false,
+          marketingEmails: false
+        }
       },
       {
         id: 'user_blocked_001',
@@ -208,7 +319,34 @@ class UserManagementService {
         last_login: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         login_count: 25,
         is_blocked: true,
-        session_id: null
+        session_id: null,
+        status: 'inactive',
+        subscription: {
+          type: 'free',
+          status: 'canceled',
+          startDate: new Date('2024-01-15'),
+          endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          autoRenew: false
+        },
+        freeTrial: {
+          used: false,
+          startDate: new Date('2024-01-15'),
+          endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          notes: ''
+        },
+        isOnline: false,
+        lastSeen: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        ipAddress: null,
+        location: null,
+        device: null,
+        joinDate: new Date('2024-01-15'),
+        totalSessions: 25,
+        avgSessionTime: 25,
+        preferences: {
+          emailNotifications: false,
+          smsNotifications: false,
+          marketingEmails: false
+        }
       }
     ]
 
@@ -228,6 +366,76 @@ class UserManagementService {
         this.blockedUsers.add(user.id)
       }
     })
+  }
+
+  /**
+   * Initialize real-time tracking simulation
+   */
+  initializeRealTimeTracking () {
+    // Simulate user activity updates every 30 seconds
+    setInterval(() => {
+      this.updateUserActivity()
+    }, 30000)
+
+    // Simulate some users going online/offline randomly
+    setInterval(() => {
+      this.simulateUserStatusChanges()
+    }, 60000)
+  }
+
+  /**
+   * Simulate user activity updates
+   */
+  updateUserActivity () {
+    this.users.forEach(user => {
+      if (user.isOnline) {
+        user.lastSeen = new Date()
+        user.totalSessions += Math.random() < 0.1 ? 1 : 0 // 10% chance of new session
+      }
+    })
+  }
+
+  /**
+   * Simulate user status changes
+   */
+  simulateUserStatusChanges () {
+    this.users.forEach(user => {
+      if (Math.random() < 0.1) { // 10% chance of status change
+        user.isOnline = !user.isOnline
+        if (!user.isOnline) {
+          user.lastSeen = new Date()
+        }
+        this.logAudit('user_status_change', 'system', `User ${user.email} went ${user.isOnline ? 'online' : 'offline'}`)
+      }
+    })
+  }
+
+  /**
+   * Get default message templates
+   */
+  getDefaultMessageTemplates () {
+    return {
+      welcome: {
+        subject: 'Welcome to GE Metrics!',
+        body: 'Welcome to GE Metrics! We\'re excited to have you on board. Start exploring the Grand Exchange data and maximize your trading profits!'
+      },
+      trialExpiring: {
+        subject: 'Your free trial is expiring soon',
+        body: 'Your free trial will expire in 3 days. Upgrade to premium to continue accessing all features!'
+      },
+      subscriptionExpiring: {
+        subject: 'Subscription renewal reminder',
+        body: 'Your premium subscription will expire soon. Renew now to avoid interruption of service.'
+      },
+      reactivation: {
+        subject: 'We miss you at GE Metrics!',
+        body: 'It\'s been a while since your last visit. Come back and check out our new features!'
+      },
+      newsletter: {
+        subject: 'GE Metrics Weekly Update',
+        body: 'Check out this week\'s market trends and trading opportunities!'
+      }
+    }
   }
 
   /**
@@ -258,11 +466,22 @@ class UserManagementService {
       )
     }
 
-    return users
+    return users.map(user => ({
+      ...user,
+      onlineStatus: this.getOnlineStatus(user),
+      subscriptionStatus: this.getSubscriptionStatus(user)
+    }))
   }
 
   getUserById (userId) {
-    return this.users.get(userId)
+    const user = this.users.get(userId)
+    if (!user) return null
+
+    return {
+      ...user,
+      onlineStatus: this.getOnlineStatus(user),
+      subscriptionStatus: this.getSubscriptionStatus(user)
+    }
   }
 
   getUserByEmail (email) {
@@ -288,6 +507,29 @@ class UserManagementService {
       login_count: 0,
       is_blocked: false,
       session_id: null,
+      status: 'active',
+      subscription: {
+        type: userData.subscription_type || 'free',
+        status: userData.subscription_status || 'none',
+        startDate: userData.subscription_start || null,
+        endDate: userData.subscription_end || null,
+        autoRenew: userData.auto_renew || false
+      },
+      freeTrial: {
+        used: false,
+        startDate: null,
+        endDate: null,
+        notes: userData.trial_notes || ''
+      },
+      isOnline: false,
+      lastSeen: new Date(),
+      ipAddress: null,
+      location: null,
+      device: null,
+      joinDate: new Date(),
+      totalSessions: 0,
+      avgSessionTime: 0,
+      preferences: userData.preferences || {},
       ...userData
     }
 
@@ -937,6 +1179,573 @@ class UserManagementService {
     }
 
     return JSON.stringify(data, null, 2)
+  }
+
+  // Online Status Methods
+  getOnlineStatus (user) {
+    if (user.isOnline) return 'online'
+
+    const minutesAgo = Math.floor((Date.now() - user.lastSeen.getTime()) / (1000 * 60))
+    if (minutesAgo < 5) return 'away'
+    if (minutesAgo < 30) return 'recently'
+    return 'offline'
+  }
+
+  getOnlineUsers () {
+    return Array.from(this.users.values()).filter(user => user.isOnline)
+  }
+
+  setUserOnlineStatus (userId, isOnline, metadata = {}) {
+    const user = this.users.get(userId)
+    if (!user) return false
+
+    user.isOnline = isOnline
+    user.lastSeen = new Date()
+
+    if (metadata.ipAddress) user.ipAddress = metadata.ipAddress
+    if (metadata.location) user.location = metadata.location
+    if (metadata.device) user.device = metadata.device
+
+    this.logAudit('user_status_update', 'system', `User ${user.email} status changed to ${isOnline ? 'online' : 'offline'}`, metadata)
+    return true
+  }
+
+  // Subscription Management
+  getSubscriptionStatus (user) {
+    if (!user.subscription) {
+      return {
+        status: 'none',
+        type: 'none',
+        daysRemaining: 0,
+        autoRenew: false,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null
+      }
+    }
+
+    const now = new Date()
+    const endDate = new Date(user.subscription.endDate)
+    const daysRemaining = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)))
+
+    let status = 'active'
+    if (daysRemaining <= 0) {
+      status = 'expired'
+    } else if (daysRemaining <= 7) {
+      status = 'expiring'
+    }
+
+    return {
+      status,
+      type: user.subscription.type, // 'monthly' or 'yearly'
+      daysRemaining,
+      autoRenew: user.subscription.autoRenew || false,
+      stripeCustomerId: user.subscription.stripeCustomerId || null,
+      stripeSubscriptionId: user.subscription.stripeSubscriptionId || null,
+      nextBillingDate: user.subscription.nextBillingDate || null,
+      amount: user.subscription.amount || null,
+      currency: user.subscription.currency || 'USD'
+    }
+  }
+
+  updateUserSubscription (userId, subscriptionData) {
+    const user = this.getUserById(userId)
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    // Premium-only subscription structure
+    const allowedTypes = ['monthly', 'yearly']
+    if (subscriptionData.type && !allowedTypes.includes(subscriptionData.type)) {
+      throw new Error('Invalid subscription type. Only monthly and yearly subscriptions are available.')
+    }
+
+    // Update subscription with Stripe integration fields
+    user.subscription = {
+      ...user.subscription,
+      ...subscriptionData,
+      updatedAt: new Date()
+    }
+
+    // Update legacy fields for compatibility
+    user.membership = 'premium'
+    user.subscription_status = subscriptionData.status || 'active'
+    user.subscription_end = subscriptionData.endDate || user.subscription_end
+
+    this.users.set(userId, user)
+    this.logAudit('subscription_updated', userId, {
+      newSubscription: subscriptionData,
+      stripeIntegration: true
+    })
+
+    return user.subscription
+  }
+
+  // Mass Messaging System
+  getMessageRecipients (criteria) {
+    let recipients = Array.from(this.users.values())
+
+    // Filter by subscription status
+    if (criteria.subscriptionStatus) {
+      recipients = recipients.filter(user => {
+        const status = this.getSubscriptionStatus(user)
+        return criteria.subscriptionStatus.includes(status)
+      })
+    }
+
+    // Filter by online status
+    if (criteria.onlineStatus) {
+      recipients = recipients.filter(user => {
+        const status = this.getOnlineStatus(user)
+        return criteria.onlineStatus.includes(status)
+      })
+    }
+
+    // Filter by user status
+    if (criteria.userStatus) {
+      recipients = recipients.filter(user => criteria.userStatus.includes(user.status))
+    }
+
+    // Filter by role
+    if (criteria.roles) {
+      recipients = recipients.filter(user => criteria.roles.includes(user.role))
+    }
+
+    // Filter by preferences
+    if (criteria.emailNotifications) {
+      recipients = recipients.filter(user => user.preferences.emailNotifications)
+    }
+
+    // Filter by join date
+    if (criteria.joinedAfter) {
+      recipients = recipients.filter(user => user.joinDate >= criteria.joinedAfter)
+    }
+
+    if (criteria.joinedBefore) {
+      recipients = recipients.filter(user => user.joinDate <= criteria.joinedBefore)
+    }
+
+    return recipients
+  }
+
+  sendMassMessage (criteria, message, senderId = 'admin') {
+    const recipients = this.getMessageRecipients(criteria)
+
+    const messageId = Date.now().toString()
+    const messageRecord = {
+      id: messageId,
+      senderId,
+      recipients: recipients.map(r => r.id),
+      subject: message.subject,
+      body: message.body,
+      sentAt: new Date(),
+      status: 'sent',
+      deliveryStats: {
+        total: recipients.length,
+        delivered: recipients.length,
+        failed: 0,
+        opened: 0,
+        clicked: 0
+      }
+    }
+
+    // Simulate message delivery
+    this.logAudit('mass_message_sent', senderId, `Sent message "${message.subject}" to ${recipients.length} recipients`, {
+      messageId,
+      recipientCount: recipients.length,
+      criteria
+    })
+
+    return messageRecord
+  }
+
+  getMessageTemplates () {
+    return this.messageTemplates
+  }
+
+  createMessageTemplate (name, template) {
+    this.messageTemplates[name] = template
+    return true
+  }
+
+  // Smart recipient suggestions
+  getSmartRecipientSuggestions () {
+    const now = new Date()
+    const suggestions = []
+
+    // Users with expiring subscriptions
+    const expiringUsers = Array.from(this.users.values()).filter(user => {
+      const status = this.getSubscriptionStatus(user)
+      return status === 'expiring'
+    })
+    if (expiringUsers.length > 0) {
+      suggestions.push({
+        name: 'Expiring Subscriptions',
+        description: `${expiringUsers.length} users with subscriptions expiring within 7 days`,
+        criteria: { subscriptionStatus: ['expiring'] },
+        template: 'subscriptionExpiring',
+        priority: 'high'
+      })
+    }
+
+    // Inactive users
+    const inactiveUsers = Array.from(this.users.values()).filter(user => {
+      const daysSinceLastSeen = Math.floor((now - user.lastSeen) / (1000 * 60 * 60 * 24))
+      return daysSinceLastSeen > 7 && user.status === 'active'
+    })
+    if (inactiveUsers.length > 0) {
+      suggestions.push({
+        name: 'Inactive Users',
+        description: `${inactiveUsers.length} users inactive for over 7 days`,
+        criteria: { userStatus: ['active'] }, // Custom filter needed
+        template: 'reactivation',
+        priority: 'medium'
+      })
+    }
+
+    // Free users (potential upsell)
+    const freeUsers = Array.from(this.users.values()).filter(user => user.subscription.type === 'free')
+    if (freeUsers.length > 0) {
+      suggestions.push({
+        name: 'Free Users',
+        description: `${freeUsers.length} users on free plan (upsell opportunity)`,
+        criteria: { subscriptionStatus: ['free'] },
+        template: 'newsletter',
+        priority: 'low'
+      })
+    }
+
+    return suggestions
+  }
+
+  // Analytics and Statistics
+  getUserAnalytics () {
+    const total = Array.from(this.users.values()).length
+    const online = Array.from(this.users.values()).filter(u => u.isOnline).length
+    const active = Array.from(this.users.values()).filter(u => u.status === 'active').length
+    const premium = Array.from(this.users.values()).filter(u => u.subscription.type === 'premium' && u.subscription.status === 'active').length
+    const free = Array.from(this.users.values()).filter(u => u.subscription.type === 'free').length
+    const trial = Array.from(this.users.values()).filter(u => u.subscription.type === 'trial').length
+
+    return {
+      total,
+      online,
+      active,
+      inactive: total - active,
+      subscription: {
+        premium,
+        free,
+        trial,
+        expired: Array.from(this.users.values()).filter(u => this.getSubscriptionStatus(u) === 'expired').length
+      },
+      onlineRate: ((online / total) * 100).toFixed(1),
+      premiumRate: ((premium / total) * 100).toFixed(1)
+    }
+  }
+
+  /**
+   * Create Stripe-ready subscription data
+   */
+  createStripeSubscription (userId, planType, stripeData) {
+    const user = this.getUserById(userId)
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    const now = new Date()
+    let endDate, amount
+
+    // Premium-only pricing
+    if (planType === 'monthly') {
+      endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      amount = 9.99 // Monthly price
+    } else if (planType === 'yearly') {
+      endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000) // 365 days
+      amount = 99.99 // Yearly price (save ~17%)
+    } else {
+      throw new Error('Invalid plan type. Only monthly and yearly plans are available.')
+    }
+
+    const subscriptionData = {
+      type: planType,
+      status: 'active',
+      startDate: now,
+      endDate,
+      autoRenew: true,
+      stripeCustomerId: stripeData.customerId,
+      stripeSubscriptionId: stripeData.subscriptionId,
+      stripePriceId: stripeData.priceId,
+      nextBillingDate: endDate,
+      amount,
+      currency: 'USD',
+      createdAt: now
+    }
+
+    return this.updateUserSubscription(userId, subscriptionData)
+  }
+
+  /**
+   * Get available subscription plans (premium-only)
+   */
+  getAvailablePlans () {
+    return [
+      {
+        id: 'monthly',
+        name: 'Monthly Premium',
+        description: 'Full access to all features',
+        price: 9.99,
+        currency: 'USD',
+        interval: 'month',
+        intervalCount: 1,
+        features: [
+          'Unlimited item tracking',
+          'Advanced market predictions',
+          'Real-time price alerts',
+          'Portfolio management',
+          'API access',
+          'Priority support',
+          'Market manipulation tools',
+          'Exclusive trading strategies'
+        ],
+        stripePriceId: 'price_monthly_premium', // Replace with actual Stripe price ID
+        recommended: false
+      },
+      {
+        id: 'yearly',
+        name: 'Yearly Premium',
+        description: 'Full access to all features (Save 17%)',
+        price: 99.99,
+        currency: 'USD',
+        interval: 'year',
+        intervalCount: 1,
+        features: [
+          'Unlimited item tracking',
+          'Advanced market predictions',
+          'Real-time price alerts',
+          'Portfolio management',
+          'API access',
+          'Priority support',
+          'Market manipulation tools',
+          'Exclusive trading strategies',
+          '2 months free compared to monthly'
+        ],
+        stripePriceId: 'price_yearly_premium', // Replace with actual Stripe price ID
+        recommended: true,
+        savings: '17%'
+      }
+    ]
+  }
+
+  /**
+   * Check if user has active premium subscription
+   */
+  hasActivePremium (userId) {
+    const user = this.getUserById(userId)
+    if (!user) return false
+
+    const subscriptionStatus = this.getSubscriptionStatus(user)
+    return subscriptionStatus.status === 'active' && subscriptionStatus.type !== 'none'
+  }
+
+  /**
+   * Get subscription analytics for admin dashboard
+   */
+  getSubscriptionAnalytics () {
+    const users = Array.from(this.users.values())
+    const now = new Date()
+
+    const analytics = {
+      totalSubscribers: 0,
+      monthlySubscribers: 0,
+      yearlySubscribers: 0,
+      activeSubscriptions: 0,
+      expiringSubscriptions: 0,
+      expiredSubscriptions: 0,
+      monthlyRevenue: 0,
+      yearlyRevenue: 0,
+      totalRevenue: 0,
+      churnRate: 0,
+      averageSubscriptionLength: 0,
+      conversionRate: 0
+    }
+
+    users.forEach(user => {
+      const status = this.getSubscriptionStatus(user)
+
+      if (status.type !== 'none') {
+        analytics.totalSubscribers++
+
+        if (status.type === 'monthly') {
+          analytics.monthlySubscribers++
+          analytics.monthlyRevenue += 9.99
+        } else if (status.type === 'yearly') {
+          analytics.yearlySubscribers++
+          analytics.yearlyRevenue += 99.99
+        }
+
+        if (status.status === 'active') {
+          analytics.activeSubscriptions++
+        } else if (status.status === 'expiring') {
+          analytics.expiringSubscriptions++
+        } else if (status.status === 'expired') {
+          analytics.expiredSubscriptions++
+        }
+      }
+    })
+
+    analytics.totalRevenue = analytics.monthlyRevenue + analytics.yearlyRevenue
+    analytics.conversionRate = users.length > 0 ? (analytics.totalSubscribers / users.length) * 100 : 0
+
+    return analytics
+  }
+
+  /**
+   * Handle subscription webhooks from Stripe
+   */
+  handleStripeWebhook (event) {
+    const { type, data } = event
+
+    switch (type) {
+      case 'customer.subscription.created':
+        return this.handleSubscriptionCreated(data.object)
+
+      case 'customer.subscription.updated':
+        return this.handleSubscriptionUpdated(data.object)
+
+      case 'customer.subscription.deleted':
+        return this.handleSubscriptionCanceled(data.object)
+
+      case 'invoice.payment_succeeded':
+        return this.handlePaymentSucceeded(data.object)
+
+      case 'invoice.payment_failed':
+        return this.handlePaymentFailed(data.object)
+
+      default:
+        console.log(`Unhandled Stripe webhook event: ${type}`)
+        return { handled: false, message: `Unhandled event type: ${type}` }
+    }
+  }
+
+  handleSubscriptionCreated (subscription) {
+    // Find user by Stripe customer ID
+    const user = Array.from(this.users.values()).find(u =>
+      u.subscription?.stripeCustomerId === subscription.customer
+    )
+
+    if (user) {
+      const planType = subscription.items.data[0].price.recurring.interval === 'month' ? 'monthly' : 'yearly'
+
+      this.updateUserSubscription(user.id, {
+        type: planType,
+        status: 'active',
+        stripeSubscriptionId: subscription.id,
+        startDate: new Date(subscription.current_period_start * 1000),
+        endDate: new Date(subscription.current_period_end * 1000),
+        nextBillingDate: new Date(subscription.current_period_end * 1000),
+        autoRenew: !subscription.cancel_at_period_end
+      })
+
+      this.logAudit('stripe_subscription_created', user.id, { subscriptionId: subscription.id })
+      return { handled: true, userId: user.id }
+    }
+
+    return { handled: false, message: 'User not found for customer ID' }
+  }
+
+  handleSubscriptionUpdated (subscription) {
+    const user = Array.from(this.users.values()).find(u =>
+      u.subscription?.stripeSubscriptionId === subscription.id
+    )
+
+    if (user) {
+      let status = 'active'
+      if (subscription.status === 'canceled') status = 'expired'
+      else if (subscription.status === 'past_due') status = 'past_due'
+      else if (subscription.cancel_at_period_end) status = 'expiring'
+
+      this.updateUserSubscription(user.id, {
+        status,
+        endDate: new Date(subscription.current_period_end * 1000),
+        nextBillingDate: new Date(subscription.current_period_end * 1000),
+        autoRenew: !subscription.cancel_at_period_end
+      })
+
+      this.logAudit('stripe_subscription_updated', user.id, {
+        subscriptionId: subscription.id,
+        newStatus: status
+      })
+      return { handled: true, userId: user.id }
+    }
+
+    return { handled: false, message: 'Subscription not found' }
+  }
+
+  handleSubscriptionCanceled (subscription) {
+    const user = Array.from(this.users.values()).find(u =>
+      u.subscription?.stripeSubscriptionId === subscription.id
+    )
+
+    if (user) {
+      this.updateUserSubscription(user.id, {
+        status: 'expired',
+        autoRenew: false,
+        canceledAt: new Date()
+      })
+
+      this.logAudit('stripe_subscription_canceled', user.id, { subscriptionId: subscription.id })
+      return { handled: true, userId: user.id }
+    }
+
+    return { handled: false, message: 'Subscription not found' }
+  }
+
+  handlePaymentSucceeded (invoice) {
+    const user = Array.from(this.users.values()).find(u =>
+      u.subscription?.stripeCustomerId === invoice.customer
+    )
+
+    if (user) {
+      // Extend subscription period
+      const subscription = user.subscription
+      const newEndDate = new Date(invoice.period_end * 1000)
+
+      this.updateUserSubscription(user.id, {
+        status: 'active',
+        endDate: newEndDate,
+        nextBillingDate: newEndDate,
+        lastPaymentDate: new Date(invoice.created * 1000),
+        lastPaymentAmount: invoice.amount_paid / 100 // Convert from cents
+      })
+
+      this.logAudit('stripe_payment_succeeded', user.id, {
+        invoiceId: invoice.id,
+        amount: invoice.amount_paid / 100
+      })
+      return { handled: true, userId: user.id }
+    }
+
+    return { handled: false, message: 'Customer not found' }
+  }
+
+  handlePaymentFailed (invoice) {
+    const user = Array.from(this.users.values()).find(u =>
+      u.subscription?.stripeCustomerId === invoice.customer
+    )
+
+    if (user) {
+      this.updateUserSubscription(user.id, {
+        status: 'past_due',
+        lastFailedPayment: new Date(invoice.created * 1000)
+      })
+
+      this.logAudit('stripe_payment_failed', user.id, {
+        invoiceId: invoice.id,
+        attemptedAmount: invoice.amount_due / 100
+      })
+      return { handled: true, userId: user.id }
+    }
+
+    return { handled: false, message: 'Customer not found' }
   }
 }
 

@@ -280,7 +280,7 @@ export default function CommunityLeaderboard () {
     return (
       <Badge
         size={size}
-        leftSection={<IconComponent size={size === 'lg' ? 18 : 14} />}
+        leftIcon={<IconComponent size={size === 'lg' ? 18 : 14} />}
         style={{ backgroundColor: rankInfo.color }}
       >
         {rankInfo.name}
