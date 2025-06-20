@@ -74,10 +74,9 @@ export default function ItemDetails () {
   const { items } = ItemData()
   const { classes } = useStyles()
   const { id } = useParams()
-  const [item, setItem] = useState('')
+  const [item, setItem] = useState(null)
   const [options, setItemOptions] = useState([])
   const [profitLossInput, setProfitLossInput] = useState(0)
-  const [selectedHelpfulItem, setSelectedHelpfulItem] = useState(null)
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -104,20 +103,19 @@ export default function ItemDetails () {
     return Math.floor(price * 0.02)
   }
 
-  // Get helpful related items
-  const getHelpfulItems = (currentItem) => {
-    if (!currentItem || !items) return []
-
-    // Simple logic - get items with similar names or categories
-    return items
-      .filter(item =>
-        item.id !== currentItem.id &&
-        (item.name.toLowerCase().includes(currentItem.name.toLowerCase().split(' ')[0]) ||
-         Math.abs(parseInt(item.high?.replace(/,/g, '') || 0) - parseInt(currentItem.high?.replace(/,/g, '') || 0)) < 50000)
-      )
-      .slice(0, 10)
-      .map(item => ({ value: item.id.toString(), label: item.name }))
-  }
+  // Get helpful related items - REMOVED FOR BETTER UX
+  // const getHelpfulItems = (currentItem) => {
+  //   if (!currentItem || !items) return []
+  //   // Simple logic - get items with similar names or categories
+  //   return items
+  //     .filter(item =>
+  //       item.id !== currentItem.id &&
+  //       (item.name.toLowerCase().includes(currentItem.name.toLowerCase().split(' ')[0]) ||
+  //        Math.abs(parseInt(item.high?.replace(/,/g, '') || 0) - parseInt(currentItem.high?.replace(/,/g, '') || 0)) < 50000)
+  //     )
+  //     .slice(0, 10)
+  //     .map(item => ({ value: item.id.toString(), label: item.name }))
+  // }
 
   useEffect(() => {
     const foundItem = items.find(i => Number(i.id) === Number(id))
@@ -186,7 +184,7 @@ export default function ItemDetails () {
   ))
 
   const manipulationData = item ? detectVolumeManipulation(item) : { isManipulated: false, severity: 'normal' }
-  const helpfulItems = item ? getHelpfulItems(item) : []
+  // const helpfulItems = item ? getHelpfulItems(item) : [] // REMOVED FOR BETTER UX
 
   return <>
         {/* Status Card */}
@@ -241,27 +239,6 @@ export default function ItemDetails () {
                 <Stack spacing="xs">
                     {itemInfo}
                 </Stack>
-            </Card>
-
-            <Card withBorder radius="md" className={classes.card}>
-                <Group position="apart">
-                    <Text className={classes.title}>Helpful Items</Text>
-                </Group>
-                <Select
-                  placeholder="Select related item"
-                  data={helpfulItems}
-                  value={selectedHelpfulItem}
-                  onChange={setSelectedHelpfulItem}
-                  searchable
-                  clearable
-                />
-                {selectedHelpfulItem && (
-                  <Text size="sm" color="dimmed" mt="xs">
-                    <Anchor href={`/item/${selectedHelpfulItem}`}>
-                      View item details
-                    </Anchor>
-                  </Text>
-                )}
             </Card>
 
             <ProfitModifier item={item} />

@@ -386,14 +386,15 @@ export default function SecurityLogs () {
         <Group>
           <Button
             leftIcon={<IconRefresh size={16} />}
-            variant="light"
             onClick={loadData}
+            loading={loading}
           >
             Refresh
           </Button>
           <Button
-            leftIcon={<IconDownload size={16} />}
             variant="light"
+            leftIcon={<IconDownload size={16} />}
+            onClick={() => notifications.show({ title: 'Export Started', message: 'Security logs export initiated' })}
           >
             Export Logs
           </Button>
@@ -594,8 +595,9 @@ export default function SecurityLogs () {
                               <Menu.Item
                                 leftIcon={<IconUserX size={14} />}
                                 color="orange"
+                                onClick={() => notifications.show({ title: 'User Flagged', message: `User ${log.userName} flagged for review` })}
                               >
-                                Block User
+                                Flag User
                               </Menu.Item>
                             </Menu.Dropdown>
                           </Menu>

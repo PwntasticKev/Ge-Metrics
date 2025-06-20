@@ -77,36 +77,38 @@ export default function HeaderNav ({ opened, setOpened }) {
         </Link>
 
         {/* Center Section - Game Mode */}
-        <Group spacing="md">
-          <Badge
-            variant="filled"
-            color="blue"
-            size="lg"
-            sx={{ fontSize: '10px' }}
-          >
-            LIVE
-          </Badge>
+        <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
+          <Group spacing="md">
+            <Badge
+              variant="filled"
+              color="blue"
+              size="lg"
+              sx={{ fontSize: '10px' }}
+            >
+              LIVE
+            </Badge>
 
-          <div style={{
-            background: theme.colors.dark[6],
-            borderRadius: '24px',
-            padding: '4px',
-            border: `1px solid ${theme.colors.dark[4]}`
-          }}>
-            <Switch
-              checked={checked}
-              onLabel="DMM"
-              offLabel="Normal"
-              size="md"
-              onChange={setGameMode}
-              styles={{
-                track: {
-                  backgroundColor: checked ? theme.colors.orange[7] : theme.colors.blue[7]
-                }
-              }}
-            />
-          </div>
-        </Group>
+            <div style={{
+              background: theme.colors.dark[6],
+              borderRadius: '24px',
+              padding: '4px',
+              border: `1px solid ${theme.colors.dark[4]}`
+            }}>
+              <Switch
+                checked={checked}
+                onLabel="DMM"
+                offLabel="Normal"
+                size="md"
+                onChange={setGameMode}
+                styles={{
+                  track: {
+                    backgroundColor: checked ? theme.colors.orange[7] : theme.colors.blue[7]
+                  }
+                }}
+              />
+            </div>
+          </Group>
+        </MediaQuery>
 
         {/* Right Section */}
         <Flex justify="space-between" align="center" gap="md">
@@ -114,48 +116,48 @@ export default function HeaderNav ({ opened, setOpened }) {
           {!isSubscribed
             ? (
             <Button
+              component={Link}
+              to="/billing"
               variant="gradient"
-              gradient={{ from: 'yellow', to: 'orange' }}
+              gradient={{ from: 'gold', to: 'orange' }}
               leftIcon={<IconCrown size={16} />}
               size="sm"
-              onClick={() => setSubscriptionModalOpened(true)}
+              style={{ fontWeight: 600 }}
+            >
+              Upgrade to Premium
+            </Button>
+              )
+            : (
+            <Button
+              component={Link}
+              to="/billing"
+              variant="gradient"
+              gradient={{ from: 'gold', to: 'orange' }}
+              leftIcon={<IconCrown size={12} />}
+              size="xs"
+              compact
+            >
+              Premium
+            </Button>
+              )}
+
+          {/* Discord Button - Hidden on mobile */}
+          <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
+            <ActionIcon
+              variant="filled"
+              color="indigo"
+              size="lg"
+              onClick={handleDiscordClick}
               sx={{
-                fontWeight: 600,
                 '&:hover': {
-                  transform: 'scale(1.02)',
+                  transform: 'scale(1.05)',
                   transition: 'transform 0.2s ease'
                 }
               }}
             >
-              Upgrade $3/mo
-            </Button>
-              )
-            : (
-            <Badge
-              color="yellow"
-              variant="filled"
-              size="lg"
-              leftIcon={<IconCrown size={12} />}
-            >
-              PREMIUM
-            </Badge>
-              )}
-
-          {/* Discord Button */}
-          <ActionIcon
-            variant="filled"
-            color="indigo"
-            size="lg"
-            onClick={handleDiscordClick}
-            sx={{
-              '&:hover': {
-                transform: 'scale(1.05)',
-                transition: 'transform 0.2s ease'
-              }
-            }}
-          >
-            <IconBrandDiscord size={20} />
-          </ActionIcon>
+              <IconBrandDiscord size={20} />
+            </ActionIcon>
+          </MediaQuery>
 
           {/* Avatar Menu */}
           <AvatarMenu/>

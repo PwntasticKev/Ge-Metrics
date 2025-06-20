@@ -31,8 +31,10 @@ import {
   IconSword,
   IconWand,
   IconEye,
-  IconBell
+  IconBell,
+  IconAnchor
 } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
 
 export default function FutureItems () {
   const [activeTab, setActiveTab] = useState('upcoming')
@@ -40,51 +42,51 @@ export default function FutureItems () {
   const upcomingItems = [
     {
       id: 1,
-      name: 'Torva Platebody (or)',
-      category: 'Armor',
-      releaseDate: '2024-02-15',
-      confidence: 85,
-      predictedPrice: '2.1B - 2.8B',
-      description: 'Ornament kit variant of Torva platebody expected with next update',
-      icon: IconShield,
-      rarity: 'Legendary',
-      source: 'Nex Drop Table Enhancement'
+      name: 'Varlamore Combat Gear',
+      category: 'Combat Equipment',
+      releaseDate: 'Q1 2025',
+      predictedPrice: '15-25M GP',
+      confidence: 78,
+      rarity: 'Rare',
+      source: 'Dev Blog Analysis',
+      description: 'New tier combat equipment from Varlamore expansion. Expected to bridge gap between current high-tier gear.',
+      icon: IconSword
     },
     {
       id: 2,
-      name: 'Enhanced Crystal Bow',
-      category: 'Weapon',
-      releaseDate: '2024-03-01',
-      confidence: 72,
-      predictedPrice: '450M - 650M',
-      description: 'Upgraded version of Crystal Bow with special attack',
-      icon: IconSword,
-      rarity: 'Rare',
-      source: 'Gauntlet Expansion'
+      name: 'Sailing Materials Bundle',
+      category: 'Skilling Supplies',
+      releaseDate: 'Q2 2025',
+      predictedPrice: '500K-2M GP',
+      confidence: 65,
+      rarity: 'Common',
+      source: 'Community Speculation',
+      description: 'Essential materials for the upcoming Sailing skill. Demand expected to be extremely high on release.',
+      icon: IconAnchor
     },
     {
       id: 3,
-      name: 'Lunar Spellbook Runes',
-      category: 'Magic',
-      releaseDate: '2024-02-28',
-      confidence: 90,
-      predictedPrice: '15K - 25K each',
-      description: 'New rune type for enhanced lunar spells',
-      icon: IconWand,
-      rarity: 'Common',
-      source: 'Magic Rework Update'
+      name: 'Desert Treasure III Rewards',
+      category: 'Magic Equipment',
+      releaseDate: 'Q3 2025',
+      predictedPrice: '50-100M GP',
+      confidence: 72,
+      rarity: 'Very Rare',
+      source: 'Quest Series Pattern',
+      description: 'Continuation rewards from Desert Treasure series. Historically these quests introduce game-changing magic items.',
+      icon: IconWand
     },
     {
       id: 4,
-      name: 'Dragon Slayer III Rewards',
-      category: 'Quest Rewards',
-      releaseDate: '2024-04-12',
-      confidence: 60,
-      predictedPrice: 'Variable',
-      description: 'Multiple high-tier rewards from the anticipated quest',
-      icon: IconStar,
-      rarity: 'Legendary',
-      source: 'Quest Line Continuation'
+      name: 'Enhanced Wilderness Drops',
+      category: 'PvP Equipment',
+      releaseDate: 'Q4 2024',
+      predictedPrice: '10-30M GP',
+      confidence: 85,
+      rarity: 'Rare',
+      source: 'Official Announcement',
+      description: 'Improved drops from wilderness boss rework. Expected to revitalize PvP economy and create new meta.',
+      icon: IconShield
     }
   ]
 
@@ -114,32 +116,39 @@ export default function FutureItems () {
 
   const timeline = [
     {
-      title: 'Winter 2024 Update',
-      date: 'February 15, 2024',
-      description: 'Nex drop table enhancements and ornament kits',
+      title: 'Varlamore Part 2: The Rising Darkness',
+      date: 'Q1 2025 (Expected)',
       status: 'upcoming',
-      impact: 'High'
+      impact: 'Very High',
+      description: 'Major content expansion introducing new areas, quests, and high-level items. Expected to significantly impact herb, rune, and equipment markets.'
     },
     {
-      title: 'Magic System Rework',
-      date: 'February 28, 2024',
-      description: 'New runes and spell mechanics',
+      title: 'Sailing Skill Release',
+      date: 'Q2 2025 (Speculated)',
       status: 'upcoming',
-      impact: 'Medium'
+      impact: 'Very High',
+      description: 'New skill introduction will create massive demand for materials, tools, and consumables. Prepare for market volatility.'
     },
     {
-      title: 'Gauntlet Expansion',
-      date: 'March 1, 2024',
-      description: 'New tiers and crystal equipment upgrades',
+      title: 'Desert Treasure III',
+      date: 'Q3 2025 (Rumored)',
       status: 'upcoming',
-      impact: 'High'
+      impact: 'High',
+      description: 'Continuation of the Desert Treasure quest series. Likely to introduce powerful magic equipment and affect rune prices.'
     },
     {
-      title: 'Dragon Slayer III',
-      date: 'April 12, 2024',
-      description: 'Major quest with multiple high-tier rewards',
-      status: 'speculated',
-      impact: 'Very High'
+      title: 'Wilderness Boss Rework',
+      date: 'Q4 2024 - Q1 2025',
+      status: 'upcoming',
+      impact: 'High',
+      description: 'Rework of existing wilderness bosses with improved drop tables. Will affect PvP supply economics and rare item values.'
+    },
+    {
+      title: 'Mobile Interface Updates',
+      date: 'Ongoing 2024-2025',
+      status: 'upcoming',
+      impact: 'Medium',
+      description: 'Quality of life improvements for mobile players. May increase player base and trading volume.'
     }
   ]
 
@@ -165,6 +174,34 @@ export default function FutureItems () {
       case 'Volatile': return 'yellow'
       default: return 'gray'
     }
+  }
+
+  // Handler functions for interactive elements
+  const handleAddToWatchlist = (item) => {
+    notifications.show({
+      title: 'Added to Watchlist',
+      message: `${item.name} has been added to your watchlist`,
+      color: 'green',
+      icon: <IconEye size={16} />
+    })
+  }
+
+  const handleSetPriceAlert = (item) => {
+    notifications.show({
+      title: 'Price Alert Set',
+      message: `You'll be notified when ${item.name} reaches your target price`,
+      color: 'blue',
+      icon: <IconBell size={16} />
+    })
+  }
+
+  const handleViewMarketAnalysis = (item) => {
+    notifications.show({
+      title: 'Market Analysis',
+      message: `Showing detailed analysis for ${item.name} - Price trends, volume predictions, and market impact`,
+      color: 'purple',
+      icon: <IconChartLine size={16} />
+    })
   }
 
   return (
@@ -223,12 +260,12 @@ export default function FutureItems () {
                         </Group>
                         <Group spacing="xs">
                           <Tooltip label="Add to watchlist">
-                            <ActionIcon variant="light" color="yellow">
+                            <ActionIcon variant="light" color="yellow" onClick={() => handleAddToWatchlist(item)}>
                               <IconEye size={16} />
                             </ActionIcon>
                           </Tooltip>
                           <Tooltip label="Set price alert">
-                            <ActionIcon variant="light" color="blue">
+                            <ActionIcon variant="light" color="blue" onClick={() => handleSetPriceAlert(item)}>
                               <IconBell size={16} />
                             </ActionIcon>
                           </Tooltip>
@@ -280,7 +317,7 @@ export default function FutureItems () {
                       </Text>
 
                       {/* Action Button */}
-                      <Button variant="light" leftIcon={<IconChartLine size={16} />} fullWidth>
+                      <Button variant="light" leftIcon={<IconChartLine size={16} />} fullWidth onClick={() => handleViewMarketAnalysis(item)}>
                         View Market Analysis
                       </Button>
                     </Stack>

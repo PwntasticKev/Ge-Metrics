@@ -39,14 +39,16 @@ import { useForm } from '@mantine/form'
 import { useNavigate } from 'react-router-dom'
 import { stripeService } from '../../services/stripeService'
 import securityService from '../../services/securityService'
+import { useTrialContext } from '../../contexts/TrialContext'
 import bg from '../../assets/gehd.png'
 
 const SignupFlow = () => {
   const navigate = useNavigate()
+  const { initializeTrial } = useTrialContext()
   const [active, setActive] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [selectedPlan, setSelectedPlan] = useState('yearly')
+  const [selectedPlan, setSelectedPlan] = useState('trial')
   const [stripe, setStripe] = useState(null)
   const [elements, setElements] = useState(null)
   const [paymentProcessing, setPaymentProcessing] = useState(false)
@@ -96,7 +98,25 @@ const SignupFlow = () => {
     }
   })
 
-  const plans = stripeService.getPricingPlans()
+  const plans = {
+    trial: {
+      id: 'trial',
+      name: '14-Day Free Trial',
+      price: 0,
+      period: '14 days',
+      description: 'Full access to all features',
+      features: [
+        'AI-powered predictions',
+        'Whale tracking',
+        'Future items analysis',
+        'Price alerts (10 max)',
+        'Watchlist (25 items)',
+        'Limited API calls (100/day)'
+      ],
+      popular: true
+    },
+    ...stripeService.getPricingPlans()
+  }
 
   useEffect(() => {
     const initializeStripe = async () => {
@@ -150,7 +170,19 @@ const SignupFlow = () => {
       // Simulate account creation
       console.log('Creating account:', accountData)
 
-      // Move to next step
+      // Generate user ID (in real app, this would come from your auth service)
+      const userId = 'user_' + Date.now()
+
+      // Initialize trial for new user
+      if (selectedPlan === 'trial') {
+        initializeTrial(userId, form.values.email)
+
+        // Redirect to success page with trial info
+        navigate('/signup/success?trial=true')
+        return
+      }
+
+      // Move to next step for paid plans
       nextStep()
     } catch (error) {
       setError(error.message)
@@ -164,6 +196,13 @@ const SignupFlow = () => {
       setError('Please select a plan')
       return
     }
+
+    // If trial selected, proceed to account creation
+    if (selectedPlan === 'trial') {
+      nextStep()
+      return
+    }
+
     nextStep()
   }
 
@@ -189,7 +228,7 @@ const SignupFlow = () => {
       const session = await stripeService.createCheckoutSession(
         plan.id,
         customer.id,
-        plans.trial.days
+        0 // No trial for paid plans since user can start with free trial
       )
 
       // Redirect to Stripe Checkout

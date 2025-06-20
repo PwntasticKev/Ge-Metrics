@@ -29,20 +29,21 @@ export default function UserEdit () {
   const [editUser, { data, loading, error }] = useMutation(EDIT_USER)
   const theme = useMantineTheme()
   const isMobile = useMediaQuery('(max-width: 50em)')
-  const user = authService.getCurrentUser() || { email: 'guest@example.com' }
+  const user = authService.getCurrentUser() || { email: 'guest@example.com', username: '', phone: '' }
   const { classes } = useStyles()
   const [opened, { open, close }] = useDisclosure(false)
 
   const form = useForm({
     initialValues: {
-      user: '', // Add the initial value for the username if available
-      phone: '', // Add the initial value for the phone if available
+      user: user?.username || '', // Ensure it's always a string
+      phone: user?.phone || '', // Ensure it's always a string
+      email: user?.email || '', // Add email field for consistency
       termsOfService: false
     },
     validate: {
       email: () => null,
-      user: (value) => (/^[a-zA-Z]{3}$/.test(value) ? null : 'Invalid email'),
-      phone: (value) => (/^(?:(?:\+|0{0,2})\d{1,4})?[ -]?\(?\d{1,4}\)?[ -]?\d{1,4}[ -]?\d{1,9}$/.test(value) ? null : 'Invalid email')
+      user: (value) => (/^[a-zA-Z0-9_]{3,12}$/.test(value) ? null : 'Username must be 3-12 characters (letters, numbers, underscore only)'),
+      phone: (value) => (!value || /^(?:(?:\+|0{0,2})\d{1,4})?[ -]?\(?\d{1,4}\)?[ -]?\d{1,4}[ -]?\d{1,9}$/.test(value) ? null : 'Invalid phone number')
     }
   })
 
@@ -56,17 +57,17 @@ export default function UserEdit () {
                 transitionProps={{ transition: 'fade', duration: 200 }}
             >
                 <Box maw={300} mx="auto">
-                    <form onSubmit={values => {
+                    <form onSubmit={form.onSubmit((values) => {
                       editUser({ variables: values })
-                      values.preventDefault()
-                    }}>
+                    })}>
                         {/* <DropZone/> */}
                         <TextInput
                             mt="sm"
                             withAsterisk
                             label="Email"
                             disabled
-                            placeholder={user.email}
+                            value={user.email || ''}
+                            placeholder="Email address"
                         />
 
                         <TextInput
@@ -92,7 +93,7 @@ export default function UserEdit () {
                         />
 
                         <Group position="right" mt="md">
-                            <Button type="submit" disabled={!form.valid}>
+                            <Button type="submit" disabled={!form.isValid()}>
                                 Save
                             </Button>
                         </Group>

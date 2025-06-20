@@ -101,7 +101,7 @@ const FormulaDocumentation = () => {
           <Badge color="orange" variant="light" size="lg">
             🚨 Update Required After Changes
           </Badge>
-          <Button leftSection={<IconEdit size={16} />} variant="light">
+          <Button leftIcon={<IconEdit size={16} />} variant="light">
             Edit Documentation
           </Button>
         </Group>
@@ -114,19 +114,19 @@ const FormulaDocumentation = () => {
 
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List>
-          <Tabs.Tab value="ai-predictions" leftSection={<IconBrain size={16} />}>
+          <Tabs.Tab value="ai-predictions" leftIcon={<IconBrain size={16} />}>
             AI Predictions
           </Tabs.Tab>
-          <Tabs.Tab value="profit-calculations" leftSection={<IconCoins size={16} />}>
+          <Tabs.Tab value="profit-calculations" leftIcon={<IconCoins size={16} />}>
             Profit Calculations
           </Tabs.Tab>
-          <Tabs.Tab value="market-analysis" leftSection={<IconChartLine size={16} />}>
+          <Tabs.Tab value="market-analysis" leftIcon={<IconChartLine size={16} />}>
             Market Analysis
           </Tabs.Tab>
-          <Tabs.Tab value="risk-assessment" leftSection={<IconShield size={16} />}>
+          <Tabs.Tab value="risk-assessment" leftIcon={<IconShield size={16} />}>
             Risk Assessment
           </Tabs.Tab>
-          <Tabs.Tab value="other-formulas" leftSection={<IconCalculator size={16} />}>
+          <Tabs.Tab value="other-formulas" leftIcon={<IconCalculator size={16} />}>
             Other Formulas
           </Tabs.Tab>
         </Tabs.List>
@@ -151,19 +151,46 @@ const FormulaDocumentation = () => {
             />
 
             <FormulaCard
-              title="Hidden Gems Detection"
-              icon={IconDiamond}
-              description="Finds items that are profitable but not many people are trading them yet. These are the secret money makers!"
-              formula="Hidden Gem Score = (Profit Margin × Volume Scarcity × Trend Strength) / Competition Level"
+              title="Buy Limit Optimization"
+              description="Adjusts profit calculations based on GE buy limits and multi-account strategies"
+              formula="Adjusted_Profit = Base_Profit × Min(Demand/Buy_Limit, Account_Multiplier)"
               variables={[
-                'Profit Margin: How much money you can make (%)',
-                'Volume Scarcity: How few people are trading it (lower = better)',
-                'Trend Strength: How much the price is going up',
-                'Competition Level: How many other traders are already doing this'
+                'Base_Profit: Raw profit per item',
+                'Demand: Market demand volume',
+                'Buy_Limit: GE 4-hour buy limit',
+                'Account_Multiplier: 1-5 (for multi-account users)'
               ]}
-              example="Item with 45% profit margin, low volume (score 80), strong upward trend (score 75), low competition (score 90) = Hidden Gem candidate"
-              lastUpdated="Dec 2024"
+              example="Dragon Bones: 2000 profit × Min(50000/100, 3) = 2000 × 3 = 6000 GP/4h per account"
+              lastUpdated="2024-12-26"
               complexity="Medium"
+            />
+
+            <FormulaCard
+              title="Multi-Account Scaling Factor"
+              description="Calculates realistic profit scaling for users with multiple accounts"
+              formula="Total_Hourly = Single_Account_Profit × Accounts × Efficiency_Factor"
+              variables={[
+                'Single_Account_Profit: Profit per account per hour',
+                'Accounts: Number of accounts (typically 2-5)',
+                'Efficiency_Factor: 0.7-0.9 (account management overhead)'
+              ]}
+              example="1M/hour × 3 accounts × 0.8 efficiency = 2.4M/hour total"
+              lastUpdated="2024-12-26"
+              complexity="Medium"
+            />
+
+            <FormulaCard
+              title="Hidden Gem Detection"
+              description="Identifies low-competition, high-profit opportunities perfect for buy limit circumvention"
+              formula="Hidden_Score = (Profit_Margin × Volume_Stability) / Competition_Index"
+              variables={[
+                'Profit_Margin: Percentage profit per item',
+                'Volume_Stability: Consistency of trading volume (0-1)',
+                'Competition_Index: Number of active traders (1-100)'
+              ]}
+              example="15% margin × 0.8 stability / 5 competition = 2.4 (excellent hidden gem)"
+              lastUpdated="2024-12-26"
+              complexity="High"
             />
 
             <FormulaCard
