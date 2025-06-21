@@ -207,7 +207,7 @@ export default function FutureItems () {
   return (
     <Container size="xl" py="md">
       <Stack spacing="lg">
-        {/* Header */}
+      {/* Header */}
         <div>
           <Group spacing="xs" align="center" mb="xs">
             <IconCalendar size={28} color="#4DABF7" />
@@ -269,8 +269,8 @@ export default function FutureItems () {
                               <IconBell size={16} />
                             </ActionIcon>
                           </Tooltip>
-                        </Group>
-                      </Group>
+        </Group>
+      </Group>
 
                       {/* Badges */}
                       <Group spacing="xs">
@@ -279,11 +279,11 @@ export default function FutureItems () {
                         </Badge>
                         <Badge color={getConfidenceColor(item.confidence)} variant="light">
                           {item.confidence}% confidence
-                        </Badge>
-                      </Group>
+          </Badge>
+        </Group>
 
                       {/* Details */}
-                      <Stack spacing="xs">
+            <Stack spacing="xs">
                         <Group position="apart">
                           <Text size="sm" color="dimmed">Release Date:</Text>
                           <Text size="sm" weight={500}>{item.releaseDate}</Text>
@@ -295,8 +295,8 @@ export default function FutureItems () {
                         <Group position="apart">
                           <Text size="sm" color="dimmed">Source:</Text>
                           <Text size="sm">{item.source}</Text>
-                        </Group>
-                      </Stack>
+              </Group>
+            </Stack>
 
                       {/* Confidence Bar */}
                       <div>
@@ -304,10 +304,10 @@ export default function FutureItems () {
                           <Text size="xs" color="dimmed">Prediction Confidence</Text>
                           <Text size="xs" color="dimmed">{item.confidence}%</Text>
                         </Group>
-                        <Progress
+                <Progress
                           value={item.confidence}
                           color={getConfidenceColor(item.confidence)}
-                          size="sm"
+                  size="sm"
                         />
                       </div>
 
@@ -320,9 +320,9 @@ export default function FutureItems () {
                       <Button variant="light" leftIcon={<IconChartLine size={16} />} fullWidth onClick={() => handleViewMarketAnalysis(item)}>
                         View Market Analysis
                       </Button>
-                    </Stack>
+            </Stack>
                   </Card>
-                </Grid.Col>
+          </Grid.Col>
               ))}
             </Grid>
           </Tabs.Panel>
@@ -354,7 +354,7 @@ export default function FutureItems () {
                           {item}
                         </Badge>
                       ))}
-                    </Group>
+              </Group>
 
                     <Text size="sm" color="dimmed">
                       <strong>Reason:</strong> {trend.reason}
@@ -378,7 +378,7 @@ export default function FutureItems () {
                     title={event.title}
                   >
                     <Stack spacing="xs">
-                      <Group spacing="xs">
+                        <Group spacing="xs">
                         <Text size="sm" color="dimmed">{event.date}</Text>
                         <Badge
                           size="xs"
@@ -394,7 +394,7 @@ export default function FutureItems () {
                         >
                           {event.impact} Impact
                         </Badge>
-                      </Group>
+                        </Group>
                       <Text size="sm" color="dimmed">
                         {event.description}
                       </Text>
@@ -402,9 +402,9 @@ export default function FutureItems () {
                   </Timeline.Item>
                 ))}
               </Timeline>
-            </Stack>
+                </Stack>
           </Tabs.Panel>
-        </Tabs>
+      </Tabs>
       </Stack>
     </Container>
   )

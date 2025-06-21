@@ -1,0 +1,322 @@
+# Ge-Metrics OSRS Grand Exchange Application - Cursor Rules
+
+## Project Overview
+This is a React-based web application for OSRS (Old School RuneScape) Grand Exchange market analysis, featuring AI predictions, whale tracking, automated data collection, and comprehensive trading tools.
+
+## Technology Stack
+- **Frontend**: React 18 with Vite
+- **UI Library**: Mantine v6 (NOT v7 - important for compatibility)
+- **Routing**: React Router v6
+- **State Management**: React Context + useState/useEffect
+- **Testing**: Vitest + React Testing Library
+- **Charts**: Recharts
+- **Icons**: Tabler Icons React
+- **Styling**: CSS Modules + Mantine components
+- **Build Tool**: Vite
+- **Package Manager**: npm
+
+## File Structure & Architecture
+
+### Core Directories
+```
+src/
+├── components/          # Reusable UI components
+│   ├── Header/         # Navigation header
+│   ├── NavBar/         # Sidebar navigation
+│   ├── Table/          # Data tables
+│   ├── Trial/          # Trial system components
+│   └── modals/         # Modal dialogs
+├── pages/              # Route components
+│   ├── Admin/          # Admin dashboard pages
+│   ├── AIPredictions/  # AI prediction features
+│   ├── Profile/        # User profile management
+│   └── Signup/         # Registration flow
+├── services/           # Business logic & API calls
+├── contexts/           # React contexts
+├── utils/              # Utility functions
+├── api/                # External API integrations
+├── shared/             # Shared components
+└── __tests__/          # Test files
+```
+
+## Coding Standards
+
+### JavaScript/JSX Rules
+1. **File Extensions**: Use `.jsx` for React components, `.js` for utilities
+2. **Import Order**: 
+   - React imports first
+   - Third-party libraries
+   - Local components
+   - Utilities and services
+   - Relative imports last
+
+3. **Component Structure**:
+```jsx
+import React, { useState, useEffect } from 'react'
+import { Button, Group } from '@mantine/core'
+import { IconSomething } from '@tabler/icons-react'
+
+const ComponentName = ({ prop1, prop2 }) => {
+  const [state, setState] = useState(null)
+  
+  useEffect(() => {
+    // Side effects
+  }, [])
+
+  const handleAction = () => {
+    // Event handlers
+  }
+
+  return (
+    <div>
+      {/* JSX content */}
+    </div>
+  )
+}
+
+export default ComponentName
+```
+
+### Mantine v6 Compatibility Rules
+**CRITICAL**: This project uses Mantine v6, NOT v7. Follow these patterns:
+
+1. **Icon Props**: Use `leftIcon` and `rightIcon` (NOT `leftSection`/`rightSection`)
+```jsx
+// ✅ Correct (v6)
+<Button leftIcon={<IconPlus />}>Add Item</Button>
+
+// ❌ Wrong (v7)
+<Button leftSection={<IconPlus />}>Add Item</Button>
+```
+
+2. **Tab Components**: Use `icon` prop (NOT `leftSection`)
+```jsx
+// ✅ Correct (v6)
+<Tabs.Tab value="overview" icon={<IconDashboard />}>Overview</Tabs.Tab>
+
+// ❌ Wrong (v7)
+<Tabs.Tab value="overview" leftSection={<IconDashboard />}>Overview</Tabs.Tab>
+```
+
+3. **TextInput/Input**: Use `icon` prop for left icons
+```jsx
+// ✅ Correct (v6)
+<TextInput icon={<IconSearch />} placeholder="Search..." />
+```
+
+### Component Naming Conventions
+- **Components**: PascalCase (`UserProfile`, `ItemTable`)
+- **Files**: kebab-case for multi-word (`user-profile.jsx`, `item-table.jsx`)
+- **Functions**: camelCase (`handleSubmit`, `fetchUserData`)
+- **Constants**: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_ITEMS`)
+
+### State Management Patterns
+1. **Local State**: Use `useState` for component-specific state
+2. **Global State**: Use React Context for shared state (trial, auth, user)
+3. **Service Layer**: Keep API calls in `/services` directory
+4. **Error Handling**: Always include try-catch blocks for async operations
+
+### API Integration Rules
+1. **RS Wiki API**: Use existing patterns in `/api/rs-wiki-api.jsx`
+2. **Error Handling**: Log errors and show user-friendly messages
+3. **Loading States**: Always show loading indicators
+4. **Caching**: Implement reasonable caching for expensive API calls
+
+### Testing Standards
+1. **Test Files**: Place in `__tests__/` directory with `.test.js` extension
+2. **Coverage**: Aim for >80% coverage on business logic
+3. **Mock External APIs**: Always mock external API calls
+4. **Test Structure**: Arrange-Act-Assert pattern
+
+### Security & Performance
+1. **Input Validation**: Validate all user inputs
+2. **XSS Prevention**: Sanitize user-generated content
+3. **API Rate Limiting**: Respect external API rate limits
+4. **Memory Leaks**: Clean up event listeners and intervals
+5. **Bundle Size**: Lazy load heavy components and pages
+
+## Feature-Specific Rules
+
+### Trial System
+- All trial-related logic goes in `TrialContext`
+- Use `useTrialContext` hook for trial status
+- Implement feature restrictions consistently
+- Show upgrade prompts based on trial progress
+
+### AI Predictions & Whale Tracking
+- Keep prediction algorithms in `/services/aiPredictionService.js`
+- Whale data should be real-time when possible
+- Use consistent data structures for market analysis
+- Cache expensive calculations
+
+### Admin Features
+- Protect admin routes with proper authentication
+- Use consistent table patterns for data display
+- Implement proper error boundaries
+- Log admin actions for audit trails
+
+### Data Tables
+- Use existing table components in `/components/Table/`
+- Implement sorting, filtering, and pagination consistently
+- Show loading states and empty states
+- Make tables responsive for mobile
+
+## Development Workflow
+
+### Before Starting Work
+1. Check existing patterns in similar components
+2. Verify Mantine v6 compatibility for new components
+3. Run tests to ensure no regressions
+4. Check for TypeScript errors (even in JS files)
+
+### File Creation and Testing Requirements
+**CRITICAL**: Always create comprehensive tests for every file you create and test them before delivery:
+
+1. **Test Creation**: For every new component, service, or utility file:
+   - Create corresponding test files in `__tests__/` directory
+   - Use `.test.js` or `.test.jsx` extension
+   - Include unit tests, integration tests, and edge cases
+   - Mock external dependencies and API calls
+   - Test error handling and loading states
+
+2. **Test Validation**: Before providing any code:
+   - Run `npm test` to ensure all tests pass
+   - Verify test coverage meets >80% threshold
+   - Check that tests actually validate the intended functionality
+   - Ensure tests follow Arrange-Act-Assert pattern
+
+3. **Quality Assurance**: Every file must:
+   - Have working imports and exports
+   - Follow established coding patterns
+   - Include proper error handling
+   - Be compatible with Mantine v6 syntax
+   - Pass linting checks
+   - Work with existing codebase architecture
+
+4. **Test Examples Required**:
+   - Component rendering tests
+   - User interaction tests
+   - API integration tests
+   - Error boundary tests
+   - State management tests
+   - Service function tests
+
+### Code Review Checklist
+- [ ] Follows established file structure
+- [ ] Uses correct Mantine v6 syntax
+- [ ] Includes proper error handling
+- [ ] Has loading and empty states
+- [ ] Responsive design considerations
+- [ ] Accessibility attributes where needed
+- [ ] **Tests written AND PASSING for all new functionality**
+- [ ] **Test coverage >80% verified**
+- [ ] **All imports/exports working correctly**
+- [ ] **Code tested in development environment**
+- [ ] **No console errors or warnings**
+- [ ] **Mantine v6 compatibility verified**
+
+### Common Pitfalls to Avoid
+1. **Don't** use Mantine v7 syntax (`leftSection`, `rightSection`)
+2. **Don't** forget to handle loading and error states
+3. **Don't** hardcode API endpoints - use environment variables
+4. **Don't** create new patterns without checking existing ones
+5. **Don't** forget to clean up subscriptions and timers
+6. **Don't** commit console.log statements
+7. **Don't** use deprecated React patterns (class components, old Context API)
+
+## Environment & Build
+- **Development**: `npm run dev` (Vite dev server)
+- **Production**: `npm run build` (Vite build)
+- **Testing**: `npm test` (Vitest)
+- **Linting**: Follow ESLint configuration
+
+## Dependencies Management
+- **Core Dependencies**: React, Mantine v6, React Router
+- **Dev Dependencies**: Vite, Vitest, ESLint
+- **New Dependencies**: Discuss before adding large libraries
+- **Version Pinning**: Pin major versions to avoid breaking changes
+
+## Documentation Standards
+- **Component Props**: Document complex prop interfaces
+- **Service Functions**: Include JSDoc comments for public functions
+- **README Updates**: Update feature documentation when adding new functionality
+- **API Documentation**: Document internal API endpoints
+
+## Error Handling Patterns
+```jsx
+// Standard error handling pattern
+const [loading, setLoading] = useState(false)
+const [error, setError] = useState(null)
+
+const handleAction = async () => {
+  try {
+    setLoading(true)
+    setError(null)
+    const result = await apiCall()
+    // Handle success
+  } catch (error) {
+    console.error('Action failed:', error)
+    setError('User-friendly error message')
+    showNotification({
+      title: 'Error',
+      message: error.message,
+      color: 'red'
+    })
+  } finally {
+    setLoading(false)
+  }
+}
+```
+
+## Performance Optimization
+- Use `React.memo` for expensive components
+- Implement virtual scrolling for large lists
+- Lazy load images and heavy components
+- Debounce search inputs and API calls
+- Use proper dependency arrays in useEffect
+
+Remember: This is a financial trading application for OSRS players. Accuracy, performance, and user experience are critical. Always prioritize data integrity and user trust. 
+
+## Assistant Responsibilities
+
+### Mandatory Testing Protocol
+**BEFORE providing ANY code to the user, the assistant MUST:**
+
+1. **Create comprehensive tests** for all new files
+2. **Run tests locally** to verify they pass
+3. **Check imports/exports** work correctly
+4. **Verify Mantine v6 compatibility** 
+5. **Test in development environment** when possible
+6. **Validate error handling** and edge cases
+7. **Ensure no console errors** or warnings
+8. **Confirm code follows established patterns**
+
+### Test-First Development
+- Write tests before or alongside implementation
+- Use existing test patterns from `__tests__/` directory
+- Mock external dependencies appropriately
+- Test both success and failure scenarios
+- Validate user interactions and state changes
+
+### Quality Gates
+No code should be delivered without:
+- [ ] Passing unit tests
+- [ ] Working imports/exports
+- [ ] Mantine v6 syntax compliance
+- [ ] Error handling coverage
+- [ ] Performance considerations
+- [ ] Accessibility standards
+
+## Environment & Build
+
+// ... existing code ... 
+
+### Icon Usage Rules
+- **Mantine Components**: Ensure `leftIcon` is only used with Mantine components like `Button` and `Tabs.Tab`.
+- **DOM Elements**: Do not pass `leftIcon` to DOM elements. If needed, use `lefticon` as a custom attribute.
+
+### Component Export Verification
+- **Export Check**: Always verify that components are exported correctly from their defining files.
+- **Import Consistency**: Ensure consistency between default and named imports to prevent undefined type errors.
+
+// ... existing code ...

@@ -39,10 +39,9 @@ import {
   IconShield
 } from '@tabler/icons-react'
 
-const FormulaDocumentation = () => {
-  const [activeTab, setActiveTab] = useState('ai-predictions')
-
-  const FormulaCard = ({ title, description, formula, variables, example, lastUpdated, complexity, icon: Icon }) => (
+export const FormulaCard = ({ title, description, formula, variables, example, lastUpdated, complexity, icon }) => {
+  const Icon = icon || IconMathSymbols
+  return (
     <Card withBorder p="md" mb="md">
       <Group justify="space-between" mb="sm">
         <Group>
@@ -58,16 +57,13 @@ const FormulaDocumentation = () => {
           {complexity}
         </Badge>
       </Group>
-
       <Text mb="md">{description}</Text>
-
       {formula && (
         <Paper withBorder p="sm" mb="md" style={{ backgroundColor: '#f8f9fa' }}>
           <Text size="sm" weight={500} mb="xs">Formula:</Text>
           <Code block>{formula}</Code>
         </Paper>
       )}
-
       {variables && (
         <div style={{ marginBottom: '1rem' }}>
           <Text size="sm" weight={500} mb="xs">Variables:</Text>
@@ -78,7 +74,6 @@ const FormulaDocumentation = () => {
           </List>
         </div>
       )}
-
       {example && (
         <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
           <Text size="sm" weight={500}>Example:</Text>
@@ -87,6 +82,10 @@ const FormulaDocumentation = () => {
       )}
     </Card>
   )
+}
+
+const FormulaDocumentation = () => {
+  const [activeTab, setActiveTab] = useState('ai-predictions')
 
   return (
     <Container size="xl" py="md">
@@ -102,7 +101,7 @@ const FormulaDocumentation = () => {
             🚨 Update Required After Changes
           </Badge>
           <Button leftIcon={<IconEdit size={16} />} variant="light">
-            Edit Documentation
+            Edit Formula
           </Button>
         </Group>
       </Group>
@@ -152,6 +151,7 @@ const FormulaDocumentation = () => {
 
             <FormulaCard
               title="Buy Limit Optimization"
+              icon={IconCalculator}
               description="Adjusts profit calculations based on GE buy limits and multi-account strategies"
               formula="Adjusted_Profit = Base_Profit × Min(Demand/Buy_Limit, Account_Multiplier)"
               variables={[
@@ -167,6 +167,7 @@ const FormulaDocumentation = () => {
 
             <FormulaCard
               title="Multi-Account Scaling Factor"
+              icon={IconCalculator}
               description="Calculates realistic profit scaling for users with multiple accounts"
               formula="Total_Hourly = Single_Account_Profit × Accounts × Efficiency_Factor"
               variables={[
@@ -181,6 +182,7 @@ const FormulaDocumentation = () => {
 
             <FormulaCard
               title="Hidden Gem Detection"
+              icon={IconCalculator}
               description="Identifies low-competition, high-profit opportunities perfect for buy limit circumvention"
               formula="Hidden_Score = (Profit_Margin × Volume_Stability) / Competition_Index"
               variables={[

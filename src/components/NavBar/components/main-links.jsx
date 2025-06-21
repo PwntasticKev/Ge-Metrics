@@ -188,25 +188,25 @@ function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isM
 
 function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, expanded, isMobile }) {
   return (
-    <>
+        <>
       <Tooltip label={label} position="right" color={color} disabled={expanded || isMobile}>
-        <UnstyledButton
+                    <UnstyledButton
           onClick={onToggle}
-          sx={(theme) => ({
-            display: 'block',
-            marginBottom: isMobile ? 4 : 8,
-            padding: isMobile ? '12px 16px' : (expanded ? '8px 12px' : '8px 8px'),
-            borderRadius: theme.radius.sm,
-            color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-            width: '100%',
-            backgroundColor: isOpen && (expanded || isMobile) ? theme.colors.dark[5] : 'transparent',
-            minHeight: isMobile ? 48 : 'auto',
+                        sx={(theme) => ({
+                          display: 'block',
+                          marginBottom: isMobile ? 4 : 8,
+                          padding: isMobile ? '12px 16px' : (expanded ? '8px 12px' : '8px 8px'),
+                          borderRadius: theme.radius.sm,
+                          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                          width: '100%',
+                          backgroundColor: isOpen && (expanded || isMobile) ? theme.colors.dark[5] : 'transparent',
+                          minHeight: isMobile ? 48 : 'auto',
 
-            '&:hover': {
-              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
-            }
-          })}
-        >
+                          '&:hover': {
+                            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+                          }
+                        })}
+                    >
           <Group
             spacing={expanded || isMobile ? 'xs' : 0}
             style={{
@@ -216,8 +216,8 @@ function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, ex
             }}
           >
             <ThemeIcon color={color} variant="light" size={isMobile ? 'lg' : 'md'} style={{ flexShrink: 0 }}>
-              {icon}
-            </ThemeIcon>
+                                {icon}
+                            </ThemeIcon>
             {(expanded || isMobile) && (
               <>
                 <Text
@@ -245,9 +245,9 @@ function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, ex
                 </ThemeIcon>
               </>
             )}
-          </Group>
-        </UnstyledButton>
-      </Tooltip>
+                        </Group>
+                    </UnstyledButton>
+            </Tooltip>
       {(expanded || isMobile) && (
         <Collapse in={isOpen}>
           <Stack spacing={isMobile ? 2 : 4} pl={isMobile ? 'sm' : 'md'}>
@@ -255,7 +255,7 @@ function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, ex
           </Stack>
         </Collapse>
       )}
-    </>
+        </>
   )
 }
 
