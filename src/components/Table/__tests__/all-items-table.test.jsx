@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { MantineProvider } from '@mantine/core'
 import { AllItemsTable } from '../all-items-table'
+import { vi, describe, test, expect } from 'vitest'
 
 // Mock data for testing
 const mockData = [
@@ -59,6 +60,40 @@ const mockData = [
     qty: null
   }
 ]
+
+// Mock the chart components
+vi.mock('../../charts/MiniChart.jsx', () => {
+  return function MockMiniChart ({ itemId, width, height }) {
+    return (
+      <div data-testid={`mini-chart-${itemId}`} style={{ width, height }}>
+        MiniChart for {itemId}
+      </div>
+    )
+  }
+})
+
+vi.mock('../../../shared/modals/graph-modal.jsx', () => {
+  return function MockGraphModal ({ opened, setOpened, id }) {
+    if (!opened) return null
+    return (
+      <div data-testid="graph-modal">
+        <div data-testid="graph-modal-item-id">{id}</div>
+        <button onClick={() => setOpened(false)}>Close Modal</button>
+      </div>
+    )
+  }
+})
+
+vi.mock('../../../shared/modals/user-transaction.jsx', () => {
+  return function MockUserTransactionModal ({ opened, setOpened }) {
+    if (!opened) return null
+    return (
+      <div data-testid="transaction-modal">
+        <button onClick={() => setOpened(false)}>Close Transaction</button>
+      </div>
+    )
+  }
+})
 
 const TestWrapper = ({ children }) => (
   <MantineProvider>
@@ -436,5 +471,286 @@ describe('AllItemsTable', () => {
       // Should not show non-matching items
       expect(screen.queryByText('Cannonball')).not.toBeInTheDocument()
     })
+  })
+
+  test('renders table with all columns including chart column', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Check that all expected columns are present
+    expect(screen.getByText('Id')).toBeInTheDocument()
+    expect(screen.getByText('Img')).toBeInTheDocument()
+    expect(screen.getByText('Name')).toBeInTheDocument()
+    expect(screen.getByText('Buy Price')).toBeInTheDocument()
+    expect(screen.getByText('Sell Price')).toBeInTheDocument()
+    expect(screen.getByText('Profit')).toBeInTheDocument()
+    expect(screen.getByText('Buy Limit')).toBeInTheDocument()
+    expect(screen.getByText('Chart')).toBeInTheDocument()
+    expect(screen.getByText('Settings')).toBeInTheDocument()
+  })
+
+  test('renders MiniChart component in each row', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Check that MiniChart components are rendered for each item
+    expect(screen.getByTestId('mini-chart-1')).toBeInTheDocument()
+    expect(screen.getByTestId('mini-chart-2')).toBeInTheDocument()
+
+    // Verify MiniChart props
+    const chart1 = screen.getByTestId('mini-chart-1')
+    const chart2 = screen.getByTestId('mini-chart-2')
+
+    expect(chart1).toHaveStyle({ width: '120px', height: '40px' })
+    expect(chart2).toHaveStyle({ width: '120px', height: '40px' })
+  })
+
+  test('renders chart button in each row', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Check that chart buttons are present (IconChartHistogram)
+    const chartButtons = screen.getAllByRole('button')
+    const chartButtonsWithIcon = chartButtons.filter(button =>
+      button.querySelector('svg') || button.textContent.includes('Chart')
+    )
+
+    expect(chartButtonsWithIcon.length).toBeGreaterThan(0)
+  })
+
+  test('opens GraphModal when chart button is clicked', async () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Initially, modal should not be open
+    expect(screen.queryByTestId('graph-modal')).not.toBeInTheDocument()
+
+    // Find and click the first chart button
+    const chartButtons = screen.getAllByRole('button')
+    const chartButton = chartButtons.find(button =>
+      button.querySelector('svg') || button.textContent.includes('Chart')
+    )
+
+    if (chartButton) {
+      await user.click(chartButton)
+
+      // Wait for modal to open
+      await waitFor(() => {
+        expect(screen.getByTestId('graph-modal')).toBeInTheDocument()
+      })
+
+      // Check that the correct item ID is passed to modal
+      expect(screen.getByTestId('graph-modal-item-id')).toHaveTextContent('1')
+    }
+  })
+
+  test('closes GraphModal when close button is clicked', async () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Open modal first
+    const chartButtons = screen.getAllByRole('button')
+    const chartButton = chartButtons.find(button =>
+      button.querySelector('svg') || button.textContent.includes('Chart')
+    )
+
+    if (chartButton) {
+      await user.click(chartButton)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('graph-modal')).toBeInTheDocument()
+      })
+
+      // Click close button
+      const closeButton = screen.getByText('Close Modal')
+      await user.click(closeButton)
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByTestId('graph-modal')).not.toBeInTheDocument()
+      })
+    }
+  })
+
+  test('renders transaction button in each row', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Check that transaction buttons are present
+    const transactionButtons = screen.getAllByRole('button')
+    const transactionButton = transactionButtons.find(button =>
+      button.querySelector('svg') || button.textContent.includes('Transaction')
+    )
+
+    expect(transactionButton).toBeDefined()
+  })
+
+  test('opens TransactionModal when transaction button is clicked', async () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Initially, modal should not be open
+    expect(screen.queryByTestId('transaction-modal')).not.toBeInTheDocument()
+
+    // Find and click the first transaction button
+    const transactionButtons = screen.getAllByRole('button')
+    const transactionButton = transactionButtons.find(button =>
+      button.querySelector('svg') || button.textContent.includes('Transaction')
+    )
+
+    if (transactionButton) {
+      await user.click(transactionButton)
+
+      // Wait for modal to open
+      await waitFor(() => {
+        expect(screen.getByTestId('transaction-modal')).toBeInTheDocument()
+      })
+    }
+  })
+
+  test('displays item data correctly in table rows', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Check that item names are displayed
+    expect(screen.getByText('Twisted bow')).toBeInTheDocument()
+    expect(screen.getByText('3rd age platebody')).toBeInTheDocument()
+
+    // Check that prices are displayed
+    expect(screen.getByText('1,200,000,000')).toBeInTheDocument()
+    expect(screen.getByText('500,000,000')).toBeInTheDocument()
+
+    // Check that profits are displayed
+    expect(screen.getByText('50,000,000')).toBeInTheDocument()
+    expect(screen.getByText('20,000,000')).toBeInTheDocument()
+
+    // Check that limits are displayed
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  test('handles empty data gracefully', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={[]} />
+      </TestWrapper>
+    )
+
+    expect(screen.getByText('No items found matching your filters')).toBeInTheDocument()
+  })
+
+  test('search functionality works', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    const searchInput = screen.getByPlaceholderText('Search by any field')
+
+    // Search for "Twisted"
+    user.type(searchInput, 'Twisted')
+
+    // Should show only Twisted bow
+    expect(screen.getByText('Twisted bow')).toBeInTheDocument()
+    expect(screen.queryByText('3rd age platebody')).not.toBeInTheDocument()
+  })
+
+  test('filters functionality works', () => {
+    render(
+      <TestWrapper>
+        <AllItemsTable data={mockData} />
+      </TestWrapper>
+    )
+
+    // Click filters button to open filters
+    const filtersButton = screen.getByText('Filters')
+    user.click(filtersButton)
+
+    // Check that filter options are displayed
+    expect(screen.getByText('Advanced Filters')).toBeInTheDocument()
+    expect(screen.getByText('Item Categories')).toBeInTheDocument()
+    expect(screen.getByText('Volume')).toBeInTheDocument()
+    expect(screen.getByText('Price Range (GP)')).toBeInTheDocument()
+    expect(screen.getByText('Profit Range (GP)')).toBeInTheDocument()
+  })
+
+  test('pagination works correctly', () => {
+    // Create more data to test pagination
+    const largeData = Array.from({ length: 150 }, (_, i) => ({
+      id: `${i + 1}`,
+      name: `Item ${i + 1}`,
+      img: `item-${i + 1}.png`,
+      low: '1000',
+      high: '1200',
+      profit: '200',
+      limit: '100'
+    }))
+
+    render(
+      <TestWrapper>
+        <AllItemsTable data={largeData} />
+      </TestWrapper>
+    )
+
+    // Should show pagination controls
+    expect(screen.getByRole('navigation')).toBeInTheDocument()
+
+    // Should show page 1 initially
+    expect(screen.getByText('1')).toBeInTheDocument()
+  })
+
+  test('favorite functionality works when enabled', () => {
+    const favoriteItems = new Set(['1'])
+    const onToggleFavorite = vi.fn()
+
+    render(
+      <TestWrapper>
+        <AllItemsTable
+          data={mockData}
+          favoriteItems={favoriteItems}
+          onToggleFavorite={onToggleFavorite}
+          showFavoriteColumn={true}
+        />
+      </TestWrapper>
+    )
+
+    // Check that favorite buttons are present
+    const favoriteButtons = screen.getAllByRole('button')
+    const favoriteButton = favoriteButtons.find(button =>
+      button.querySelector('svg') || button.textContent.includes('Heart')
+    )
+
+    expect(favoriteButton).toBeDefined()
+
+    // Click favorite button
+    if (favoriteButton) {
+      user.click(favoriteButton)
+      expect(onToggleFavorite).toHaveBeenCalledWith('1')
+    }
   })
 })

@@ -28,3 +28,13 @@ afterEach(() => {
 
 // Global test utilities
 global.expect = expect
+
+// Polyfill for ResizeObserver (for Mantine/ScrollArea/Radix UI in JSDOM)
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  window.ResizeObserver = class {
+    constructor (callback) {}
+    disconnect () {}
+    observe () {}
+    unobserve () {}
+  }
+}

@@ -13,10 +13,14 @@ import {
   TextInput,
   Tooltip,
   UnstyledButton,
-  useMantineTheme
+  useMantineTheme,
+  Button,
+  ActionIcon
 } from '@mantine/core'
-import { IconChevronDown, IconChevronUp, IconSearch, IconSelector } from '@tabler/icons-react'
+import { IconChevronDown, IconChevronUp, IconSearch, IconSelector, IconChartHistogram } from '@tabler/icons-react'
 import TableSettingsMenu from './components/table-settings-menu.jsx'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
+import MiniChart from '../charts/MiniChart.jsx'
 import { Link, useLocation } from 'react-router-dom'
 
 const useStyles = createStyles((theme) => ({
@@ -140,6 +144,8 @@ export function AllItemsTable ({ data }) {
   const [sortedData, setSortedData] = useState(data)
   const [sortBy, setSortBy] = useState(null)
   const [reverseSortDirection, setReverseSortDirection] = useState(false)
+  const [graphModal, setGraphModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState(null)
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 100
@@ -168,6 +174,11 @@ export function AllItemsTable ({ data }) {
 
   const shouldResetField = () => {
     setSearch('')
+  }
+
+  const setGraphInfo = (id) => {
+    setGraphModal(true)
+    setSelectedItem(id)
   }
 
   const rows = currentPageData.map((row, idx) => {
@@ -220,13 +231,25 @@ export function AllItemsTable ({ data }) {
                 }}>
                     {row.profit}
                 </td>
-                <td style={{ verticalAlign: 'middle' }}><TableSettingsMenu itemId={row.id}/></td>
+                <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+                  <MiniChart itemId={row.id} width={120} height={40} />
+                </td>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <Flex gap="xs">
+                    <Button variant="light" onClick={() => setGraphInfo(row.id)}>
+                      <IconChartHistogram size={14}/>
+                    </Button>
+                    <TableSettingsMenu itemId={row.id}/>
+                  </Flex>
+                </td>
             </tr>
     )
   })
 
   return (
         <>
+            <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem}/>
+
             <TextInput
                 placeholder="Search by any field"
                 mb="md"
@@ -251,6 +274,7 @@ export function AllItemsTable ({ data }) {
                         <th>
                             Profit
                         </th>
+                        <th>Chart</th>
                         <th>Settings</th>
                     </tr>
                     </thead>
