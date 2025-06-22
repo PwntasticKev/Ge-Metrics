@@ -28,7 +28,8 @@ import {
   UnstyledButton,
   Flex,
   ThemeIcon,
-  RingProgress
+  RingProgress,
+  TextInput
 } from '@mantine/core'
 import {
   IconBrain,
@@ -59,7 +60,12 @@ import {
   IconActivity,
   IconAnalyze,
   IconHelp,
-  IconFish
+  IconFish,
+  IconSearch,
+  IconChevronsLeft,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronsRight
 } from '@tabler/icons-react'
 import ItemData from '../../utils/item-data.jsx'
 import { formatPrice, formatPercentage, getRelativeTime } from '../../utils/utils.jsx'
@@ -550,6 +556,9 @@ export default function AIPredictions () {
   const [maxPrice, setMaxPrice] = useState(1000000)
   const [sortBy, setSortBy] = useState('overallScore')
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [whaleSearch, setWhaleSearch] = useState('')
+  const [whalePage, setWhalePage] = useState(1)
+  const [whaleItemsPerPage] = useState(50)
 
   const aiEngine = useMemo(() => {
     if (items && items.length > 0) {
@@ -558,6 +567,29 @@ export default function AIPredictions () {
     return null
   }, [items])
 
+  const filteredWhaleTargets = useMemo(() => {
+    if (!whaleData.targets) return []
+
+    let filtered = whaleData.targets
+
+    if (whaleSearch.trim()) {
+      const searchTerm = whaleSearch.toLowerCase()
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchTerm) ||
+        item.reasons.some(reason => reason.toLowerCase().includes(searchTerm))
+      )
+    }
+
+    return filtered
+  }, [whaleData.targets, whaleSearch])
+
+  const paginatedWhaleTargets = useMemo(() => {
+    const startIndex = (whalePage - 1) * whaleItemsPerPage
+    return filteredWhaleTargets.slice(startIndex, startIndex + whaleItemsPerPage)
+  }, [filteredWhaleTargets, whalePage, whaleItemsPerPage])
+
+  const totalWhalePages = Math.ceil(filteredWhaleTargets.length / whaleItemsPerPage)
+
   useEffect(() => {
     async function fetchWhaleData () {
       try {
@@ -565,7 +597,7 @@ export default function AIPredictions () {
         const response = await fetch('/data/whale-activity.json')
         const data = await response.json()
         setWhaleData(data)
-        console.log('Fetched whale data:', data) // Verify data fetching
+        console.log('Fetched whale data:', data)
       } catch (error) {
         console.error('Failed to fetch whale activity data:', error)
       } finally {
@@ -574,6 +606,10 @@ export default function AIPredictions () {
     }
     fetchWhaleData()
   }, [])
+
+  useEffect(() => {
+    setWhalePage(1)
+  }, [whaleSearch])
 
   useEffect(() => {
     if (aiEngine && priceStatus === 'success') {
@@ -603,7 +639,7 @@ export default function AIPredictions () {
         setMarketConditions(results.marketConditions)
         setLastUpdated(results.lastUpdated)
       }
-    }, 300000) // Refresh every 5 minutes
+    }, 300000)
 
     return () => clearInterval(interval)
   }, [aiEngine, minProfit, minVolume])
@@ -683,7 +719,6 @@ export default function AIPredictions () {
   return (
     <Container size="xl" py="md">
       <Stack spacing="lg">
-        {/* Header */}
         <Group justify="space-between" align="flex-start">
           <Stack spacing="xs">
             <Group spacing="sm">
@@ -719,7 +754,6 @@ export default function AIPredictions () {
           </Group>
         </Group>
 
-        {/* Market Conditions Alert */}
         <Alert
           icon={
             marketConditions?.condition === 'Bullish'
@@ -741,7 +775,6 @@ export default function AIPredictions () {
           </Text>
         </Alert>
 
-        {/* Summary Cards */}
         <SimpleGrid cols={4} breakpoints={[{ maxWidth: 'md', cols: 2 }, { maxWidth: 'sm', cols: 1 }]}>
           <Card withBorder p="md" style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)' }}>
             <Stack spacing="xs">
@@ -836,7 +869,6 @@ export default function AIPredictions () {
           </Card>
         </SimpleGrid>
 
-        {/* Tabs */}
         <Tabs value={activeTab} onTabChange={setActiveTab}>
           <Tabs.List>
             <Tabs.Tab value="predictions" leftIcon={<IconBrain size={16} />}>
@@ -858,7 +890,6 @@ export default function AIPredictions () {
 
           <Tabs.Panel value="predictions" pt="md">
             <Stack spacing="md">
-              {/* Featured AI Predictions */}
               <Card withBorder p="lg" style={{ background: 'linear-gradient(135deg, rgba(34, 139, 34, 0.1) 0%, rgba(0, 100, 0, 0.1) 100%)' }}>
                 <Group justify="space-between" mb="md">
                   <Group spacing="sm">
@@ -929,7 +960,6 @@ export default function AIPredictions () {
                 </SimpleGrid>
               </Card>
 
-              {/* Sort Controls */}
               <Group>
                 <Select
                   label="Sort by"
@@ -954,7 +984,6 @@ export default function AIPredictions () {
                 </Button>
               </Group>
 
-              {/* Predictions Table */}
               <Card withBorder>
                 <ScrollArea>
                   <Table striped highlightOnHover>
@@ -1089,12 +1118,140 @@ export default function AIPredictions () {
                 )
               : (
               <Box>
-                <Text c="dimmed" fz="sm" mb="md">
-                  Last updated: {whaleData.lastUpdated ? new Date(whaleData.lastUpdated).toLocaleString() : 'N/A'}
-                </Text>
-                <SimpleGrid cols={3} spacing="lg" breakpoints={[{ maxWidth: 'md', cols: 2 }, { maxWidth: 'xs', cols: 1 }]}>
-                  {whaleData.targets.map(item => <WhaleCard key={item.id} item={item} />)}
+                <Group position="apart" mb="md">
+                  <Text c="dimmed" fz="sm">
+                    Last updated: {whaleData.lastUpdated ? new Date(whaleData.lastUpdated).toLocaleString() : 'N/A'}
+                  </Text>
+                  <Badge color="blue" variant="light">
+                    {filteredWhaleTargets.length} whale targets found
+                  </Badge>
+                </Group>
+
+                <Card withBorder p="md" mb="md">
+                  <Group position="apart" align="flex-end">
+                    <div style={{ flex: 1 }}>
+                      <Text size="sm" weight={500} mb="xs">Search Whale Activity</Text>
+                      <TextInput
+                        placeholder="Search by item name or activity type..."
+                        value={whaleSearch}
+                        onChange={(e) => setWhaleSearch(e.currentTarget.value)}
+                        icon={<IconSearch size={16} />}
+                        size="sm"
+                      />
+                    </div>
+                    <Group spacing="xs">
+                      <Text size="sm" color="dimmed">
+                        Showing {((whalePage - 1) * whaleItemsPerPage) + 1}-{Math.min(whalePage * whaleItemsPerPage, filteredWhaleTargets.length)} of {filteredWhaleTargets.length}
+                      </Text>
+                      <Button
+                        variant="light"
+                        size="xs"
+                        onClick={() => setWhaleSearch('')}
+                        disabled={!whaleSearch}
+                      >
+                        Clear
+                      </Button>
+                    </Group>
+                  </Group>
+                </Card>
+
+                <SimpleGrid cols={3} spacing="lg" breakpoints={[{ maxWidth: 'md', cols: 2 }, { maxWidth: 'xs', cols: 1 }]} mb="md">
+                  {paginatedWhaleTargets.map(item => <WhaleCard key={item.id} item={item} />)}
                 </SimpleGrid>
+
+                {totalWhalePages > 1 && (
+                  <Card withBorder p="md">
+                    <Group position="center" spacing="xs">
+                      <Button
+                        variant="light"
+                        size="sm"
+                        onClick={() => setWhalePage(1)}
+                        disabled={whalePage === 1}
+                        leftIcon={<IconChevronsLeft size={16} />}
+                      >
+                        First
+                      </Button>
+                      <Button
+                        variant="light"
+                        size="sm"
+                        onClick={() => setWhalePage(whalePage - 1)}
+                        disabled={whalePage === 1}
+                        leftIcon={<IconChevronLeft size={16} />}
+                      >
+                        Previous
+                      </Button>
+
+                      <Group spacing={5}>
+                        {Array.from({ length: Math.min(5, totalWhalePages) }, (_, i) => {
+                          let pageNum
+                          if (totalWhalePages <= 5) {
+                            pageNum = i + 1
+                          } else if (whalePage <= 3) {
+                            pageNum = i + 1
+                          } else if (whalePage >= totalWhalePages - 2) {
+                            pageNum = totalWhalePages - 4 + i
+                          } else {
+                            pageNum = whalePage - 2 + i
+                          }
+
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={whalePage === pageNum ? 'filled' : 'light'}
+                              size="sm"
+                              onClick={() => setWhalePage(pageNum)}
+                              style={{ minWidth: 40 }}
+                            >
+                              {pageNum}
+                            </Button>
+                          )
+                        })}
+                      </Group>
+
+                      <Button
+                        variant="light"
+                        size="sm"
+                        onClick={() => setWhalePage(whalePage + 1)}
+                        disabled={whalePage === totalWhalePages}
+                        rightIcon={<IconChevronRight size={16} />}
+                      >
+                        Next
+                      </Button>
+                      <Button
+                        variant="light"
+                        size="sm"
+                        onClick={() => setWhalePage(totalWhalePages)}
+                        disabled={whalePage === totalWhalePages}
+                        rightIcon={<IconChevronsRight size={16} />}
+                      >
+                        Last
+                      </Button>
+                    </Group>
+
+                    <Text size="xs" color="dimmed" align="center" mt="xs">
+                      Page {whalePage} of {totalWhalePages} • {whaleItemsPerPage} items per page
+                    </Text>
+                  </Card>
+                )}
+
+                {whaleData.totalItemsAnalyzed && (
+                  <Card withBorder p="md" mt="md">
+                    <SimpleGrid cols={3} spacing="md">
+                      <Box>
+                        <Text size="sm" color="dimmed">Total Items Analyzed</Text>
+                        <Text size="lg" weight={600}>{whaleData.totalItemsAnalyzed.toLocaleString()}</Text>
+                      </Box>
+                      <Box>
+                        <Text size="sm" color="dimmed">Bulk Items Found</Text>
+                        <Text size="lg" weight={600} color="blue">{whaleData.bulkItemsFound}</Text>
+                      </Box>
+                      <Box>
+                        <Text size="sm" color="dimmed">Other Items Found</Text>
+                        <Text size="lg" weight={600} color="green">{whaleData.otherItemsFound}</Text>
+                      </Box>
+                    </SimpleGrid>
+                  </Card>
+                )}
               </Box>
                 )}
           </Tabs.Panel>
@@ -1161,7 +1318,6 @@ export default function AIPredictions () {
           </Tabs.Panel>
 
           <Tabs.Panel value="insights" pt="md">
-            {/* Real-time Market Sentiment */}
             <Card withBorder p="lg" mb="md" style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)' }}>
               <Group justify="space-between" mb="md">
                 <Group spacing="sm">
@@ -1551,7 +1707,6 @@ export default function AIPredictions () {
           </Tabs.Panel>
         </Tabs>
 
-        {/* Footer */}
         <Text size="xs" color="dimmed" align="center">
           Last updated: {getRelativeTime(lastUpdated)} • Predictions refresh every 5 minutes •
           AI Engine v2.0 • {filteredPredictions.length} opportunities shown
