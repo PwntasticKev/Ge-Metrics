@@ -518,5 +518,20 @@ For technical support or questions about this documentation:
 
 ---
 
+## Dependency Management & Build Verification
+
+### Rule: Always Verify Build Success
+**CRITICAL**: Before any feature is considered complete or any code is delivered, the application **MUST** be successfully built to prevent runtime errors due to missing dependencies or other build-time issues.
+
+### Workflow:
+1.  **Add Dependencies**: When adding new functionality that requires a new package, install it using `npm install <package-name>`.
+2.  **Verify Build**: After installing dependencies and implementing the new feature, run `npm run build` locally.
+3.  **Resolve Errors**: If the build fails (e.g., due to a missing package or import error), resolve the issue immediately.
+4.  **Deliver**: Only deliver code after a successful build.
+
+This process ensures that the application is always in a working, buildable state, and prevents errors like the one you just encountered.
+
+---
+
 *Last Updated: December 2024*
 *Version: 2.0.0* 

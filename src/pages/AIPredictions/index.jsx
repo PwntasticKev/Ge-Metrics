@@ -65,6 +65,58 @@ import ItemData from '../../utils/item-data.jsx'
 import { formatPrice, formatPercentage, getRelativeTime } from '../../utils/utils.jsx'
 import { Link } from 'react-router-dom'
 
+function WhaleCard ({ item }) {
+  return (
+    <Card withBorder p="md" radius="md">
+      <Group position="apart" mb="md">
+        <Group>
+          <Image src={item.icon} width={40} height={40} radius="sm" />
+          <Stack spacing={0}>
+            <Text weight={600}>{item.name}</Text>
+            <Text size="sm" color="dimmed">Score: {item.score}</Text>
+          </Stack>
+        </Group>
+        <ThemeIcon
+          color={item.currentPrice > item.avgPrice ? 'green' : 'red'}
+          variant="light"
+          size="lg"
+        >
+          {item.currentPrice > item.avgPrice ? <IconTrendingUp /> : <IconTrendingDown />}
+        </ThemeIcon>
+      </Group>
+
+      <Stack spacing="xs">
+        {item.reasons.map((reason, index) => (
+          <Badge key={index} variant="light" color="blue" fullWidth>
+            {reason}
+          </Badge>
+        ))}
+      </Stack>
+
+      <Divider my="sm" />
+
+      <SimpleGrid cols={2} spacing="xs">
+        <Box>
+          <Text size="xs" color="dimmed">Price</Text>
+          <Text size="sm">{item.currentPrice.toLocaleString()} gp</Text>
+        </Box>
+        <Box>
+          <Text size="xs" color="dimmed">Avg. Price (6h)</Text>
+          <Text size="sm">{item.avgPrice.toLocaleString()} gp</Text>
+        </Box>
+        <Box>
+          <Text size="xs" color="dimmed">Volume</Text>
+          <Text size="sm">{item.currentVolume.toLocaleString()}</Text>
+        </Box>
+        <Box>
+          <Text size="xs" color="dimmed">Avg. Volume (6h)</Text>
+          <Text size="sm">{item.avgVolume.toLocaleString()}</Text>
+        </Box>
+      </SimpleGrid>
+    </Card>
+  )
+}
+
 // AI Prediction Algorithm Class
 class AIPredictionEngine {
   constructor (items, historicalData = null) {
@@ -481,37 +533,53 @@ class AIPredictionEngine {
 }
 
 export default function AIPredictions () {
-  const { items, mapStatus, priceStatus } = ItemData()
-  const [loading, setLoading] = useState(true)
-  const [predictions, setPredictions] = useState([])
-  const [summary, setSummary] = useState({})
-  const [marketConditions, setMarketConditions] = useState({})
-  const [lastUpdated, setLastUpdated] = useState(new Date())
   const [activeTab, setActiveTab] = useState('predictions')
-  const [filters, setFilters] = useState({
-    minConfidence: 50,
-    maxRisk: 70,
-    category: 'all',
-    minProfit: 0,
-    maxPrice: 1000000
-  })
+  const { items, mapStatus, priceStatus } = ItemData()
+  const [predictions, setPredictions] = useState([])
+  const [summary, setSummary] = useState(null)
+  const [marketConditions, setMarketConditions] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [riskProfile, setRiskProfile] = useState('all')
+  const [minProfit, setMinProfit] = useState(0)
+  const [minVolume, setMinVolume] = useState(0)
+  const [whaleData, setWhaleData] = useState({ targets: [], lastUpdated: null })
+  const [whaleLoading, setWhaleLoading] = useState(true)
+  const [minConfidence, setMinConfidence] = useState(50)
+  const [maxRisk, setMaxRisk] = useState(70)
+  const [maxPrice, setMaxPrice] = useState(1000000)
   const [sortBy, setSortBy] = useState('overallScore')
   const [autoRefresh, setAutoRefresh] = useState(true)
 
-  // Initialize AI engine and generate predictions
   const aiEngine = useMemo(() => {
-    if (items.length > 0) {
+    if (items && items.length > 0) {
       return new AIPredictionEngine(items)
     }
     return null
   }, [items])
 
-  // Generate predictions when data is ready
+  useEffect(() => {
+    async function fetchWhaleData () {
+      try {
+        setWhaleLoading(true)
+        const response = await fetch('/data/whale-activity.json')
+        const data = await response.json()
+        setWhaleData(data)
+        console.log('Fetched whale data:', data) // Verify data fetching
+      } catch (error) {
+        console.error('Failed to fetch whale activity data:', error)
+      } finally {
+        setWhaleLoading(false)
+      }
+    }
+    fetchWhaleData()
+  }, [])
+
   useEffect(() => {
     if (aiEngine && priceStatus === 'success') {
       setLoading(true)
       try {
-        const results = aiEngine.generatePredictions(filters)
+        const results = aiEngine.generatePredictions({ minProfit, minVolume })
         setPredictions(results.predictions)
         setSummary(results.summary)
         setMarketConditions(results.marketConditions)
@@ -522,15 +590,14 @@ export default function AIPredictions () {
         setLoading(false)
       }
     }
-  }, [aiEngine, priceStatus, filters])
+  }, [aiEngine, priceStatus, minProfit, minVolume])
 
-  // Auto-refresh predictions
   useEffect(() => {
     if (!autoRefresh) return
 
     const interval = setInterval(() => {
       if (aiEngine) {
-        const results = aiEngine.generatePredictions(filters)
+        const results = aiEngine.generatePredictions({ minProfit, minVolume })
         setPredictions(results.predictions)
         setSummary(results.summary)
         setMarketConditions(results.marketConditions)
@@ -539,17 +606,16 @@ export default function AIPredictions () {
     }, 300000) // Refresh every 5 minutes
 
     return () => clearInterval(interval)
-  }, [aiEngine, filters, autoRefresh])
+  }, [aiEngine, minProfit, minVolume])
 
-  // Filter and sort predictions
   const filteredPredictions = useMemo(() => {
     return predictions
       .filter(p => {
-        if (p.confidence < filters.minConfidence) return false
-        if (p.scores.risk > filters.maxRisk) return false
-        if (filters.category !== 'all' && p.category !== filters.category) return false
-        if (p.profit < filters.minProfit) return false
-        if (p.currentPrice > filters.maxPrice) return false
+        if (p.confidence < minConfidence) return false
+        if (p.scores.risk > maxRisk) return false
+        if (riskProfile !== 'all' && p.category !== riskProfile) return false
+        if (p.profit < minProfit) return false
+        if (p.currentPrice > maxPrice) return false
         return true
       })
       .sort((a, b) => {
@@ -566,7 +632,7 @@ export default function AIPredictions () {
             return b.overallScore - a.overallScore
         }
       })
-  }, [predictions, filters, sortBy])
+  }, [predictions, minConfidence, maxRisk, riskProfile, minProfit, maxPrice, sortBy])
 
   const getRecommendationColor = (recommendation) => {
     switch (recommendation) {
@@ -640,7 +706,7 @@ export default function AIPredictions () {
               gradient={{ from: 'green', to: 'blue' }}
               leftIcon={<IconSparkles size={16} />}
             >
-              {summary.highConfidence || 0} High Confidence
+              {summary?.highConfidence || 0} High Confidence
             </Badge>
             <Badge
               size="sm"
@@ -656,22 +722,22 @@ export default function AIPredictions () {
         {/* Market Conditions Alert */}
         <Alert
           icon={
-            marketConditions.condition === 'Bullish'
+            marketConditions?.condition === 'Bullish'
               ? <IconTrendingUp size={16} />
-              : marketConditions.condition === 'Bearish'
+              : marketConditions?.condition === 'Bearish'
                 ? <IconTrendingDown size={16} />
                 : <IconMinus size={16} />
           }
-          title={`Market Conditions: ${marketConditions.condition}`}
+          title={`Market Conditions: ${marketConditions?.condition}`}
           color={
-            marketConditions.condition === 'Bullish'
+            marketConditions?.condition === 'Bullish'
               ? 'green'
-              : marketConditions.condition === 'Bearish' ? 'red' : 'blue'
+              : marketConditions?.condition === 'Bearish' ? 'red' : 'blue'
           }
         >
-          <Text size="sm">{marketConditions.description}</Text>
+          <Text size="sm">{marketConditions?.description}</Text>
           <Text size="xs" color="dimmed" mt="xs">
-            Recommendation: {marketConditions.recommendation}
+            Recommendation: {marketConditions?.recommendation}
           </Text>
         </Alert>
 
@@ -687,7 +753,7 @@ export default function AIPredictions () {
                     </ThemeIcon>
                     <Text size="xs" color="dimmed" weight={600} transform="uppercase">Total Opportunities</Text>
                   </Group>
-                  <Text size="xl" weight={700} color="blue" mb="xs">{summary.total || 247}</Text>
+                  <Text size="xl" weight={700} color="blue" mb="xs">{summary?.total || 247}</Text>
                   <Text size="xs" color="dimmed" mb="xs">🎯 Active predictions</Text>
                   <Text size="xs" color="blue" weight={500}>
                     +23 new today
@@ -710,7 +776,7 @@ export default function AIPredictions () {
                     </ThemeIcon>
                     <Text size="xs" color="dimmed" weight={600} transform="uppercase">Strong Buys</Text>
                   </Group>
-                  <Text size="xl" weight={700} color="green" mb="xs">{summary.strongBuys || 73}</Text>
+                  <Text size="xl" weight={700} color="green" mb="xs">{summary?.strongBuys || 73}</Text>
                   <Text size="xs" color="dimmed" mb="xs">📈 High confidence</Text>
                   <Text size="xs" color="green" weight={500}>
                     96% success rate
@@ -733,7 +799,7 @@ export default function AIPredictions () {
                     </ThemeIcon>
                     <Text size="xs" color="dimmed" weight={600} transform="uppercase">Hidden Gems</Text>
                   </Group>
-                  <Text size="xl" weight={700} color="purple" mb="xs">{summary.hiddenGems || 0}</Text>
+                  <Text size="xl" weight={700} color="purple" mb="xs">{summary?.hiddenGems || 0}</Text>
                   <Text size="xs" color="dimmed" mb="xs">💎 Low competition, high profit</Text>
                   <Text size="xs" color="purple" weight={500}>
                     Avg. 127% profit margin
@@ -756,7 +822,7 @@ export default function AIPredictions () {
                     </ThemeIcon>
                     <Text size="xs" color="dimmed" weight={600} transform="uppercase">Avg Profit Potential</Text>
                   </Group>
-                  <Text size="xl" weight={700} color="orange" mb="xs">{summary.avgProfit ? `${summary.avgProfit.toLocaleString()}` : '4,892'}</Text>
+                  <Text size="xl" weight={700} color="orange" mb="xs">{summary?.avgProfit ? `${summary.avgProfit.toLocaleString()}` : '4,892'}</Text>
                   <Text size="xs" color="dimmed" mb="xs">💰 GP per opportunity</Text>
                   <Text size="xs" color="orange" weight={500}>
                     +127% vs last week
@@ -1017,369 +1083,20 @@ export default function AIPredictions () {
           </Tabs.Panel>
 
           <Tabs.Panel value="whales" pt="md">
-            {/* Whale Activity Dashboard */}
-            <Card withBorder p="lg" mb="md" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)' }}>
-              <Group justify="space-between" mb="md">
-                <Group spacing="sm">
-                  <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'teal', to: 'cyan' }}>
-                    <IconFish size={20} />
-                  </ThemeIcon>
-                  <div>
-                    <Text size="lg" weight={700}>🐋 Market Whales Activity</Text>
-                    <Text size="sm" color="dimmed">Real-time monitoring of large-scale trading activity and accumulation patterns</Text>
-                  </div>
-                </Group>
-                <Badge variant="gradient" gradient={{ from: 'teal', to: 'cyan' }} size="lg">
-                  LIVE TRACKING
-                </Badge>
-              </Group>
-
-              <SimpleGrid cols={4} breakpoints={[{ maxWidth: 'md', cols: 2 }]} spacing="md">
-                <Paper p="md" withBorder style={{ borderColor: '#10b981' }}>
-                  <Group spacing="xs" mb="xs">
-                    <IconTrendingUp size={16} color="#10b981" />
-                    <Text size="sm" weight={600} color="teal">Active Whales</Text>
-                  </Group>
-                  <Text size="xl" weight={700} color="teal">23</Text>
-                  <Text size="xs" color="dimmed">+7 in last hour</Text>
-                </Paper>
-
-                <Paper p="md" withBorder style={{ borderColor: '#06b6d4' }}>
-                  <Group spacing="xs" mb="xs">
-                    <IconCoins size={16} color="#06b6d4" />
-                    <Text size="sm" weight={600} color="cyan">Total Volume</Text>
-                  </Group>
-                  <Text size="xl" weight={700} color="cyan">1.2B</Text>
-                  <Text size="xs" color="dimmed">GP moved today</Text>
-                </Paper>
-
-                <Paper p="md" withBorder style={{ borderColor: '#8b5cf6' }}>
-                  <Group spacing="xs" mb="xs">
-                    <IconActivity size={16} color="#8b5cf6" />
-                    <Text size="sm" weight={600} color="purple">Accumulation</Text>
-                  </Group>
-                  <Text size="xl" weight={700} color="purple">67%</Text>
-                  <Text size="xs" color="dimmed">vs selling pressure</Text>
-                </Paper>
-
-                <Paper p="md" withBorder style={{ borderColor: '#f59e0b' }}>
-                  <Group spacing="xs" mb="xs">
-                    <IconAlertTriangle size={16} color="#f59e0b" />
-                    <Text size="sm" weight={600} color="orange">Risk Level</Text>
-                  </Group>
-                  <Text size="xl" weight={700} color="orange">Medium</Text>
-                  <Text size="xs" color="dimmed">Price manipulation</Text>
-                </Paper>
-              </SimpleGrid>
-            </Card>
-
-            <SimpleGrid cols={2} breakpoints={[{ maxWidth: 'md', cols: 1 }]} spacing="md" mb="md">
-              {/* Recent Whale Activity */}
-              <Card withBorder p="md">
-                <Group justify="space-between" mb="md">
-                  <Title order={4}>🚨 Recent Whale Transactions</Title>
-                  <Badge color="red" variant="light" size="sm">Last 24h</Badge>
-                </Group>
-                <Stack spacing="sm">
-                  <Paper p="sm" withBorder style={{ borderLeft: '4px solid #ef4444' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Group spacing="sm">
-                        <Image src="https://oldschool.runescape.wiki/images/thumb/4/42/Dragon_bones.png/120px-Dragon_bones.png" width={20} height={20} />
-                        <Text size="sm" weight={600}>Dragon bones</Text>
-                      </Group>
-                      <Badge color="red" variant="filled" size="xs">SELL</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed">Volume: 15,000 units • Value: 42.7M GP</Text>
-                    <Text size="xs" color="red">Price Impact: -8.3% • 23 minutes ago</Text>
-                  </Paper>
-
-                  <Paper p="sm" withBorder style={{ borderLeft: '4px solid #22c55e' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Group spacing="sm">
-                        <Image src="https://oldschool.runescape.wiki/images/thumb/a/a7/Rune_platebody.png/120px-Rune_platebody.png" width={20} height={20} />
-                        <Text size="sm" weight={600}>Rune platebody</Text>
-                      </Group>
-                      <Badge color="green" variant="filled" size="xs">BUY</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed">Volume: 850 units • Value: 32.7M GP</Text>
-                    <Text size="xs" color="green">Price Impact: +12.1% • 1 hour ago</Text>
-                  </Paper>
-
-                  <Paper p="sm" withBorder style={{ borderLeft: '4px solid #8b5cf6' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Group spacing="sm">
-                        <Image src="https://oldschool.runescape.wiki/images/thumb/2/2e/Yew_logs.png/120px-Yew_logs.png" width={20} height={20} />
-                        <Text size="sm" weight={600}>Yew logs</Text>
-                      </Group>
-                      <Badge color="purple" variant="filled" size="xs">ACCUMULATE</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed">Volume: 89,000 units • Value: 43.3M GP</Text>
-                    <Text size="xs" color="purple">Gradual accumulation • 2 hours ago</Text>
-                  </Paper>
-
-                  <Paper p="sm" withBorder style={{ borderLeft: '4px solid #f59e0b' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Group spacing="sm">
-                        <Image src="https://oldschool.runescape.wiki/images/thumb/0/05/Abyssal_whip.png/120px-Abyssal_whip.png" width={20} height={20} />
-                        <Text size="sm" weight={600}>Abyssal whip</Text>
-                      </Group>
-                      <Badge color="orange" variant="filled" size="xs">DISTRIBUTE</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed">Volume: 125 units • Value: 40.0M GP</Text>
-                    <Text size="xs" color="orange">Controlled selling • 3 hours ago</Text>
-                  </Paper>
-                </Stack>
-              </Card>
-
-              {/* Whale Accumulation Patterns */}
-              <Card withBorder p="md">
-                <Group justify="space-between" mb="md">
-                  <Title order={4}>📈 Accumulation Patterns</Title>
-                  <Badge color="blue" variant="light" size="sm">Trending</Badge>
-                </Group>
-                <Stack spacing="sm">
-                  <Paper p="sm" withBorder style={{ backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Text size="sm" weight={600} color="green">Heavy Accumulation</Text>
-                      <Badge color="green" variant="filled" size="xs">+73%</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed" mb="xs">Items: Barrows equipment, High-level herbs, Prayer materials</Text>
-                    <Group spacing="xs">
-                      <Badge color="green" variant="light" size="xs">Ahrim's robetop</Badge>
-                      <Badge color="green" variant="light" size="xs">Ranarr weed</Badge>
-                      <Badge color="green" variant="light" size="xs">Dragon bones</Badge>
-                    </Group>
-                  </Paper>
-
-                  <Paper p="sm" withBorder style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Text size="sm" weight={600} color="blue">Moderate Accumulation</Text>
-                      <Badge color="blue" variant="filled" size="xs">+34%</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed" mb="xs">Items: Combat supplies, Skilling materials, Mid-tier equipment</Text>
-                    <Group spacing="xs">
-                      <Badge color="blue" variant="light" size="xs">Shark</Badge>
-                      <Badge color="blue" variant="light" size="xs">Yew logs</Badge>
-                      <Badge color="blue" variant="light" size="xs">Rune items</Badge>
-                    </Group>
-                  </Paper>
-
-                  <Paper p="sm" withBorder style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
-                    <Group justify="space-between" mb="xs">
-                      <Text size="sm" weight={600} color="red">Distribution Phase</Text>
-                      <Badge color="red" variant="filled" size="xs">-28%</Badge>
-                    </Group>
-                    <Text size="xs" color="dimmed" mb="xs">Items: Overvalued equipment, Seasonal items, Speculation plays</Text>
-                    <Group spacing="xs">
-                      <Badge color="red" variant="light" size="xs">3rd age items</Badge>
-                      <Badge color="red" variant="light" size="xs">Holiday items</Badge>
-                      <Badge color="red" variant="light" size="xs">Rare drops</Badge>
-                    </Group>
-                  </Paper>
-                </Stack>
-              </Card>
-            </SimpleGrid>
-
-            {/* Whale Tracking Table */}
-            <Card withBorder p="md">
-              <Group justify="space-between" mb="md">
-                <Title order={4}>🎯 Top Whale Targets</Title>
-                <Group spacing="sm">
-                  <Select
-                    value="24h"
-                    data={[
-                      { value: '1h', label: 'Last Hour' },
-                      { value: '24h', label: 'Last 24 Hours' },
-                      { value: '7d', label: 'Last Week' }
-                    ]}
-                    size="sm"
-                    style={{ width: 150 }}
-                  />
-                  <Button variant="light" leftIcon={<IconRefresh size={16} />} size="sm">
-                    Refresh
-                  </Button>
-                </Group>
-              </Group>
-
-              <ScrollArea>
-                <Table striped highlightOnHover>
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Whale Activity</th>
-                      <th>Volume Moved</th>
-                      <th>Price Impact</th>
-                      <th>Pattern</th>
-                      <th>Risk Level</th>
-                      <th>Recommendation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <Group spacing="sm">
-                          <Image src="https://oldschool.runescape.wiki/images/thumb/4/42/Dragon_bones.png/120px-Dragon_bones.png" width={24} height={24} />
-                          <div>
-                            <Text size="sm" weight={500}>Dragon bones</Text>
-                            <Text size="xs" color="dimmed">2,847 GP</Text>
-                          </div>
-                        </Group>
-                      </td>
-                      <td>
-                        <Badge color="red" variant="filled" size="sm" leftIcon={<IconTrendingDown size={12} />}>
-                          Heavy Selling
-                        </Badge>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600}>42.7M GP</Text>
-                        <Text size="xs" color="dimmed">15,000 units</Text>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600} color="red">-8.3%</Text>
-                      </td>
-                      <td>
-                        <Badge color="orange" variant="light" size="sm">Distribution</Badge>
-                      </td>
-                      <td>
-                        <Badge color="yellow" variant="filled" size="sm">Medium</Badge>
-                      </td>
-                      <td>
-                        <Badge color="blue" variant="filled" size="sm">WAIT</Badge>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Group spacing="sm">
-                          <Image src="https://oldschool.runescape.wiki/images/thumb/a/a7/Rune_platebody.png/120px-Rune_platebody.png" width={24} height={24} />
-                          <div>
-                            <Text size="sm" weight={500}>Rune platebody</Text>
-                            <Text size="xs" color="dimmed">38,492 GP</Text>
-                          </div>
-                        </Group>
-                      </td>
-                      <td>
-                        <Badge color="green" variant="filled" size="sm" leftIcon={<IconTrendingUp size={12} />}>
-                          Strong Buying
-                        </Badge>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600}>32.7M GP</Text>
-                        <Text size="xs" color="dimmed">850 units</Text>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600} color="green">+12.1%</Text>
-                      </td>
-                      <td>
-                        <Badge color="green" variant="light" size="sm">Accumulation</Badge>
-                      </td>
-                      <td>
-                        <Badge color="green" variant="filled" size="sm">Low</Badge>
-                      </td>
-                      <td>
-                        <Badge color="green" variant="filled" size="sm">BUY</Badge>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Group spacing="sm">
-                          <Image src="https://oldschool.runescape.wiki/images/thumb/2/2e/Yew_logs.png/120px-Yew_logs.png" width={24} height={24} />
-                          <div>
-                            <Text size="sm" weight={500}>Yew logs</Text>
-                            <Text size="xs" color="dimmed">487 GP</Text>
-                          </div>
-                        </Group>
-                      </td>
-                      <td>
-                        <Badge color="purple" variant="filled" size="sm" leftIcon={<IconActivity size={12} />}>
-                          Gradual Accumulation
-                        </Badge>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600}>43.3M GP</Text>
-                        <Text size="xs" color="dimmed">89,000 units</Text>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600} color="purple">+5.7%</Text>
-                      </td>
-                      <td>
-                        <Badge color="purple" variant="light" size="sm">Stealth Buy</Badge>
-                      </td>
-                      <td>
-                        <Badge color="green" variant="filled" size="sm">Low</Badge>
-                      </td>
-                      <td>
-                        <Badge color="purple" variant="filled" size="sm">FOLLOW</Badge>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Group spacing="sm">
-                          <Image src="https://oldschool.runescape.wiki/images/thumb/0/05/Abyssal_whip.png/120px-Abyssal_whip.png" width={24} height={24} />
-                          <div>
-                            <Text size="sm" weight={500}>Abyssal whip</Text>
-                            <Text size="xs" color="dimmed">3,200,000 GP</Text>
-                          </div>
-                        </Group>
-                      </td>
-                      <td>
-                        <Badge color="orange" variant="filled" size="sm" leftIcon={<IconMinus size={12} />}>
-                          Controlled Selling
-                        </Badge>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600}>40.0M GP</Text>
-                        <Text size="xs" color="dimmed">125 units</Text>
-                      </td>
-                      <td>
-                        <Text size="sm" weight={600} color="orange">-3.2%</Text>
-                      </td>
-                      <td>
-                        <Badge color="orange" variant="light" size="sm">Smart Money</Badge>
-                      </td>
-                      <td>
-                        <Badge color="yellow" variant="filled" size="sm">Medium</Badge>
-                      </td>
-                      <td>
-                        <Badge color="orange" variant="filled" size="sm">CAUTION</Badge>
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </ScrollArea>
-            </Card>
-
-            {/* Whale Alerts */}
-            <Card withBorder p="md" mt="md">
-              <Group justify="space-between" mb="md">
-                <Title order={4}>⚡ Live Whale Alerts</Title>
-                <Badge color="red" variant="light" size="sm">Real-time</Badge>
-              </Group>
-              <Stack spacing="sm">
-                <Alert icon={<IconAlertTriangle size={16} />} title="Large Volume Alert" color="red">
-                  <Text size="sm">
-                    🚨 <strong>Dragon bones</strong> - Whale just dumped 15,000 units (42.7M GP). Price dropped 8.3%.
-                    Consider waiting for stabilization before buying.
-                  </Text>
-                  <Text size="xs" color="dimmed" mt="xs">23 minutes ago</Text>
-                </Alert>
-
-                <Alert icon={<IconTrendingUp size={16} />} title="Accumulation Pattern Detected" color="green">
-                  <Text size="sm">
-                    🐋 <strong>Rune platebody</strong> - Smart money accumulating. 850 units bought (32.7M GP) with minimal price impact.
-                    Strong bullish signal.
-                  </Text>
-                  <Text size="xs" color="dimmed" mt="xs">1 hour ago</Text>
-                </Alert>
-
-                <Alert icon={<IconActivity size={16} />} title="Stealth Accumulation" color="purple">
-                  <Text size="sm">
-                    👁️ <strong>Yew logs</strong> - Whale using stealth buying strategy. 89,000 units accumulated gradually over 4 hours.
-                    Follow this play.
-                  </Text>
-                  <Text size="xs" color="dimmed" mt="xs">2 hours ago</Text>
-                </Alert>
-              </Stack>
-            </Card>
+            {whaleLoading
+              ? (
+              <Center><Loader /></Center>
+                )
+              : (
+              <Box>
+                <Text c="dimmed" fz="sm" mb="md">
+                  Last updated: {whaleData.lastUpdated ? new Date(whaleData.lastUpdated).toLocaleString() : 'N/A'}
+                </Text>
+                <SimpleGrid cols={3} spacing="lg" breakpoints={[{ maxWidth: 'md', cols: 2 }, { maxWidth: 'xs', cols: 1 }]}>
+                  {whaleData.targets.map(item => <WhaleCard key={item.id} item={item} />)}
+                </SimpleGrid>
+              </Box>
+                )}
           </Tabs.Panel>
 
           <Tabs.Panel value="filters" pt="md">
@@ -1389,22 +1106,22 @@ export default function AIPredictions () {
                 <Stack spacing="md">
                   <NumberInput
                     label="Minimum Confidence (%)"
-                    value={filters.minConfidence}
-                    onChange={(value) => setFilters(prev => ({ ...prev, minConfidence: value }))}
+                    value={minConfidence}
+                    onChange={(value) => setMinConfidence(value)}
                     min={0}
                     max={100}
                   />
                   <NumberInput
                     label="Maximum Risk (%)"
-                    value={filters.maxRisk}
-                    onChange={(value) => setFilters(prev => ({ ...prev, maxRisk: value }))}
+                    value={maxRisk}
+                    onChange={(value) => setMaxRisk(value)}
                     min={0}
                     max={100}
                   />
                   <Select
                     label="Category"
-                    value={filters.category}
-                    onChange={(value) => setFilters(prev => ({ ...prev, category: value }))}
+                    value={riskProfile}
+                    onChange={(value) => setRiskProfile(value)}
                     data={[
                       { value: 'all', label: 'All Categories' },
                       { value: 'Hidden Gem', label: 'Hidden Gems' },
@@ -1423,18 +1140,18 @@ export default function AIPredictions () {
                 <Stack spacing="md">
                   <NumberInput
                     label="Minimum Profit (GP)"
-                    value={filters.minProfit}
-                    onChange={(value) => setFilters(prev => ({ ...prev, minProfit: value }))}
+                    value={minProfit}
+                    onChange={(value) => setMinProfit(value)}
                     min={0}
                     formatter={(value) => value ? `${Number(value).toLocaleString()} GP` : '0 GP'}
                     parser={(value) => value.replace(/\$\s?|(,*)/g, '').replace(' GP', '')}
                   />
                   <NumberInput
                     label="Maximum Price (GP)"
-                    value={filters.maxPrice}
-                    onChange={(value) => setFilters(prev => ({ ...prev, maxPrice: value }))}
+                    value={maxPrice}
+                    onChange={(value) => setMaxPrice(value)}
                     min={1000}
-                    max={10000000}
+                    max={1000000}
                     formatter={(value) => value ? `${Number(value).toLocaleString()} GP` : '1M GP'}
                     parser={(value) => value.replace(/\$\s?|(,*)/g, '').replace(' GP', '')}
                   />
