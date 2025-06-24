@@ -572,6 +572,7 @@ export default function AIPredictions () {
 
     let filtered = whaleData.targets
 
+    // Apply search filter
     if (whaleSearch.trim()) {
       const searchTerm = whaleSearch.toLowerCase()
       filtered = filtered.filter(item =>
@@ -580,7 +581,8 @@ export default function AIPredictions () {
       )
     }
 
-    return filtered
+    // Sort by highest whale score first (already sorted in the data, but ensure it)
+    return filtered.sort((a, b) => b.score - a.score)
   }, [whaleData.targets, whaleSearch])
 
   const paginatedWhaleTargets = useMemo(() => {

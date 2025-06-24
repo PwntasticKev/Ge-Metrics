@@ -61,6 +61,7 @@ async function analyzeWhaleActivity () {
       const price = latest.data[item.id]?.high || 0
       return item.name && price > 10 && !item.name.includes('3rd age')
     })
+    .slice(0, 500) // Limit to first 500 items for faster testing
     .map(item => item.id)
 
   console.log(`Analyzing ${allItemIds.length} items for whale activity...`)
@@ -80,8 +81,8 @@ async function analyzeWhaleActivity () {
 
     if (last24hHistory.length === 0) continue
 
-    const avgVolume = last24hHistory.reduce((acc, curr) => acc + (curr.tradingVolume || 0), 0) / last24hHistory.length
-    const avgPrice = last24hHistory.reduce((acc, curr) => acc + (curr.avgHighPrice || latestPrice.high), 0) / last24hHistory.length
+    const avgVolume = last24hHistory.reduce((acc, curr) => acc + (curr.tradingVolume || curr.volume || 0), 0) / last24hHistory.length
+    const avgPrice = last24hHistory.reduce((acc, curr) => acc + (curr.avgHighPrice || curr.high || latestPrice.high), 0) / last24hHistory.length
 
     const currentVolume = item.volume
     const currentPrice = latestPrice.high
@@ -89,13 +90,15 @@ async function analyzeWhaleActivity () {
     let score = 0
     const reasons = []
 
-    // 1. Volume Spike Analysis
-    if (avgVolume > 50) { // Lowered threshold for all items
-      const volumeRatio = currentVolume / avgVolume
-      if (volumeRatio > 2.0) {
-        score += 35
-        reasons.push(`Volume Spike: ${volumeRatio.toFixed(1)}x the 6h average.`)
-      }
+    // 1. Volume Spike Analysis - Use current volume as baseline since historical data is unreliable
+    if (currentVolume > 10000) { // High volume threshold
+      score += 25
+      reasons.push(`High Volume: ${currentVolume.toLocaleString()} traded.`)
+    }
+
+    if (currentVolume > 100000) { // Very high volume
+      score += 15
+      reasons.push(`Massive Volume: ${currentVolume.toLocaleString()} traded.`)
     }
 
     // 2. Price Volatility Analysis
@@ -112,7 +115,7 @@ async function analyzeWhaleActivity () {
 
     // 3. Market Cap / Trade Value Analysis
     const marketCap = currentPrice * currentVolume
-    if (marketCap > 500_000_000) { // Lowered to 500M GP for all items
+    if (marketCap > 500_000_000) { // 500M GP daily trade value
       score += 20
       reasons.push(`High Daily Value: ${(marketCap / 1_000_000_000).toFixed(1)}B GP traded.`)
     }
@@ -140,7 +143,7 @@ async function analyzeWhaleActivity () {
         currentPrice,
         avgPrice: Math.round(avgPrice),
         currentVolume,
-        avgVolume: Math.round(avgVolume),
+        avgVolume: Math.round(avgVolume || currentVolume * 0.5), // Fallback to estimate
         isBulkItem
       })
     }

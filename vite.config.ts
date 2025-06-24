@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   define: {
-    'process.env.__WS_TOKEN__': JSON.stringify(process.env.__WS_TOKEN__),
-    __WS_TOKEN__: JSON.stringify(process.env.__WS_TOKEN__)
+    // Ensure process.env is available
+    'process.env': process.env
   }
 })
