@@ -320,12 +320,12 @@ export default function AdminPanel () {
           <TextInput
             label="Subject"
             value={emailSubject}
-            onChange={(e) => setEmailSubject(e.target.value)}
+            onChange={(e) => setEmailSubject(e.target.value || '')}
           />
           <Textarea
             label="Message"
             value={emailMessage}
-            onChange={(e) => setEmailMessage(e.target.value)}
+            onChange={(e) => setEmailMessage(e.target.value || '')}
             minRows={6}
           />
           <Group position="right">

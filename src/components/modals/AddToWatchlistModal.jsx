@@ -206,7 +206,7 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                       placeholder="e.g., 50000"
                       value={volumeThreshold}
                       defaultValue={0}
-                      onChange={setVolumeThreshold}
+                      onChange={(value) => setVolumeThreshold(value ?? 0)}
                       min={0}
                       rightSection={<IconEye size={16} />}
                       parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
@@ -223,7 +223,7 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                         placeholder="e.g., 15"
                         value={priceChangePercentage}
                         defaultValue={0}
-                        onChange={setPriceChangePercentage}
+                        onChange={(value) => setPriceChangePercentage(value ?? 0)}
                         min={0}
                         max={100}
                         parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
@@ -236,7 +236,7 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
                       placeholder="e.g., 1000"
                       value={priceDropThreshold}
                       defaultValue={0}
-                      onChange={setPriceDropThreshold}
+                      onChange={(value) => setPriceDropThreshold(value ?? 0)}
                       min={0}
                       parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                       formatter={(value) => value ? `${Number(value).toLocaleString()}` : '0'}

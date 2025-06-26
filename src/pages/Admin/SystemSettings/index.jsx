@@ -354,7 +354,7 @@ export default function SystemSettings () {
         </Alert>
       )}
 
-      <Tabs value={activeTab} onChange={setActiveTab}>
+      <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? 'general')}>
         <Tabs.List>
           <Tabs.Tab value="general" leftIcon={<IconSettings size={16} />}>
             General
@@ -389,13 +389,13 @@ export default function SystemSettings () {
                   <TextInput
                     label="Site Name"
                     value={settings.general?.siteName || ''}
-                    onChange={(e) => updateSetting('general', 'siteName', e.target.value)}
+                    onChange={(e) => updateSetting('general', 'siteName', e.target.value || '')}
                   />
 
                   <Textarea
                     label="Site Description"
                     value={settings.general?.siteDescription || ''}
-                    onChange={(e) => updateSetting('general', 'siteDescription', e.target.value)}
+                    onChange={(e) => updateSetting('general', 'siteDescription', e.target.value || '')}
                     minRows={3}
                   />
 
@@ -522,21 +522,21 @@ export default function SystemSettings () {
                     <TextInput
                       label="SMTP Host"
                       value={settings.email?.smtpHost || ''}
-                      onChange={(e) => updateSetting('email', 'smtpHost', e.target.value)}
+                      onChange={(e) => updateSetting('email', 'smtpHost', e.target.value || '')}
                     />
                   </Grid.Col>
                   <Grid.Col span={6}>
                     <NumberInput
                       label="SMTP Port"
                       value={settings.email?.smtpPort || 587}
-                      onChange={(value) => updateSetting('email', 'smtpPort', value)}
+                      onChange={(value) => updateSetting('email', 'smtpPort', value ?? 587)}
                     />
                   </Grid.Col>
                   <Grid.Col span={6}>
                     <TextInput
                       label="SMTP Username"
                       value={settings.email?.smtpUser || ''}
-                      onChange={(e) => updateSetting('email', 'smtpUser', e.target.value)}
+                      onChange={(e) => updateSetting('email', 'smtpUser', e.target.value || '')}
                     />
                   </Grid.Col>
                   <Grid.Col span={6}>
@@ -544,7 +544,7 @@ export default function SystemSettings () {
                       label="SMTP Password"
                       type="password"
                       value={settings.email?.smtpPassword || ''}
-                      onChange={(e) => updateSetting('email', 'smtpPassword', e.target.value)}
+                      onChange={(e) => updateSetting('email', 'smtpPassword', e.target.value || '')}
                     />
                   </Grid.Col>
                 </Grid>
@@ -555,14 +555,14 @@ export default function SystemSettings () {
                   <TextInput
                     label="From Email"
                     value={settings.email?.fromEmail || ''}
-                    onChange={(e) => updateSetting('email', 'fromEmail', e.target.value)}
+                    onChange={(e) => updateSetting('email', 'fromEmail', e.target.value || '')}
                   />
                 </Grid.Col>
                 <Grid.Col span={6}>
                   <TextInput
                     label="From Name"
                     value={settings.email?.fromName || ''}
-                    onChange={(e) => updateSetting('email', 'fromName', e.target.value)}
+                    onChange={(e) => updateSetting('email', 'fromName', e.target.value || '')}
                   />
                 </Grid.Col>
               </Grid>

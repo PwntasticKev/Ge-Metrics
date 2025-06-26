@@ -19,7 +19,8 @@ import {
   Collapse,
   ActionIcon,
   Badge,
-  Stack
+  Stack,
+  Tooltip
 } from '@mantine/core'
 import {
   IconChartHistogram,
@@ -123,7 +124,7 @@ function filterData (data, filters) {
 
     // Volume filter (based on buy limit as proxy for volume)
     if (volumeFilter) {
-      const limit = parseInt(item.limit?.replace(/,/g, '') || '0')
+      const limit = parseInt(String(item.limit ?? '0').replace(/,/g, ''))
       if (volumeFilter === 'low' && limit >= 100) return false
       if (volumeFilter === 'high' && limit < 1000) return false
     }
@@ -145,14 +146,14 @@ function filterData (data, filters) {
 
     // Price range filters
     if (priceMin > 0 || priceMax > 0) {
-      const price = parseInt((item.high || '0').replace(/,/g, ''))
+      const price = parseInt(String(item.high ?? '0').replace(/,/g, ''))
       if (priceMin > 0 && price < priceMin) return false
       if (priceMax > 0 && price > priceMax) return false
     }
 
     // Profit range filters
     if (profitMin > 0 || profitMax > 0) {
-      const profit = parseInt((item.profit || '0').replace(/,/g, ''))
+      const profit = parseInt(String(item.profit ?? '0').replace(/,/g, ''))
       if (profitMin > 0 && profit < profitMin) return false
       if (profitMax > 0 && profit > profitMax) return false
     }
@@ -179,6 +180,33 @@ function sortData (data, payload) {
     }),
     payload.filters
   )
+}
+
+// Risk classification helper
+function classifyRisk (row) {
+  // Parse numbers
+  const profit = Number(String(row.profit ?? '0').replace(/,/g, ''))
+  const high = Number(String(row.high ?? '0').replace(/,/g, ''))
+  const low = Number(String(row.low ?? '0').replace(/,/g, ''))
+  const limit = Number(String(row.limit ?? '0').replace(/,/g, ''))
+
+  // Heuristics
+  if (limit < 10 && profit > 1_000_000) {
+    return { label: 'Risky', color: 'red', reason: 'Very low volume and unusually high profit.' }
+  }
+  if (profit > 2 * (high - low) && (high - low) > 0) {
+    return { label: 'Risky', color: 'red', reason: 'Profit much higher than normal price range.' }
+  }
+  if (profit > 5_000_000) {
+    return { label: 'Volatile', color: 'yellow', reason: 'Very high profit, check market history for manipulation.' }
+  }
+  if (limit < 50 && profit > 500_000) {
+    return { label: 'Volatile', color: 'yellow', reason: 'Low volume and high profit.' }
+  }
+  if (profit > 0 && profit < 200_000 && limit > 100) {
+    return { label: 'Safe', color: 'green', reason: 'Profit and volume are in a normal range.' }
+  }
+  return { label: 'Volatile', color: 'yellow', reason: 'Unusual market pattern or insufficient data.' }
 }
 
 export function AllItemsTable ({
@@ -269,8 +297,9 @@ export function AllItemsTable ({
   ].filter(Boolean).length
 
   const rows = currentPageData.map((row, idx) => {
-    const profitValue = Number((row.profit || '0').replace(/,/g, ''))
+    const profitValue = Number(String(row.profit ?? '0').replace(/,/g, ''))
     const isFavorite = favoriteItems.has(row.id)
+    const risk = classifyRisk(row)
 
     return (
       <tr key={idx} style={{ background: row.background ? theme.colors.gray[7] : '' }}>
@@ -300,6 +329,11 @@ export function AllItemsTable ({
           {row.profit}
         </td>
         <td style={{ verticalAlign: 'middle' }}>{row.limit}</td>
+        <td style={{ verticalAlign: 'middle' }}>
+          <Tooltip label={risk.reason} withArrow position="right">
+            <Badge color={risk.color} variant="filled" size="sm">{risk.label}</Badge>
+          </Tooltip>
+        </td>
         <td style={{ verticalAlign: 'middle', padding: '8px' }}>
           <MiniChart itemId={row.id} width={120} height={40} />
         </td>
@@ -396,7 +430,7 @@ export function AllItemsTable ({
                 <Select
                   placeholder="Select volume"
                   value={volumeFilter}
-                  onChange={setVolumeFilter}
+                  onChange={(value) => setVolumeFilter(value ?? '')}
                   data={[
                     { value: '', label: 'All Volumes' },
                     { value: 'low', label: 'Low Volume (< 100 limit)' },
@@ -412,7 +446,7 @@ export function AllItemsTable ({
                     placeholder="Min price"
                     value={priceMin}
                     defaultValue={0}
-                    onChange={setPriceMin}
+                    onChange={(value) => setPriceMin(value ?? 0)}
                     min={0}
                     formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
                     parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
@@ -421,7 +455,7 @@ export function AllItemsTable ({
                     placeholder="Max price"
                     value={priceMax}
                     defaultValue={0}
-                    onChange={setPriceMax}
+                    onChange={(value) => setPriceMax(value ?? 0)}
                     min={0}
                     formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
                     parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
@@ -436,7 +470,7 @@ export function AllItemsTable ({
                     placeholder="Min profit"
                     value={profitMin}
                     defaultValue={0}
-                    onChange={setProfitMin}
+                    onChange={(value) => setProfitMin(value ?? 0)}
                     formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
                     parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                   />
@@ -444,7 +478,7 @@ export function AllItemsTable ({
                     placeholder="Max profit"
                     value={profitMax}
                     defaultValue={0}
-                    onChange={setProfitMax}
+                    onChange={(value) => setProfitMax(value ?? 0)}
                     formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0'}
                     parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
                   />
@@ -479,6 +513,7 @@ export function AllItemsTable ({
               <th>Sell Price</th>
               <th>Profit</th>
               <th>Buy Limit</th>
+              <th>Risk</th>
               <th>Chart</th>
               <th>Settings</th>
             </tr>

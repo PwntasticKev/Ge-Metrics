@@ -28,8 +28,9 @@ export default function HeaderNav ({ opened, setOpened }) {
   }, [])
 
   const setGameMode = (e) => {
-    setChecked(e.currentTarget.checked)
-    localStorage.setItem('gameMode', checked ? JSON.stringify('') : JSON.stringify('dmm'))
+    const newChecked = e.currentTarget.checked
+    setChecked(newChecked)
+    localStorage.setItem('gameMode', newChecked ? JSON.stringify('dmm') : JSON.stringify(''))
   }
 
   const handleDiscordClick = () => {

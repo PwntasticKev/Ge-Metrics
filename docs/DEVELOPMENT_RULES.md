@@ -1,240 +1,136 @@
-# Development Rules to Prevent Recurring Errors
+# Ge-Metrics Development Rules
 
-## 1. Data Type Validation Rule
-**ALWAYS validate data types before using them in critical operations.**
+## Core System Rules
 
-### Before using any data:
-```javascript
-// ❌ WRONG - Assumes items is an array
-const aiEngine = new AIPredictionEngine(items)
+### 1. Price Data Caching System
+**CRITICAL**: All OSRS Grand Exchange price data must be served from cached database data, never directly from external APIs. See [PRICE_DATA_CACHING_RULES.md](./PRICE_DATA_CACHING_RULES.md) for complete implementation guidelines.
 
-// ✅ CORRECT - Validates data type first
-const items = itemDataHook.items || []
-const aiEngine = items.length > 0 ? new AIPredictionEngine(items) : null
+**Key Requirements:**
+- Cron job runs every 2.5 minutes to fetch and cache price data
+- All user requests served from database cache
+- No direct API calls from user-facing endpoints
+- Comprehensive error handling and monitoring
+- Historical data tracking for charts and analysis
+
+### 2. Mantine v6 Compatibility
+**CRITICAL**: This project uses Mantine v6, NOT v7. Follow these patterns:
+
+```jsx
+// ✅ Correct (v6)
+<Button leftIcon={<IconPlus />}>Add Item</Button>
+<Tabs.Tab value="overview" icon={<IconDashboard />}>Overview</Tabs.Tab>
+<TextInput icon={<IconSearch />} placeholder="Search..." />
+
+// ❌ Wrong (v7)
+<Button leftSection={<IconPlus />}>Add Item</Button>
+<Tabs.Tab value="overview" leftSection={<IconDashboard />}>Overview</Tabs.Tab>
 ```
 
-### Common data validation patterns:
+### 3. Testing Requirements
+**MANDATORY**: Every new file must have comprehensive tests that pass before delivery:
+
+- [ ] Create test files in `__tests__/` directory
+- [ ] Use `.test.js` or `.test.jsx` extension
+- [ ] Include unit tests, integration tests, and edge cases
+- [ ] Mock external dependencies and API calls
+- [ ] Test error handling and loading states
+- [ ] Run `npm test` to verify all tests pass
+- [ ] Achieve >80% test coverage
+
+## 10. Controlled Input Rule
+**ALWAYS handle undefined values in input onChange handlers to prevent controlled/uncontrolled input warnings.**
+
+### The Problem:
+React warns when an input's value changes from a defined value to undefined, causing it to switch from controlled to uncontrolled.
+
+### The Solution:
+Always provide safe default values in onChange handlers using the nullish coalescing operator (`??`).
+
+### ✅ CORRECT Input Handling:
 ```javascript
-// For arrays
-const safeArray = data?.items || []
-if (safeArray.length === 0) return null
+// NumberInput components
+<NumberInput
+  value={minConfidence}
+  onChange={(value) => setMinConfidence(value ?? 50)}
+  min={0}
+  max={100}
+/>
 
-// For objects
-const safeObject = data?.config || {}
-if (Object.keys(safeObject).length === 0) return null
+// Select components
+<Select
+  value={sortBy}
+  onChange={(value) => setSortBy(value ?? 'default')}
+  data={[...]}
+/>
 
-// For strings
-const safeString = data?.name || ''
-if (!safeString.trim()) return null
+// TextInput components
+<TextInput
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.currentTarget.value || '')}
+  placeholder="Search..."
+/>
 ```
 
-## 2. Hook Rules Compliance
-**NEVER call hooks inside loops, conditions, or nested functions.**
-
-### ✅ CORRECT Hook Usage:
+### ❌ WRONG Input Handling:
 ```javascript
-function MyComponent() {
-  // Hooks at top level only
-  const [state, setState] = useState(null)
-  const data = useQuery(...)
-  const memoizedValue = useMemo(...)
+// These can cause controlled/uncontrolled warnings
+<NumberInput
+  value={minConfidence}
+  onChange={(value) => setMinConfidence(value)} // ❌ value can be undefined
+/>
+
+<Select
+  value={sortBy}
+  onChange={setSortBy} // ❌ value can be undefined
+/>
+
+<TextInput
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.currentTarget.value)} // ❌ can be undefined
+/>
+```
+
+### Common Default Values:
+```javascript
+// Number inputs
+onChange={(value) => setValue(value ?? 0)}
+onChange={(value) => setValue(value ?? 100)}
+onChange={(value) => setValue(value ?? 50)}
+
+// String inputs
+onChange={(e) => setValue(e.currentTarget.value || '')}
+onChange={(value) => setValue(value ?? '')}
+
+// Boolean inputs
+onChange={(e) => setValue(e.currentTarget.checked)}
+onChange={(value) => setValue(value ?? false)}
+```
+
+### Testing for Controlled Input Warnings:
+```javascript
+// In test files, spy on console.warn to catch these warnings
+test('renders without controlled/uncontrolled input warnings', async () => {
+  const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
   
-  // Regular functions can use hooks
-  const handleClick = () => {
-    // But don't call hooks here!
-  }
-}
-```
-
-### ❌ WRONG Hook Usage:
-```javascript
-function MyComponent() {
-  if (condition) {
-    const [state, setState] = useState(null) // ❌ Hook in condition
-  }
+  render(<MyComponent />)
   
-  const handleClick = () => {
-    const data = useQuery(...) // ❌ Hook in function
-  }
-}
-```
-
-## 3. Import Path Validation Rule
-**ALWAYS test import paths and use absolute paths when possible.**
-
-### Import path checklist:
-- [ ] Verify file exists at the specified path
-- [ ] Check for correct file extensions (.jsx, .js, .ts, .tsx)
-- [ ] Use absolute paths from src/ when possible
-- [ ] Test imports in development environment
-
-### Common import patterns:
-```javascript
-// ✅ Absolute paths (preferred)
-import { formatPrice } from 'src/utils/utils.jsx'
-import Component from 'src/components/MyComponent.jsx'
-
-// ✅ Relative paths (when necessary)
-import { formatPrice } from '../../../utils/utils.jsx'
-import Component from '../components/MyComponent.jsx'
-
-// ❌ Avoid complex relative paths
-import { formatPrice } from '../../../../../../../utils/utils.jsx'
-```
-
-## 4. Error Boundary Rule
-**ALWAYS wrap critical operations in try-catch blocks.**
-
-### Error handling pattern:
-```javascript
-useEffect(() => {
-  const processData = async () => {
-    try {
-      setLoading(true)
-      const result = await riskyOperation()
-      setData(result)
-    } catch (error) {
-      console.error('Operation failed:', error)
-      setError(error.message)
-      setData(null)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Interact with inputs
+  fireEvent.change(screen.getByLabelText('Input Label'), { target: { value: '' } })
   
-  processData()
-}, [dependencies])
-```
-
-## 5. Component Testing Rule
-**ALWAYS test components in the browser before committing.**
-
-### Testing checklist:
-- [ ] Run `npm run dev` and visit the page
-- [ ] Check browser console for errors
-- [ ] Verify all imports resolve correctly
-- [ ] Test component interactions
-- [ ] Check for hook violations
-
-### Quick test command:
-```bash
-# Start dev server
-npm run dev
-
-# Check if page loads without errors
-curl -s "http://localhost:5174/your-page" | grep -i "error\|failed" || echo "✅ Page loads successfully"
-```
-
-## 6. Data Flow Validation Rule
-**ALWAYS verify data flow from API to component.**
-
-### Data flow checklist:
-- [ ] API returns expected data structure
-- [ ] Service layer processes data correctly
-- [ ] Component receives correct props
-- [ ] Component handles loading/error states
-- [ ] Component renders without errors
-
-## 7. State Management Rule
-**ALWAYS initialize state with safe default values.**
-
-### Safe state initialization:
-```javascript
-// ✅ Safe defaults
-const [items, setItems] = useState([])
-const [config, setConfig] = useState({})
-const [loading, setLoading] = useState(false)
-const [error, setError] = useState(null)
-
-// ❌ Unsafe defaults
-const [items, setItems] = useState() // undefined
-const [config, setConfig] = useState() // undefined
-```
-
-## 8. Component Structure Rule
-**ALWAYS follow consistent component structure.**
-
-### Standard component template:
-```javascript
-import React, { useState, useEffect, useMemo } from 'react'
-import { Component } from '@mantine/core'
-import { IconSomething } from '@tabler/icons-react'
-import { utilityFunction } from '../utils/utils.jsx'
-
-const MyComponent = ({ prop1, prop2 }) => {
-  // 1. State declarations
-  const [state, setState] = useState(null)
-  
-  // 2. Data fetching/processing
-  const data = useMemo(() => {
-    return processData(prop1, prop2)
-  }, [prop1, prop2])
-  
-  // 3. Effects
-  useEffect(() => {
-    if (!data) return
-    // Side effects
-  }, [data])
-  
-  // 4. Event handlers
-  const handleAction = () => {
-    // Event logic
-  }
-  
-  // 5. Render
-  return (
-    <div>
-      {/* JSX */}
-    </div>
+  // Check that no controlled/uncontrolled warnings were logged
+  const warnings = consoleSpy.mock.calls.filter(call => 
+    call[0]?.includes('controlled input to be uncontrolled')
   )
-}
-
-export default MyComponent
-```
-
-## 9. Debugging Rule
-**ALWAYS add console logs for debugging complex operations.**
-
-### Debugging pattern:
-```javascript
-useEffect(() => {
-  console.log('🔍 Debug - Data received:', data)
-  console.log('🔍 Debug - Data type:', typeof data)
-  console.log('🔍 Debug - Is array:', Array.isArray(data))
+  expect(warnings).toHaveLength(0)
   
-  if (!Array.isArray(data)) {
-    console.error('❌ Error - Expected array, got:', typeof data)
-    return
-  }
-  
-  // Process data
-}, [data])
+  consoleSpy.mockRestore()
+})
 ```
 
-## 10. Performance Rule
-**ALWAYS use useMemo and useCallback for expensive operations.**
-
-### Performance optimization:
-```javascript
-// ✅ Memoized expensive calculations
-const expensiveValue = useMemo(() => {
-  return heavyCalculation(data)
-}, [data])
-
-// ✅ Memoized callbacks
-const handleClick = useCallback(() => {
-  // Expensive operation
-}, [dependencies])
-```
-
-## Enforcement
-- **Before committing**: Run the testing checklist
-- **When debugging**: Follow the debugging rule
-- **When creating components**: Follow the component structure rule
-- **When importing**: Follow the import path validation rule
-
-## Common Error Patterns to Avoid
-1. `TypeError: this.items.filter is not a function` → Use data validation rule
-2. `Warning: Do not call Hooks inside useEffect` → Use hook rules compliance
-3. `Failed to resolve import` → Use import path validation rule
-4. `Cannot read property of undefined` → Use state management rule 
+### Checklist for Input Components:
+- [ ] All NumberInput onChange handlers use `value ?? defaultValue`
+- [ ] All Select onChange handlers use `value ?? defaultValue`
+- [ ] All TextInput onChange handlers use `e.currentTarget.value || ''`
+- [ ] All Switch/Checkbox onChange handlers use `e.currentTarget.checked`
+- [ ] Test clearing input values to ensure defaults are applied
+- [ ] No console warnings about controlled/uncontrolled inputs 

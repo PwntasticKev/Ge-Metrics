@@ -87,7 +87,7 @@ export default function Faq () {
       <Accordion
         multiple
         value={activeAccordion}
-        onChange={setActiveAccordion}
+        onChange={(value) => setActiveAccordion(value ?? [])}
         variant="separated"
         radius="md"
       >

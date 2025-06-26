@@ -200,7 +200,7 @@ export function ProfitModifier ({ item }) {
           label="Amount (GP)"
           placeholder="Enter profit/loss amount"
           value={transactionAmount}
-          onChange={setTransactionAmount}
+          onChange={(value) => setTransactionAmount(value ?? 0)}
           className={transactionType === 'profit' ? classes.profitInput : classes.lossInput}
           parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
           formatter={(value) => value && !Number.isNaN(parseFloat(value))
@@ -218,7 +218,7 @@ export function ProfitModifier ({ item }) {
           label="Quantity"
           placeholder="Number of items"
           value={quantity}
-          onChange={setQuantity}
+          onChange={(value) => setQuantity(value ?? 1)}
           min={1}
           max={1000000}
           icon={<IconCoins size={16} />}
@@ -235,7 +235,7 @@ export function ProfitModifier ({ item }) {
           {!useCurrentDate && (
             <DateInput
               value={dateValue}
-              onChange={setDate}
+              onChange={(value) => setDate(value ?? new Date())}
               label="Transaction Date"
               placeholder="Select date"
               icon={<IconCalendar size={16} />}

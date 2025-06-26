@@ -212,7 +212,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
             <NumberInput
               value={editValues.volume_threshold || 0}
               defaultValue={0}
-              onChange={(value) => setEditValues(prev => ({ ...prev, volume_threshold: value }))}
+              onChange={(value) => setEditValues(prev => ({ ...prev, volume_threshold: value ?? 0 }))}
               size="xs"
               min={0}
               placeholder="Volume threshold"
@@ -238,7 +238,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
             <NumberInput
               value={editValues.price_drop_threshold || 0}
               defaultValue={0}
-              onChange={(value) => setEditValues(prev => ({ ...prev, price_drop_threshold: value }))}
+              onChange={(value) => setEditValues(prev => ({ ...prev, price_drop_threshold: value ?? 0 }))}
               size="xs"
               min={0}
               max={100}

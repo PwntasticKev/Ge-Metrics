@@ -304,7 +304,7 @@ export default function Favorites () {
               placeholder="Search favorites..."
               icon={<IconSearch size={16} />}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value || '')}
             />
           </Grid.Col>
           <Grid.Col span={2}>
@@ -312,7 +312,7 @@ export default function Favorites () {
               placeholder="Sort by"
               icon={<IconFilter size={16} />}
               value={sortBy}
-              onChange={setSortBy}
+              onChange={(value) => setSortBy(value ?? 'name')}
               data={[
                 { value: 'name', label: 'Name' },
                 { value: 'profit', label: 'Profit' },

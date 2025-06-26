@@ -350,7 +350,7 @@ const EmployeeManagement = () => {
             placeholder="Search employees..."
             icon={<IconSearch size={16} />}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value || '')}
             style={{ flex: 1 }}
           />
 
@@ -361,7 +361,7 @@ const EmployeeManagement = () => {
               ...roles.map(role => ({ value: role.key, label: role.name }))
             ]}
             value={roleFilter}
-            onChange={setRoleFilter}
+            onChange={(value) => setRoleFilter(value ?? '')}
             style={{ width: 150 }}
           />
 
@@ -373,7 +373,7 @@ const EmployeeManagement = () => {
               { value: 'inactive', label: 'Inactive' }
             ]}
             value={statusFilter}
-            onChange={setStatusFilter}
+            onChange={(value) => setStatusFilter(value ?? '')}
             style={{ width: 120 }}
           />
 
@@ -384,7 +384,7 @@ const EmployeeManagement = () => {
               ...departments.map(dept => ({ value: dept, label: dept }))
             ]}
             value={departmentFilter}
-            onChange={setDepartmentFilter}
+            onChange={(value) => setDepartmentFilter(value ?? '')}
             style={{ width: 150 }}
           />
 

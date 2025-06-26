@@ -121,8 +121,8 @@ function sortData (data, payload) {
 
       // Handle profit specifically for numeric sorting
       if (sortBy === 'profit') {
-        aValue = parseFloat(aValue.replace(/,/g, '')) || 0
-        bValue = parseFloat(bValue.replace(/,/g, '')) || 0
+        aValue = parseFloat(String(aValue ?? '0').replace(/,/g, '')) || 0
+        bValue = parseFloat(String(bValue ?? '0').replace(/,/g, '')) || 0
       }
 
       // Handle numeric comparisons
@@ -168,8 +168,9 @@ export function AllItemsTable ({ data }) {
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget
-    setSearch(value)
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value }))
+    const searchValue = value || ''
+    setSearch(searchValue)
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }))
   }
 
   const shouldResetField = () => {
@@ -182,7 +183,7 @@ export function AllItemsTable ({ data }) {
   }
 
   const rows = currentPageData.map((row, idx) => {
-    const profitValue = Number(row.profit.replace(/,/g, ''))
+    const profitValue = Number(String(row.profit ?? '0').replace(/,/g, ''))
     return (
             <tr key={idx}>
                 {/* <td>{row.id}</td> */}
@@ -297,7 +298,7 @@ export function AllItemsTable ({ data }) {
                 <Pagination
                     total={Math.ceil(sortedData.length / itemsPerPage)}
                     value={currentPage}
-                    onChange={setCurrentPage}
+                    onChange={(value) => setCurrentPage(value ?? 1)}
                     gutter="md"
                     mt="md"
                     mb="md"

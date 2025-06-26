@@ -466,7 +466,7 @@ const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
             <Select
               data={timeframeOptions}
               value={timeframe}
-              onChange={setTimeframe}
+              onChange={(value) => setTimeframe(value ?? '1d')}
               size="sm"
               style={{ width: 100 }}
             />
@@ -474,7 +474,7 @@ const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
             <Select
               data={chartTypeOptions}
               value={chartType}
-              onChange={setChartType}
+              onChange={(value) => setChartType(value ?? 'line')}
               size="sm"
               style={{ width: 130 }}
             />

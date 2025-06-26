@@ -441,7 +441,7 @@ export default function BillingDashboard () {
                 placeholder="Search customers..."
                 leftIcon={<IconSearch size={16} />}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value || '')}
                 style={{ flex: 1 }}
               />
               <Select
@@ -453,7 +453,7 @@ export default function BillingDashboard () {
                   { value: 'trial', label: 'Trial' }
                 ]}
                 value={statusFilter}
-                onChange={setStatusFilter}
+                onChange={(value) => setStatusFilter(value ?? 'all')}
               />
               <Select
                 placeholder="Plan"
@@ -464,7 +464,7 @@ export default function BillingDashboard () {
                   { value: 'trial', label: 'Trial' }
                 ]}
                 value={planFilter}
-                onChange={setPlanFilter}
+                onChange={(value) => setPlanFilter(value ?? 'all')}
               />
             </Group>
           </Card>
@@ -538,7 +538,7 @@ export default function BillingDashboard () {
             label="Payment ID"
             placeholder="pay_..."
             value={refundForm.paymentId}
-            onChange={(e) => setRefundForm({ ...refundForm, paymentId: e.target.value })}
+            onChange={(e) => setRefundForm({ ...refundForm, paymentId: e.target.value || '' })}
             required
             rightSection={
               <Tooltip
@@ -560,7 +560,7 @@ export default function BillingDashboard () {
             placeholder="Leave empty for full refund"
             value={refundForm.amount}
             defaultValue={0}
-            onChange={(value) => setRefundForm({ ...refundForm, amount: value })}
+            onChange={(value) => setRefundForm({ ...refundForm, amount: value ?? 0 })}
             precision={2}
             min={0}
             parser={(value) => value ? value.replace(/\$\s?|(,*)/g, '') : '0'}
@@ -570,7 +570,7 @@ export default function BillingDashboard () {
             label="Reason"
             placeholder="Reason for refund..."
             value={refundForm.reason}
-            onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value })}
+            onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value || '' })}
             required
           />
           <Group justify="flex-end">
@@ -608,7 +608,7 @@ export default function BillingDashboard () {
             label="Admin Note"
             placeholder="Reason for granting trial..."
             value={trialForm.adminNote}
-            onChange={(e) => setTrialForm({ ...trialForm, adminNote: e.target.value })}
+            onChange={(e) => setTrialForm({ ...trialForm, adminNote: e.target.value || '' })}
             required
           />
           <Group justify="flex-end">

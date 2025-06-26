@@ -111,7 +111,7 @@ const FormulaDocumentation = () => {
         <Text>This documentation MUST be updated every time we make changes to formulas, algorithms, or calculations on any page. Keep this as your single source of truth!</Text>
       </Alert>
 
-      <Tabs value={activeTab} onChange={setActiveTab}>
+      <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? 'overview')}>
         <Tabs.List>
           <Tabs.Tab value="ai-predictions" leftIcon={<IconBrain size={16} />}>
             AI Predictions

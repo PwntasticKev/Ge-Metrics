@@ -159,7 +159,8 @@ export function HighVolumesTable ({ data }) {
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget
-    setSearch(value)
+    const searchValue = value || ''
+    setSearch(searchValue)
 
     if (!data || data.length === 0) {
       setSortedData([])
@@ -168,7 +169,7 @@ export function HighVolumesTable ({ data }) {
 
     try {
       const volumeSortedData = sortByVolume(data)
-      setSortedData(sortData(volumeSortedData, { sortBy, reversed: reverseSortDirection, search: value }))
+      setSortedData(sortData(volumeSortedData, { sortBy, reversed: reverseSortDirection, search: searchValue }))
     } catch (error) {
       console.error('Error filtering data:', error)
       setSortedData([])
@@ -213,7 +214,7 @@ export function HighVolumesTable ({ data }) {
   }
 
   const rows = currentPageData.map((row, idx) => {
-    const profitValue = row.profit ? Number(row.profit.replace(/,/g, '')) : 0
+    const profitValue = row.profit ? Number(String(row.profit).replace(/,/g, '')) : 0
     const volumeValue = Number(row.volume) || 0
 
     return (
@@ -362,7 +363,7 @@ export function HighVolumesTable ({ data }) {
               <Pagination
                   total={Math.ceil(sortedData.length / itemsPerPage)}
                   value={currentPage}
-                  onChange={setCurrentPage}
+                  onChange={(value) => setCurrentPage(value ?? 1)}
                   mt="sm"
                   position="center"
               />

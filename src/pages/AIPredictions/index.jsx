@@ -966,7 +966,7 @@ export default function AIPredictions () {
                 <Select
                   label="Sort by"
                   value={sortBy}
-                  onChange={setSortBy}
+                  onChange={(value) => setSortBy(value ?? 'overallScore')}
                   data={[
                     { value: 'overallScore', label: 'Overall Score' },
                     { value: 'confidence', label: 'Confidence' },
@@ -1136,7 +1136,7 @@ export default function AIPredictions () {
                       <TextInput
                         placeholder="Search by item name or activity type..."
                         value={whaleSearch}
-                        onChange={(e) => setWhaleSearch(e.currentTarget.value)}
+                        onChange={(e) => setWhaleSearch(e.currentTarget.value || '')}
                         icon={<IconSearch size={16} />}
                         size="sm"
                       />
@@ -1266,21 +1266,21 @@ export default function AIPredictions () {
                   <NumberInput
                     label="Minimum Confidence (%)"
                     value={minConfidence}
-                    onChange={(value) => setMinConfidence(value)}
+                    onChange={(value) => setMinConfidence(value ?? 50)}
                     min={0}
                     max={100}
                   />
                   <NumberInput
                     label="Maximum Risk (%)"
                     value={maxRisk}
-                    onChange={(value) => setMaxRisk(value)}
+                    onChange={(value) => setMaxRisk(value ?? 70)}
                     min={0}
                     max={100}
                   />
                   <Select
                     label="Category"
                     value={riskProfile}
-                    onChange={(value) => setRiskProfile(value)}
+                    onChange={(value) => setRiskProfile(value ?? 'all')}
                     data={[
                       { value: 'all', label: 'All Categories' },
                       { value: 'Hidden Gem', label: 'Hidden Gems' },
@@ -1300,7 +1300,7 @@ export default function AIPredictions () {
                   <NumberInput
                     label="Minimum Profit (GP)"
                     value={minProfit}
-                    onChange={(value) => setMinProfit(value)}
+                    onChange={(value) => setMinProfit(value ?? 0)}
                     min={0}
                     formatter={(value) => value ? `${Number(value).toLocaleString()} GP` : '0 GP'}
                     parser={(value) => value.replace(/\$\s?|(,*)/g, '').replace(' GP', '')}
@@ -1308,7 +1308,7 @@ export default function AIPredictions () {
                   <NumberInput
                     label="Maximum Price (GP)"
                     value={maxPrice}
-                    onChange={(value) => setMaxPrice(value)}
+                    onChange={(value) => setMaxPrice(value ?? 1000000)}
                     min={1000}
                     max={1000000}
                     formatter={(value) => value ? `${Number(value).toLocaleString()} GP` : '1M GP'}

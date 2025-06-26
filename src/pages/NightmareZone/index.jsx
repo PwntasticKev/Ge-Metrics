@@ -196,7 +196,7 @@ export default function NightmareZone () {
                     description="Average NMZ points you earn per hour"
                     value={pointsPerHour || 50000}
                     defaultValue={50000}
-                    onChange={setPointsPerHour}
+                    onChange={(value) => setPointsPerHour(value ?? 50000)}
                     min={10000}
                     max={300000}
                     step={10000}
@@ -208,7 +208,7 @@ export default function NightmareZone () {
                     description="How many hours you plan to train daily"
                     value={hoursPerDay || 4}
                     defaultValue={4}
-                    onChange={setHoursPerDay}
+                    onChange={(value) => setHoursPerDay(value ?? 4)}
                     min={1}
                     max={24}
                     step={1}

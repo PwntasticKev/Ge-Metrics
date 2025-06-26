@@ -1535,14 +1535,14 @@ const UserManagement = () => {
                   placeholder="Search users..."
                   leftIcon={<IconSearch size={16} />}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value || '')}
                 />
               </Grid.Col>
               <Grid.Col span={2}>
                 <Select
                   placeholder="Filter by role"
                   value={roleFilter}
-                  onChange={setRoleFilter}
+                  onChange={(value) => setRoleFilter(value ?? '')}
                   data={[
                     { value: '', label: 'All Roles' },
                     { value: 'admin', label: 'Admin' },
@@ -1556,7 +1556,7 @@ const UserManagement = () => {
                 <Select
                   placeholder="Filter by membership"
                   value={membershipFilter}
-                  onChange={setMembershipFilter}
+                  onChange={(value) => setMembershipFilter(value ?? '')}
                   data={[
                     { value: '', label: 'All Plans' },
                     { value: 'premium', label: 'Premium' },
@@ -1568,7 +1568,7 @@ const UserManagement = () => {
                 <Select
                   placeholder="Filter by status"
                   value={statusFilter}
-                  onChange={setStatusFilter}
+                  onChange={(value) => setStatusFilter(value ?? '')}
                   data={[
                     { value: '', label: 'All Status' },
                     { value: 'active', label: 'Online' },
@@ -2516,7 +2516,7 @@ const UserManagement = () => {
             label="Subject"
             placeholder="Enter message subject"
             value={messageSubject}
-            onChange={(e) => setMessageSubject(e.target.value)}
+            onChange={(e) => setMessageSubject(e.target.value || '')}
             required
           />
 
@@ -2524,7 +2524,7 @@ const UserManagement = () => {
             label="Message Body"
             placeholder="Enter your message content"
             value={messageBody}
-            onChange={(e) => setMessageBody(e.target.value)}
+            onChange={(e) => setMessageBody(e.target.value || '')}
             minRows={4}
             required
           />

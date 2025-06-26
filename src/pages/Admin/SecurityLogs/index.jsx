@@ -401,7 +401,7 @@ export default function SecurityLogs () {
         </Group>
       </Group>
 
-      <Tabs value={activeTab} onChange={setActiveTab}>
+      <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? 'events')}>
         <Tabs.List>
           <Tabs.Tab value="logs" leftIcon={<IconActivity size={16} />}>
             Security Events ({filteredLogs.length})
@@ -423,7 +423,7 @@ export default function SecurityLogs () {
                   placeholder="Search logs..."
                   leftIcon={<IconSearch size={16} />}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value || '')}
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
@@ -437,7 +437,7 @@ export default function SecurityLogs () {
                     { value: 'low', label: 'Low' }
                   ]}
                   value={levelFilter}
-                  onChange={setLevelFilter}
+                  onChange={(value) => setLevelFilter(value ?? '')}
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
@@ -453,7 +453,7 @@ export default function SecurityLogs () {
                     { value: 'network', label: 'Network' }
                   ]}
                   value={categoryFilter}
-                  onChange={setCategoryFilter}
+                  onChange={(value) => setCategoryFilter(value ?? '')}
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
@@ -465,7 +465,7 @@ export default function SecurityLogs () {
                     { value: 'unresolved', label: 'Unresolved' }
                   ]}
                   value={statusFilter}
-                  onChange={setStatusFilter}
+                  onChange={(value) => setStatusFilter(value ?? '')}
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
@@ -948,7 +948,7 @@ export default function SecurityLogs () {
               label="Reason for blocking"
               placeholder="Enter reason for blocking this IP address"
               value={blockReason}
-              onChange={(e) => setBlockReason(e.target.value)}
+              onChange={(e) => setBlockReason(e.target.value || '')}
               required
               minRows={3}
             />

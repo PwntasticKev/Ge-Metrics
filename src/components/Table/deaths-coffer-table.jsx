@@ -133,13 +133,14 @@ export function DeathsCofferTable ({ data }) {
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget
-    setSearch(value)
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value }))
+    const searchValue = value || ''
+    setSearch(searchValue)
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }))
   }
 
   const rows = currentPageData.map((row, idx) => {
     const profitString = row.profit
-    const profitValue = typeof profitString === 'string' ? Number(profitString.replace(/[^0-9.-]+/g, '')) : 0
+    const profitValue = Number(String(profitString ?? '0').replace(/[^0-9.-]+/g, ''))
 
     return (
             <tr key={idx} style={{ background: row.background ? theme.colors.gray[7] : '' }}>
@@ -238,7 +239,7 @@ export function DeathsCofferTable ({ data }) {
                 <Pagination
                     total={Math.ceil(sortedData.length / itemsPerPage)}
                     value={currentPage}
-                    onChange={setCurrentPage}
+                    onChange={(value) => setCurrentPage(value ?? 1)}
                     gutter="md"
                     mt="md"
                     mb="md"
