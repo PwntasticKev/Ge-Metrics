@@ -50,10 +50,9 @@ import ItemDetails from './pages/ItemDetails/index.jsx'
 import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
 
 // Trial system imports
-import { TrialProvider } from './contexts/TrialContext'
+import { TrialProvider, useTrialContext } from './contexts/TrialContext'
 import TrialBanner from './components/Trial/TrialBanner'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
-import { useTrialContext } from './contexts/TrialContext'
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -168,12 +167,46 @@ export default function App () {
   const [opened, setOpened] = useState(false)
   const isMobile = useMediaQuery('(max-width: 768px)')
 
+  // Theme mode state (global)
+  const [colorScheme, setColorScheme] = useState(() => {
+    const saved = localStorage.getItem('darkMode')
+    return saved ? (JSON.parse(saved) ? 'dark' : 'light') : 'dark'
+  })
+
+  // Listen for changes to darkMode in localStorage
+  React.useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem('darkMode')
+      const newColorScheme = saved ? (JSON.parse(saved) ? 'dark' : 'light') : 'dark'
+      console.log('Theme change detected:', { saved, newColorScheme })
+      setColorScheme(newColorScheme)
+    }
+
+    // Listen for storage events (cross-tab)
+    window.addEventListener('storage', handleStorage)
+
+    // Also check periodically for changes in the same tab
+    const interval = setInterval(() => {
+      const saved = localStorage.getItem('darkMode')
+      const newColorScheme = saved ? (JSON.parse(saved) ? 'dark' : 'light') : 'dark'
+      if (newColorScheme !== colorScheme) {
+        console.log('Theme change detected via interval:', { saved, newColorScheme, current: colorScheme })
+        setColorScheme(newColorScheme)
+      }
+    }, 100)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      clearInterval(interval)
+    }
+  }, [colorScheme])
+
   //   const { loggedIn, user } = useContext(AuthContext)
   const loggedIn = true
 
   return (
     <QueryClientProvider client={queryClient} queryCache={queryCache}>
-      <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme('dark')}>
+      <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme(colorScheme)}>
         <Notifications />
         <TrialProvider>
           <Router>

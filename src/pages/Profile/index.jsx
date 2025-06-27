@@ -15,7 +15,6 @@ import {
   Avatar,
   SimpleGrid,
   Select,
-  ColorPicker,
   Switch,
   Divider,
   ActionIcon,
@@ -24,7 +23,9 @@ import {
   Progress,
   Timeline,
   Alert,
-  Anchor
+  Anchor,
+  TextInput,
+  Textarea
 } from '@mantine/core'
 import {
   IconChevronRight,
@@ -49,7 +50,6 @@ import {
 import jmodImage from '../../assets/jmod.png'
 import authService from '../../services/authService'
 import UserEdit from './components/modals/user-edit.jsx'
-import UserGoals from './components/modals/user-goals.jsx'
 import UserSubscription from './components/modals/user-subscription.jsx'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -89,7 +89,6 @@ export default function Profile () {
   const [activeModal, setActiveModal] = useState('')
   const [selectedAvatar, setSelectedAvatar] = useState(DEFAULT_AVATARS[0])
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
-  const [themeColor, setThemeColor] = useState('#339af0')
   const [darkMode, setDarkMode] = useState(true)
 
   // User data (in real app, this would come from API)
@@ -108,28 +107,36 @@ export default function Profile () {
     otpEnabled: true
   })
 
+  // Goal tracker state
+  const [weeklyGoals, setWeeklyGoals] = useState([
+    { id: 1, text: 'Flip 10M GP in a week', completed: false },
+    { id: 2, text: 'Reach 100 total trades', completed: false }
+  ])
+  const [monthlyGoals, setMonthlyGoals] = useState([
+    { id: 1, text: 'Earn 50M GP profit this month', completed: false }
+  ])
+  const [dailyGoals, setDailyGoals] = useState([])
+  const [goalInput, setGoalInput] = useState('')
+  const [goalType, setGoalType] = useState('weekly')
+  const [notes, setNotes] = useState('')
+
+  // Transaction state
+  const [transactions, setTransactions] = useState([])
+  const [transactionInput, setTransactionInput] = useState('')
+
   useEffect(() => {
     // Load saved theme preferences
-    const savedColor = localStorage.getItem('themeColor')
     const savedDarkMode = localStorage.getItem('darkMode')
     const savedAvatar = localStorage.getItem('selectedAvatar')
 
-    if (savedColor) setThemeColor(savedColor)
     if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode))
     if (savedAvatar) setSelectedAvatar(savedAvatar)
   }, [])
-
-  const handleThemeColorChange = (color) => {
-    setThemeColor(color)
-    localStorage.setItem('themeColor', color)
-    document.documentElement.style.setProperty('--mantine-primary-color', color)
-  }
 
   const handleDarkModeToggle = () => {
     const newDarkMode = !darkMode
     setDarkMode(newDarkMode)
     localStorage.setItem('darkMode', JSON.stringify(newDarkMode))
-    document.documentElement.setAttribute('data-mantine-color-scheme', newDarkMode ? 'dark' : 'light')
   }
 
   const handleAvatarSelect = (avatar) => {
@@ -169,9 +176,77 @@ export default function Profile () {
   const mailchimpSubscribed = !!userStats?.mailchimpSubscribed
   const joinDate = userStats?.joinDate || '2024-01-01'
 
+  // Add transaction handler
+  const handleAddTransaction = () => {
+    let input = transactionInput.trim()
+
+    // Handle common abbreviations
+    if (input.toLowerCase().includes('k')) {
+      input = input.toLowerCase().replace('k', '000')
+    }
+    if (input.toLowerCase().includes('m')) {
+      input = input.toLowerCase().replace('m', '000000')
+    }
+    if (input.toLowerCase().includes('b')) {
+      input = input.toLowerCase().replace('b', '000000000')
+    }
+
+    const value = parseInt(input.replace(/[^0-9-]/g, ''))
+    if (!isNaN(value)) {
+      const newTransactions = [...transactions, { id: Date.now(), value }]
+      setTransactions(newTransactions)
+
+      // Update userStats with new total profit and transaction count
+      setUserStats(prev => ({
+        ...prev,
+        totalProfit: prev.totalProfit + value,
+        totalTransactions: prev.totalTransactions + 1
+      }))
+
+      setTransactionInput('')
+    }
+  }
+
+  const currentProgress = transactions.reduce((sum, t) => sum + t.value, 0)
+
+  // Add goal
+  const handleAddGoal = () => {
+    if (!goalInput.trim()) return
+    const newGoal = { id: Date.now(), text: goalInput, completed: false }
+    if (goalType === 'daily') {
+      setDailyGoals([...dailyGoals, newGoal])
+    } else if (goalType === 'weekly') {
+      setWeeklyGoals([...weeklyGoals, newGoal])
+    } else {
+      setMonthlyGoals([...monthlyGoals, newGoal])
+    }
+    setGoalInput('')
+  }
+
+  // Toggle goal completion
+  const handleToggleGoal = (type, id) => {
+    if (type === 'daily') {
+      setDailyGoals(dailyGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g))
+    } else if (type === 'weekly') {
+      setWeeklyGoals(weeklyGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g))
+    } else {
+      setMonthlyGoals(monthlyGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g))
+    }
+  }
+
+  // Remove goal
+  const handleRemoveGoal = (type, id) => {
+    if (type === 'daily') {
+      setDailyGoals(dailyGoals.filter(g => g.id !== id))
+    } else if (type === 'weekly') {
+      setWeeklyGoals(weeklyGoals.filter(g => g.id !== id))
+    } else {
+      setMonthlyGoals(monthlyGoals.filter(g => g.id !== id))
+    }
+  }
+
   return <>
     <UserEdit/>
-    {activeModal === 'goals' && <UserGoals open={true} handleChange={setActiveModal}/>}
     {activeModal === 'subscription' && <UserSubscription open={true} handleChange={setActiveModal}/>}
 
     {/* Avatar Selection Modal */}
@@ -321,14 +396,118 @@ export default function Profile () {
         </SimpleGrid>
       </Grid.Col>
 
-      {/* Profit Chart */}
+      {/* Goals & Notes Section */}
       <Grid.Col span={8}>
+        <Card withBorder radius="md" p="md" mb="md">
+          <Title order={3} mb="md">Goals & Notes</Title>
+          <Group mb="sm">
+            <Select
+              data={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]}
+              value={goalType}
+              onChange={setGoalType}
+              style={{ width: 120 }}
+            />
+            <TextInput
+              placeholder={`Add a ${goalType} goal...`}
+              value={goalInput}
+              onChange={e => setGoalInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddGoal() }}
+              style={{ flex: 1 }}
+            />
+            <Button onClick={handleAddGoal} variant="light">Add</Button>
+          </Group>
+          <Group align="flex-start" spacing="xl">
+            <Stack spacing="xs" style={{ flex: 1 }}>
+              <Text weight={500}>Daily Goals</Text>
+              {dailyGoals.length === 0 && <Text color="dimmed" size="sm">No daily goals set.</Text>}
+              {dailyGoals.map(goal => (
+                <Group key={goal.id} spacing="xs">
+                  <Button size="xs" variant={goal.completed ? 'filled' : 'outline'} color={goal.completed ? 'green' : 'gray'} onClick={() => handleToggleGoal('daily', goal.id)}>
+                    {goal.completed ? '✓' : ''}
+                  </Button>
+                  <Text style={{ textDecoration: goal.completed ? 'line-through' : 'none', flex: 1 }}>{goal.text}</Text>
+                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveGoal('daily', goal.id)}>Remove</Button>
+                </Group>
+              ))}
+            </Stack>
+            <Stack spacing="xs" style={{ flex: 1 }}>
+              <Text weight={500}>Weekly Goals</Text>
+              {weeklyGoals.length === 0 && <Text color="dimmed" size="sm">No weekly goals set.</Text>}
+              {weeklyGoals.map(goal => (
+                <Group key={goal.id} spacing="xs">
+                  <Button size="xs" variant={goal.completed ? 'filled' : 'outline'} color={goal.completed ? 'green' : 'gray'} onClick={() => handleToggleGoal('weekly', goal.id)}>
+                    {goal.completed ? '✓' : ''}
+                  </Button>
+                  <Text style={{ textDecoration: goal.completed ? 'line-through' : 'none', flex: 1 }}>{goal.text}</Text>
+                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveGoal('weekly', goal.id)}>Remove</Button>
+                </Group>
+              ))}
+            </Stack>
+            <Stack spacing="xs" style={{ flex: 1 }}>
+              <Text weight={500}>Monthly Goals</Text>
+              {monthlyGoals.length === 0 && <Text color="dimmed" size="sm">No monthly goals set.</Text>}
+              {monthlyGoals.map(goal => (
+                <Group key={goal.id} spacing="xs">
+                  <Button size="xs" variant={goal.completed ? 'filled' : 'outline'} color={goal.completed ? 'green' : 'gray'} onClick={() => handleToggleGoal('monthly', goal.id)}>
+                    {goal.completed ? '✓' : ''}
+                  </Button>
+                  <Text style={{ textDecoration: goal.completed ? 'line-through' : 'none', flex: 1 }}>{goal.text}</Text>
+                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveGoal('monthly', goal.id)}>Remove</Button>
+                </Group>
+              ))}
+            </Stack>
+          </Group>
+          <Divider my="md" />
+          <Text weight={500} mb="xs">Notes</Text>
+          <Textarea
+            placeholder="Add notes for your trading, goals, or anything else..."
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            minRows={3}
+            autosize
+          />
+          <Divider my="md" />
+          <Group position="apart" align="flex-end">
+            <div style={{ flex: 1 }}>
+              <Text weight={500} mb="xs">Quick Profit/Loss</Text>
+              <Group spacing="xs">
+                <TextInput
+                  placeholder="Enter amount (e.g., 50k, 1.5m, 2b, -25k)"
+                  value={transactionInput}
+                  onChange={e => setTransactionInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddTransaction() }}
+                  style={{ flex: 1 }}
+                  size="sm"
+                />
+                <Button onClick={handleAddTransaction} size="sm" variant="light">Add</Button>
+              </Group>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <Text size="sm" color="dimmed">Current Progress</Text>
+              <Text size="lg" weight={600} color={currentProgress >= 0 ? 'green' : 'red'}>
+                {formatCurrency(currentProgress)} GP
+              </Text>
+            </div>
+          </Group>
+          {transactions.length > 0 && (
+            <div style={{ marginTop: '8px' }}>
+              <Text size="xs" color="dimmed" mb="xs">Recent Transactions:</Text>
+              <Stack spacing={4}>
+                {transactions.slice(-3).reverse().map(transaction => (
+                  <Text key={transaction.id} size="xs" color={transaction.value >= 0 ? 'green' : 'red'}>
+                    {transaction.value >= 0 ? '+' : ''}{formatCurrency(transaction.value)} GP
+                  </Text>
+                ))}
+              </Stack>
+            </div>
+          )}
+        </Card>
+        {/* Profit Chart with Goal Line */}
         <Card withBorder radius="md" p="md">
           <Group position="apart" mb="md">
             <Title order={3}>Profit Over Time</Title>
             <Badge variant="light">Last 12 Months</Badge>
           </Group>
-
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={PROFIT_DATA}>
@@ -345,6 +524,27 @@ export default function Profile () {
                   stroke={theme.colors.green[6]}
                   strokeWidth={3}
                   dot={{ fill: theme.colors.green[6], strokeWidth: 2, r: 4 }}
+                />
+                {/* Main goal line (use first monthly goal if available) */}
+                {monthlyGoals[0] && (
+                  <Line
+                    type="monotone"
+                    dataKey={() => parseInt(monthlyGoals[0].text.replace(/[^0-9]/g, '')) || 0}
+                    stroke={theme.colors.blue[6]}
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Goal"
+                  />
+                )}
+                {/* Current progress line */}
+                <Line
+                  type="monotone"
+                  dataKey={() => currentProgress}
+                  stroke={theme.colors.yellow[6]}
+                  strokeWidth={3}
+                  dot={false}
+                  name="Current Progress"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -403,20 +603,6 @@ export default function Profile () {
                   offLabel={<IconSun size={12} />}
                 />
               </Group>
-
-              <div>
-                <Text size="sm" mb="xs">Primary Color</Text>
-                <ColorPicker
-                  format="hex"
-                  value={themeColor}
-                  onChange={handleThemeColorChange}
-                  swatches={[
-                    '#339af0', '#51cf66', '#ff6b6b', '#ffd43b',
-                    '#9775fa', '#ff8cc8', '#74c0fc', '#fd7e14'
-                  ]}
-                  size="sm"
-                />
-              </div>
             </Stack>
           </Card>
 
