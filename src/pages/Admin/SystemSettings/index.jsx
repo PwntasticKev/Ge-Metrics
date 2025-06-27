@@ -168,7 +168,7 @@ const settingsService = {
 }
 
 export default function SystemSettings () {
-  const [settings, setSettings] = useState({})
+  const [settings, setSettings] = useState(settingsService.getSettings())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('general')
@@ -354,7 +354,7 @@ export default function SystemSettings () {
         </Alert>
       )}
 
-      <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? 'general')}>
+      <Tabs value={activeTab} onTabChange={(value) => setActiveTab(value ?? 'general')}>
         <Tabs.List>
           <Tabs.Tab value="general" leftIcon={<IconSettings size={16} />}>
             General
