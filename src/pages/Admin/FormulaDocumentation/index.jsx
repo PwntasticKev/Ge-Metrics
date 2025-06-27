@@ -111,23 +111,13 @@ const FormulaDocumentation = () => {
         <Text>This documentation MUST be updated every time we make changes to formulas, algorithms, or calculations on any page. Keep this as your single source of truth!</Text>
       </Alert>
 
-      <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? 'overview')}>
+      <Tabs value={activeTab} onTabChange={(value) => setActiveTab(value ?? 'ai-predictions')}>
         <Tabs.List>
-          <Tabs.Tab value="ai-predictions" leftIcon={<IconBrain size={16} />}>
-            AI Predictions
-          </Tabs.Tab>
-          <Tabs.Tab value="profit-calculations" leftIcon={<IconCoins size={16} />}>
-            Profit Calculations
-          </Tabs.Tab>
-          <Tabs.Tab value="market-analysis" leftIcon={<IconChartLine size={16} />}>
-            Market Analysis
-          </Tabs.Tab>
-          <Tabs.Tab value="risk-assessment" leftIcon={<IconShield size={16} />}>
-            Risk Assessment
-          </Tabs.Tab>
-          <Tabs.Tab value="other-formulas" leftIcon={<IconCalculator size={16} />}>
-            Other Formulas
-          </Tabs.Tab>
+          <Tabs.Tab value="ai-predictions" icon={<IconBrain size={16} />}>AI Predictions</Tabs.Tab>
+          <Tabs.Tab value="profit-calculations" icon={<IconCoins size={16} />}>Profit Calculations</Tabs.Tab>
+          <Tabs.Tab value="market-analysis" icon={<IconChartLine size={16} />}>Market Analysis</Tabs.Tab>
+          <Tabs.Tab value="risk-assessment" icon={<IconShield size={16} />}>Risk Assessment</Tabs.Tab>
+          <Tabs.Tab value="other-formulas" icon={<IconCalculator size={16} />}>Other Formulas</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="ai-predictions" pt="md">

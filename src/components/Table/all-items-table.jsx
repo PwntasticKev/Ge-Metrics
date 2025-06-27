@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Button,
   createStyles,
@@ -34,7 +34,6 @@ import {
   IconHeartFilled
 } from '@tabler/icons-react'
 import { Link, useLocation } from 'react-router-dom'
-import UsrTransactionModal from '../../shared/modals/user-transaction.jsx'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
 
@@ -222,7 +221,6 @@ export function AllItemsTable ({
   // Basic state
   const [search, setSearch] = useState('')
   const [sortedData, setSortedData] = useState(data)
-  const [transactionModal, setTransactionModal] = useState(false)
   const [graphModal, setGraphModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [sortBy, setSortBy] = useState(null)
@@ -256,6 +254,8 @@ export function AllItemsTable ({
     profitMin,
     profitMax
   }
+
+  const [showId, setShowId] = useState(true)
 
   useEffect(() => {
     setSortedData(sortData(data, {
@@ -303,55 +303,54 @@ export function AllItemsTable ({
 
     return (
       <tr key={idx} style={{ background: row.background ? theme.colors.gray[7] : '' }}>
-        <td>{row.id}</td>
-        <td colSpan={1} style={{ verticalAlign: 'middle' }}>
+        {showId && <td style={{ textAlign: 'center' }}>{row.id}</td>}
+        <td colSpan={1} style={{ verticalAlign: 'middle', textAlign: 'center' }}>
           <Image
             className={classes.image}
             fit="contain"
-            height={25}
+            height={32}
+            width={32}
             placeholder={<Text align="center">Not available</Text>}
             src={row.img}
             withPlaceholder
           />
         </td>
-        <td colSpan={2} style={{ verticalAlign: 'middle' }}>
+        <td colSpan={2} style={{ verticalAlign: 'middle', textAlign: 'left' }}>
           <Link to={`/item/${row.id}`} style={{ textDecoration: 'none' }}>
             {row.name} {row.qty ? `(${row.qty})` : null}
           </Link>
         </td>
-        <td style={{ verticalAlign: 'middle' }}>{row.low}</td>
-        <td style={{ verticalAlign: 'middle' }}>{row.high}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.low}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.high}</td>
         <td style={{
           color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
           fontWeight: 'bold',
-          verticalAlign: 'middle'
+          verticalAlign: 'middle',
+          textAlign: 'center'
         }}>
           {row.profit}
         </td>
-        <td style={{ verticalAlign: 'middle' }}>{row.limit}</td>
-        <td style={{ verticalAlign: 'middle' }}>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.limit}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
           <Tooltip label={risk.reason} withArrow position="right">
             <Badge color={risk.color} variant="filled" size="sm">{risk.label}</Badge>
           </Tooltip>
         </td>
-        <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+        <td style={{ verticalAlign: 'middle', padding: '8px', textAlign: 'center' }}>
           <MiniChart itemId={row.id} width={120} height={40} />
         </td>
-        <td style={{ verticalAlign: 'middle' }}>
-          <Flex gap="xs">
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
+          <Flex gap="xs" justify="center" align="center">
             {showFavoriteColumn && onToggleFavorite && (
               <ActionIcon
+                size="xs"
+                color="red"
                 variant="light"
-                color={isFavorite ? 'red' : 'gray'}
                 onClick={() => onToggleFavorite(row.id)}
-                title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
               >
-                {isFavorite ? <IconHeartFilled size={14}/> : <IconHeart size={14}/>}
+                {isFavorite ? <IconHeartFilled size={12} /> : <IconHeart size={12} />}
               </ActionIcon>
             )}
-            <Button variant="light" onClick={() => setTransactionModal(true)}>
-              <IconReceipt size={14}/>
-            </Button>
             <Button variant="light" onClick={() => setGraphInfo(row.id)}>
               <IconChartHistogram size={14}/>
             </Button>
@@ -361,10 +360,18 @@ export function AllItemsTable ({
     )
   })
 
+  const nameColIndex = showId ? 2 : 1
+
   return (
     <>
-      <UsrTransactionModal opened={transactionModal} setOpened={setTransactionModal}/>
       <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem}/>
+
+      {/* Show/Hide ID Button */}
+      <Group position="right" mb="sm">
+        <Button size="xs" variant="light" onClick={() => setShowId((v) => !v)}>
+          {showId ? 'Hide ID' : 'Show ID'}
+        </Button>
+      </Group>
 
       {/* Search and Filter Controls */}
       <Stack spacing="md" mb="md">
@@ -506,24 +513,36 @@ export function AllItemsTable ({
                striped={location.pathname !== '/combination-items'}>
           <thead className={cx(classes.header, classes.scrolled)}>
             <tr>
-              <th>Id</th>
-              <th colSpan={1}>Img</th>
-              <th colSpan={2}>Name</th>
-              <th>Buy Price</th>
-              <th>Sell Price</th>
-              <th>Profit</th>
-              <th>Buy Limit</th>
-              <th>Risk</th>
-              <th>Chart</th>
-              <th>Settings</th>
+              {showId && <th style={{ textAlign: 'center' }}>Id</th>}
+              <th colSpan={1} style={{ textAlign: 'center' }}>Img</th>
+              <th style={{ textAlign: 'center' }}>Name</th>
+              <th colSpan={2} style={{ textAlign: 'center' }}>Items</th>
+              <th style={{ textAlign: 'center' }}>Sell Price</th>
+              <th style={{ textAlign: 'center' }}>Profit</th>
+              <th style={{ textAlign: 'center' }}>Buy Limit</th>
+              <th style={{ textAlign: 'center' }}>Risk</th>
+              <th style={{ textAlign: 'center' }}>Chart</th>
+              <th style={{ textAlign: 'center' }}>Settings</th>
             </tr>
           </thead>
           <tbody>
             {rows.length > 0
-              ? rows
+              ? rows.map((row, idx) =>
+                React.cloneElement(row, {
+                  key: idx,
+                  style: { ...row.props.style, textAlign: 'center', verticalAlign: 'middle' },
+                  children: React.Children.map(row.props.children, (cell, i) => {
+                    // Always left-align the Name column, regardless of ID visibility
+                    if (i === nameColIndex) {
+                      return React.cloneElement(cell, { style: { ...cell.props.style, textAlign: 'left', verticalAlign: 'middle' } })
+                    }
+                    return React.cloneElement(cell, { style: { ...cell.props.style, textAlign: 'center', verticalAlign: 'middle' } })
+                  })
+                })
+              )
               : (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={showId ? 11 : 10} style={{ textAlign: 'center' }}>
                     <Text weight={500} align="center">
                       No items found matching your filters
                     </Text>
@@ -535,7 +554,7 @@ export function AllItemsTable ({
         <Pagination
           total={Math.ceil(sortedData.length / itemsPerPage)}
           value={currentPage}
-          onChange={setCurrentPage}
+          onChange={(value) => setCurrentPage(value ?? 1)}
           gutter="md"
           mt="md"
           mb="md"

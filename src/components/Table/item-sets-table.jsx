@@ -17,7 +17,7 @@ import {
   Button,
   ActionIcon
 } from '@mantine/core'
-import { IconChevronDown, IconChevronUp, IconSearch, IconSelector, IconChartHistogram } from '@tabler/icons-react'
+import { IconChevronDown, IconChevronUp, IconSearch, IconSelector, IconChartHistogram, IconHeartFilled } from '@tabler/icons-react'
 import TableSettingsMenu from './components/table-settings-menu.jsx'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
@@ -192,7 +192,8 @@ export function AllItemsTable ({ data }) {
                     <Image
                         className={classes.image}
                         fit="contain"
-                        height={25}
+                        height={32}
+                        width={32}
                         placeholder={
                             <Text align="center">Not available</Text>
                         }
@@ -237,9 +238,6 @@ export function AllItemsTable ({ data }) {
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>
                   <Flex gap="xs">
-                    <Button variant="light" onClick={() => setGraphInfo(row.id)}>
-                      <IconChartHistogram size={14}/>
-                    </Button>
                     <TableSettingsMenu itemId={row.id}/>
                   </Flex>
                 </td>
