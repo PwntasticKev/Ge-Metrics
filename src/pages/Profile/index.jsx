@@ -153,6 +153,22 @@ export default function Profile () {
 
   const daysSinceJoined = Math.floor((new Date() - new Date(userStats.joinDate)) / (1000 * 60 * 60 * 24))
 
+  // Defensive fallback for selectedAvatar
+  const avatarToShow = selectedAvatar || DEFAULT_AVATARS[0]
+  // Defensive fallback for userStats fields
+  const runescapeName = userStats?.runescapeName || 'Player'
+  const badges = Array.isArray(userStats?.badges) ? userStats.badges : []
+  const subscriptionPlan = userStats?.subscriptionPlan || 'free'
+  const subscriptionStatus = userStats?.subscriptionStatus || 'inactive'
+  const subscriptionExpiry = userStats?.subscriptionExpiry || 'N/A'
+  const clanName = userStats?.clanName || 'No Clan'
+  const totalProfit = userStats?.totalProfit ?? 0
+  const totalTransactions = userStats?.totalTransactions ?? 0
+  const otpEnabled = !!userStats?.otpEnabled
+  const discordConnected = !!userStats?.discordConnected
+  const mailchimpSubscribed = !!userStats?.mailchimpSubscribed
+  const joinDate = userStats?.joinDate || '2024-01-01'
+
   return <>
     <UserEdit/>
     {activeModal === 'goals' && <UserGoals open={true} handleChange={setActiveModal}/>}
@@ -199,7 +215,7 @@ export default function Profile () {
                   color="none"
                 >
                   <Avatar
-                    src={selectedAvatar}
+                    src={avatarToShow}
                     size="xl"
                     radius="xl"
                     style={{ cursor: 'pointer' }}
@@ -210,13 +226,13 @@ export default function Profile () {
 
               <div>
                 <Group spacing="md" align="center">
-                  <Title order={2}>{userStats.runescapeName}</Title>
+                  <Title order={2}>{runescapeName}</Title>
                   <Badge
                     color={getSubscriptionBadgeColor()}
                     variant="light"
                     leftIcon={<IconCrown size={12} />}
                   >
-                    {userStats.subscriptionPlan.toUpperCase()} MEMBER
+                    {subscriptionPlan.toUpperCase()} MEMBER
                   </Badge>
                 </Group>
 
@@ -225,7 +241,7 @@ export default function Profile () {
                 </Text>
 
                 <Group spacing="xs" mt="sm">
-                  {userStats.badges.map((badge, index) => (
+                  {badges.map((badge, index) => (
                     <Badge key={index} variant="outline" size="sm">
                       {badge}
                     </Badge>
@@ -236,7 +252,7 @@ export default function Profile () {
 
             <Stack align="flex-end">
               <Badge size="lg" color="green" variant="light">
-                <IconTrendingUp size={14} /> {formatCurrency(userStats.totalProfit)} GP
+                <IconTrendingUp size={14} /> {formatCurrency(totalProfit)} GP
               </Badge>
               <Text size="sm" color="dimmed">Total Profit</Text>
             </Stack>
@@ -254,7 +270,7 @@ export default function Profile () {
                   Total Profit
                 </Text>
                 <Text size="xl" weight={700} color="green">
-                  {formatCurrency(userStats.totalProfit)} GP
+                  {formatCurrency(totalProfit)} GP
                 </Text>
               </div>
               <IconTrendingUp size={24} color={theme.colors.green[6]} />
@@ -268,7 +284,7 @@ export default function Profile () {
                   Transactions
                 </Text>
                 <Text size="xl" weight={700}>
-                  {userStats.totalTransactions}
+                  {totalTransactions}
                 </Text>
               </div>
               <IconChartLine size={24} color={theme.colors.blue[6]} />
@@ -282,7 +298,7 @@ export default function Profile () {
                   Avg per Trade
                 </Text>
                 <Text size="xl" weight={700}>
-                  {formatCurrency(Math.round(userStats.totalProfit / userStats.totalTransactions))} GP
+                  {formatCurrency(Math.round(totalProfit / totalTransactions))} GP
                 </Text>
               </div>
               <IconCoins size={24} color={theme.colors.yellow[6]} />
@@ -296,7 +312,7 @@ export default function Profile () {
                   Clan
                 </Text>
                 <Text size="lg" weight={700}>
-                  {userStats.clanName}
+                  {clanName}
                 </Text>
               </div>
               <IconShield size={24} color={theme.colors.purple[6]} />
@@ -344,18 +360,18 @@ export default function Profile () {
             <Group position="apart" mb="md">
               <Title order={4}>Subscription</Title>
               <Badge color={getSubscriptionBadgeColor()}>
-                {userStats.subscriptionStatus.toUpperCase()}
+                {subscriptionStatus.toUpperCase()}
               </Badge>
             </Group>
 
             <Stack spacing="xs">
               <Group position="apart">
                 <Text size="sm">Plan</Text>
-                <Text size="sm" weight={600}>{userStats.subscriptionPlan}</Text>
+                <Text size="sm" weight={600}>{subscriptionPlan}</Text>
               </Group>
               <Group position="apart">
                 <Text size="sm">Expires</Text>
-                <Text size="sm" weight={600}>{userStats.subscriptionExpiry}</Text>
+                <Text size="sm" weight={600}>{subscriptionExpiry}</Text>
               </Group>
             </Stack>
 
@@ -414,8 +430,8 @@ export default function Profile () {
                   <IconShield size={16} />
                   <Text size="sm">2FA Enabled</Text>
                 </Group>
-                <Badge color={userStats.otpEnabled ? 'green' : 'red'} size="sm">
-                  {userStats.otpEnabled ? 'ON' : 'OFF'}
+                <Badge color={otpEnabled ? 'green' : 'red'} size="sm">
+                  {otpEnabled ? 'ON' : 'OFF'}
                 </Badge>
               </Group>
 
@@ -424,8 +440,8 @@ export default function Profile () {
                   <IconBrandDiscord size={16} />
                   <Text size="sm">Discord</Text>
                 </Group>
-                <Badge color={userStats.discordConnected ? 'green' : 'gray'} size="sm">
-                  {userStats.discordConnected ? 'LINKED' : 'NOT LINKED'}
+                <Badge color={discordConnected ? 'green' : 'gray'} size="sm">
+                  {discordConnected ? 'LINKED' : 'NOT LINKED'}
                 </Badge>
               </Group>
 
@@ -434,8 +450,8 @@ export default function Profile () {
                   <IconMail size={16} />
                   <Text size="sm">Newsletter</Text>
                 </Group>
-                <Badge color={userStats.mailchimpSubscribed ? 'blue' : 'gray'} size="sm">
-                  {userStats.mailchimpSubscribed ? 'SUBSCRIBED' : 'UNSUBSCRIBED'}
+                <Badge color={mailchimpSubscribed ? 'blue' : 'gray'} size="sm">
+                  {mailchimpSubscribed ? 'SUBSCRIBED' : 'UNSUBSCRIBED'}
                 </Badge>
               </Group>
             </Stack>

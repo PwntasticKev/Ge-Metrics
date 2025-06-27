@@ -84,7 +84,21 @@ export const accessibleColors = {
     700: '#404040',
     800: '#262626',
     900: '#171717'
-  }
+  },
+
+  // Purple color
+  purple: [
+    '#f5f3ff', // 50
+    '#ede9fe', // 100
+    '#ddd6fe', // 200
+    '#c4b5fd', // 300
+    '#a78bfa', // 400
+    '#8b5cf6', // 500
+    '#7c3aed', // 600
+    '#6d28d9', // 700
+    '#5b21b6', // 800
+    '#4c1d95' // 900
+  ]
 }
 
 // Dark theme configuration
@@ -175,6 +189,18 @@ export const darkTheme = {
       '#1A1B1E',
       '#141517',
       '#101113'
+    ],
+    purple: [
+      '#f5f3ff', // 50
+      '#ede9fe', // 100
+      '#ddd6fe', // 200
+      '#c4b5fd', // 300
+      '#a78bfa', // 400
+      '#8b5cf6', // 500
+      '#7c3aed', // 600
+      '#6d28d9', // 700
+      '#5b21b6', // 800
+      '#4c1d95' // 900
     ]
   },
 
