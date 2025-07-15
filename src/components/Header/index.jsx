@@ -17,7 +17,7 @@ import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
 import { Link } from 'react-router-dom'
 
-export default function HeaderNav ({ opened, setOpened }) {
+export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const theme = useMantineTheme()
   const [checked, setChecked] = useState(false)
   const [subscriptionModalOpened, setSubscriptionModalOpened] = useState(false)
@@ -161,7 +161,7 @@ export default function HeaderNav ({ opened, setOpened }) {
           </MediaQuery>
 
           {/* Avatar Menu */}
-          <AvatarMenu/>
+          <AvatarMenu user={user} onLogout={onLogout}/>
 
           {/* Mobile Menu */}
           <MediaQuery largerThan="sm" styles={{ display: 'none' }}>

@@ -1,58 +1,60 @@
-import React, { useContext, useState } from 'react'
-import { BrowserRouter as Router, Outlet, Route, Routes } from 'react-router-dom'
+import React, { useContext, useState, lazy, Suspense } from 'react'
+import { BrowserRouter as Router, Outlet, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import ErrorPage from './pages/error-page.jsx'
-import AllItems from './pages/AllItems'
-import HighVolumes from './pages/HighVolumes'
-import Watchlist from './pages/Watchlist'
-import Settings from './pages/Settings'
-import AdminPanel from './pages/Admin'
-import AccessDenied from './pages/AccessDenied'
-import CombinationItems from './pages/CombinationItems'
-import MoneyMaking from './pages/MoneyMaking'
 import Login from './pages/Login'
-import Profile from './pages/Profile'
-import Herbs from './pages/Herbs'
-import DeathsCoffer from './pages/DeathsCoffer'
 import Signup from './pages/Signup'
-import Faq from './pages/Faq'
-import Status from './pages/Status'
-import FoodIndex from './pages/MarketWatch/FoodIndex.jsx'
-import LogsIndex from './pages/MarketWatch/LogsIndex.jsx'
-import RunesIndex from './pages/MarketWatch/RunesIndex.jsx'
-import MetalsIndex from './pages/MarketWatch/MetalsIndex.jsx'
-import BotFarmIndex from './pages/MarketWatch/BotFarmIndex.jsx'
-import PotionsIndex from './pages/MarketWatch/PotionsIndex.jsx'
-import RaidsIndex from './pages/MarketWatch/RaidsIndex.jsx'
-import HerbsIndex from './pages/MarketWatch/HerbsIndex.jsx'
-import NightmareZone from './pages/NightmareZone'
-import CommunityLeaderboard from './pages/CommunityLeaderboard'
-import BillingDashboard from './pages/Admin/BillingDashboard'
-import UserManagement from './pages/Admin/UserManagement'
-import SystemSettings from './pages/Admin/SystemSettings'
-import SecurityLogs from './pages/Admin/SecurityLogs'
-import FormulaDocumentation from './pages/Admin/FormulaDocumentation'
-import AIPredictions from './pages/AIPredictions'
-import FutureItems from './pages/FutureItems'
-import Favorites from './pages/Favorites'
-import { AppShell, MantineProvider, createStyles, Box } from '@mantine/core'
+import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
+import { AppShell, MantineProvider, createStyles, Box, LoadingOverlay } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { getTheme } from './theme/index.js'
-import { QueryCache, QueryClient, QueryClientProvider } from 'react-query'
 import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
 import { useMediaQuery } from '@mantine/hooks'
+import { useAuth } from './hooks/useAuth'
 
 // Import mobile styles
 import './styles/mobile.css'
-
-// Firebase removed - using new auth system
-import ItemDetails from './pages/ItemDetails/index.jsx'
-import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
 
 // Trial system imports
 import { TrialProvider, useTrialContext } from './contexts/TrialContext'
 import TrialBanner from './components/Trial/TrialBanner'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
+
+// Lazy load all protected routes to improve initial load performance
+const AllItems = lazy(() => import('./pages/AllItems'))
+const HighVolumes = lazy(() => import('./pages/HighVolumes'))
+const Watchlist = lazy(() => import('./pages/Watchlist'))
+const Settings = lazy(() => import('./pages/Settings'))
+const AdminPanel = lazy(() => import('./pages/Admin'))
+const AccessDenied = lazy(() => import('./pages/AccessDenied'))
+const CombinationItems = lazy(() => import('./pages/CombinationItems'))
+const MoneyMaking = lazy(() => import('./pages/MoneyMaking'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Herbs = lazy(() => import('./pages/Herbs'))
+const DeathsCoffer = lazy(() => import('./pages/DeathsCoffer'))
+const Faq = lazy(() => import('./pages/Faq'))
+const Status = lazy(() => import('./pages/Status'))
+const FoodIndex = lazy(() => import('./pages/MarketWatch/FoodIndex.jsx'))
+const LogsIndex = lazy(() => import('./pages/MarketWatch/LogsIndex.jsx'))
+const RunesIndex = lazy(() => import('./pages/MarketWatch/RunesIndex.jsx'))
+const MetalsIndex = lazy(() => import('./pages/MarketWatch/MetalsIndex.jsx'))
+const BotFarmIndex = lazy(() => import('./pages/MarketWatch/BotFarmIndex.jsx'))
+const PotionsIndex = lazy(() => import('./pages/MarketWatch/PotionsIndex.jsx'))
+const RaidsIndex = lazy(() => import('./pages/MarketWatch/RaidsIndex.jsx'))
+const HerbsIndex = lazy(() => import('./pages/MarketWatch/HerbsIndex.jsx'))
+const NightmareZone = lazy(() => import('./pages/NightmareZone'))
+const CommunityLeaderboard = lazy(() => import('./pages/CommunityLeaderboard'))
+const BillingDashboard = lazy(() => import('./pages/Admin/BillingDashboard'))
+const UserManagement = lazy(() => import('./pages/Admin/UserManagement'))
+const SystemSettings = lazy(() => import('./pages/Admin/SystemSettings'))
+const SecurityLogs = lazy(() => import('./pages/Admin/SecurityLogs'))
+const FormulaDocumentation = lazy(() => import('./pages/Admin/FormulaDocumentation'))
+const CronJobs = lazy(() => import('./pages/Admin/CronJobs'))
+const AIPredictions = lazy(() => import('./pages/AIPredictions'))
+const FutureItems = lazy(() => import('./pages/FutureItems'))
+const Favorites = lazy(() => import('./pages/Favorites'))
+const ProfitOpportunities = lazy(() => import('./pages/ProfitOpportunities'))
+const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -127,7 +129,20 @@ function AppLayout ({ children }) {
   return (
     <Box className={mainClasses}>
       <TrialProtectedContent>
-        {children}
+        <Suspense fallback={
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '50vh',
+            fontSize: '18px',
+            color: 'var(--mantine-color-text)'
+          }}>
+            Loading...
+          </div>
+        }>
+          {children}
+        </Suspense>
       </TrialProtectedContent>
     </Box>
   )
@@ -160,12 +175,21 @@ function TrialProtectedContent ({ children }) {
   )
 }
 
+// RequireAuth component for route protection
+function RequireAuth ({ children }) {
+  const { isAuthenticated, isLoadingUser } = useAuth()
+  const location = useLocation()
+
+  if (isLoadingUser) return null // Or a loading spinner
+  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />
+  return children
+}
+
 export default function App () {
   const { classes } = useStyles()
-  const queryClient = new QueryClient()
-  const queryCache = new QueryCache()
   const [opened, setOpened] = useState(false)
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const { isAuthenticated, user, logout } = useAuth()
 
   // Theme mode state (global)
   const [colorScheme, setColorScheme] = useState(() => {
@@ -201,86 +225,78 @@ export default function App () {
     }
   }, [colorScheme])
 
-  //   const { loggedIn, user } = useContext(AuthContext)
-  const loggedIn = true
-
   return (
-    <QueryClientProvider client={queryClient} queryCache={queryCache}>
-      <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme(colorScheme)}>
-        <Notifications />
-        <TrialProvider>
-          <Router>
-            <Routes>
-              <Route path="/signup" element={<Signup/>}/>
-              <Route path="/signup/success" element={<SignupSuccess/>}/>
+    <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme(colorScheme)}>
+      <Notifications />
+      <TrialProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup/>}/>
+            <Route path="/signup/success" element={<SignupSuccess/>}/>
 
-              {loggedIn
-                ? (
-                <Route
-                  element={
-                    <div>
-                      <HeaderNav setOpened={setOpened} opened={opened}/>
-                      <NavMenu opened={opened} setOpened={setOpened}/>
-                      <AppLayout>
-                        <Outlet/>
-                      </AppLayout>
-                    </div>
-                  }
-                >
-                  <Route path="/" element={<AllItems/>}/>
-                  <Route path="/all-items" element={<AllItems/>}/>
-                  <Route path="/high-volumes" element={<HighVolumes/>}/>
-                  <Route path="/watchlist" element={<Watchlist/>}/>
-                  <Route path="/favorites" element={<Favorites/>}/>
-                  <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}>
-                    <h2>Market Watch Overview</h2>
-                    <p>Coming Soon - Comprehensive market analysis dashboard</p>
-                  </div>}/>
-                  <Route path="/future-items" element={<FutureItems/>}/>
-                  <Route path="/ai-predictions" element={<AIPredictions/>}/>
-                  <Route path="/money-making" element={<MoneyMaking/>}/>
-                  <Route path="/combination-items" element={<CombinationItems/>}/>
-                  <Route path="/herbs" element={<Herbs/>}/>
-                  <Route path="/nightmare-zone" element={<NightmareZone/>}/>
-                  <Route path="/deaths-coffer" element={<DeathsCoffer/>}/>
-                  <Route path="/community" element={<CommunityLeaderboard/>}/>
-                  <Route path="/settings" element={<Settings/>}/>
-                  <Route path="/faq" element={<Faq/>}/>
-                  <Route path="/status" element={<Status/>}/>
-                  <Route path="/item/:id" element={<ItemDetails/>}/>
-                  <Route path="/profile/:id" element={<Profile/>}/>
-
-                  {/* Market Watch Submenu Routes */}
-                  <Route path="/market-watch/food" element={<FoodIndex/>}/>
-                  <Route path="/market-watch/logs" element={<LogsIndex/>}/>
-                  <Route path="/market-watch/runes" element={<RunesIndex/>}/>
-                  <Route path="/market-watch/metals" element={<MetalsIndex/>}/>
-                  <Route path="/market-watch/bot-farm" element={<BotFarmIndex/>}/>
-                  <Route path="/market-watch/potions" element={<PotionsIndex/>}/>
-                  <Route path="/market-watch/raids" element={<RaidsIndex/>}/>
-                  <Route path="/market-watch/herbs" element={<HerbsIndex/>}/>
-
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<AdminPanel/>}/>
-                  <Route path="/admin/billing" element={<BillingDashboard/>}/>
-                  <Route path="/admin/users" element={<UserManagement/>}/>
-                  <Route path="/admin/settings" element={<SystemSettings/>}/>
-                  <Route path="/admin/security" element={<SecurityLogs/>}/>
-                  <Route path="/admin/formulas" element={<FormulaDocumentation/>}/>
-
-                  {/* Legacy routes for backwards compatibility */}
-                  <Route path="/access-denied" element={<AccessDenied/>}/>
-
-                  <Route path="*" element={<ErrorPage/>}/>
-                </Route>
-                  )
-                : (
-                  <Route path="/" element={<Login/>}/>
-                  )}
-            </Routes>
-          </Router>
-        </TrialProvider>
-      </MantineProvider>
-    </QueryClientProvider>
+            {/* Protected routes */}
+            <Route
+              element={
+                <RequireAuth>
+                  <div>
+                    <HeaderNav setOpened={setOpened} opened={opened} user={user} onLogout={logout} />
+                    <NavMenu opened={opened} setOpened={setOpened} user={user} />
+                    <AppLayout>
+                      <Outlet/>
+                    </AppLayout>
+                  </div>
+                </RequireAuth>
+              }
+            >
+              <Route path="/" element={<AllItems/>}/>
+              <Route path="/all-items" element={<AllItems/>}/>
+              <Route path="/high-volumes" element={<HighVolumes/>}/>
+              <Route path="/watchlist" element={<Watchlist/>}/>
+              <Route path="/favorites" element={<Favorites/>}/>
+              <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}>
+                <h2>Market Watch Overview</h2>
+                <p>Coming Soon - Comprehensive market analysis dashboard</p>
+              </div>}/>
+              <Route path="/future-items" element={<FutureItems/>}/>
+              <Route path="/ai-predictions" element={<AIPredictions/>}/>
+              <Route path="/money-making" element={<MoneyMaking/>}/>
+              <Route path="/combination-items" element={<CombinationItems/>}/>
+              <Route path="/herbs" element={<Herbs/>}/>
+              <Route path="/nightmare-zone" element={<NightmareZone/>}/>
+              <Route path="/deaths-coffer" element={<DeathsCoffer/>}/>
+              <Route path="/community" element={<CommunityLeaderboard/>}/>
+              <Route path="/settings" element={<Settings/>}/>
+              <Route path="/faq" element={<Faq/>}/>
+              <Route path="/status" element={<Status/>}/>
+              <Route path="/item/:id" element={<ItemDetails/>}/>
+              <Route path="/profile/:id" element={<Profile/>}/>
+              <Route path="/profit-opportunities" element={<ProfitOpportunities/>}/>
+              {/* Market Watch Submenu Routes */}
+              <Route path="/market-watch/food" element={<FoodIndex/>}/>
+              <Route path="/market-watch/logs" element={<LogsIndex/>}/>
+              <Route path="/market-watch/runes" element={<RunesIndex/>}/>
+              <Route path="/market-watch/metals" element={<MetalsIndex/>}/>
+              <Route path="/market-watch/bot-farm" element={<BotFarmIndex/>}/>
+              <Route path="/market-watch/potions" element={<PotionsIndex/>}/>
+              <Route path="/market-watch/raids" element={<RaidsIndex/>}/>
+              <Route path="/market-watch/herbs" element={<HerbsIndex/>}/>
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminPanel/>}/>
+              <Route path="/admin/billing" element={<BillingDashboard/>}/>
+              <Route path="/admin/users" element={<UserManagement/>}/>
+              <Route path="/admin/settings" element={<SystemSettings/>}/>
+              <Route path="/admin/security" element={<SecurityLogs/>}/>
+              <Route path="/admin/formulas" element={<FormulaDocumentation/>}/>
+              <Route path="/admin/cron-jobs" element={<CronJobs/>}/>
+              {/* Legacy routes for backwards compatibility */}
+              <Route path="/access-denied" element={<AccessDenied/>}/>
+              <Route path="*" element={<ErrorPage/>}/>
+            </Route>
+          </Routes>
+        </Router>
+      </TrialProvider>
+    </MantineProvider>
   )
 }

@@ -5,7 +5,10 @@ import { trpc } from '../utils/trpc'
 export const useAuth = () => {
   const queryClient = useQueryClient()
 
-  // Get current user
+  // Check if we have a token before making the query
+  const hasToken = !!localStorage.getItem('accessToken')
+
+  // Get current user - only if we have a token
   const {
     data: user,
     isLoading: isLoadingUser,
@@ -14,7 +17,9 @@ export const useAuth = () => {
     queryKey: ['auth', 'me'],
     queryFn: () => trpc.auth.me.query(),
     retry: false,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: hasToken, // Only run the query if we have a token
+    refetchOnWindowFocus: false // Prevent refetching on window focus
   })
 
   // Register mutation

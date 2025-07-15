@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, or } from 'drizzle-orm'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
 import { db, users, refreshTokens } from '../db/index.js'
 import { AuthUtils } from '../utils/auth.js'
@@ -11,18 +11,25 @@ export const authRouter = router({
   register: publicProcedure
     .input(z.object({
       email: z.string().email(),
+      username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
       password: z.string().min(8),
       name: z.string().min(1)
     }))
     .mutation(async ({ input }) => {
-      const { email, password, name } = input
+      const { email, username, password, name } = input
 
-      // Check if user already exists
-      const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1)
+      // Check if user already exists (by email or username)
+      const existingUser = await db.select().from(users)
+        .where(
+          or(
+            eq(users.email, email),
+            eq(users.username, username)
+          )
+        ).limit(1)
       if (existingUser.length > 0) {
         throw new TRPCError({
           code: 'CONFLICT',
-          message: 'User with this email already exists'
+          message: 'User with this email or username already exists'
         })
       }
 
@@ -32,13 +39,14 @@ export const authRouter = router({
       // Create user
       const [newUser] = await db.insert(users).values({
         email,
+        username,
         passwordHash: hash,
         salt,
         name
       }).returning()
 
-      // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(newUser.id, newUser.email)
+      // Generate tokens (allow expiry override for testing)
+      const accessToken = AuthUtils.generateAccessToken(newUser.id, newUser.email, { expiresIn: process.env.TEST_JWT_EXPIRY || '7d' })
       const refreshToken = AuthUtils.generateRefreshToken(newUser.id, newUser.email)
 
       // Store refresh token
@@ -52,6 +60,7 @@ export const authRouter = router({
         user: {
           id: newUser.id,
           email: newUser.email,
+          username: newUser.username,
           name: newUser.name,
           avatar: newUser.avatar
         },
@@ -63,14 +72,20 @@ export const authRouter = router({
   // Login user
   login: publicProcedure
     .input(z.object({
-      email: z.string().email(),
+      identifier: z.string(), // email or username
       password: z.string()
     }))
     .mutation(async ({ input }) => {
-      const { email, password } = input
+      const { identifier, password } = input
 
-      // Find user
-      const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1)
+      // Find user by email or username
+      const [user] = await db.select().from(users)
+        .where(
+          or(
+            eq(users.email, identifier),
+            eq(users.username, identifier)
+          )
+        ).limit(1)
       if (!user || !user.passwordHash) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -87,8 +102,8 @@ export const authRouter = router({
         })
       }
 
-      // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
+      // Generate tokens (allow expiry override for testing)
+      const accessToken = AuthUtils.generateAccessToken(user.id, user.email, { expiresIn: process.env.TEST_JWT_EXPIRY || '7d' })
       const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
       // Store refresh token
@@ -102,6 +117,7 @@ export const authRouter = router({
         user: {
           id: user.id,
           email: user.email,
+          username: user.username,
           name: user.name,
           avatar: user.avatar
         },

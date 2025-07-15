@@ -1,10 +1,11 @@
-import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb, serial } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
+  username: text('username').notNull().unique(),
   passwordHash: text('password_hash'),
   salt: text('salt'),
   googleId: text('google_id'),
@@ -14,12 +15,13 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
   emailIdx: index('email_idx').on(table.email),
+  usernameIdx: index('username_idx').on(table.username),
   googleIdIdx: index('google_id_idx').on(table.googleId)
 }))
 
 export const refreshTokens = pgTable('refresh_tokens', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
@@ -29,13 +31,13 @@ export const refreshTokens = pgTable('refresh_tokens', {
 }))
 
 export const subscriptions = pgTable('subscriptions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
   stripePriceId: text('stripe_price_id'),
   status: text('status').notNull().default('inactive'), // active, inactive, canceled, past_due
-  plan: text('plan').notNull().default('free'), // free, premium
+  plan: text('plan').notNull().default('free'), // free, premium, pro
   currentPeriodStart: timestamp('current_period_start'),
   currentPeriodEnd: timestamp('current_period_end'),
   cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
@@ -48,8 +50,8 @@ export const subscriptions = pgTable('subscriptions', {
 }))
 
 export const userWatchlists = pgTable('user_watchlists', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: text('item_id').notNull(),
   itemName: text('item_name').notNull(),
   targetPrice: integer('target_price'),
@@ -63,8 +65,8 @@ export const userWatchlists = pgTable('user_watchlists', {
 }))
 
 export const userTransactions = pgTable('user_transactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: text('item_id').notNull(),
   itemName: text('item_name').notNull(),
   transactionType: text('transaction_type').notNull(), // buy, sell
@@ -81,8 +83,9 @@ export const userTransactions = pgTable('user_transactions', {
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users, {
-  email: z.string().email(),
-  name: z.string().min(1).max(100)
+  email: (schema) => schema.email().min(1),
+  username: (schema) => schema.min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
+  name: (schema) => schema.min(1).max(100)
 })
 
 export const selectUserSchema = createSelectSchema(users)
@@ -91,24 +94,24 @@ export const insertRefreshTokenSchema = createInsertSchema(refreshTokens)
 export const selectRefreshTokenSchema = createSelectSchema(refreshTokens)
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
-  status: z.enum(['active', 'inactive', 'canceled', 'past_due']),
-  plan: z.enum(['free', 'premium'])
+  status: (schema) => schema,
+  plan: (schema) => schema
 })
 
 export const selectSubscriptionSchema = createSelectSchema(subscriptions)
 
 export const insertUserWatchlistSchema = createInsertSchema(userWatchlists, {
-  alertType: z.enum(['price', 'volume', 'manipulation']),
-  targetPrice: z.number().positive().optional()
+  alertType: (schema) => schema,
+  targetPrice: (schema) => schema.positive().optional()
 })
 
 export const selectUserWatchlistSchema = createSelectSchema(userWatchlists)
 
 export const insertUserTransactionSchema = createInsertSchema(userTransactions, {
-  transactionType: z.enum(['buy', 'sell']),
-  quantity: z.number().positive(),
-  price: z.number().positive(),
-  profit: z.number().optional()
+  transactionType: (schema) => schema,
+  quantity: (schema) => schema.positive(),
+  price: (schema) => schema.positive(),
+  profit: (schema) => schema.optional()
 })
 
 export const selectUserTransactionSchema = createSelectSchema(userTransactions)
@@ -123,3 +126,212 @@ export type UserWatchlist = typeof userWatchlists.$inferSelect;
 export type NewUserWatchlist = typeof userWatchlists.$inferInsert;
 export type UserTransaction = typeof userTransactions.$inferSelect;
 export type NewUserTransaction = typeof userTransactions.$inferInsert;
+
+// --- NEW TABLES FOR FULL DATA PERSISTENCE ---
+
+// Favorites (per user, for items and combinations)
+export const favorites = pgTable('favorites', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  favoriteType: text('favorite_type').notNull(), // 'item' or 'combination'
+  favoriteId: text('favorite_id').notNull(), // itemId or combinationId
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userFavoriteIdx: index('favorites_user_id_idx').on(table.userId),
+  favoriteTypeIdx: index('favorites_type_idx').on(table.favoriteType),
+  uniqueFavorite: index('favorites_unique_idx').on(table.userId, table.favoriteType, table.favoriteId)
+}))
+
+// Item Mapping (item definitions)
+export const itemMapping = pgTable('item_mapping', {
+  id: integer('id').primaryKey(),
+  name: text('name').notNull(),
+  examine: text('examine'),
+  members: boolean('members').default(false),
+  lowalch: integer('lowalch'),
+  highalch: integer('highalch'),
+  limit: integer('limit'),
+  value: integer('value'),
+  icon: text('icon'),
+  wikiUrl: text('wiki_url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+})
+
+// Item Price History (5m, 1h, 24h, etc.)
+export const itemPriceHistory = pgTable('item_price_history', {
+  id: serial('id').primaryKey(),
+  itemId: integer('item_id').notNull().references(() => itemMapping.id),
+  timestamp: timestamp('timestamp').notNull(),
+  highPrice: integer('high_price'),
+  lowPrice: integer('low_price'),
+  volume: integer('volume'),
+  timeframe: text('timeframe').notNull(), // '5m', '1h', '24h', etc.
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  itemTimeIdx: index('item_price_history_item_time_idx').on(table.itemId, table.timestamp)
+}))
+
+// Game Updates (patches, events, etc.)
+export const gameUpdates = pgTable('game_updates', {
+  id: serial('id').primaryKey(),
+  updateDate: timestamp('update_date').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  type: text('type').notNull(), // 'major', 'event', 'minor', etc.
+  color: text('color'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+})
+
+// User Profits/Stats
+export const userProfits = pgTable('user_profits', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  totalProfit: integer('total_profit').default(0).notNull(),
+  weeklyProfit: integer('weekly_profit').default(0).notNull(),
+  monthlyProfit: integer('monthly_profit').default(0).notNull(),
+  totalTrades: integer('total_trades').default(0).notNull(),
+  bestSingleFlip: integer('best_single_flip').default(0).notNull(),
+  currentRank: integer('current_rank'),
+  lastRankUpdate: timestamp('last_rank_update').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('user_profits_user_id_idx').on(table.userId)
+}))
+
+// User Achievements
+export const userAchievements = pgTable('user_achievements', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  achievementId: text('achievement_id').notNull(),
+  achievementName: text('achievement_name').notNull(),
+  description: text('description'),
+  icon: text('icon'),
+  unlockedAt: timestamp('unlocked_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('user_achievements_user_id_idx').on(table.userId),
+  achievementIdx: index('user_achievements_achievement_idx').on(table.achievementId)
+}))
+
+// User Goals
+export const userGoals = pgTable('user_goals', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  goalType: text('goal_type').notNull(), // 'profit', 'trades', 'items'
+  targetValue: integer('target_value').notNull(),
+  currentValue: integer('current_value').default(0).notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  isCompleted: boolean('is_completed').default(false),
+  deadline: timestamp('deadline'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('user_goals_user_id_idx').on(table.userId),
+  goalTypeIdx: index('user_goals_type_idx').on(table.goalType)
+}))
+
+// Clans
+export const clans = pgTable('clans', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  ownerId: integer('owner_id').notNull().references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  ownerIdx: index('clans_owner_idx').on(table.ownerId),
+  nameIdx: index('clans_name_idx').on(table.name)
+}))
+
+// Clan Members
+export const clanMembers = pgTable('clan_members', {
+  id: serial('id').primaryKey(),
+  clanId: integer('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('member'), // 'owner', 'officer', 'member'
+  joinedAt: timestamp('joined_at').defaultNow().notNull()
+}, (table) => ({
+  clanUserIdx: index('clan_members_clan_user_idx').on(table.clanId, table.userId),
+  roleIdx: index('clan_members_role_idx').on(table.role)
+}))
+
+// Clan Invites
+export const clanInvites = pgTable('clan_invites', {
+  id: serial('id').primaryKey(),
+  clanId: integer('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
+  inviterId: integer('inviter_id').notNull().references(() => users.id),
+  invitedEmail: text('invited_email').notNull(),
+  invitedUserId: integer('invited_user_id').references(() => users.id),
+  status: text('status').notNull().default('pending'), // 'pending', 'accepted', 'declined'
+  message: text('message'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  clanIdx: index('clan_invites_clan_idx').on(table.clanId),
+  inviterIdx: index('clan_invites_inviter_idx').on(table.inviterId),
+  invitedEmailIdx: index('clan_invites_email_idx').on(table.invitedEmail)
+}))
+
+// Employees (for admin management)
+export const employees = pgTable('employees', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('support'), // 'admin', 'support', 'moderator'
+  department: text('department'),
+  isActive: boolean('is_active').default(true),
+  permissions: jsonb('permissions'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('employees_user_id_idx').on(table.userId),
+  roleIdx: index('employees_role_idx').on(table.role),
+  departmentIdx: index('employees_department_idx').on(table.department)
+}))
+
+// Audit Log
+export const auditLog = pgTable('audit_log', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id),
+  action: text('action').notNull(),
+  resource: text('resource').notNull(),
+  resourceId: text('resource_id'),
+  details: jsonb('details'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('audit_log_user_id_idx').on(table.userId),
+  actionIdx: index('audit_log_action_idx').on(table.action),
+  createdAtIdx: index('audit_log_created_at_idx').on(table.createdAt)
+}))
+
+// Additional type exports
+export type Favorite = typeof favorites.$inferSelect;
+export type NewFavorite = typeof favorites.$inferInsert;
+export type ItemMapping = typeof itemMapping.$inferSelect;
+export type NewItemMapping = typeof itemMapping.$inferInsert;
+export type ItemPriceHistory = typeof itemPriceHistory.$inferSelect;
+export type NewItemPriceHistory = typeof itemPriceHistory.$inferInsert;
+export type GameUpdate = typeof gameUpdates.$inferSelect;
+export type NewGameUpdate = typeof gameUpdates.$inferInsert;
+export type UserProfit = typeof userProfits.$inferSelect;
+export type NewUserProfit = typeof userProfits.$inferInsert;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type NewUserAchievement = typeof userAchievements.$inferInsert;
+export type UserGoal = typeof userGoals.$inferSelect;
+export type NewUserGoal = typeof userGoals.$inferInsert;
+export type Clan = typeof clans.$inferSelect;
+export type NewClan = typeof clans.$inferInsert;
+export type ClanMember = typeof clanMembers.$inferSelect;
+export type NewClanMember = typeof clanMembers.$inferInsert;
+export type ClanInvite = typeof clanInvites.$inferSelect;
+export type NewClanInvite = typeof clanInvites.$inferInsert;
+export type Employee = typeof employees.$inferSelect;
+export type NewEmployee = typeof employees.$inferInsert;
+export type AuditLog = typeof auditLog.$inferSelect;
+export type NewAuditLog = typeof auditLog.$inferInsert;

@@ -25,7 +25,7 @@ import {
   IconStar,
   IconInfoCircle,
   IconChartLine,
-  IconCoin,
+  IconCoins,
   IconFlame,
   IconShield,
   IconSword,

@@ -21,9 +21,8 @@ import {
   Paper
 } from '@mantine/core'
 import {
-  IconMathSymbols,
-  IconBrain,
   IconCalculator,
+  IconBrain,
   IconChartLine,
   IconTarget,
   IconAlertCircle,
@@ -31,7 +30,6 @@ import {
   IconEdit,
   IconCheck,
   IconX,
-  IconMath,
   IconTrendingUp,
   IconCoins,
   IconDiamond,
@@ -40,7 +38,7 @@ import {
 } from '@tabler/icons-react'
 
 export const FormulaCard = ({ title, description, formula, variables, example, lastUpdated, complexity, icon }) => {
-  const Icon = icon || IconMathSymbols
+  const Icon = icon || IconCalculator
   return (
     <Card withBorder p="md" mb="md">
       <Group justify="space-between" mb="sm">

@@ -20,8 +20,6 @@
     "db:deploy": "npx prisma migrate deploy"
   },
   "dependencies": {
-    "@apollo/client": "^3.7.17",
-    "@apollo/server": "^4.8.0",
     "@emotion/react": "^11.11.1",
     "@mantine/core": "6.0.22",
     "@mantine/dates": "6.0.22",
@@ -35,8 +33,6 @@
     "@trpc/react-query": "^11.4.2",
     "@vercel/postgres": "^0.4.1",
     "apexcharts": "^4.0.0",
-    "apollo-server": "^3.12.0",
-    "apollo-server-express": "^3.12.0",
     "axios": "^1.4.0",
     "chart.js": "^4.3.0",
     "chartjs-plugin-annotation": "^2.2.1",
@@ -46,8 +42,6 @@
     "express": "^4.18.2",
     "firebase": "^9.23.0",
     "firebaseui": "^6.0.2",
-    "graphql": "^16.7.1",
-    "graphql-scalars": "^1.22.2",
     "moment": "^2.29.4",
     "nodemon": "^3.0.1",
     "react": "^18.2.0",

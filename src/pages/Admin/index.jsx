@@ -26,9 +26,12 @@ import {
   IconMail,
   IconClock,
   IconShield,
-  IconAlertCircle
+  IconAlertCircle,
+  IconCreditCard,
+  IconMathSymbols
 } from '@tabler/icons-react'
 import accessControlService from '../../services/accessControlService.js'
+import { useNavigate } from 'react-router-dom'
 
 export default function AdminPanel () {
   const [activeTab, setActiveTab] = useState('pending')
@@ -36,6 +39,7 @@ export default function AdminPanel () {
   const [selectedUser, setSelectedUser] = useState(null)
   const [emailSubject, setEmailSubject] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
+  const navigate = useNavigate()
 
   // Mock data - this would come from your API
   const pendingUsers = [
@@ -426,6 +430,34 @@ export default function AdminPanel () {
             </Stack>
           </Tabs.Panel>
         </Tabs>
+
+        <Group position="center" mt="md">
+          <Button
+            variant="light"
+            size="md"
+            leftIcon={<IconMathSymbols size={18} />}
+            onClick={() => navigate('/admin/formulas')}
+            style={{ height: 60 }}
+          >
+            <div style={{ textAlign: 'left' }}>
+              <Text weight={500}>Formula Documentation</Text>
+              <Text size="xs" color="dimmed">Trading formulas & calculations</Text>
+            </div>
+          </Button>
+
+          <Button
+            variant="light"
+            size="md"
+            leftIcon={<IconClock size={18} />}
+            onClick={() => navigate('/admin/cron-jobs')}
+            style={{ height: 60 }}
+          >
+            <div style={{ textAlign: 'left' }}>
+              <Text weight={500}>Cron Jobs</Text>
+              <Text size="xs" color="dimmed">Monitor automated tasks</Text>
+            </div>
+          </Button>
+        </Group>
       </Box>
     </>
   )

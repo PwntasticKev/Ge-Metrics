@@ -20,16 +20,25 @@ import {
 } from '@mantine/core'
 import {
   IconShield,
-  IconShieldCheck,
-  IconShieldX,
+  IconLock,
+  IconLockOpen,
   IconQrcode,
-  IconCopy,
-  IconCheck,
-  IconAlertTriangle,
-  IconKey,
   IconDeviceMobile,
+  IconMail,
+  IconCheck,
+  IconX,
+  IconAlertTriangle,
+  IconInfoCircle,
+  IconRefresh,
+  IconDownload,
+  IconCopy,
   IconEye,
-  IconEyeOff
+  IconEyeOff,
+  IconKey,
+  IconUser,
+  IconSettings,
+  IconBell,
+  IconClock
 } from '@tabler/icons-react'
 import otpService from '../../services/otpService.js'
 
@@ -130,12 +139,12 @@ export default function OTPSettings ({ user, onUpdate }) {
           <Text size="lg" weight={600}>Two-Factor Authentication</Text>
           {otpEnabled
             ? (
-            <Badge color="green" size="sm" leftIcon={<IconShieldCheck size={12} />}>
+            <Badge color="green" size="sm" leftIcon={<IconShield size={12} />}>
               Enabled
             </Badge>
               )
             : (
-            <Badge color="red" size="sm" leftIcon={<IconShieldX size={12} />}>
+            <Badge color="red" size="sm" leftIcon={<IconShield size={12} />}>
               Disabled
             </Badge>
               )}
@@ -284,7 +293,7 @@ export default function OTPSettings ({ user, onUpdate }) {
               </Text>
               <Group>
                 <Button
-                  leftIcon={<IconShieldX size={16} />}
+                  leftIcon={<IconShield size={16} />}
                   onClick={handleDisableOTP}
                   loading={loading}
                   color="red"

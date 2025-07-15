@@ -44,7 +44,7 @@ import {
   IconChevronUp,
   IconChevronDown,
   IconMedal,
-  IconCoin,
+  IconCoins,
   IconReceipt,
   IconSearch
 } from '@tabler/icons-react'
@@ -730,7 +730,7 @@ export default function CommunityLeaderboard () {
 
           {/* Profit Calculator (only show for completed buy/sell pairs) */}
           {tradeBuyPrice > 0 && tradeSellPrice > 0 && tradeQuantity && (
-            <Alert color="green" icon={<IconCoin size={16} />}>
+            <Alert color="green" icon={<IconCoins size={16} />}>
               <Text weight={500}>
                 Profit: {((Number(tradeSellPrice) - Number(tradeBuyPrice)) * Number(tradeQuantity)).toLocaleString()} GP
               </Text>

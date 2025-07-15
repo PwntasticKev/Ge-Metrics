@@ -11,36 +11,45 @@
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate:pg",
     "db:push": "drizzle-kit push:pg",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:check": "tsx check-db-connection.ts",
+    "test:db": "tsx test-database-crud.ts",
+    "test:all-tables": "tsx test-all-tables.ts",
+    "test:auth": "tsx test-auth-system.ts",
+    "create:demo": "tsx create-demo-user.ts",
+    "test:comprehensive": "tsx test-comprehensive-db.ts",
+    "db:report": "tsx database-status-report.ts"
   },
   "dependencies": {
-    "@trpc/server": "^10.45.0",
-    "@tanstack/react-query": "^5.17.0",
+    "@tanstack/react-query": "^4.36.1",
     "@trpc/client": "^10.45.0",
     "@trpc/react-query": "^10.45.0",
-    "drizzle-orm": "^0.29.2",
-    "postgres": "^3.4.3",
+    "@trpc/server": "^10.45.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "helmet": "^7.1.0",
-    "zod": "^3.22.4",
-    "google-auth-library": "^9.4.1",
     "dotenv": "^16.3.1",
-    "uuid": "^9.0.1"
+    "drizzle-orm": "^0.44.2",
+    "drizzle-zod": "^0.8.2",
+    "express": "^4.18.2",
+    "google-auth-library": "^9.4.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "postgres": "^3.4.3",
+    "stripe": "^14.14.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.6",
-    "@types/express": "^4.17.21",
     "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.5",
     "@types/cookie-parser": "^1.4.6",
     "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
     "@types/uuid": "^9.0.7",
-    "typescript": "^5.3.3",
+    "drizzle-kit": "^0.31.4",
     "tsx": "^4.6.2",
-    "drizzle-kit": "^0.20.9"
+    "typescript": "^5.3.3"
   }
-} 
+}

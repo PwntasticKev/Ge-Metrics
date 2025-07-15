@@ -40,12 +40,11 @@ import {
   IconTarget,
   IconClock,
   IconShield,
-  IconCurrencyDollar,
+  IconCoins,
   IconChartLine,
   IconSparkles,
   IconRobot,
   IconBulb,
-  IconCoins,
   IconArrowUp,
   IconArrowDown,
   IconMinus,
@@ -58,7 +57,7 @@ import {
   IconCheck,
   IconX,
   IconActivity,
-  IconAnalyze,
+  IconChartBar,
   IconHelp,
   IconFish,
   IconSearch,
@@ -700,7 +699,7 @@ export default function AIPredictions () {
       case 'High Volume': return <IconActivity size={16} />
       case 'High Margin': return <IconCoins size={16} />
       case 'Low Risk': return <IconShield size={16} />
-      case 'Budget Friendly': return <IconCurrencyDollar size={16} />
+      case 'Budget Friendly': return <IconCoins size={16} />
       case 'Premium': return <IconStar size={16} />
       default: return <IconTarget size={16} />
     }
@@ -885,7 +884,7 @@ export default function AIPredictions () {
             <Tabs.Tab value="insights" leftIcon={<IconBulb size={16} />}>
               Market Insights
             </Tabs.Tab>
-            <Tabs.Tab value="algorithms" leftIcon={<IconAnalyze size={16} />}>
+            <Tabs.Tab value="algorithms" leftIcon={<IconChartBar size={16} />}>
               Algorithm Analysis
             </Tabs.Tab>
           </Tabs.List>
@@ -1500,7 +1499,7 @@ export default function AIPredictions () {
                     </div>
                   </Group>
                   <Group>
-                    <IconChartLine size={16} color="red" />
+                    <IconChartBar size={16} color="red" />
                     <div>
                       <Text size="sm" weight={500}>Price Stability</Text>
                       <Text size="xs" color="dimmed">Analyzes price consistency and trends</Text>

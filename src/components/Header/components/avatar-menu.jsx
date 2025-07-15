@@ -15,8 +15,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import authService from '../../../services/authService'
 
-export default function AvatarMenu () {
-  const user = authService.getCurrentUser() || { email: 'guest@example.com' }
+export default function AvatarMenu ({ user, onLogout }) {
   const [themeColor, setThemeColor] = useState('#339af0')
   const [darkMode, setDarkMode] = useState(true)
 
@@ -48,7 +47,7 @@ export default function AvatarMenu () {
     <Menu shadow="lg" width={280} position="bottom-end">
       <Menu.Target>
         <Avatar
-          src={null}
+          src={user?.avatar || null}
           alt="User Avatar"
           color="primary"
           sx={{
@@ -59,7 +58,7 @@ export default function AvatarMenu () {
             }
           }}
         >
-          {user?.email ? user.email.split('')[0].toUpperCase() : 'U'}
+          {user?.name ? user.name[0].toUpperCase() : (user?.email ? user.email[0].toUpperCase() : 'U')}
         </Avatar>
       </Menu.Target>
 
@@ -67,7 +66,7 @@ export default function AvatarMenu () {
         <Menu.Label>
           <Group>
             <IconUserCircle size={16} />
-            Account
+            {user?.name || user?.email || 'Account'}
           </Group>
         </Menu.Label>
 
@@ -78,7 +77,7 @@ export default function AvatarMenu () {
           </Group>
         </Menu.Item>
 
-        <Link to={`/profile/${user?.uid || 'default'}`} style={{ textDecoration: 'none' }}>
+        <Link to={`/profile/${user?.id || 'default'}`} style={{ textDecoration: 'none' }}>
           <Menu.Item icon={<IconUserCircle size={14}/>}>My Profile</Menu.Item>
         </Link>
 
@@ -141,7 +140,7 @@ export default function AvatarMenu () {
 
         <Menu.Item
           icon={<IconLogout2 size={14}/>}
-          onClick={() => authService.logout()}
+          onClick={onLogout}
           color="red"
         >
           <Text color="red">Logout</Text>

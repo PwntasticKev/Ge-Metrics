@@ -24,18 +24,19 @@ import {
   IconDroplet,
   IconSkull,
   IconUser,
-  IconCoin,
   IconChartLine,
   IconTrophy,
-  IconQuestionMark,
+  IconHelp,
   IconActivity,
-  IconCircleCheck,
+  IconCheck,
   IconHeart,
-  IconShieldCheck,
   IconHome,
   IconTarget,
   IconBrain,
-  IconMathSymbols
+  IconCalculator,
+  IconCrown,
+  IconStar,
+  IconCalendar
 } from '@tabler/icons-react'
 import { Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
@@ -568,7 +569,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         />
 
         <MainLink
-          icon={<IconQuestionMark size="1rem"/>}
+          icon={<IconHelp size="1rem"/>}
           color="blue"
           label="FAQ"
           link="/faq"
@@ -578,7 +579,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         />
 
         <MainLink
-          icon={<IconCircleCheck size="1rem"/>}
+          icon={<IconCheck size="1rem"/>}
           color="green"
           label="API Status"
           link="/status"
@@ -590,7 +591,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         {/* Admin Submenu - Only for employees with proper permissions */}
         {isEmployee && (
           <SubmenuLink
-            icon={<IconShieldCheck size="1rem"/>}
+            icon={<IconShield size="1rem"/>}
             color="red"
             label="Admin"
             isOpen={adminOpen}
@@ -639,7 +640,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               onNavigate={onNavigate}
             />
             <SubmenuItem
-              icon={<IconMathSymbols size="0.8rem"/>}
+              icon={<IconCalculator size="0.8rem"/>}
               color="purple"
               label="Formula Documentation"
               link="/admin/formulas"
@@ -656,6 +657,17 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           label="Log Out"
           link="/login"
           onClick={handleLogout}
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        {/* New link for Profit Opportunities */}
+        <MainLink
+          icon={<IconCrown size="1rem"/>}
+          color="gold"
+          label="Profit Opportunities"
+          link="/profit-opportunities"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}

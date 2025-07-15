@@ -3,17 +3,21 @@ import './styles/App.scss'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 // Firebase removed - using new auth system
-import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const client = new ApolloClient({
-  uri: import.meta.env.VITE_APOLLO_URI,
-  cache: new InMemoryCache()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000 // 5 minutes
+    }
+  }
 })
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <ApolloProvider client={client}>
+        <QueryClientProvider client={queryClient}>
             <App/>
-        </ApolloProvider>
+        </QueryClientProvider>
     </React.StrictMode>
 )

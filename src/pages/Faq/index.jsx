@@ -28,7 +28,16 @@ import {
   IconChartLine,
   IconBrandTwitter,
   IconBrandYoutube,
-  IconBrandDiscord
+  IconBrandDiscord,
+  IconHelp,
+  IconSearch,
+  IconPlus,
+  IconMinus,
+  IconChevronDown,
+  IconChevronUp,
+  IconMail,
+  IconBrandReddit,
+  IconBrandTwitch
 } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import jwt, { sign } from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
 import { config } from '../config/index.js'
 
@@ -22,18 +22,19 @@ export class AuthUtils {
   }
 
   // JWT token generation
-  static generateAccessToken (userId: string, email: string): string {
+  static generateAccessToken (userId: string, email: string, expiresIn?: string): string {
     const payload: JWTPayload = {
       userId,
       email,
       type: 'access'
     }
 
-    return jwt.sign(payload, config.JWT_ACCESS_SECRET, {
-      expiresIn: config.JWT_ACCESS_EXPIRES_IN,
+    const options: jwt.SignOptions = {
+      expiresIn: (expiresIn || config.JWT_ACCESS_EXPIRES_IN) as unknown as jwt.SignOptions['expiresIn'],
       issuer: 'auth-server',
       audience: 'client-app'
-    })
+    }
+    return sign(payload, String(config.JWT_ACCESS_SECRET), options)
   }
 
   static generateRefreshToken (userId: string, email: string): string {
@@ -43,11 +44,12 @@ export class AuthUtils {
       type: 'refresh'
     }
 
-    return jwt.sign(payload, config.JWT_REFRESH_SECRET, {
-      expiresIn: config.JWT_REFRESH_EXPIRES_IN,
+    const refreshOptions: jwt.SignOptions = {
+      expiresIn: config.JWT_REFRESH_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'],
       issuer: 'auth-server',
       audience: 'client-app'
-    })
+    }
+    return sign(payload, String(config.JWT_REFRESH_SECRET), refreshOptions)
   }
 
   // JWT token verification

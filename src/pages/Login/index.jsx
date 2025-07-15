@@ -20,7 +20,9 @@ import {
   Transition,
   ThemeIcon,
   UnstyledButton,
-  Tooltip
+  Tooltip,
+  Avatar,
+  ActionIcon
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -42,25 +44,33 @@ import {
 import securityService from '../../services/securityService'
 import authService from '../../services/authService'
 import bg from '../../assets/gehd.png'
+import { useAuth } from '../../hooks/useAuth'
 
 const Login = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showMasterLogin, setShowMasterLogin] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const { isLoadingUser, userError } = useAuth()
+
+  if (isLoadingUser) {
+    return <Center style={{ minHeight: '100vh' }}><Loader size="lg" /></Center>
+  }
+  if (userError) {
+    return <Center style={{ minHeight: '100vh' }}><Alert color="red">{userError.message || 'Authentication error. Please try again later.'}</Alert></Center>
+  }
 
   const form = useForm({
     initialValues: {
-      email: '',
+      identifier: '',
       password: '',
       rememberMe: false
     },
     validate: {
-      email: (value) => {
-        if (!value) return 'Email is required'
-        const validation = securityService.validateInput(value, 'email')
-        return validation.valid ? null : validation.error
+      identifier: (value) => {
+        if (!value) return 'Email or username is required'
+        return null
       },
       password: (value) => {
         if (!value) return 'Password is required'
@@ -91,16 +101,15 @@ const Login = () => {
     setError('')
 
     try {
-      const data = await authService.login(values.email, values.password)
+      const data = await authService.login(values.identifier, values.password)
 
       notifications.show({
         title: 'Welcome back!',
-        message: `Hello ${data.user.name}, you've successfully logged in.`,
+        message: `Hello ${data.user.name || data.user.username}, you've successfully logged in.`,
         color: 'green',
         icon: <IconCheck size={16} />
       })
 
-      // Navigate to dashboard
       navigate('/')
     } catch (error) {
       setError(error.message)
@@ -113,20 +122,6 @@ const Login = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleMasterLogin = () => {
-    form.setValues({
-      email: 'admin@test.com',
-      password: 'admin123'
-    })
-    setShowMasterLogin(false)
-    notifications.show({
-      title: 'Master Credentials Loaded',
-      message: 'You can now click Login to access the admin account',
-      color: 'blue',
-      icon: <IconShield size={16} />
-    })
   }
 
   const handleGoogleLogin = () => {
@@ -145,242 +140,134 @@ const Login = () => {
   ]
 
   return (
-    <BackgroundImage src={bg} style={{ minHeight: '100vh' }}>
-      <Box
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.7) 100%)',
-          backdropFilter: 'blur(10px)'
-        }}
-      >
-        <Container size="lg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
-          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
-
-            {/* Left Side - Branding & Features */}
-            <Transition mounted={mounted} transition="slide-right" duration={800}>
-              {(styles) => (
-                <Box style={styles}>
-                  <Stack spacing="xl">
-                    <Box>
-                      <Title
-                        order={1}
-                        size="3.5rem"
-                        weight={900}
-                        style={{
-                          background: 'linear-gradient(45deg, #FFD700, #FFA500, #FF6B35)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          marginBottom: '1rem'
-                        }}
-                      >
-                        Ge-Metrics
-                      </Title>
-                      <Text size="xl" color="dimmed" weight={500}>
-                        The Ultimate OSRS Grand Exchange Analytics Platform
-                      </Text>
-                    </Box>
-
-                    <Stack spacing="md">
-                      {features.map((feature, index) => (
-                        <Transition key={index} mounted={mounted} transition="slide-up" duration={600} timingFunction="ease" delay={200 + index * 100}>
-                          {(styles) => (
-                            <Group style={styles} spacing="md">
-                              <ThemeIcon
-                                size="lg"
-                                radius="xl"
-                                variant="gradient"
-                                gradient={{ from: 'orange', to: 'yellow' }}
-                              >
-                                <feature.icon size={20} />
-                              </ThemeIcon>
-                              <Text size="lg" weight={500} color="white">
-                                {feature.text}
-                              </Text>
-                            </Group>
-                          )}
-                        </Transition>
-                      ))}
-                    </Stack>
-
-                    <Box
-                      p="md"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        backdropFilter: 'blur(10px)'
-                      }}
-                    >
-                      <Text size="sm" color="dimmed" align="center">
-                        Join thousands of OSRS traders making smarter decisions
-                      </Text>
-                    </Box>
-                  </Stack>
-                </Box>
-              )}
-            </Transition>
-
-            {/* Right Side - Login Form */}
-            <Transition mounted={mounted} transition="slide-left" duration={800}>
-              {(styles) => (
-                <Paper
-                  style={{
-                    ...styles,
-                    background: 'rgba(255, 255, 255, 0.95)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '20px',
-                    padding: '3rem',
-                    boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)'
-                  }}
-                >
-                  <Stack spacing="xl">
-                    <Box ta="center">
-                      <Title order={2} size="2rem" weight={700} color="dark">
-                        Welcome Back
-                      </Title>
-                      <Text size="md" color="dimmed" mt="xs">
-                        Sign in to your account to continue
-                      </Text>
-                    </Box>
-
-                    {error && (
-                      <Alert
-                        icon={<IconAlertCircle size={16} />}
-                        color="red"
-                        variant="light"
-                        style={{ borderRadius: '12px' }}
-                      >
-                        {error}
-                      </Alert>
-                    )}
-
-                    <form onSubmit={form.onSubmit(handleLogin)}>
-                      <Stack spacing="lg">
-                        <TextInput
-                          label="Email Address"
-                          placeholder="your@email.com"
-                          icon={<IconMail size={16} />}
-                          size="md"
-                          radius="md"
-                          styles={{
-                            input: {
-                              border: '2px solid #e9ecef',
-                              '&:focus': {
-                                borderColor: '#FF6B35'
-                              }
-                            }
-                          }}
-                          {...form.getInputProps('email')}
-                        />
-
-                        <PasswordInput
-                          label="Password"
-                          placeholder="Your password"
-                          icon={<IconLock size={16} />}
-                          size="md"
-                          radius="md"
-                          styles={{
-                            input: {
-                              border: '2px solid #e9ecef',
-                              '&:focus': {
-                                borderColor: '#FF6B35'
-                              }
-                            }
-                          }}
-                          {...form.getInputProps('password')}
-                        />
-
-                        <Group position="apart">
-                          <Checkbox
-                            label="Remember me"
-                            size="sm"
-                            {...form.getInputProps('rememberMe', { type: 'checkbox' })}
-                          />
-                          <Text size="sm" color="dimmed" style={{ cursor: 'pointer' }}>
-                            Forgot password?
-                          </Text>
-                        </Group>
-
-                        <Button
-                          type="submit"
-                          size="md"
-                          radius="md"
-                          fullWidth
-                          loading={loading}
-                          leftIcon={<IconLogin size={16} />}
-                          style={{
-                            background: 'linear-gradient(45deg, #FF6B35, #FFA500)',
-                            border: 'none',
-                            height: '48px',
-                            fontSize: '16px',
-                            fontWeight: 600
-                          }}
-                        >
-                          {loading ? 'Signing In...' : 'Sign In'}
-                        </Button>
-                      </Stack>
-                    </form>
-
-                    <Divider label="or continue with" labelPosition="center" />
-
-                    <Button
-                      variant="outline"
-                      size="md"
-                      radius="md"
-                      fullWidth
-                      leftIcon={<IconBrandGoogle size={16} />}
-                      onClick={handleGoogleLogin}
-                      style={{
-                        borderColor: '#DB4437',
-                        color: '#DB4437',
-                        height: '48px'
-                      }}
-                    >
-                      Sign in with Google
-                    </Button>
-
-                    {/* Master Login Button */}
-                    <Center>
-                      <Tooltip label="Load test credentials for demo">
-                        <UnstyledButton
-                          onClick={handleMasterLogin}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                            color: 'white',
-                            fontSize: '12px',
-                            fontWeight: 500
-                          }}
-                        >
-                          <Group spacing={4}>
-                            <IconShield size={14} />
-                            <Text size="xs">Load Test Account</Text>
-                          </Group>
-                        </UnstyledButton>
-                      </Tooltip>
-                    </Center>
-
-                    <Text align="center" size="sm" color="dimmed">
-                      Don't have an account?{' '}
-                      <Text
-                        component={Link}
-                        to="/signup"
-                        weight={600}
-                        style={{ color: '#FF6B35', textDecoration: 'none' }}
-                      >
-                        Sign up here
-                      </Text>
-                    </Text>
-                  </Stack>
-                </Paper>
-              )}
-            </Transition>
-          </div>
-        </Container>
+    <Box style={{ minHeight: '100vh', background: '#f7f8fa', display: 'flex', alignItems: 'stretch' }}>
+      {/* Left: Branding/Features */}
+      <Box style={{ flex: 1, background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem 2rem', borderTopLeftRadius: 24, borderBottomLeftRadius: 24 }}>
+        <Title order={1} size="2.5rem" weight={900} mb="md" style={{ letterSpacing: '-1px' }}>
+          Ge-Metrics
+        </Title>
+        <Text size="lg" color="dimmed" mb="xl">
+          The Ultimate OSRS Grand Exchange Analytics Platform
+        </Text>
+        <Stack spacing="md" mb="xl">
+          <Group spacing="sm">
+            <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'orange', to: 'yellow' }}>
+              <IconTrendingUp size={20} />
+            </ThemeIcon>
+            <Text size="md">Real-time OSRS Market Data</Text>
+          </Group>
+          <Group spacing="sm">
+            <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'orange', to: 'yellow' }}>
+              <IconChartBar size={20} />
+            </ThemeIcon>
+            <Text size="md">Advanced Trading Charts</Text>
+          </Group>
+          <Group spacing="sm">
+            <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'orange', to: 'yellow' }}>
+              <IconUsers size={20} />
+            </ThemeIcon>
+            <Text size="md">Community Insights</Text>
+          </Group>
+          <Group spacing="sm">
+            <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'orange', to: 'yellow' }}>
+              <IconSparkles size={20} />
+            </ThemeIcon>
+            <Text size="md">Premium Analytics</Text>
+          </Group>
+        </Stack>
+        <Box mt="auto" pt="xl">
+          <Group spacing="xs">
+            <Avatar src="/src/assets/jmod.png" radius="xl" size={36} />
+            <Avatar src="/src/assets/runescapehd.jpg" radius="xl" size={36} />
+            <Avatar src="/src/assets/highalch.png" radius="xl" size={36} />
+            <Text size="sm" color="dimmed">Join with 20k+ OSRS traders!</Text>
+          </Group>
+        </Box>
       </Box>
-    </BackgroundImage>
+      {/* Right: Login Form */}
+      <Box style={{ flex: 1, background: '#f7f8fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '4rem 2rem', borderTopRightRadius: 24, borderBottomRightRadius: 24 }}>
+        <Paper shadow="md" radius="lg" p="xl" style={{ width: '100%', maxWidth: 400, background: '#fff' }}>
+          <Title order={2} size="1.8rem" weight={700} align="center" mb="xs">
+            Welcome to Ge-Metrics
+          </Title>
+          <Text size="md" color="dimmed" align="center" mb="lg">
+            Sign in to your account
+          </Text>
+          {error && (
+            <Alert icon={<IconAlertCircle size={16} />} color="red" mb="md">
+              {error}
+            </Alert>
+          )}
+          <form onSubmit={form.onSubmit(handleLogin)}>
+            <Stack spacing="md">
+              <TextInput
+                label="Email or Username"
+                placeholder="your@email.com or username"
+                icon={<IconMail size={18} />}
+                size="md"
+                radius="md"
+                {...form.getInputProps('identifier')}
+                autoFocus
+                required
+              />
+              <PasswordInput
+                label="Password"
+                placeholder="Your password"
+                icon={<IconLock size={18} />}
+                size="md"
+                radius="md"
+                {...form.getInputProps('password')}
+                required
+                rightSection={
+                  <ActionIcon onClick={() => setShowPassword((v) => !v)} tabIndex={-1}>
+                    {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                  </ActionIcon>
+                }
+                type={showPassword ? 'text' : 'password'}
+              />
+              <Group position="apart" mt="xs">
+                <Checkbox
+                  label="Remember me"
+                  {...form.getInputProps('rememberMe', { type: 'checkbox' })}
+                />
+                <UnstyledButton component={Link} to="/signup" style={{ color: '#228be6', fontWeight: 500 }}>
+                  Sign up
+                </UnstyledButton>
+              </Group>
+              <Button
+                type="submit"
+                size="md"
+                radius="md"
+                fullWidth
+                loading={loading}
+                leftIcon={<IconLogin size={18} />}
+                style={{ marginTop: 8 }}
+              >
+                Sign in
+              </Button>
+              <Divider label="or" labelPosition="center" my="sm" />
+              <Button
+                variant="outline"
+                size="md"
+                radius="md"
+                fullWidth
+                leftIcon={<IconBrandGoogle size={18} />}
+                onClick={handleGoogleLogin}
+                style={{ borderColor: '#ddd', color: '#333', background: '#fafafa' }}
+              >
+                Sign in with Google
+              </Button>
+            </Stack>
+          </form>
+        </Paper>
+        <Text size="sm" color="dimmed" align="center" mt="md">
+          Already have an account?{' '}
+          <UnstyledButton component={Link} to="/signup" style={{ color: '#228be6', fontWeight: 500 }}>
+            Sign up
+          </UnstyledButton>
+        </Text>
+      </Box>
+    </Box>
   )
 }
 

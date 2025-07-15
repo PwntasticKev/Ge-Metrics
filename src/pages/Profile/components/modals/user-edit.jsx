@@ -4,17 +4,7 @@ import { Box, Button, Checkbox, createStyles, Group, Modal, TextInput, useMantin
 import { useForm } from '@mantine/form'
 import authService from '../../../../services/authService'
 // import DropZone from '../../../../shared/dropzone.jsx'
-import { gql, useMutation } from '@apollo/client'
-
-const EDIT_USER = gql`
-    mutation EditUser($type: String!) {
-        editUser(type: $type) {
-            email
-            username
-            phone
-        }
-    }
-`
+import { useState } from 'react'
 
 const useStyles = createStyles((theme) => ({
   editIcon: {
@@ -26,12 +16,12 @@ const useStyles = createStyles((theme) => ({
 }))
 
 export default function UserEdit () {
-  const [editUser, { data, loading, error }] = useMutation(EDIT_USER)
   const theme = useMantineTheme()
   const isMobile = useMediaQuery('(max-width: 50em)')
   const user = authService.getCurrentUser() || { email: 'guest@example.com', username: '', phone: '' }
   const { classes } = useStyles()
   const [opened, { open, close }] = useDisclosure(false)
+  const [loading, setLoading] = useState(false)
 
   const form = useForm({
     initialValues: {
@@ -47,6 +37,24 @@ export default function UserEdit () {
     }
   })
 
+  const handleSubmit = async (values) => {
+    setLoading(true)
+    try {
+      // Call the auth service to update user profile
+      await authService.updateProfile({
+        username: values.user,
+        phone: values.phone
+      })
+      close()
+      // You might want to show a success notification here
+    } catch (error) {
+      console.error('Failed to update profile:', error)
+      // You might want to show an error notification here
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
         <>
             <Modal
@@ -57,9 +65,7 @@ export default function UserEdit () {
                 transitionProps={{ transition: 'fade', duration: 200 }}
             >
                 <Box maw={300} mx="auto">
-                    <form onSubmit={form.onSubmit((values) => {
-                      editUser({ variables: values })
-                    })}>
+                    <form onSubmit={form.onSubmit(handleSubmit)}>
                         {/* <DropZone/> */}
                         <TextInput
                             mt="sm"
@@ -93,8 +99,8 @@ export default function UserEdit () {
                         />
 
                         <Group position="right" mt="md">
-                            <Button type="submit" disabled={!form.isValid()}>
-                                Save
+                            <Button type="submit" disabled={!form.isValid() || loading}>
+                                {loading ? 'Saving...' : 'Save'}
                             </Button>
                         </Group>
                     </form>

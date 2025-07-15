@@ -3,8 +3,12 @@ import type { Config } from 'drizzle-kit'
 export default {
   schema: './src/db/schema.ts',
   out: './src/db/migrations',
-  driver: 'pg',
+  dialect: 'postgresql',
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL!
+    host: 'localhost',
+    user: 'kevinlee',
+    database: 'auth_db',
+    // password: '', // Add if needed
+    port: 5432
   }
 } satisfies Config
