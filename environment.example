@@ -67,4 +67,67 @@ FROM_EMAIL=noreply@ge-metrics.com
 
 # External API Keys
 OSRS_API_KEY=your_osrs_api_key_if_needed
-RUNELITE_API_KEY=your_runelite_api_key_if_needed 
+RUNELITE_API_KEY=your_runelite_api_key_if_needed
+
+# =============================================================================
+# SECURITY: Demo/Test User Credentials (COMMENTED OUT - UNCOMMENT AND SET AS NEEDED)
+# =============================================================================
+
+# Demo User Credentials (for testing)
+# DEMO_USER_EMAIL=demo@example.com
+# DEMO_USERNAME=demo_user
+# DEMO_PASSWORD=CHANGE_THIS_PASSWORD
+# DEMO_NAME=Demo User
+# DEMO_AVATAR=https://example.com/demo-avatar.jpg
+
+# Admin User Credentials (for testing)
+# ADMIN_EMAIL=admin@example.com
+# ADMIN_PASSWORD=CHANGE_THIS_PASSWORD
+# ADMIN_NAME=Admin User
+# ADMIN_PASSWORD_HASH=$2a$12$placeholder.hash.for.testing.only
+# ADMIN_SALT=$2a$12$placeholder.salt
+
+# OTP and Security Settings
+# ADMIN_PHONE_NUMBER=+1234567890
+# MASTER_PASSWORD_HASH=your-master-password-hash
+
+# Mailchimp API Keys (for email notifications)
+# REACT_APP_MAILCHIMP_API_KEY=your_mailchimp_api_key_here
+# MAILCHIMP_API_KEY=your_mailchimp_api_key_here
+# MAILCHIMP_API_KEY_2=your_second_mailchimp_api_key_here
+
+# =============================================================================
+# JWT and Authentication Secrets (COMMENTED OUT - UNCOMMENT AND SET AS NEEDED)
+# =============================================================================
+
+# JWT Secrets (generate strong random strings)
+# JWT_ACCESS_SECRET=your-super-secret-access-token-key-change-this-in-production
+# JWT_REFRESH_SECRET=your-super-secret-refresh-token-key-change-this-in-production
+
+# Token Expiration
+# JWT_ACCESS_EXPIRES_IN=15m
+# JWT_REFRESH_EXPIRES_IN=7d
+
+# Google OAuth (if using Google authentication)
+# GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# =============================================================================
+# Database Connection Strings (COMMENTED OUT - UNCOMMENT AND SET AS NEEDED)
+# =============================================================================
+
+# PostgreSQL Database URLs
+# DATABASE_URL=postgresql://username:password@localhost:5432/auth_db
+# DATABASE_URL=postgresql://postgres:password@localhost:5432/auth_db
+
+# =============================================================================
+# External Service Configuration (COMMENTED OUT - UNCOMMENT AND SET AS NEEDED)
+# =============================================================================
+
+# Twilio Configuration (for SMS OTP)
+# TWILIO_ACCOUNT_SID=your_twilio_account_sid
+# TWILIO_AUTH_TOKEN=your_twilio_auth_token
+# TWILIO_PHONE_NUMBER=+1234567890
+
+# CORS Settings
+# FRONTEND_URL=http://localhost:5173 
