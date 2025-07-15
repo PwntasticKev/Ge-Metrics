@@ -23,7 +23,7 @@ describe('AuthService', () => {
   })
 
   describe('Login', () => {
-    it('should login successfully with valid credentials', async () => {
+    it('should login with valid credentials', async () => {
       const mockResponse = {
         user: { id: '1', email: 'test@example.com', name: 'Test User' },
         accessToken: 'access-token',
@@ -35,7 +35,7 @@ describe('AuthService', () => {
         json: async () => mockResponse
       })
 
-      const result = await authService.login('test@example.com', 'password123')
+      const result = await authService.login('test@example.com', 'testpassword123')
 
       expect(fetch).toHaveBeenCalledWith('http://localhost:4000/auth/login', {
         method: 'POST',
@@ -102,7 +102,7 @@ describe('AuthService', () => {
     it('should register successfully with valid data', async () => {
       const userData = {
         email: 'newuser@example.com',
-        password: 'password123',
+        password: 'testpassword123',
         name: 'New User'
       }
 
@@ -136,7 +136,7 @@ describe('AuthService', () => {
 
       await expect(authService.register({
         email: 'existing@example.com',
-        password: 'password123',
+        password: 'testpassword123',
         name: 'Test User'
       })).rejects.toThrow('User already exists')
     })
@@ -361,7 +361,7 @@ describe('AuthService', () => {
 
       expect(credentials).toEqual({
         email: 'admin@test.com',
-        password: 'admin123',
+        password: 'testadmin123',
         name: 'Admin User'
       })
     })

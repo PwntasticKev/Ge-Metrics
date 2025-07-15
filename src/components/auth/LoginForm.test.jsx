@@ -55,9 +55,9 @@ describe('LoginForm', () => {
     renderWithProviders(<LoginForm />)
 
     const passwordInput = screen.getByLabelText(/password/i)
-    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    fireEvent.change(passwordInput, { target: { value: 'testpassword123' } })
 
-    expect(passwordInput.value).toBe('password123')
+    expect(passwordInput.value).toBe('testpassword123')
   })
 
   test('submits form with email and password', async () => {
@@ -72,13 +72,13 @@ describe('LoginForm', () => {
     const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } })
-    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    fireEvent.change(passwordInput, { target: { value: 'testpassword123' } })
     fireEvent.click(submitButton)
 
     await waitFor(() => {
       expect(mockSignInWithEmailAndPassword).toHaveBeenCalledWith(
         'test@example.com',
-        'password123'
+        'testpassword123'
       )
     })
   })
@@ -95,7 +95,7 @@ describe('LoginForm', () => {
     const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } })
-    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    fireEvent.change(passwordInput, { target: { value: 'testpassword123' } })
     fireEvent.click(submitButton)
 
     expect(screen.getByText(/signing in/i)).toBeInTheDocument()
@@ -192,7 +192,7 @@ describe('LoginForm', () => {
     const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } })
-    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    fireEvent.change(passwordInput, { target: { value: 'testpassword123' } })
     fireEvent.click(submitButton)
 
     expect(submitButton).toBeDisabled()
@@ -210,7 +210,7 @@ describe('LoginForm', () => {
     const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } })
-    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    fireEvent.change(passwordInput, { target: { value: 'testpassword123' } })
     fireEvent.click(submitButton)
 
     await waitFor(() => {

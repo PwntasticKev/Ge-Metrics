@@ -401,12 +401,12 @@ class AuthService {
     return this.login('admin@test.com', 'admin123')
   }
 
-  // Get master credentials for testing
+  // Get master credentials for testing - Use environment variables in production
   getMasterCredentials () {
     return {
-      email: 'admin@test.com',
-      password: 'admin123',
-      name: 'Admin User'
+      email: process.env.ADMIN_EMAIL || 'admin@example.com',
+      password: process.env.ADMIN_PASSWORD || 'CHANGE_THIS_PASSWORD',
+      name: process.env.ADMIN_NAME || 'Admin User'
     }
   }
 }

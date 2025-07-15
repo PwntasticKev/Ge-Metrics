@@ -7,6 +7,15 @@ import { config } from './config/simple.js'
 
 const app = express()
 
+// Master user for testing - Use environment variables in production
+const masterUser = {
+  id: 'master-user-id',
+  email: process.env.ADMIN_EMAIL || 'admin@example.com',
+  password: process.env.ADMIN_PASSWORD || 'CHANGE_THIS_PASSWORD',
+  name: process.env.ADMIN_NAME || 'Admin User',
+  createdAt: new Date()
+}
+
 // Basic CORS configuration
 app.use(cors({
   origin: 'http://localhost:5173',
@@ -25,10 +34,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     message: 'Authentication server is running',
-    masterCredentials: {
-      email: 'admin@test.com',
-      password: 'admin123'
-    }
+    masterCredentials: masterUser
   })
 })
 

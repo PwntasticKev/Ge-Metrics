@@ -31,13 +31,13 @@ function logTest (testName: string, success: boolean, message = '') {
   console.log(`${colors[color]}${status}${colors.reset} ${testName}${message ? `: ${message}` : ''}`)
 }
 
-// Demo user data
+// Demo user data - Use environment variables in production
 const demoUser = {
-  email: 'demo@ge-metrics.com',
-  username: 'demouser',
-  password: 'DemoPassword123!',
-  name: 'Demo User',
-  avatar: 'https://example.com/demo-avatar.jpg'
+  email: process.env.DEMO_USER_EMAIL || 'demo@example.com',
+  username: process.env.DEMO_USERNAME || 'demo_user',
+  password: process.env.DEMO_PASSWORD || 'CHANGE_THIS_PASSWORD',
+  name: process.env.DEMO_NAME || 'Demo User',
+  avatar: process.env.DEMO_AVATAR || 'https://example.com/demo-avatar.jpg'
 }
 
 async function createDemoUser () {

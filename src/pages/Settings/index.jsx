@@ -35,7 +35,7 @@ export default function Settings () {
     id: 1,
     name: 'John Doe',
     email: 'john@example.com',
-    mailchimp_api_key: 'your-api-key-here',
+    mailchimp_api_key: process.env.REACT_APP_MAILCHIMP_API_KEY || '',
     phone_number: '',
     otp_enabled: false
   })

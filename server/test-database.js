@@ -13,8 +13,8 @@ import { v4 as uuidv4 } from 'uuid'
 // Import eq for where clauses
 import { eq } from 'drizzle-orm'
 
-// Database connection
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/auth_db'
+// Database connection - Use environment variables in production
+const connectionString = process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/auth_db'
 const client = postgres(connectionString)
 const db = drizzle(client)
 

@@ -13,8 +13,8 @@ import {
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
-// Database connection
-const connectionString = process.env.DATABASE_URL || 'postgresql://kevinlee@localhost:5432/auth_db'
+// Database connection - Use environment variables in production
+const connectionString = process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/auth_db'
 const client = postgres(connectionString)
 const db = drizzle(client)
 
@@ -93,7 +93,7 @@ async function seedDatabase () {
       {
         id: uuidv4(),
         email: 'admin@test.com',
-        passwordHash: await bcrypt.hash('admin123', 10),
+        passwordHash: await bcrypt.hash('testadmin123', 10),
         salt: 'admin_salt',
         name: 'Admin User',
         avatar: 'https://example.com/admin-avatar.jpg'
@@ -101,7 +101,7 @@ async function seedDatabase () {
       {
         id: uuidv4(),
         email: 'trader@test.com',
-        passwordHash: await bcrypt.hash('trader123', 10),
+        passwordHash: await bcrypt.hash('testtrader123', 10),
         salt: 'trader_salt',
         name: 'Pro Trader',
         avatar: 'https://example.com/trader-avatar.jpg'
@@ -109,7 +109,7 @@ async function seedDatabase () {
       {
         id: uuidv4(),
         email: 'newbie@test.com',
-        passwordHash: await bcrypt.hash('newbie123', 10),
+        passwordHash: await bcrypt.hash('testnewbie123', 10),
         salt: 'newbie_salt',
         name: 'New Player',
         avatar: 'https://example.com/newbie-avatar.jpg'

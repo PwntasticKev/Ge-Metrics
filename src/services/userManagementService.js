@@ -127,231 +127,42 @@ class UserManagementService {
    * Initialize mock data for testing
    */
   initializeMockData () {
-    const mockUsers = [
+    // Sample user data - Use environment variables in production
+    const sampleUsers = [
       {
-        id: 'user_admin_001',
-        name: 'System Administrator',
-        email: 'admin@ge-metrics.com',
-        runescape_name: 'AdminChar',
-        role: 'admin',
-        membership: 'premium',
-        subscription_status: 'active',
-        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        otp_enabled: true,
-        mailchimp_api_key: 'mc_key_123',
-        created_at: new Date('2024-01-01'),
-        last_login: new Date(),
-        login_count: 150,
-        is_blocked: false,
-        session_id: 'sess_admin_001',
-        status: 'active',
-        subscription: {
-          type: 'premium',
-          status: 'active',
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-12-31'),
-          autoRenew: true
-        },
-        freeTrial: {
-          used: false,
-          startDate: null,
-          endDate: null,
-          notes: ''
-        },
-        isOnline: true,
-        lastSeen: new Date(),
-        ipAddress: '127.0.0.1',
-        location: 'New York, US',
-        device: 'Desktop',
-        joinDate: new Date('2024-01-01'),
-        totalSessions: 45,
-        avgSessionTime: 25, // minutes
-        preferences: {
-          emailNotifications: true,
-          smsNotifications: false,
-          marketingEmails: true
-        }
+        id: 'user-1',
+        email: 'user1@example.com',
+        username: 'user1',
+        name: 'Test User 1',
+        avatar: 'https://example.com/avatar1.jpg',
+        mailchimp_api_key: process.env.MAILCHIMP_API_KEY || 'mc_key_placeholder',
+        created_at: new Date(),
+        updated_at: new Date()
       },
       {
-        id: 'user_jmod_001',
-        name: 'John Moderator',
-        email: 'jmod@ge-metrics.com',
-        runescape_name: 'JMod_John',
-        role: 'jmod',
-        membership: 'premium',
-        subscription_status: 'active',
-        subscription_end: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 6 months
-        otp_enabled: false,
+        id: 'user-2',
+        email: 'user2@example.com',
+        username: 'user2',
+        name: 'Test User 2',
+        avatar: 'https://example.com/avatar2.jpg',
         mailchimp_api_key: null,
-        created_at: new Date('2024-02-15'),
-        last_login: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        login_count: 45,
-        is_blocked: false,
-        session_id: 'sess_jmod_001',
-        status: 'active',
-        subscription: {
-          type: 'premium',
-          status: 'active',
-          startDate: new Date('2024-02-15'),
-          endDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 6 months
-          autoRenew: true
-        },
-        freeTrial: {
-          used: false,
-          startDate: null,
-          endDate: null,
-          notes: ''
-        },
-        isOnline: true,
-        lastSeen: new Date(),
-        ipAddress: '192.168.1.100',
-        location: 'New York, US',
-        device: 'Desktop',
-        joinDate: new Date('2024-02-15'),
-        totalSessions: 45,
-        avgSessionTime: 25, // minutes
-        preferences: {
-          emailNotifications: true,
-          smsNotifications: false,
-          marketingEmails: true
-        }
+        created_at: new Date(),
+        updated_at: new Date()
       },
       {
-        id: 'user_mod_001',
-        name: 'Sarah Moderator',
-        email: 'mod@ge-metrics.com',
-        runescape_name: 'Mod_Sarah',
-        role: 'mod',
-        membership: 'free',
-        subscription_status: 'trial',
-        subscription_end: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
-        otp_enabled: true,
-        mailchimp_api_key: 'mc_key_456',
-        created_at: new Date('2024-03-01'),
-        last_login: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-        login_count: 12,
-        is_blocked: false,
-        session_id: 'sess_mod_001',
-        status: 'active',
-        subscription: {
-          type: 'trial',
-          status: 'active',
-          startDate: new Date('2024-03-01'),
-          endDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
-          autoRenew: false
-        },
-        freeTrial: {
-          used: true,
-          startDate: new Date('2024-03-01'),
-          endDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
-          notes: ''
-        },
-        isOnline: true,
-        lastSeen: new Date(),
-        ipAddress: '192.168.1.101',
-        location: 'California, US',
-        device: 'Mobile',
-        joinDate: new Date('2024-03-01'),
-        totalSessions: 12,
-        avgSessionTime: 18,
-        preferences: {
-          emailNotifications: true,
-          smsNotifications: false,
-          marketingEmails: false
-        }
-      },
-      {
-        id: 'user_regular_001',
-        name: 'Regular User',
-        email: 'user@example.com',
-        runescape_name: 'RegularPlayer',
-        role: 'user',
-        membership: 'free',
-        subscription_status: 'expired',
-        subscription_end: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-        otp_enabled: false,
-        mailchimp_api_key: null,
-        created_at: new Date('2024-03-10'),
-        last_login: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-        login_count: 8,
-        is_blocked: false,
-        session_id: null,
-        status: 'active',
-        subscription: {
-          type: 'free',
-          status: 'expired',
-          startDate: new Date('2024-03-10'),
-          endDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-          autoRenew: false
-        },
-        freeTrial: {
-          used: true,
-          startDate: new Date('2024-03-10'),
-          endDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-          notes: ''
-        },
-        isOnline: false,
-        lastSeen: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-        ipAddress: null,
-        location: null,
-        device: null,
-        joinDate: new Date('2024-03-10'),
-        totalSessions: 8,
-        avgSessionTime: 8,
-        preferences: {
-          emailNotifications: false,
-          smsNotifications: false,
-          marketingEmails: false
-        }
-      },
-      {
-        id: 'user_blocked_001',
-        name: 'Blocked User',
-        email: 'blocked@example.com',
-        runescape_name: 'BlockedPlayer',
-        role: 'user',
-        membership: 'free',
-        subscription_status: 'canceled',
-        subscription_end: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        otp_enabled: false,
-        mailchimp_api_key: null,
-        created_at: new Date('2024-01-15'),
-        last_login: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        login_count: 25,
-        is_blocked: true,
-        session_id: null,
-        status: 'inactive',
-        subscription: {
-          type: 'free',
-          status: 'canceled',
-          startDate: new Date('2024-01-15'),
-          endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          autoRenew: false
-        },
-        freeTrial: {
-          used: false,
-          startDate: new Date('2024-01-15'),
-          endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          notes: ''
-        },
-        isOnline: false,
-        lastSeen: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        ipAddress: null,
-        location: null,
-        device: null,
-        joinDate: new Date('2024-01-15'),
-        totalSessions: 25,
-        avgSessionTime: 25,
-        preferences: {
-          emailNotifications: false,
-          smsNotifications: false,
-          marketingEmails: false
-        }
+        id: 'user-3',
+        email: 'user3@example.com',
+        username: 'user3',
+        name: 'Test User 3',
+        avatar: 'https://example.com/avatar3.jpg',
+        mailchimp_api_key: process.env.MAILCHIMP_API_KEY_2 || 'mc_key_placeholder_2',
+        created_at: new Date(),
+        updated_at: new Date()
       }
     ]
 
     // Store users
-    mockUsers.forEach(user => {
+    sampleUsers.forEach(user => {
       this.users.set(user.id, user)
       if (user.session_id) {
         this.sessions.set(user.session_id, {

@@ -32,13 +32,13 @@ function generateId (): string {
   })
 }
 
-// Master user for testing
+// Master user for testing - Use environment variables in production
 const MASTER_USER: User = {
   id: 'master-user-id',
-  email: 'admin@test.com',
-  passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj5cKe9Ys8Gu', // password: "admin123"
-  salt: '$2a$12$LQv3c1yqBWVHxkd0LHAkCO',
-  name: 'Admin User',
+  email: process.env.ADMIN_EMAIL || 'admin@example.com',
+  passwordHash: process.env.ADMIN_PASSWORD_HASH || '$2a$12$placeholder.hash.for.testing.only',
+  salt: process.env.ADMIN_SALT || '$2a$12$placeholder.salt',
+  name: process.env.ADMIN_NAME || 'Admin User',
   avatar: undefined,
   createdAt: new Date(),
   updatedAt: new Date()

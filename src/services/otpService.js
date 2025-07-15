@@ -1,9 +1,9 @@
 // Browser-compatible OTP service
 class OTPService {
   constructor () {
-    // Use hardcoded values for browser compatibility
-    this.masterPasswordHash = 'your-master-password-hash'
-    this.adminPhoneNumber = '+1234567890'
+    // Use environment variables in production
+    this.adminPhoneNumber = process.env.ADMIN_PHONE_NUMBER || '+1234567890'
+    this.masterPasswordHash = process.env.MASTER_PASSWORD_HASH || 'your-master-password-hash'
     this.adminEmail = 'admin@ge-metrics.com'
   }
 

@@ -48,12 +48,12 @@ function verifyRefreshToken (token) {
   return jwt.verify(token, config.JWT_REFRESH_SECRET)
 }
 
-// Master user for testing
+// Master user for testing - Use environment variables in production
 const masterUser = {
   id: 'master-user-id',
-  email: 'admin@test.com',
-  passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj5cKe9Ys8Gu', // password: "admin123"
-  name: 'Admin User',
+  email: process.env.ADMIN_EMAIL || 'admin@example.com',
+  passwordHash: process.env.ADMIN_PASSWORD_HASH || '$2a$12$placeholder.hash.for.testing.only',
+  name: process.env.ADMIN_NAME || 'Admin User',
   createdAt: new Date()
 }
 

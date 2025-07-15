@@ -9,7 +9,7 @@ describe('OTPService (Browser Compatible)', () => {
   describe('constructor', () => {
     it('should initialize with correct default values', () => {
       expect(OTPService.masterPasswordHash).toBe('your-master-password-hash')
-      expect(OTPService.adminPhoneNumber).toBe('+1234567890')
+      expect(OTPService.adminPhoneNumber).toBe(process.env.ADMIN_PHONE_NUMBER || '+1234567890')
       expect(OTPService.adminEmail).toBe('admin@ge-metrics.com')
     })
   })

@@ -12,19 +12,19 @@ const testUsers = [
     email: 'demo@example.com',
     username: 'demo_user',
     name: 'Demo User',
-    passwordHash: bcrypt.hashSync('password123', 10)
+    passwordHash: bcrypt.hashSync('testpassword123', 10)
   },
   {
     email: 'premium@example.com',
     username: 'premium_user',
     name: 'Premium User',
-    passwordHash: bcrypt.hashSync('password123', 10)
+    passwordHash: bcrypt.hashSync('testpassword123', 10)
   },
   {
     email: 'pro@example.com',
     username: 'pro_user',
     name: 'Pro User',
-    passwordHash: bcrypt.hashSync('password123', 10)
+    passwordHash: bcrypt.hashSync('testpassword123', 10)
   }
 ]
 

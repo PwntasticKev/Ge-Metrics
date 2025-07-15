@@ -6,9 +6,9 @@ const crypto = require('crypto')
 const users = [
   {
     id: 'master-user-id',
-    email: 'admin@test.com',
-    password: 'admin123', // In real apps, this would be hashed
-    name: 'Admin User',
+    email: process.env.ADMIN_EMAIL || 'admin@example.com',
+    password: process.env.ADMIN_PASSWORD || 'CHANGE_THIS_PASSWORD', // In real apps, this would be hashed
+    name: process.env.ADMIN_NAME || 'Admin User',
     createdAt: new Date()
   }
 ]
@@ -72,8 +72,8 @@ const server = http.createServer(async (req, res) => {
         timestamp: new Date().toISOString(),
         message: 'Ultra simple auth server is running',
         masterCredentials: {
-          email: 'admin@test.com',
-          password: 'admin123'
+          email: process.env.ADMIN_EMAIL || 'admin@example.com',
+          password: process.env.ADMIN_PASSWORD || 'CHANGE_THIS_PASSWORD'
         },
         endpoints: [
           'GET /health - Health check',
