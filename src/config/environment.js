@@ -88,18 +88,17 @@ const config = {
     }
   },
 
-  // Stripe Configuration
-  stripe: {
-    publishableKey: isDevelopment
-      ? process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY_DEV
-      : process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY_PROD,
-
-    priceIds: {
-      monthly: isDevelopment
-        ? process.env.REACT_APP_STRIPE_PRICE_ID_MONTHLY_DEV
-        : process.env.REACT_APP_STRIPE_PRICE_ID_MONTHLY_PROD
-    }
-  },
+  // Stripe Configuration (disabled for now)
+  // stripe: {
+  //   publishableKey: isDevelopment
+  //     ? process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY_DEV
+  //     : process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY_PROD,
+  //   priceIds: {
+  //     monthly: isDevelopment
+  //       ? process.env.REACT_APP_STRIPE_PRICE_ID_MONTHLY_DEV
+  //       : process.env.REACT_APP_STRIPE_PRICE_ID_MONTHLY_PROD
+  //   }
+  // },
 
   // Firebase Configuration (if using Firebase for auth)
   firebase: {

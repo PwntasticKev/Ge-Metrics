@@ -8,11 +8,11 @@ NODE_ENV=development
 # API Configuration
 REACT_APP_API_URL=http://localhost:3001/api
 
-# Stripe Configuration (for subscriptions)
-REACT_APP_STRIPE_PUBLISHABLE_KEY_DEV=pk_test_your_development_key_here
-REACT_APP_STRIPE_PUBLISHABLE_KEY_PROD=pk_live_your_production_key_here
-REACT_APP_STRIPE_PRICE_ID_MONTHLY_DEV=price_development_monthly_id
-REACT_APP_STRIPE_PRICE_ID_MONTHLY_PROD=price_production_monthly_id
+# Stripe Configuration (disabled for now)
+# REACT_APP_STRIPE_PUBLISHABLE_KEY_DEV=pk_test_your_development_key_here
+# REACT_APP_STRIPE_PUBLISHABLE_KEY_PROD=pk_live_your_production_key_here
+# REACT_APP_STRIPE_PRICE_ID_MONTHLY_DEV=price_development_monthly_id
+# REACT_APP_STRIPE_PRICE_ID_MONTHLY_PROD=price_production_monthly_id
 
 # Firebase Configuration (if using Firebase for authentication)
 REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
