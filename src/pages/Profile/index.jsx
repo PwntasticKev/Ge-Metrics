@@ -15,6 +15,12 @@ import {
   TextInput,
   ActionIcon,
   Tooltip,
+  Select,
+  Divider,
+  Textarea,
+  useMantineTheme
+} from '@mantine/core'
+import {
   ResponsiveContainer,
   LineChart,
   Line,
@@ -22,8 +28,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip
-  , useMantineTheme
-} from '@mantine/core'
+} from 'recharts'
 import {
   IconUser,
   IconMail,
@@ -54,6 +59,7 @@ import UserEdit from './components/modals/user-edit'
 import UserSubscription from './components/modals/user-subscription'
 import UserGoals from './components/modals/user-goals'
 import { trpc } from '../../utils/trpc.jsx'
+import jmodImage from '../../assets/jmod.png'
 
 // Default avatar options
 const DEFAULT_AVATARS = [
