@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "validate:icons": "node scripts/validate-icons-simple.js",
+    "test:app-loading": "node test-app-loading.cjs",
     "collect-history": "node scripts/collectHistoryData.js",
     "collect-all-history": "node scripts/collectAllHistoricalData.js",
     "monitor-alerts": "node scripts/monitorVolumeAlerts.js",

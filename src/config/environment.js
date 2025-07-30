@@ -231,9 +231,10 @@ export const validateEnvironment = () => {
   const missing = []
 
   // Add required environment variables based on features
-  if (config.app.features.subscriptions) {
-    required.push('REACT_APP_STRIPE_PUBLISHABLE_KEY_' + (isDevelopment ? 'DEV' : 'PROD'))
-  }
+  // Note: Stripe validation is disabled since Stripe is not currently used
+  // if (config.app.features.subscriptions) {
+  //   required.push('REACT_APP_STRIPE_PUBLISHABLE_KEY_' + (isDevelopment ? 'DEV' : 'PROD'))
+  // }
 
   // Check for missing variables
   required.forEach(key => {
