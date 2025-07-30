@@ -12,6 +12,23 @@ const config = {
   isProduction,
   isTest,
 
+  // Authentication Configuration
+  auth: {
+    // Development authentication bypass
+    bypassAuth: isDevelopment && process.env.REACT_APP_BYPASS_AUTH === 'true',
+    mockUser: isDevelopment
+      ? {
+          id: 'dev-user-id',
+          email: 'dev@ge-metrics.com',
+          username: 'dev_user',
+          name: 'Development User',
+          role: 'admin',
+          subscription: 'premium',
+          isActive: true
+        }
+      : null
+  },
+
   // API Configuration
   api: {
     baseUrl: isDevelopment

@@ -1,14 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { trpc } from '../utils/trpc'
+import config from '../config/environment.js'
 
 // Auth state management
 export const useAuth = () => {
   const queryClient = useQueryClient()
 
+  // Check if authentication is bypassed for development
+  const isAuthBypassed = config.auth.bypassAuth
+
   // Check if we have a token before making the query
   const hasToken = !!localStorage.getItem('accessToken')
 
-  // Get current user - only if we have a token
+  // Get current user - only if we have a token and auth is not bypassed
   const {
     data: user,
     isLoading: isLoadingUser,
@@ -16,9 +20,12 @@ export const useAuth = () => {
   } = trpc.auth.me.useQuery(undefined, {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: hasToken, // Only run the query if we have a token
+    enabled: hasToken && !isAuthBypassed, // Only run the query if we have a token and auth is not bypassed
     refetchOnWindowFocus: false // Prevent refetching on window focus
   })
+
+  // If auth is bypassed, return mock user
+  const mockUser = isAuthBypassed ? config.auth.mockUser : null
 
   // Register mutation
   const registerMutation = trpc.auth.register.useMutation({
@@ -78,11 +85,11 @@ export const useAuth = () => {
   })
 
   return {
-    // User state
-    user,
-    isAuthenticated: !!user,
-    isLoadingUser,
-    userError,
+    // User state - use mock user if auth is bypassed
+    user: isAuthBypassed ? mockUser : user,
+    isAuthenticated: isAuthBypassed ? true : !!user,
+    isLoadingUser: isAuthBypassed ? false : isLoadingUser,
+    userError: isAuthBypassed ? null : userError,
 
     // Mutations
     register: registerMutation.mutate,

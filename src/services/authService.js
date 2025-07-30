@@ -395,18 +395,14 @@ class AuthService {
   }
 
   /**
-   * Test Helpers
+   * Development Helpers
    */
-  async loginWithTestAccount () {
-    return this.login('admin@test.com', 'Admin123!')
-  }
-
-  // Get master credentials for testing - Use environment variables in production
-  getMasterCredentials () {
+  // Get development credentials from environment variables
+  getDevelopmentCredentials () {
     return {
-      email: process.env.ADMIN_EMAIL || 'admin@example.com',
-      password: process.env.ADMIN_PASSWORD || 'CHANGE_THIS_PASSWORD',
-      name: process.env.ADMIN_NAME || 'Admin User'
+      email: process.env.REACT_APP_DEV_EMAIL || 'dev@ge-metrics.com',
+      password: process.env.REACT_APP_DEV_PASSWORD || '',
+      name: process.env.REACT_APP_DEV_NAME || 'Development User'
     }
   }
 }

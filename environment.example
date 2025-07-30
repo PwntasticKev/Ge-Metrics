@@ -44,6 +44,12 @@ REACT_APP_LOG_LEVEL=debug
 REACT_APP_USE_MOCK_DATA=false
 REACT_APP_MOCK_API=false
 
+# Authentication Bypass (Development Only)
+REACT_APP_BYPASS_AUTH=false
+REACT_APP_DEV_EMAIL=dev@ge-metrics.com
+REACT_APP_DEV_PASSWORD=
+REACT_APP_DEV_NAME=Development User
+
 # Database Configuration (for local development only)
 # These would typically be in a separate server .env file
 DATABASE_URL=postgresql://username:password@localhost:5432/ge_metrics_dev
@@ -70,22 +76,17 @@ OSRS_API_KEY=your_osrs_api_key_if_needed
 RUNELITE_API_KEY=your_runelite_api_key_if_needed
 
 # =============================================================================
-# SECURITY: Demo/Test User Credentials (COMMENTED OUT - UNCOMMENT AND SET AS NEEDED)
+# DEVELOPMENT: Authentication Bypass Settings (Development Only)
 # =============================================================================
 
-# Demo User Credentials (for testing)
-# DEMO_USER_EMAIL=demo@example.com
-# DEMO_USERNAME=demo_user
-# DEMO_PASSWORD=CHANGE_THIS_PASSWORD
-# DEMO_NAME=Demo User
-# DEMO_AVATAR=https://example.com/demo-avatar.jpg
+# Set REACT_APP_BYPASS_AUTH=true to disable authentication for development
+# This will automatically log in with a mock user
+# REACT_APP_BYPASS_AUTH=false
 
-# Admin User Credentials (for testing)
-# ADMIN_EMAIL=admin@test.com
-# ADMIN_PASSWORD=Admin123!
-# ADMIN_NAME=Admin User
-# ADMIN_PASSWORD_HASH=$2a$12$placeholder.hash.for.testing.only
-# ADMIN_SALT=$2a$12$placeholder.salt
+# Development credentials (only used if bypass is disabled)
+# REACT_APP_DEV_EMAIL=dev@ge-metrics.com
+# REACT_APP_DEV_PASSWORD=
+# REACT_APP_DEV_NAME=Development User
 
 # OTP and Security Settings
 # ADMIN_PHONE_NUMBER=+1234567890
