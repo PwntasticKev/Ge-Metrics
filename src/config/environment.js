@@ -14,19 +14,17 @@ const config = {
 
   // Authentication Configuration
   auth: {
-    // Development authentication bypass
-    bypassAuth: isDevelopment && process.env.REACT_APP_BYPASS_AUTH === 'true',
-    mockUser: isDevelopment
-      ? {
-          id: 'dev-user-id',
-          email: 'dev@ge-metrics.com',
-          username: 'dev_user',
-          name: 'Development User',
-          role: 'admin',
-          subscription: 'premium',
-          isActive: true
-        }
-      : null
+    // Authentication bypass - enabled for everyone
+    bypassAuth: true, // Always bypass authentication
+    mockUser: {
+      id: 'public-user-id',
+      email: 'user@ge-metrics.com',
+      username: 'public_user',
+      name: 'Public User',
+      role: 'user',
+      subscription: 'free',
+      isActive: true
+    }
   },
 
   // API Configuration
