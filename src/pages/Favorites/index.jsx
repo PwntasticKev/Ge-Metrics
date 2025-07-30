@@ -304,7 +304,7 @@ export default function Favorites () {
               placeholder="Search favorites..."
               icon={<IconSearch size={16} />}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value || '')}
+              onChange={(e) => setSearchQuery(e.target.value ?? '')}
             />
           </Grid.Col>
           <Grid.Col span={2}>

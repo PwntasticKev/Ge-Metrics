@@ -350,7 +350,7 @@ const EmployeeManagement = () => {
             placeholder="Search employees..."
             icon={<IconSearch size={16} />}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value || '')}
+            onChange={(e) => setSearchQuery(e.target.value ?? '')}
             style={{ flex: 1 }}
           />
 

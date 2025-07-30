@@ -259,7 +259,7 @@ export default function Settings () {
               label="Alert Cooldown Period (minutes)"
               description="Minimum time between alerts for the same item to prevent spam"
               value={cooldownPeriod}
-              onChange={(e) => setCooldownPeriod(e.target.value || '60')}
+              onChange={(e) => setCooldownPeriod(e.target.value ?? '60')}
               type="number"
               min="1"
               max="1440"

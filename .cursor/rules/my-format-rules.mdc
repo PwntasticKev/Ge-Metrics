@@ -1,0 +1,64 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+
+- if eslint is not in the codebase you can go off of:
+module.exports = {
+	env: {
+		browser: true,
+		es6: true,
+		node: true,
+		"react-native/react-native": true
+	},
+	extends: [
+		"eslint:recommended",
+		"plugin:react/recommended",
+		"plugin:react-native/all",
+		"plugin:@typescript-eslint/recommended",
+		"prettier",
+		"plugin:prettier/recommended"
+	],
+	globals: {
+		fetch: false
+	},
+	parser: "@typescript-eslint/parser",
+	parserOptions: {
+		ecmaFeatures: {
+			jsx: true
+		},
+		ecmaVersion: 2020,
+		sourceType: "module"
+	},
+	plugins: [
+		"react",
+		"react-native",
+		"@typescript-eslint",
+		"typescript-sort-keys",
+		"sort-keys-fix"
+	],
+	root: true,
+	rules: {
+		"react/react-in-jsx-scope": "off", // ✅ Fix JSX scope issue
+		indent: ["error", "tab"], // ✅ Enforce tabs
+		"no-mixed-spaces-and-tabs": "error", // ✅ Prevent mixed indentation
+		"prettier/prettier": "off",
+		"react-native/no-inline-styles": "off",
+		"react-native/no-color-literals": "off",
+		"@typescript-eslint/no-explicit-any": "off"
+	},
+	settings: {
+		react: {
+			version: "detect"
+		}
+	}
+};
+
+
+assuming they are using typescript, otherwise use good standards for javascript. 

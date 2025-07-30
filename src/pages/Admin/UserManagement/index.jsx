@@ -1535,7 +1535,7 @@ const UserManagement = () => {
                   placeholder="Search users..."
                   leftIcon={<IconSearch size={16} />}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value || '')}
+                  onChange={(e) => setSearchQuery(e.target.value ?? '')}
                 />
               </Grid.Col>
               <Grid.Col span={2}>
@@ -2516,7 +2516,7 @@ const UserManagement = () => {
             label="Subject"
             placeholder="Enter message subject"
             value={messageSubject}
-            onChange={(e) => setMessageSubject(e.target.value || '')}
+            onChange={(e) => setMessageSubject(e.target.value ?? '')}
             required
           />
 
@@ -2524,7 +2524,7 @@ const UserManagement = () => {
             label="Message Body"
             placeholder="Enter your message content"
             value={messageBody}
-            onChange={(e) => setMessageBody(e.target.value || '')}
+            onChange={(e) => setMessageBody(e.target.value ?? '')}
             minRows={4}
             required
           />

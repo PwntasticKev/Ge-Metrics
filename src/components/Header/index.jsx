@@ -24,11 +24,12 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const { isSubscribed, plan } = useSubscription()
 
   useEffect(() => {
-    setChecked(localStorage.getItem('gameMode'))
+    const gameMode = localStorage.getItem('gameMode')
+    setChecked(gameMode ? JSON.parse(gameMode) === 'dmm' : false)
   }, [])
 
   const setGameMode = (e) => {
-    const newChecked = e.currentTarget.checked
+    const newChecked = e.currentTarget.checked ?? false
     setChecked(newChecked)
     localStorage.setItem('gameMode', newChecked ? JSON.stringify('dmm') : JSON.stringify(''))
   }
@@ -96,14 +97,14 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
               border: `1px solid ${theme.colors.dark[4]}`
             }}>
               <Switch
-                checked={checked}
+                checked={checked ?? false}
                 onLabel="DMM"
                 offLabel="Normal"
                 size="md"
                 onChange={setGameMode}
                 styles={{
                   track: {
-                    backgroundColor: checked ? theme.colors.orange[7] : theme.colors.blue[7]
+                    backgroundColor: (checked ?? false) ? theme.colors.orange[7] : theme.colors.blue[7]
                   }
                 }}
               />

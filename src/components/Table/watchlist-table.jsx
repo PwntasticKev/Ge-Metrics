@@ -108,8 +108,8 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget
-    setSearch(value)
-    setSortedData(filterData(data, value))
+    setSearch(value ?? '')
+    setSortedData(filterData(data, value ?? ''))
   }
 
   const startEditing = (item) => {
@@ -210,7 +210,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
             : isEditing
               ? (
             <NumberInput
-              value={editValues.volume_threshold || 0}
+              value={editValues.volume_threshold ?? 0}
               defaultValue={0}
               onChange={(value) => setEditValues(prev => ({ ...prev, volume_threshold: value ?? 0 }))}
               size="xs"
@@ -236,7 +236,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
             : isEditing
               ? (
             <NumberInput
-              value={editValues.price_drop_threshold || 0}
+              value={editValues.price_drop_threshold ?? 0}
               defaultValue={0}
               onChange={(value) => setEditValues(prev => ({ ...prev, price_drop_threshold: value ?? 0 }))}
               size="xs"
@@ -323,7 +323,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
         placeholder="Search watchlist items..."
         mb="md"
         icon={<IconSearch size="0.9rem" stroke={1.5}/>}
-        value={search}
+        value={search ?? ''}
         onChange={handleSearchChange}
       />
 

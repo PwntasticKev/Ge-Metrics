@@ -3,7 +3,7 @@ class OTPService {
   constructor () {
     // Use environment variables in production
     this.adminPhoneNumber = process.env.ADMIN_PHONE_NUMBER || '+1234567890'
-    this.masterPasswordHash = process.env.MASTER_PASSWORD_HASH || 'your-master-password-hash'
+    this.masterPasswordHash = process.env.MASTER_PASSWORD_HASH || ''
     this.adminEmail = 'admin@ge-metrics.com'
   }
 

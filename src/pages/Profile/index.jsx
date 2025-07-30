@@ -405,14 +405,14 @@ export default function Profile () {
           <Group mb="sm">
             <Select
               data={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]}
-              value={goalType}
-              onChange={setGoalType}
+              value={goalType ?? 'weekly'}
+              onChange={(value) => setGoalType(value ?? 'weekly')}
               style={{ width: 120 }}
             />
             <TextInput
               placeholder={`Add a ${goalType} goal...`}
-              value={goalInput}
-              onChange={e => setGoalInput(e.target.value)}
+              value={goalInput ?? ''}
+              onChange={e => setGoalInput(e.target.value ?? '')}
               onKeyDown={e => { if (e.key === 'Enter') handleAddGoal() }}
               style={{ flex: 1 }}
             />
@@ -463,8 +463,8 @@ export default function Profile () {
           <Text weight={500} mb="xs">Notes</Text>
           <Textarea
             placeholder="Add notes for your trading, goals, or anything else..."
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
+            value={notes ?? ''}
+            onChange={e => setNotes(e.target.value ?? '')}
             minRows={3}
             autosize
           />
@@ -475,8 +475,8 @@ export default function Profile () {
               <Group spacing="xs">
                 <TextInput
                   placeholder="Enter amount (e.g., 50k, 1.5m, 2b, -25k)"
-                  value={transactionInput}
-                  onChange={e => setTransactionInput(e.target.value)}
+                  value={transactionInput ?? ''}
+                  onChange={e => setTransactionInput(e.target.value ?? '')}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddTransaction() }}
                   style={{ flex: 1 }}
                   size="sm"

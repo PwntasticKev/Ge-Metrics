@@ -1135,7 +1135,7 @@ export default function AIPredictions () {
                       <TextInput
                         placeholder="Search by item name or activity type..."
                         value={whaleSearch}
-                        onChange={(e) => setWhaleSearch(e.currentTarget.value || '')}
+                        onChange={(e) => setWhaleSearch(e.currentTarget.value ?? '')}
                         icon={<IconSearch size={16} />}
                         size="sm"
                       />

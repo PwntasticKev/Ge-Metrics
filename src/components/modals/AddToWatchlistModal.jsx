@@ -96,8 +96,8 @@ export default function AddToWatchlistModal ({ opened, setOpened, items, onAdd }
           <TextInput
             placeholder="Search by item name or ID..."
             icon={<IconSearch size={16} />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchQuery ?? ''}
+            onChange={(e) => setSearchQuery(e.target.value ?? '')}
           />
         </div>
 

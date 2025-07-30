@@ -318,18 +318,18 @@ export default function AdminPanel () {
         <Stack spacing="md">
           <TextInput
             label="To"
-            value={selectedUser?.email || ''}
+            value={selectedUser?.email ?? ''}
             disabled
           />
           <TextInput
             label="Subject"
             value={emailSubject}
-            onChange={(e) => setEmailSubject(e.target.value || '')}
+            onChange={(e) => setEmailSubject(e.target.value ?? '')}
           />
           <Textarea
             label="Message"
             value={emailMessage}
-            onChange={(e) => setEmailMessage(e.target.value || '')}
+            onChange={(e) => setEmailMessage(e.target.value ?? '')}
             minRows={6}
           />
           <Group position="right">

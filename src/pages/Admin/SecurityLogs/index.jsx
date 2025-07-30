@@ -423,7 +423,7 @@ export default function SecurityLogs () {
                   placeholder="Search logs..."
                   leftIcon={<IconSearch size={16} />}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value || '')}
+                  onChange={(e) => setSearchQuery(e.target.value ?? '')}
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
@@ -948,7 +948,7 @@ export default function SecurityLogs () {
               label="Reason for blocking"
               placeholder="Enter reason for blocking this IP address"
               value={blockReason}
-              onChange={(e) => setBlockReason(e.target.value || '')}
+              onChange={(e) => setBlockReason(e.target.value ?? '')}
               required
               minRows={3}
             />

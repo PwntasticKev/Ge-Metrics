@@ -25,9 +25,9 @@ export default function UserEdit () {
 
   const form = useForm({
     initialValues: {
-      user: user?.name || '', // Ensure it's always a string
-      phone: user?.phone || '', // Ensure it's always a string
-      email: user?.email || '', // Add email field for consistency
+      user: user?.name ?? '', // Ensure it's always a string
+      phone: user?.phone ?? '', // Ensure it's always a string
+      email: user?.email ?? '', // Add email field for consistency
       termsOfService: false
     },
     validate: {
@@ -70,7 +70,7 @@ export default function UserEdit () {
                             withAsterisk
                             label="Email"
                             disabled
-                            value={user.email || ''}
+                            value={user?.email ?? ''}
                             placeholder="Email address"
                         />
 

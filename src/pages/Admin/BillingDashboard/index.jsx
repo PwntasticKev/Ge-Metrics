@@ -356,7 +356,7 @@ export default function BillingDashboard () {
           <SimpleGrid cols={4} spacing="md" mb="xl">
             <MetricCard
               title="Monthly Recurring Revenue"
-              value={`$${revenueMetrics.monthlyRevenue?.toFixed(2) || '0.00'}`}
+              value={`$${revenueMetrics.monthlyRevenue?.toFixed(2) ?? '0.00'}`}
               icon={<IconCurrencyDollar />}
               color="green"
               change={12.5}
@@ -370,7 +370,7 @@ export default function BillingDashboard () {
             />
             <MetricCard
               title="Total Revenue"
-              value={`$${revenueMetrics.totalRevenue?.toFixed(2) || '0.00'}`}
+              value={`$${revenueMetrics.totalRevenue?.toFixed(2) ?? '0.00'}`}
               icon={<IconTrendingUp />}
               color="violet"
               change={8.3}
@@ -441,7 +441,7 @@ export default function BillingDashboard () {
                 placeholder="Search customers..."
                 leftIcon={<IconSearch size={16} />}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value || '')}
+                onChange={(e) => setSearchQuery(e.target.value ?? '')}
                 style={{ flex: 1 }}
               />
               <Select
@@ -538,7 +538,7 @@ export default function BillingDashboard () {
             label="Payment ID"
             placeholder="pay_..."
             value={refundForm.paymentId}
-            onChange={(e) => setRefundForm({ ...refundForm, paymentId: e.target.value || '' })}
+            onChange={(e) => setRefundForm({ ...refundForm, paymentId: e.target.value ?? '' })}
             required
             rightSection={
               <Tooltip
@@ -570,7 +570,7 @@ export default function BillingDashboard () {
             label="Reason"
             placeholder="Reason for refund..."
             value={refundForm.reason}
-            onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value || '' })}
+            onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value ?? '' })}
             required
           />
           <Group justify="flex-end">
@@ -608,7 +608,7 @@ export default function BillingDashboard () {
             label="Admin Note"
             placeholder="Reason for granting trial..."
             value={trialForm.adminNote}
-            onChange={(e) => setTrialForm({ ...trialForm, adminNote: e.target.value || '' })}
+            onChange={(e) => setTrialForm({ ...trialForm, adminNote: e.target.value ?? '' })}
             required
           />
           <Group justify="flex-end">

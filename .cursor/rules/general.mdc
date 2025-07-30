@@ -1,0 +1,19 @@
+---
+alwaysApply: false
+---
+
+# Command Line
+
+- run sudo with everything. ( sudo npm i) for example. but if youre deleting anything other than node_modules or package json. I want to be warned
+
+Assume I always have my server running and I have a terminal open.
+
+try not to start up your own server and just assume mines is running. if its not running, Then you may start it up.
+
+# Tests before completing prompts
+
+I want you to at the least, visit the page before you complete the prompts. this will tell us everything is working in order at least to visit the page.
+
+
+# General UI Design
+avoid doing a modal with black screen. I want to see it on the same page as the rest of the UI. so I can see the page and the modal at the same time.

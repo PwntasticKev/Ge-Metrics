@@ -194,7 +194,7 @@ export default function NightmareZone () {
                   <NumberInput
                     label="Points per hour"
                     description="Average NMZ points you earn per hour"
-                    value={pointsPerHour || 50000}
+                    value={pointsPerHour ?? 50000}
                     defaultValue={50000}
                     onChange={(value) => setPointsPerHour(value ?? 50000)}
                     min={10000}
@@ -206,7 +206,7 @@ export default function NightmareZone () {
                   <NumberInput
                     label="Hours per day"
                     description="How many hours you plan to train daily"
-                    value={hoursPerDay || 4}
+                    value={hoursPerDay ?? 4}
                     defaultValue={4}
                     onChange={(value) => setHoursPerDay(value ?? 4)}
                     min={1}

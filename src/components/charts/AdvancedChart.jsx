@@ -624,7 +624,7 @@ const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
           <TextInput
             label="Title"
             placeholder="Annotation title"
-            value={selectedAnnotation?.title || ''}
+            value={selectedAnnotation?.title  ??  ''}
             onChange={(e) => setSelectedAnnotation({
               ...selectedAnnotation,
               title: e.target.value
@@ -634,7 +634,7 @@ const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
           <Textarea
             label="Description"
             placeholder="Add description..."
-            value={selectedAnnotation?.description || ''}
+            value={selectedAnnotation?.description  ??  ''}
             onChange={(e) => setSelectedAnnotation({
               ...selectedAnnotation,
               description: e.target.value
@@ -643,7 +643,7 @@ const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
 
           <Group>
             <ColorPicker
-              value={selectedAnnotation?.color || '#339af0'}
+              value={selectedAnnotation?.color  ??  '#339af0'}
               onChange={(color) => setSelectedAnnotation({
                 ...selectedAnnotation,
                 color

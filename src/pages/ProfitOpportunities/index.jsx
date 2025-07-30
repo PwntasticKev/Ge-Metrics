@@ -534,7 +534,7 @@ export default function ProfitOpportunities () {
             label="Actual Profit (GP)"
             placeholder="Enter the profit you made"
             value={verificationData.verified_profit}
-            onChange={(value) => setVerificationData(prev => ({ ...prev, verified_profit: value || 0 }))}
+                          onChange={(value) => setVerificationData(prev => ({ ...prev, verified_profit: value ?? 0 }))}
             parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
             formatter={(value) =>
               !Number.isNaN(parseFloat(value))

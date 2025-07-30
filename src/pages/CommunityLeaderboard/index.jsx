@@ -551,7 +551,7 @@ export default function CommunityLeaderboard () {
             label="Email Address"
             placeholder="friend@example.com"
             value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value || '')}
+            onChange={(e) => setInviteEmail(e.target.value ?? '')}
             required
           />
           {selectedClan && (
@@ -586,14 +586,14 @@ export default function CommunityLeaderboard () {
             label="Clan Name"
             placeholder="Enter clan name"
             value={newClanName}
-            onChange={(e) => setNewClanName(e.target.value || '')}
+            onChange={(e) => setNewClanName(e.target.value ?? '')}
             required
           />
           <TextInput
             label="Description"
             placeholder="Describe your clan"
             value={newClanDescription}
-            onChange={(e) => setNewClanDescription(e.target.value || '')}
+            onChange={(e) => setNewClanDescription(e.target.value ?? '')}
           />
           <Select
             label="Privacy"
@@ -634,7 +634,7 @@ export default function CommunityLeaderboard () {
               placeholder="Search for an item..."
               icon={<IconSearch size={16} />}
               value={itemSearchQuery}
-              onChange={(e) => setItemSearchQuery(e.target.value || '')}
+              onChange={(e) => setItemSearchQuery(e.target.value ?? '')}
               mb="xs"
             />
 
@@ -718,7 +718,7 @@ export default function CommunityLeaderboard () {
             <NumberInput
               label="Quantity"
               placeholder="1"
-              value={tradeQuantity || 1}
+              value={tradeQuantity ?? 1}
               defaultValue={1}
               onChange={(value) => setTradeQuantity(value ?? 1)}
               min={1}
@@ -741,7 +741,7 @@ export default function CommunityLeaderboard () {
             label="Notes (Optional)"
             placeholder="Add any notes about this trade..."
             value={tradeNotes}
-            onChange={(e) => setTradeNotes(e.target.value || '')}
+            onChange={(e) => setTradeNotes(e.target.value ?? '')}
             rows={3}
           />
 

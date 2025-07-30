@@ -11,6 +11,16 @@ export default function AllItems () {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [favoriteItems, setFavoriteItems] = useState(new Set())
 
+  // Debug logging
+  console.log('🔍 AllItems component state:', {
+    itemsLength: items.length,
+    mapStatus,
+    priceStatus,
+    hasItems: items.length > 0,
+    priceSuccess: priceStatus === 'success',
+    mapSuccess: mapStatus === 'success'
+  })
+
   // Load favorites from localStorage on mount
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favoriteItems')

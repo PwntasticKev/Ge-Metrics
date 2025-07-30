@@ -388,22 +388,22 @@ export default function SystemSettings () {
                 <Stack spacing="md">
                   <TextInput
                     label="Site Name"
-                    value={settings.general?.siteName || ''}
-                    onChange={(e) => updateSetting('general', 'siteName', e.target.value || '')}
+                    value={settings.general?.siteName ?? ''}
+                    onChange={(e) => updateSetting('general', 'siteName', e.target.value ?? '')}
                   />
 
                   <Textarea
                     label="Site Description"
-                    value={settings.general?.siteDescription || ''}
-                    onChange={(e) => updateSetting('general', 'siteDescription', e.target.value || '')}
+                    value={settings.general?.siteDescription ?? ''}
+                    onChange={(e) => updateSetting('general', 'siteDescription', e.target.value ?? '')}
                     minRows={3}
                   />
 
                   <Group grow>
                     <Select
                       label="Default Theme"
-                      value={settings.general?.defaultTheme || 'light'}
-                      onChange={(value) => updateSetting('general', 'defaultTheme', value)}
+                      value={settings.general?.defaultTheme ?? 'light'}
+                      onChange={(value) => updateSetting('general', 'defaultTheme', value ?? 'light')}
                       data={[
                         { value: 'light', label: 'Light' },
                         { value: 'dark', label: 'Dark' },
@@ -413,8 +413,8 @@ export default function SystemSettings () {
 
                     <Select
                       label="Timezone"
-                      value={settings.general?.timezone || 'UTC'}
-                      onChange={(value) => updateSetting('general', 'timezone', value)}
+                      value={settings.general?.timezone ?? 'UTC'}
+                      onChange={(value) => updateSetting('general', 'timezone', value ?? 'UTC')}
                       data={[
                         { value: 'UTC', label: 'UTC' },
                         { value: 'America/New_York', label: 'Eastern Time' },
@@ -431,16 +431,16 @@ export default function SystemSettings () {
                   <Group grow>
                     <NumberInput
                       label="Max New Users Per Day"
-                      value={settings.general?.maxUsersPerDay || 100}
-                      onChange={(value) => updateSetting('general', 'maxUsersPerDay', value)}
+                      value={settings.general?.maxUsersPerDay ?? 100}
+                      onChange={(value) => updateSetting('general', 'maxUsersPerDay', value ?? 100)}
                       min={1}
                       max={10000}
                     />
 
                     <NumberInput
                       label="Session Timeout (minutes)"
-                      value={settings.general?.sessionTimeout || 30}
-                      onChange={(value) => updateSetting('general', 'sessionTimeout', value)}
+                      value={settings.general?.sessionTimeout ?? 30}
+                      onChange={(value) => updateSetting('general', 'sessionTimeout', value ?? 30)}
                       min={5}
                       max={1440}
                     />
@@ -451,14 +451,14 @@ export default function SystemSettings () {
                   <Switch
                     label="Maintenance Mode"
                     description="Disable access for all users except admins"
-                    checked={settings.general?.maintenanceMode || false}
+                    checked={settings.general?.maintenanceMode ?? false}
                     onChange={(e) => updateSetting('general', 'maintenanceMode', e.currentTarget.checked)}
                   />
 
                   <Switch
                     label="User Registration"
                     description="Allow new users to register accounts"
-                    checked={settings.general?.registrationEnabled || true}
+                    checked={settings.general?.registrationEnabled ?? true}
                     onChange={(e) => updateSetting('general', 'registrationEnabled', e.currentTarget.checked)}
                   />
 
@@ -506,8 +506,8 @@ export default function SystemSettings () {
             <Stack spacing="md">
               <Select
                 label="Email Provider"
-                value={settings.email?.provider || 'smtp'}
-                onChange={(value) => updateSetting('email', 'provider', value)}
+                value={settings.email?.provider ?? 'smtp'}
+                onChange={(value) => updateSetting('email', 'provider', value ?? 'smtp')}
                 data={[
                   { value: 'smtp', label: 'SMTP' },
                   { value: 'sendgrid', label: 'SendGrid' },
@@ -521,30 +521,30 @@ export default function SystemSettings () {
                   <Grid.Col span={6}>
                     <TextInput
                       label="SMTP Host"
-                      value={settings.email?.smtpHost || ''}
-                      onChange={(e) => updateSetting('email', 'smtpHost', e.target.value || '')}
+                      value={settings.email?.smtpHost ?? ''}
+                      onChange={(e) => updateSetting('email', 'smtpHost', e.target.value ?? '')}
                     />
                   </Grid.Col>
                   <Grid.Col span={6}>
                     <NumberInput
                       label="SMTP Port"
-                      value={settings.email?.smtpPort || 587}
+                      value={settings.email?.smtpPort ?? 587}
                       onChange={(value) => updateSetting('email', 'smtpPort', value ?? 587)}
                     />
                   </Grid.Col>
                   <Grid.Col span={6}>
                     <TextInput
                       label="SMTP Username"
-                      value={settings.email?.smtpUser || ''}
-                      onChange={(e) => updateSetting('email', 'smtpUser', e.target.value || '')}
+                      value={settings.email?.smtpUser ?? ''}
+                      onChange={(e) => updateSetting('email', 'smtpUser', e.target.value ?? '')}
                     />
                   </Grid.Col>
                   <Grid.Col span={6}>
                     <TextInput
                       label="SMTP Password"
                       type="password"
-                      value={settings.email?.smtpPassword || ''}
-                      onChange={(e) => updateSetting('email', 'smtpPassword', e.target.value || '')}
+                      value={settings.email?.smtpPassword ?? ''}
+                      onChange={(e) => updateSetting('email', 'smtpPassword', e.target.value ?? '')}
                     />
                   </Grid.Col>
                 </Grid>
@@ -554,15 +554,15 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <TextInput
                     label="From Email"
-                    value={settings.email?.fromEmail || ''}
-                    onChange={(e) => updateSetting('email', 'fromEmail', e.target.value || '')}
+                    value={settings.email?.fromEmail ?? ''}
+                    onChange={(e) => updateSetting('email', 'fromEmail', e.target.value ?? '')}
                   />
                 </Grid.Col>
                 <Grid.Col span={6}>
                   <TextInput
                     label="From Name"
-                    value={settings.email?.fromName || ''}
-                    onChange={(e) => updateSetting('email', 'fromName', e.target.value || '')}
+                    value={settings.email?.fromName ?? ''}
+                    onChange={(e) => updateSetting('email', 'fromName', e.target.value ?? '')}
                   />
                 </Grid.Col>
               </Grid>
@@ -572,14 +572,14 @@ export default function SystemSettings () {
               <Switch
                 label="Email Verification Required"
                 description="Require users to verify their email address"
-                checked={settings.email?.emailVerificationRequired || true}
+                checked={settings.email?.emailVerificationRequired ?? true}
                 onChange={(e) => updateSetting('email', 'emailVerificationRequired', e.currentTarget.checked)}
               />
 
               <Switch
                 label="Welcome Email"
                 description="Send welcome email to new users"
-                checked={settings.email?.welcomeEmailEnabled || true}
+                checked={settings.email?.welcomeEmailEnabled ?? true}
                 onChange={(e) => updateSetting('email', 'welcomeEmailEnabled', e.currentTarget.checked)}
               />
 
@@ -616,8 +616,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <TextInput
                     label="Stripe Publishable Key"
-                    value={settings.payments?.stripePublishableKey || ''}
-                    onChange={(e) => updateSetting('payments', 'stripePublishableKey', e.target.value)}
+                    value={settings.payments?.stripePublishableKey ?? ''}
+                    onChange={(e) => updateSetting('payments', 'stripePublishableKey', e.target.value ?? '')}
                     placeholder="pk_test_..."
                   />
                 </Grid.Col>
@@ -625,8 +625,8 @@ export default function SystemSettings () {
                   <TextInput
                     label="Stripe Secret Key"
                     type="password"
-                    value={settings.payments?.stripeSecretKey || ''}
-                    onChange={(e) => updateSetting('payments', 'stripeSecretKey', e.target.value)}
+                    value={settings.payments?.stripeSecretKey ?? ''}
+                    onChange={(e) => updateSetting('payments', 'stripeSecretKey', e.target.value ?? '')}
                     placeholder="sk_test_..."
                   />
                 </Grid.Col>
@@ -635,8 +635,8 @@ export default function SystemSettings () {
               <TextInput
                 label="Webhook Secret"
                 type="password"
-                value={settings.payments?.webhookSecret || ''}
-                onChange={(e) => updateSetting('payments', 'webhookSecret', e.target.value)}
+                value={settings.payments?.webhookSecret ?? ''}
+                onChange={(e) => updateSetting('payments', 'webhookSecret', e.target.value ?? '')}
                 placeholder="whsec_..."
                 description="Used to verify webhook signatures from Stripe"
               />
@@ -645,8 +645,8 @@ export default function SystemSettings () {
                 <Grid.Col span={4}>
                   <Select
                     label="Currency"
-                    value={settings.payments?.currency || 'USD'}
-                    onChange={(value) => updateSetting('payments', 'currency', value)}
+                    value={settings.payments?.currency ?? 'USD'}
+                    onChange={(value) => updateSetting('payments', 'currency', value ?? 'USD')}
                     data={[
                       { value: 'USD', label: 'USD ($)' },
                       { value: 'EUR', label: 'EUR (€)' },
@@ -658,8 +658,8 @@ export default function SystemSettings () {
                 <Grid.Col span={4}>
                   <NumberInput
                     label="Trial Days"
-                    value={settings.payments?.trialDays || 30}
-                    onChange={(value) => updateSetting('payments', 'trialDays', value)}
+                    value={settings.payments?.trialDays ?? 30}
+                    onChange={(value) => updateSetting('payments', 'trialDays', value ?? 30)}
                     min={0}
                     max={365}
                   />
@@ -667,8 +667,8 @@ export default function SystemSettings () {
                 <Grid.Col span={4}>
                   <NumberInput
                     label="Tax Rate (%)"
-                    value={settings.payments?.taxRate || 0}
-                    onChange={(value) => updateSetting('payments', 'taxRate', value)}
+                    value={settings.payments?.taxRate ?? 0}
+                    onChange={(value) => updateSetting('payments', 'taxRate', value ?? 0)}
                     min={0}
                     max={50}
                     precision={2}
@@ -680,8 +680,8 @@ export default function SystemSettings () {
                 <Grid.Col span={4}>
                   <NumberInput
                     label="Monthly Price ($)"
-                    value={settings.payments?.monthlyPrice || 4.99}
-                    onChange={(value) => updateSetting('payments', 'monthlyPrice', value)}
+                    value={settings.payments?.monthlyPrice ?? 4.99}
+                    onChange={(value) => updateSetting('payments', 'monthlyPrice', value ?? 4.99)}
                     min={0.99}
                     max={999.99}
                     precision={2}
@@ -690,8 +690,8 @@ export default function SystemSettings () {
                 <Grid.Col span={4}>
                   <NumberInput
                     label="Yearly Price ($)"
-                    value={settings.payments?.yearlyPrice || 39.99}
-                    onChange={(value) => updateSetting('payments', 'yearlyPrice', value)}
+                    value={settings.payments?.yearlyPrice ?? 39.99}
+                    onChange={(value) => updateSetting('payments', 'yearlyPrice', value ?? 39.99)}
                     min={9.99}
                     max={9999.99}
                     precision={2}
@@ -700,8 +700,8 @@ export default function SystemSettings () {
                 <Grid.Col span={4}>
                   <NumberInput
                     label="Yearly Discount (%)"
-                    value={settings.payments?.yearlyDiscount || 33}
-                    onChange={(value) => updateSetting('payments', 'yearlyDiscount', value)}
+                    value={settings.payments?.yearlyDiscount ?? 33}
+                    onChange={(value) => updateSetting('payments', 'yearlyDiscount', value ?? 33)}
                     min={0}
                     max={90}
                     readOnly
@@ -734,8 +734,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <NumberInput
                     label="Password Minimum Length"
-                    value={settings.security?.passwordMinLength || 8}
-                    onChange={(value) => updateSetting('security', 'passwordMinLength', value)}
+                    value={settings.security?.passwordMinLength ?? 8}
+                    onChange={(value) => updateSetting('security', 'passwordMinLength', value ?? 8)}
                     min={6}
                     max={32}
                   />
@@ -743,8 +743,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <NumberInput
                     label="Max Login Attempts"
-                    value={settings.security?.maxLoginAttempts || 5}
-                    onChange={(value) => updateSetting('security', 'maxLoginAttempts', value)}
+                    value={settings.security?.maxLoginAttempts ?? 5}
+                    onChange={(value) => updateSetting('security', 'maxLoginAttempts', value ?? 5)}
                     min={3}
                     max={20}
                   />
@@ -753,16 +753,16 @@ export default function SystemSettings () {
 
               <NumberInput
                 label="Account Lockout Duration (minutes)"
-                value={settings.security?.lockoutDuration || 15}
-                onChange={(value) => updateSetting('security', 'lockoutDuration', value)}
+                value={settings.security?.lockoutDuration ?? 15}
+                onChange={(value) => updateSetting('security', 'lockoutDuration', value ?? 15)}
                 min={1}
                 max={1440}
               />
 
               <Select
                 label="Session Security Level"
-                value={settings.security?.sessionSecurity || 'normal'}
-                onChange={(value) => updateSetting('security', 'sessionSecurity', value)}
+                value={settings.security?.sessionSecurity ?? 'normal'}
+                onChange={(value) => updateSetting('security', 'sessionSecurity', value ?? 'normal')}
                 data={[
                   { value: 'low', label: 'Low - Basic session management' },
                   { value: 'normal', label: 'Normal - Standard security' },
@@ -828,8 +828,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <NumberInput
                     label="Rate Limit (requests)"
-                    value={settings.api?.rateLimit || 100}
-                    onChange={(value) => updateSetting('api', 'rateLimit', value)}
+                    value={settings.api?.rateLimit ?? 100}
+                    onChange={(value) => updateSetting('api', 'rateLimit', value ?? 100)}
                     min={10}
                     max={10000}
                   />
@@ -837,8 +837,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <NumberInput
                     label="Rate Limit Window (minutes)"
-                    value={settings.api?.rateLimitWindow || 15}
-                    onChange={(value) => updateSetting('api', 'rateLimitWindow', value)}
+                    value={settings.api?.rateLimitWindow ?? 15}
+                    onChange={(value) => updateSetting('api', 'rateLimitWindow', value ?? 15)}
                     min={1}
                     max={1440}
                   />
@@ -847,8 +847,8 @@ export default function SystemSettings () {
 
               <Select
                 label="API Version"
-                value={settings.api?.apiVersion || 'v1'}
-                onChange={(value) => updateSetting('api', 'apiVersion', value)}
+                value={settings.api?.apiVersion ?? 'v1'}
+                onChange={(value) => updateSetting('api', 'apiVersion', value ?? 'v1')}
                 data={[
                   { value: 'v1', label: 'Version 1' },
                   { value: 'v2', label: 'Version 2 (Beta)' }
@@ -857,7 +857,7 @@ export default function SystemSettings () {
 
               <Textarea
                 label="Allowed Origins (CORS)"
-                value={settings.api?.allowedOrigins?.join('\n') || ''}
+                value={settings.api?.allowedOrigins?.join('\n') ?? ''}
                 onChange={(e) => updateSetting('api', 'allowedOrigins', e.target.value.split('\n').filter(Boolean))}
                 placeholder="https://example.com&#10;https://app.example.com"
                 minRows={3}
@@ -919,15 +919,15 @@ export default function SystemSettings () {
 
               <TextInput
                 label="Slack Webhook URL"
-                value={settings.notifications?.slackWebhook || ''}
-                onChange={(e) => updateSetting('notifications', 'slackWebhook', e.target.value)}
+                value={settings.notifications?.slackWebhook ?? ''}
+                onChange={(e) => updateSetting('notifications', 'slackWebhook', e.target.value ?? '')}
                 placeholder="https://hooks.slack.com/services/..."
               />
 
               <TextInput
                 label="Discord Webhook URL"
-                value={settings.notifications?.discordWebhook || ''}
-                onChange={(e) => updateSetting('notifications', 'discordWebhook', e.target.value)}
+                value={settings.notifications?.discordWebhook ?? ''}
+                onChange={(e) => updateSetting('notifications', 'discordWebhook', e.target.value ?? '')}
                 placeholder="https://discord.com/api/webhooks/..."
               />
 
@@ -936,22 +936,22 @@ export default function SystemSettings () {
               <Switch
                 label="Alert on Errors"
                 description="Send notifications when errors occur"
-                checked={settings.notifications?.alertOnErrors || true}
-                onChange={(e) => updateSetting('notifications', 'alertOnErrors', e.currentTarget.checked)}
+                checked={settings.notifications?.alertOnErrors ?? true}
+                onChange={(e) => updateSetting('notifications', 'alertOnErrors', e.currentTarget.checked ?? true)}
               />
 
               <Switch
                 label="Alert on High Traffic"
                 description="Send notifications during traffic spikes"
-                checked={settings.notifications?.alertOnHighTraffic || true}
-                onChange={(e) => updateSetting('notifications', 'alertOnHighTraffic', e.currentTarget.checked)}
+                checked={settings.notifications?.alertOnHighTraffic ?? true}
+                onChange={(e) => updateSetting('notifications', 'alertOnHighTraffic', e.currentTarget.checked ?? true)}
               />
 
               <Switch
                 label="Daily Reports"
                 description="Send daily summary reports"
-                checked={settings.notifications?.dailyReports || true}
-                onChange={(e) => updateSetting('notifications', 'dailyReports', e.currentTarget.checked)}
+                checked={settings.notifications?.dailyReports ?? true}
+                onChange={(e) => updateSetting('notifications', 'dailyReports', e.currentTarget.checked ?? true)}
               />
 
               <Button
@@ -974,8 +974,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <NumberInput
                     label="Cache Duration (seconds)"
-                    value={settings.performance?.cacheDuration || 300}
-                    onChange={(value) => updateSetting('performance', 'cacheDuration', value)}
+                    value={settings.performance?.cacheDuration ?? 300}
+                    onChange={(value) => updateSetting('performance', 'cacheDuration', value ?? 300)}
                     min={60}
                     max={86400}
                   />
@@ -983,8 +983,8 @@ export default function SystemSettings () {
                 <Grid.Col span={6}>
                   <NumberInput
                     label="Database Pool Size"
-                    value={settings.performance?.databasePoolSize || 10}
-                    onChange={(value) => updateSetting('performance', 'databasePoolSize', value)}
+                    value={settings.performance?.databasePoolSize ?? 10}
+                    onChange={(value) => updateSetting('performance', 'databasePoolSize', value ?? 10)}
                     min={5}
                     max={100}
                   />
@@ -993,16 +993,16 @@ export default function SystemSettings () {
 
               <NumberInput
                 label="Max Concurrent Users"
-                value={settings.performance?.maxConcurrentUsers || 1000}
-                onChange={(value) => updateSetting('performance', 'maxConcurrentUsers', value)}
+                value={settings.performance?.maxConcurrentUsers ?? 1000}
+                onChange={(value) => updateSetting('performance', 'maxConcurrentUsers', value ?? 1000)}
                 min={100}
                 max={100000}
               />
 
               <TextInput
                 label="CDN URL"
-                value={settings.performance?.cdnUrl || ''}
-                onChange={(e) => updateSetting('performance', 'cdnUrl', e.target.value)}
+                value={settings.performance?.cdnUrl ?? ''}
+                onChange={(e) => updateSetting('performance', 'cdnUrl', e.target.value ?? '')}
                 placeholder="https://cdn.example.com"
                 disabled={!settings.performance?.cdnEnabled}
               />
@@ -1012,15 +1012,15 @@ export default function SystemSettings () {
               <Switch
                 label="Enable Caching"
                 description="Cache frequently accessed data"
-                checked={settings.performance?.cacheEnabled || true}
-                onChange={(e) => updateSetting('performance', 'cacheEnabled', e.currentTarget.checked)}
+                checked={settings.performance?.cacheEnabled ?? true}
+                onChange={(e) => updateSetting('performance', 'cacheEnabled', e.currentTarget.checked ?? true)}
               />
 
               <Switch
                 label="Enable Compression"
                 description="Compress API responses"
-                checked={settings.performance?.compressionEnabled || true}
-                onChange={(e) => updateSetting('performance', 'compressionEnabled', e.currentTarget.checked)}
+                checked={settings.performance?.compressionEnabled ?? true}
+                onChange={(e) => updateSetting('performance', 'compressionEnabled', e.currentTarget.checked ?? true)}
               />
 
               <Switch

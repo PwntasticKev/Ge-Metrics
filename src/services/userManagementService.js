@@ -135,7 +135,7 @@ class UserManagementService {
         username: 'user1',
         name: 'Test User 1',
         avatar: 'https://example.com/avatar1.jpg',
-        mailchimp_api_key: process.env.MAILCHIMP_API_KEY || 'mc_key_placeholder',
+        mailchimp_api_key: process.env.MAILCHIMP_API_KEY || '',
         created_at: new Date(),
         updated_at: new Date()
       },
@@ -155,7 +155,7 @@ class UserManagementService {
         username: 'user3',
         name: 'Test User 3',
         avatar: 'https://example.com/avatar3.jpg',
-        mailchimp_api_key: process.env.MAILCHIMP_API_KEY_2 || 'mc_key_placeholder_2',
+        mailchimp_api_key: process.env.MAILCHIMP_API_KEY_2 || '',
         created_at: new Date(),
         updated_at: new Date()
       }

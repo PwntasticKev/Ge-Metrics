@@ -4,7 +4,7 @@
 class StripeService {
   constructor () {
     // Use import.meta.env for Vite instead of process.env
-    this.apiKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_example'
+    this.apiKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
     this.serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
     this.stripe = null
     this.initialized = false
