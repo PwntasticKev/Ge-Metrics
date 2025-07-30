@@ -180,19 +180,19 @@ async function createDemoUser () {
     const achievements = await db.insert(schema.userAchievements).values([
       {
         userId,
-        achievementType: 'profit',
-        achievementKey: 'first_million',
+        achievementId: 'profit_first_million',
         achievementName: 'First Million',
-        achievementDescription: 'Earn your first million GP',
-        progressValue: 80000
+        description: 'Earn your first million GP',
+        icon: null,
+        unlockedAt: new Date()
       },
       {
         userId,
-        achievementType: 'trades',
-        achievementKey: 'first_trade',
+        achievementId: 'trades_first_trade',
         achievementName: 'First Trade',
-        achievementDescription: 'Complete your first trade',
-        progressValue: 1
+        description: 'Complete your first trade',
+        icon: null,
+        unlockedAt: new Date()
       }
     ]).returning()
 

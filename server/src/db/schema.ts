@@ -335,3 +335,22 @@ export type Employee = typeof employees.$inferSelect;
 export type NewEmployee = typeof employees.$inferInsert;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type NewAuditLog = typeof auditLog.$inferInsert;
+
+export const otps = pgTable('otps', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  otpCode: text('otp_code').notNull(),
+  type: text('type').notNull(), // e.g., 'password_reset', 'email_verification', etc.
+  expiresAt: timestamp('expires_at').notNull(),
+  used: boolean('used').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('otps_user_id_idx').on(table.userId),
+  typeIdx: index('otps_type_idx').on(table.type)
+}))
+
+export const insertOtpSchema = createInsertSchema(otps)
+export const selectOtpSchema = createSelectSchema(otps)
+
+export type Otp = typeof otps.$inferSelect;
+export type NewOtp = typeof otps.$inferInsert;

@@ -81,8 +81,8 @@ RUNELITE_API_KEY=your_runelite_api_key_if_needed
 # DEMO_AVATAR=https://example.com/demo-avatar.jpg
 
 # Admin User Credentials (for testing)
-# ADMIN_EMAIL=admin@example.com
-# ADMIN_PASSWORD=CHANGE_THIS_PASSWORD
+# ADMIN_EMAIL=admin@test.com
+# ADMIN_PASSWORD=Admin123!
 # ADMIN_NAME=Admin User
 # ADMIN_PASSWORD_HASH=$2a$12$placeholder.hash.for.testing.only
 # ADMIN_SALT=$2a$12$placeholder.salt

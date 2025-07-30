@@ -2,8 +2,8 @@ import { IconDots } from '@tabler/icons-react'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Box, Button, Checkbox, createStyles, Group, Modal, TextInput, useMantineTheme } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import authService from '../../../../services/authService'
-// import DropZone from '../../../../shared/dropzone.jsx'
+import { useAuth } from '../../../../hooks/useAuth'
+import { trpc } from '../../../../utils/trpc.jsx'
 import { useState } from 'react'
 
 const useStyles = createStyles((theme) => ({
@@ -18,14 +18,14 @@ const useStyles = createStyles((theme) => ({
 export default function UserEdit () {
   const theme = useMantineTheme()
   const isMobile = useMediaQuery('(max-width: 50em)')
-  const user = authService.getCurrentUser() || { email: 'guest@example.com', username: '', phone: '' }
+  const { user } = useAuth()
   const { classes } = useStyles()
   const [opened, { open, close }] = useDisclosure(false)
   const [loading, setLoading] = useState(false)
 
   const form = useForm({
     initialValues: {
-      user: user?.username || '', // Ensure it's always a string
+      user: user?.name || '', // Ensure it's always a string
       phone: user?.phone || '', // Ensure it's always a string
       email: user?.email || '', // Add email field for consistency
       termsOfService: false
@@ -40,11 +40,9 @@ export default function UserEdit () {
   const handleSubmit = async (values) => {
     setLoading(true)
     try {
-      // Call the auth service to update user profile
-      await authService.updateProfile({
-        username: values.user,
-        phone: values.phone
-      })
+      // For now, we'll just close the modal since we don't have a profile update endpoint yet
+      // TODO: Add profile update tRPC endpoint
+      console.log('Profile update values:', values)
       close()
       // You might want to show a success notification here
     } catch (error) {

@@ -13,7 +13,13 @@ const configSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'Google Client Secret is required'),
   PORT: z.string().transform(Number).default('4000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  FRONTEND_URL: z.string().url().default('http://localhost:5173')
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  STRIPE_PRICE_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_YEARLY: z.string().optional(),
+  STRIPE_PRODUCT_PREMIUM: z.string().optional()
 })
 
 export const config = configSchema.parse(process.env)

@@ -1,57 +1,59 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
-  Button,
-  Center,
-  Flex,
   Grid,
-  Image,
-  Indicator,
-  Text,
-  useMantineTheme,
   Card,
-  Group,
-  Stack,
-  Badge,
-  Avatar,
-  SimpleGrid,
-  Select,
-  Switch,
-  Divider,
-  ActionIcon,
-  Modal,
   Title,
-  Progress,
-  Timeline,
-  Alert,
-  Anchor,
+  Text,
+  Group,
+  Avatar,
+  Badge,
+  Button,
+  Stack,
+  SimpleGrid,
+  Modal,
+  Switch,
   TextInput,
-  Textarea
+  ActionIcon,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip
+  , useMantineTheme
 } from '@mantine/core'
 import {
-  IconChevronRight,
-  IconCircleDotted,
-  IconLogout,
-  IconSettings2,
-  IconTrendingUp,
-  IconCrown,
-  IconPalette,
   IconUser,
-  IconCreditCard,
-  IconChartLine,
+  IconMail,
+  IconPhone,
+  IconMapPin,
   IconCalendar,
-  IconCoins,
-  IconShield,
+  IconCrown,
+  IconTrophy,
+  IconTarget,
+  IconPlus,
+  IconTrash,
+  IconCheck,
+  IconX,
+  IconEdit,
+  IconPalette,
   IconMoon,
   IconSun,
+  IconShield,
   IconBrandDiscord,
-  IconMail,
-  IconExternalLink
+  IconCreditCard,
+  IconSettings2,
+  IconCircleDotted,
+  IconLogout,
+  IconCrown as IconCrownSolid
 } from '@tabler/icons-react'
-import jmodImage from '../../assets/jmod.png'
-import authService from '../../services/authService'
-import UserEdit from './components/modals/user-edit.jsx'
-import UserSubscription from './components/modals/user-subscription.jsx'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useAuth } from '../../hooks/useAuth'
+import UserEdit from './components/modals/user-edit'
+import UserSubscription from './components/modals/user-subscription'
+import UserGoals from './components/modals/user-goals'
+import { trpc } from '../../utils/trpc.jsx'
 
 // Default avatar options
 const DEFAULT_AVATARS = [
@@ -85,7 +87,7 @@ const PROFIT_DATA = [
 
 export default function Profile () {
   const theme = useMantineTheme()
-  const user = authService.getCurrentUser() || { email: 'guest@example.com' }
+  const { user, logout } = useAuth()
   const [activeModal, setActiveModal] = useState('')
   const [selectedAvatar, setSelectedAvatar] = useState(DEFAULT_AVATARS[0])
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -248,6 +250,7 @@ export default function Profile () {
   return <>
     <UserEdit/>
     {activeModal === 'subscription' && <UserSubscription open={true} handleChange={setActiveModal}/>}
+    {activeModal === 'goals' && <UserGoals open={true} handleChange={setActiveModal}/>}
 
     {/* Avatar Selection Modal */}
     <Modal
@@ -281,22 +284,15 @@ export default function Profile () {
           <Group position="apart">
             <Group spacing="xl">
               <div style={{ position: 'relative' }}>
-                <Indicator
-                  label={<Image height={20} width={20} src={jmodImage} alt="Premium"/>}
-                  inline
-                  size={20}
-                  offset={12}
-                  position="bottom-end"
-                  color="none"
-                >
+                <Tooltip label="Premium">
                   <Avatar
-                    src={avatarToShow}
+                    src={jmodImage}
                     size="xl"
                     radius="xl"
                     style={{ cursor: 'pointer' }}
                     onClick={() => setAvatarModalOpen(true)}
                   />
-                </Indicator>
+                </Tooltip>
               </div>
 
               <div>
@@ -305,14 +301,14 @@ export default function Profile () {
                   <Badge
                     color={getSubscriptionBadgeColor()}
                     variant="light"
-                    leftIcon={<IconCrown size={12} />}
+                    leftIcon={<IconCrownSolid size={12} />}
                   >
                     {subscriptionPlan.toUpperCase()} MEMBER
                   </Badge>
                 </Group>
 
                 <Text color="dimmed" size="sm" mt="xs">
-                  {user.email} • Joined {daysSinceJoined} days ago
+                  {user?.email} • Joined {daysSinceJoined} days ago
                 </Text>
 
                 <Group spacing="xs" mt="sm">
@@ -327,7 +323,7 @@ export default function Profile () {
 
             <Stack align="flex-end">
               <Badge size="lg" color="green" variant="light">
-                <IconTrendingUp size={14} /> {formatCurrency(totalProfit)} GP
+                <IconTrophy size={14} /> {formatCurrency(totalProfit)} GP
               </Badge>
               <Text size="sm" color="dimmed">Total Profit</Text>
             </Stack>
@@ -348,7 +344,7 @@ export default function Profile () {
                   {formatCurrency(totalProfit)} GP
                 </Text>
               </div>
-              <IconTrendingUp size={24} color={theme.colors.green[6]} />
+              <IconTrophy size={24} color={theme.colors.green[6]} />
             </Group>
           </Card>
 
@@ -362,7 +358,7 @@ export default function Profile () {
                   {totalTransactions}
                 </Text>
               </div>
-              <IconChartLine size={24} color={theme.colors.blue[6]} />
+              <IconTarget size={24} color={theme.colors.blue[6]} />
             </Group>
           </Card>
 
@@ -376,7 +372,7 @@ export default function Profile () {
                   {formatCurrency(Math.round(totalProfit / totalTransactions))} GP
                 </Text>
               </div>
-              <IconCoins size={24} color={theme.colors.yellow[6]} />
+              <IconCrown size={24} color={theme.colors.yellow[6]} />
             </Group>
           </Card>
 
@@ -489,18 +485,11 @@ export default function Profile () {
               </Text>
             </div>
           </Group>
-          {transactions.length > 0 && (
-            <div style={{ marginTop: '8px' }}>
-              <Text size="xs" color="dimmed" mb="xs">Recent Transactions:</Text>
-              <Stack spacing={4}>
-                {transactions.slice(-3).reverse().map(transaction => (
-                  <Text key={transaction.id} size="xs" color={transaction.value >= 0 ? 'green' : 'red'}>
-                    {transaction.value >= 0 ? '+' : ''}{formatCurrency(transaction.value)} GP
-                  </Text>
-                ))}
-              </Stack>
-            </div>
-          )}
+          {transactions?.slice(-3).reverse().map(transaction => (
+            <Text key={transaction.id} size="xs" color={transaction.value >= 0 ? 'green' : 'red'}>
+              {transaction.value >= 0 ? '+' : ''}{formatCurrency(transaction.value)} GP
+            </Text>
+          ))}
         </Card>
         {/* Profit Chart with Goal Line */}
         <Card withBorder radius="md" p="md">
@@ -514,7 +503,7 @@ export default function Profile () {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip
+                <RechartsTooltip
                   formatter={(value) => [`${formatCurrency(value)} GP`, 'Profit']}
                   labelStyle={{ color: theme.colorScheme === 'dark' ? theme.white : theme.black }}
                 />
@@ -698,7 +687,7 @@ export default function Profile () {
           variant="light"
           color="red"
           leftIcon={<IconLogout />}
-          onClick={() => authService.logout()}
+          onClick={logout}
           size="md"
         >
           Sign Out

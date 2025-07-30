@@ -44,7 +44,7 @@ export const STRIPE_CONFIG = {
   CHECKOUT_SETTINGS: {
     mode: 'subscription' as const,
     payment_method_types: ['card'],
-    billing_address_collection: 'required',
+  billing_address_collection: 'required' as const,
     allow_promotion_codes: true,
     automatic_tax: { enabled: false },
     customer_update: {
@@ -144,7 +144,7 @@ export async function getOrCreateCustomer(
   }
 
   if (userId) {
-    customerData.metadata!.userId = userId
+    (customerData.metadata as Record<string, string>).userId = userId
   }
 
   return await stripe.customers.create(customerData)

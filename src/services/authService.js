@@ -398,7 +398,7 @@ class AuthService {
    * Test Helpers
    */
   async loginWithTestAccount () {
-    return this.login('admin@test.com', 'admin123')
+    return this.login('admin@test.com', 'Admin123!')
   }
 
   // Get master credentials for testing - Use environment variables in production

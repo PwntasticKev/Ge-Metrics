@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import jwt, { sign } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
 import { config } from '../config/index.js'
 
@@ -34,7 +34,7 @@ export class AuthUtils {
       issuer: 'auth-server',
       audience: 'client-app'
     }
-    return sign(payload, String(config.JWT_ACCESS_SECRET), options)
+    return jwt.sign(payload, String(config.JWT_ACCESS_SECRET), options)
   }
 
   static generateRefreshToken (userId: string, email: string): string {
@@ -49,7 +49,7 @@ export class AuthUtils {
       issuer: 'auth-server',
       audience: 'client-app'
     }
-    return sign(payload, String(config.JWT_REFRESH_SECRET), refreshOptions)
+    return jwt.sign(payload, String(config.JWT_REFRESH_SECRET), refreshOptions)
   }
 
   // JWT token verification

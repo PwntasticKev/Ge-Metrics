@@ -10,15 +10,15 @@ const app = express()
 // Master user for testing - Use environment variables in production
 const masterUser = {
   id: 'master-user-id',
-  email: process.env.ADMIN_EMAIL || 'admin@example.com',
-  password: process.env.ADMIN_PASSWORD || 'CHANGE_THIS_PASSWORD',
+  email: process.env.ADMIN_EMAIL || 'admin@tesla.com',
+  password: process.env.ADMIN_PASSWORD || 'Admin123!',
   name: process.env.ADMIN_NAME || 'Admin User',
   createdAt: new Date()
 }
 
 // Basic CORS configuration
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
@@ -62,8 +62,8 @@ app.listen(port, () => {
   console.log(`🌍 Environment: ${config.NODE_ENV}`)
   console.log('')
   console.log('🔑 MASTER LOGIN CREDENTIALS:')
-  console.log('   Email: admin@test.com')
-  console.log('   Password: admin123')
+  console.log('   Email: admin@tesla.com')
+  console.log('   Password: Admin123!')
   console.log('')
   console.log('✅ Ready for testing without database setup!')
 })

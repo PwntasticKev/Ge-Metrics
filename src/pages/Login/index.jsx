@@ -42,9 +42,10 @@ import {
   IconCheck
 } from '@tabler/icons-react'
 import securityService from '../../services/securityService'
-import authService from '../../services/authService'
 import bg from '../../assets/gehd.png'
 import { useAuth } from '../../hooks/useAuth'
+import PasswordRecoveryModal from '../../components/auth/PasswordRecoveryModal'
+import { trpc } from '../../utils/trpc.jsx'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -52,14 +53,8 @@ const Login = () => {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [recoveryModalOpened, setRecoveryModalOpened] = useState(false)
   const { isLoadingUser, userError } = useAuth()
-
-  if (isLoadingUser) {
-    return <Center style={{ minHeight: '100vh' }}><Loader size="lg" /></Center>
-  }
-  if (userError) {
-    return <Center style={{ minHeight: '100vh' }}><Alert color="red">{userError.message || 'Authentication error. Please try again later.'}</Alert></Center>
-  }
 
   const form = useForm({
     initialValues: {
@@ -96,26 +91,46 @@ const Login = () => {
     }
   }, [navigate])
 
+  if (isLoadingUser) {
+    return <Center style={{ minHeight: '100vh' }}><Loader size="lg" /></Center>
+  }
+  if (userError) {
+    return <Center style={{ minHeight: '100vh' }}><Alert color="red">{userError.message || 'Authentication error. Please try again later.'}</Alert></Center>
+  }
+
   const handleLogin = async (values) => {
     setLoading(true)
     setError('')
 
     try {
-      const data = await authService.login(values.identifier, values.password)
+      // Use tRPC client for login
+      const result = await trpc.auth.login.mutate({
+        email: values.identifier,
+        password: values.password
+      })
+
+      // Store authentication data
+      localStorage.setItem('auth_token', result.accessToken)
+      localStorage.setItem('refresh_token', result.refreshToken)
+      localStorage.setItem('auth_session', JSON.stringify({
+        user: result.user,
+        token: result.accessToken,
+        expiresAt: Date.now() + (60 * 60 * 1000) // 1 hour
+      }))
 
       notifications.show({
         title: 'Welcome back!',
-        message: `Hello ${data.user.name || data.user.username}, you've successfully logged in.`,
+        message: `Hello ${result.user.name}, you've successfully logged in.`,
         color: 'green',
         icon: <IconCheck size={16} />
       })
 
       navigate('/')
     } catch (error) {
-      setError(error.message)
+      setError(error.message || 'Login failed')
       notifications.show({
         title: 'Login Failed',
-        message: error.message,
+        message: error.message || 'Login failed',
         color: 'red',
         icon: <IconAlertCircle size={16} />
       })
@@ -198,75 +213,78 @@ const Login = () => {
               {error}
             </Alert>
           )}
+
           <form onSubmit={form.onSubmit(handleLogin)}>
             <Stack spacing="md">
               <TextInput
                 label="Email or Username"
-                placeholder="your@email.com or username"
-                icon={<IconMail size={18} />}
-                size="md"
-                radius="md"
-                {...form.getInputProps('identifier')}
-                autoFocus
+                placeholder="Enter your email or username"
+                leftIcon={<IconMail size={16} />}
                 required
+                {...form.getInputProps('identifier')}
               />
+
               <PasswordInput
                 label="Password"
-                placeholder="Your password"
-                icon={<IconLock size={18} />}
-                size="md"
-                radius="md"
-                {...form.getInputProps('password')}
+                placeholder="Enter your password"
+                leftIcon={<IconLock size={16} />}
                 required
-                rightSection={
-                  <ActionIcon onClick={() => setShowPassword((v) => !v)} tabIndex={-1}>
-                    {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
-                  </ActionIcon>
-                }
-                type={showPassword ? 'text' : 'password'}
+                {...form.getInputProps('password')}
               />
-              <Group position="apart" mt="xs">
+
+              <Group position="apart">
                 <Checkbox
                   label="Remember me"
                   {...form.getInputProps('rememberMe', { type: 'checkbox' })}
                 />
-                <UnstyledButton component={Link} to="/signup" style={{ color: '#228be6', fontWeight: 500 }}>
-                  Sign up
+                <UnstyledButton
+                  component="button"
+                  type="button"
+                  onClick={() => setRecoveryModalOpened(true)}
+                  style={{ fontSize: '14px', color: '#228be6', textDecoration: 'none' }}
+                >
+                  Forgot password?
                 </UnstyledButton>
               </Group>
+
               <Button
                 type="submit"
-                size="md"
-                radius="md"
                 fullWidth
+                size="md"
                 loading={loading}
-                leftIcon={<IconLogin size={18} />}
-                style={{ marginTop: 8 }}
+                leftIcon={<IconLogin size={16} />}
               >
-                Sign in
+                Sign In
               </Button>
-              <Divider label="or" labelPosition="center" my="sm" />
+
+              <Divider label="or" labelPosition="center" />
+
               <Button
                 variant="outline"
-                size="md"
-                radius="md"
                 fullWidth
-                leftIcon={<IconBrandGoogle size={18} />}
+                size="md"
+                leftIcon={<IconBrandGoogle size={16} />}
                 onClick={handleGoogleLogin}
-                style={{ borderColor: '#ddd', color: '#333', background: '#fafafa' }}
               >
-                Sign in with Google
+                Continue with Google
               </Button>
+
+              <Text align="center" size="sm" color="dimmed">
+                Don't have an account?{' '}
+                <Link to="/signup" style={{ color: '#228be6', textDecoration: 'none' }}>
+                  Sign up
+                </Link>
+              </Text>
             </Stack>
           </form>
         </Paper>
-        <Text size="sm" color="dimmed" align="center" mt="md">
-          Already have an account?{' '}
-          <UnstyledButton component={Link} to="/signup" style={{ color: '#228be6', fontWeight: 500 }}>
-            Sign up
-          </UnstyledButton>
-        </Text>
       </Box>
+
+      {/* Password Recovery Modal */}
+      <PasswordRecoveryModal
+        opened={recoveryModalOpened}
+        onClose={() => setRecoveryModalOpened(false)}
+      />
     </Box>
   )
 }

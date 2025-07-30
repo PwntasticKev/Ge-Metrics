@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
-import { memoryDb } from '../db/memory.js'
+import { db } from '../db/index.js'
+import * as schema from '../db/schema.js'
+import { eq } from 'drizzle-orm'
 import { AuthUtils } from '../utils/auth.js'
 import { OtpService } from '../services/otpService.js'
 
@@ -17,8 +19,8 @@ export const authRouter = router({
       const { email, password, name } = input
 
       // Check if user already exists
-      const existingUser = await memoryDb.users.findByEmail(email)
-      if (existingUser) {
+      const existingUser = await db.select().from(schema.users).where(eq(schema.users.email, email))
+      if (existingUser.length > 0) {
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'User with this email already exists'
@@ -29,30 +31,32 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(password)
 
       // Create user
-      const newUser = await memoryDb.users.create({
+      const newUser = await db.insert(schema.users).values({
         email,
         passwordHash: hash,
         salt,
         name
-      })
+      }).returning()
+
+      const user = newUser[0]
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(newUser.id, newUser.email)
-      const refreshToken = AuthUtils.generateRefreshToken(newUser.id, newUser.email)
+      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
+      const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
       // Store refresh token
-      await memoryDb.refreshTokens.create({
-        userId: newUser.id,
+      await db.insert(schema.refreshTokens).values({
+        userId: user.id,
         token: refreshToken,
         expiresAt: AuthUtils.getRefreshTokenExpiration()
       })
 
       return {
         user: {
-          id: newUser.id,
-          email: newUser.email,
-          name: newUser.name,
-          avatar: newUser.avatar
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar: user.avatar
         },
         accessToken,
         refreshToken
@@ -69,13 +73,15 @@ export const authRouter = router({
       const { email, password } = input
 
       // Find user
-      const user = await memoryDb.users.findByEmail(email)
-      if (!user || !user.passwordHash) {
+      const users = await db.select().from(schema.users).where(eq(schema.users.email, email))
+      if (users.length === 0 || !users[0].passwordHash) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid credentials'
         })
       }
+
+      const user = users[0]
 
       // Verify password
       const isValidPassword = await AuthUtils.verifyPassword(password, user.passwordHash)
@@ -91,7 +97,7 @@ export const authRouter = router({
       const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
       // Store refresh token
-      await memoryDb.refreshTokens.create({
+      await db.insert(schema.refreshTokens).values({
         userId: user.id,
         token: refreshToken,
         expiresAt: AuthUtils.getRefreshTokenExpiration()
@@ -122,8 +128,11 @@ export const authRouter = router({
         const payload = AuthUtils.verifyRefreshToken(refreshToken)
 
         // Check if refresh token exists in database
-        const tokenRecord = await memoryDb.refreshTokens.findByToken(refreshToken)
-        if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+        const tokenRecords = await db.select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.token, refreshToken))
+
+        if (tokenRecords.length === 0 || tokenRecords[0].expiresAt < new Date()) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
             message: 'Invalid or expired refresh token'
@@ -131,21 +140,23 @@ export const authRouter = router({
         }
 
         // Get user
-        const user = await memoryDb.users.findById(payload.userId)
-        if (!user) {
+        const users = await db.select().from(schema.users).where(eq(schema.users.id, payload.userId))
+        if (users.length === 0) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
             message: 'User not found'
           })
         }
 
+        const user = users[0]
+
         // Generate new tokens
         const newAccessToken = AuthUtils.generateAccessToken(user.id, user.email)
         const newRefreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
         // Delete old refresh token and create new one
-        await memoryDb.refreshTokens.deleteByToken(refreshToken)
-        await memoryDb.refreshTokens.create({
+        await db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.token, refreshToken))
+        await db.insert(schema.refreshTokens).values({
           userId: user.id,
           token: newRefreshToken,
           expiresAt: AuthUtils.getRefreshTokenExpiration()
@@ -178,7 +189,7 @@ export const authRouter = router({
       const { refreshToken } = input
 
       // Delete refresh token from database
-      await memoryDb.refreshTokens.deleteByToken(refreshToken)
+      await db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.token, refreshToken))
 
       return { success: true }
     }),
@@ -192,13 +203,15 @@ export const authRouter = router({
       const { email } = input
 
       // Find user
-      const user = await memoryDb.users.findByEmail(email)
-      if (!user) {
+      const users = await db.select().from(schema.users).where(eq(schema.users.email, email))
+      if (users.length === 0) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'User not found'
         })
       }
+
+      const user = users[0]
 
       // Invalidate any existing password reset OTPs
       await OtpService.invalidateOtps(user.id, 'password_reset')
@@ -234,13 +247,15 @@ export const authRouter = router({
       const { email, otpCode, newPassword } = input
 
       // Find user
-      const user = await memoryDb.users.findByEmail(email)
-      if (!user) {
+      const users = await db.select().from(schema.users).where(eq(schema.users.email, email))
+      if (users.length === 0) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'User not found'
         })
       }
+
+      const user = users[0]
 
       // Verify OTP
       const otpResult = await OtpService.verifyOtp(user.id, otpCode, 'password_reset')
@@ -255,13 +270,16 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(newPassword)
 
       // Update user password
-      await memoryDb.users.update(user.id, {
-        passwordHash: hash,
-        salt
-      })
+      await db.update(schema.users)
+        .set({
+          passwordHash: hash,
+          salt,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, user.id))
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(user.id)
+      await db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.userId, user.id))
 
       return {
         success: true,
@@ -279,13 +297,15 @@ export const authRouter = router({
       const { currentPassword, newPassword } = input
 
       // Get user
-      const user = await memoryDb.users.findById(ctx.user.userId)
-      if (!user || !user.passwordHash) {
+      const users = await db.select().from(schema.users).where(eq(schema.users.id, ctx.user.userId))
+      if (users.length === 0 || !users[0].passwordHash) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'User not found'
         })
       }
+
+      const user = users[0]
 
       // Verify current password
       const isValidPassword = await AuthUtils.verifyPassword(currentPassword, user.passwordHash)
@@ -300,13 +320,16 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(newPassword)
 
       // Update user password
-      await memoryDb.users.update(user.id, {
-        passwordHash: hash,
-        salt
-      })
+      await db.update(schema.users)
+        .set({
+          passwordHash: hash,
+          salt,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, user.id))
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(user.id)
+      await db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.userId, user.id))
 
       return {
         success: true,
@@ -317,21 +340,22 @@ export const authRouter = router({
   // Get current user (protected route)
   me: protectedProcedure
     .query(async ({ ctx }) => {
-      const user = await memoryDb.users.findById(ctx.user.userId)
+      const users = await db.select().from(schema.users).where(eq(schema.users.id, ctx.user.userId))
 
-      if (!user) {
+      if (users.length === 0) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'User not found'
         })
       }
 
+      const user = users[0]
+
       return {
         id: user.id,
         email: user.email,
         name: user.name,
-        avatar: user.avatar,
-        createdAt: user.createdAt
+        avatar: user.avatar
       }
     })
 })

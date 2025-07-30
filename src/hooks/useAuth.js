@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { trpc } from '../utils/trpc'
 
 // Auth state management
@@ -13,9 +13,7 @@ export const useAuth = () => {
     data: user,
     isLoading: isLoadingUser,
     error: userError
-  } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: () => trpc.auth.me.query(),
+  } = trpc.auth.me.useQuery(undefined, {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: hasToken, // Only run the query if we have a token
@@ -23,8 +21,7 @@ export const useAuth = () => {
   })
 
   // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: (data) => trpc.auth.register.mutate(data),
+  const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
       // Store tokens
       localStorage.setItem('accessToken', data.accessToken)
@@ -37,22 +34,7 @@ export const useAuth = () => {
   })
 
   // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: (data) => trpc.auth.login.mutate(data),
-    onSuccess: (data) => {
-      // Store tokens
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-
-      // Update query cache
-      queryClient.setQueryData(['auth', 'me'], data.user)
-      queryClient.invalidateQueries({ queryKey: ['auth'] })
-    }
-  })
-
-  // Google login mutation
-  const googleLoginMutation = useMutation({
-    mutationFn: (data) => trpc.auth.googleIdToken.mutate(data),
+  const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       // Store tokens
       localStorage.setItem('accessToken', data.accessToken)
@@ -65,11 +47,7 @@ export const useAuth = () => {
   })
 
   // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: () => {
-      const refreshToken = localStorage.getItem('refreshToken')
-      return trpc.auth.logout.mutate({ refreshToken })
-    },
+  const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       // Clear tokens
       localStorage.removeItem('accessToken')
@@ -82,11 +60,7 @@ export const useAuth = () => {
   })
 
   // Refresh token mutation
-  const refreshMutation = useMutation({
-    mutationFn: () => {
-      const refreshToken = localStorage.getItem('refreshToken')
-      return trpc.auth.refresh.mutate({ refreshToken })
-    },
+  const refreshMutation = trpc.auth.refresh.useMutation({
     onSuccess: (data) => {
       // Store new tokens
       localStorage.setItem('accessToken', data.accessToken)
@@ -113,21 +87,18 @@ export const useAuth = () => {
     // Mutations
     register: registerMutation.mutate,
     login: loginMutation.mutate,
-    googleLogin: googleLoginMutation.mutate,
     logout: logoutMutation.mutate,
     refresh: refreshMutation.mutate,
 
     // Loading states
     isRegistering: registerMutation.isPending,
     isLoggingIn: loginMutation.isPending,
-    isGoogleLoggingIn: googleLoginMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
     isRefreshing: refreshMutation.isPending,
 
     // Errors
     registerError: registerMutation.error,
     loginError: loginMutation.error,
-    googleLoginError: googleLoginMutation.error,
     logoutError: logoutMutation.error,
     refreshError: refreshMutation.error
   }
@@ -137,8 +108,7 @@ export const useAuth = () => {
 export const useRegister = () => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: (data) => trpc.auth.register.mutate(data),
+  return trpc.auth.register.useMutation({
     onSuccess: (data) => {
       localStorage.setItem('accessToken', data.accessToken)
       localStorage.setItem('refreshToken', data.refreshToken)
@@ -151,8 +121,7 @@ export const useRegister = () => {
 export const useLogin = () => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: (data) => trpc.auth.login.mutate(data),
+  return trpc.auth.login.useMutation({
     onSuccess: (data) => {
       localStorage.setItem('accessToken', data.accessToken)
       localStorage.setItem('refreshToken', data.refreshToken)
@@ -165,8 +134,7 @@ export const useLogin = () => {
 export const useGoogleLogin = () => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: (data) => trpc.auth.googleIdToken.mutate(data),
+  return trpc.auth.googleIdToken.useMutation({
     onSuccess: (data) => {
       localStorage.setItem('accessToken', data.accessToken)
       localStorage.setItem('refreshToken', data.refreshToken)
@@ -179,11 +147,7 @@ export const useGoogleLogin = () => {
 export const useLogout = () => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: () => {
-      const refreshToken = localStorage.getItem('refreshToken')
-      return trpc.auth.logout.mutate({ refreshToken })
-    },
+  return trpc.auth.logout.useMutation({
     onSuccess: () => {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
@@ -196,11 +160,7 @@ export const useLogout = () => {
 export const useRefresh = () => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: () => {
-      const refreshToken = localStorage.getItem('refreshToken')
-      return trpc.auth.refresh.mutate({ refreshToken })
-    },
+  return trpc.auth.refresh.useMutation({
     onSuccess: (data) => {
       localStorage.setItem('accessToken', data.accessToken)
       localStorage.setItem('refreshToken', data.refreshToken)

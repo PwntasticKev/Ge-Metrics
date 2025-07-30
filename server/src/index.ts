@@ -7,6 +7,8 @@ import { appRouter } from './trpc/index.js'
 import { createContext } from './trpc/trpc.js'
 import { config } from './config/index.js'
 import { csrfProtection, rateLimit } from './middleware/security.js'
+import priceCacheService from './services/priceCacheService.js'
+import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 
 const app = express()
 
@@ -122,6 +124,30 @@ app.listen(port, () => {
   console.log(`📋 Health check: http://localhost:${port}/health`)
   console.log(`🔐 tRPC endpoint: http://localhost:${port}/trpc`)
   console.log(`🌍 Environment: ${config.NODE_ENV}`)
+  
+  // Start background services
+  console.log('🔄 Starting background services...')
+  
+  // Start price cache service (fetches prices every 2 minutes)
+  priceCacheService.startPeriodicFetching()
+  
+  // Start game updates scraper (runs every 6 hours)
+  startGameUpdatesScheduler()
 })
+
+/**
+ * Start game updates scheduler
+ */
+function startGameUpdatesScheduler(): void {
+  console.log('🎮 Starting game updates scheduler (every 6 hours)...')
+  
+  // Run immediately on startup
+  gameUpdatesScraper.scrapeAndSaveUpdates()
+  
+  // Schedule to run every 6 hours (6 * 60 * 60 * 1000 ms)
+  setInterval(() => {
+    gameUpdatesScraper.scrapeAndSaveUpdates()
+  }, 6 * 60 * 60 * 1000)
+}
 
 export { app }

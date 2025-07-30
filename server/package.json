@@ -25,6 +25,7 @@
     "@trpc/client": "^10.45.0",
     "@trpc/react-query": "^10.45.0",
     "@trpc/server": "^10.45.0",
+    "@types/puppeteer": "^5.4.7",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -36,6 +37,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "postgres": "^3.4.3",
+    "puppeteer": "^24.13.0",
     "stripe": "^14.14.0",
     "uuid": "^9.0.1",
     "zod": "^3.22.4"

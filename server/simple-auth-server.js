@@ -1,7 +1,7 @@
-const express = require('express')
-const cors = require('cors')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
+import express from 'express'
+import cors from 'cors'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 const app = express()
 
@@ -57,7 +57,17 @@ const masterUser = {
   createdAt: new Date()
 }
 
+// Demo user for testing
+const demoUser = {
+  id: 'demo-user-id',
+  email: 'demo@example.com',
+  passwordHash: '$2a$12$hMgRYMCDI7KeoUOW0X1MQO/zHja4P2Rxfm4UcX1gS4rQTpIrxxZYm', // ChangeMe123!
+  name: 'Demo User',
+  createdAt: new Date()
+}
+
 users.push(masterUser)
+users.push(demoUser)
 
 // Middleware
 app.use(cors({
@@ -203,55 +213,28 @@ app.post('/auth/login', async (req, res) => {
 })
 
 // Refresh token
-app.post('/auth/refresh', async (req, res) => {
+app.post('/auth/refresh', (req, res) => {
+  const { refreshToken } = req.body
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token required' })
+  }
+
   try {
-    const { refreshToken } = req.body
+    const user = verifyRefreshToken(refreshToken)
+    const storedToken = refreshTokens.find(t => t.token === refreshToken)
 
-    if (!refreshToken) {
-      return res.status(400).json({ error: 'Refresh token is required' })
-    }
-
-    // Verify refresh token
-    const payload = verifyRefreshToken(refreshToken)
-
-    // Check if refresh token exists in storage
-    const tokenRecord = refreshTokens.find(rt => rt.token === refreshToken)
-    if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+    if (!storedToken || storedToken.expiresAt < new Date()) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' })
     }
 
-    // Get user
-    const user = users.find(u => u.id === payload.userId)
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' })
-    }
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.userId, user.email)
 
-    // Generate new tokens
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id, user.email)
+    // Update stored refresh token
+    storedToken.token = newRefreshToken
+    storedToken.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-    // Remove old refresh token
-    const tokenIndex = refreshTokens.findIndex(rt => rt.token === refreshToken)
-    if (tokenIndex !== -1) {
-      refreshTokens.splice(tokenIndex, 1)
-    }
-
-    // Store new refresh token
-    refreshTokens.push({
-      id: generateId(),
-      userId: user.id,
-      token: newRefreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-    })
-
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      },
-      accessToken,
-      refreshToken: newRefreshToken
-    })
+    res.json({ accessToken, refreshToken: newRefreshToken })
   } catch (error) {
     console.error('Refresh error:', error)
     res.status(401).json({ error: 'Invalid refresh token' })
@@ -260,60 +243,35 @@ app.post('/auth/refresh', async (req, res) => {
 
 // Logout
 app.post('/auth/logout', (req, res) => {
-  try {
-    const { refreshToken } = req.body
+  const { refreshToken } = req.body
 
-    if (refreshToken) {
-      const tokenIndex = refreshTokens.findIndex(rt => rt.token === refreshToken)
-      if (tokenIndex !== -1) {
-        refreshTokens.splice(tokenIndex, 1)
-      }
+  if (refreshToken) {
+    const tokenIndex = refreshTokens.findIndex(t => t.token === refreshToken)
+    if (tokenIndex > -1) {
+      refreshTokens.splice(tokenIndex, 1)
     }
-
-    res.json({ success: true })
-  } catch (error) {
-    console.error('Logout error:', error)
-    res.status(500).json({ error: 'Internal server error' })
   }
+
+  res.json({ message: 'Logged out successfully' })
 })
 
 // Get current user
 app.get('/auth/me', authenticateToken, (req, res) => {
-  try {
-    const user = users.find(u => u.id === req.user.userId)
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' })
-    }
-
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      createdAt: user.createdAt
-    })
-  } catch (error) {
-    console.error('Me error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+  const user = users.find(u => u.id === req.user.userId)
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' })
   }
+
+  res.json({
+    id: user.id,
+    email: user.email,
+    name: user.name
+  })
 })
 
 // Start server
 app.listen(config.PORT, () => {
-  console.log(`🚀 Auth server running on http://localhost:${config.PORT}`)
-  console.log(`📋 Health check: http://localhost:${config.PORT}/health`)
-  console.log(`🔐 Auth endpoints: http://localhost:${config.PORT}/auth/*`)
-  console.log('')
-  console.log('🔑 MASTER LOGIN CREDENTIALS:')
-  console.log('   Email: admin@test.com')
-  console.log('   Password: admin123')
-  console.log('')
-  console.log('📝 Available endpoints:')
-  console.log('   POST /auth/register - Register new user')
-  console.log('   POST /auth/login - Login user')
-  console.log('   POST /auth/refresh - Refresh tokens')
-  console.log('   POST /auth/logout - Logout user')
-  console.log('   GET /auth/me - Get current user (requires Authorization header)')
-  console.log('')
-  console.log('✅ Ready for testing without database setup!')
+  console.log(`🚀 Authentication server running on port ${config.PORT}`)
+  console.log(`📡 Health check: http://localhost:${config.PORT}/health`)
+  console.log('🔐 Demo credentials: demo@example.com / ChangeMe123!')
 })

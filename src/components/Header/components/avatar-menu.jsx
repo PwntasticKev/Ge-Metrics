@@ -13,7 +13,6 @@ import {
 } from '@tabler/icons-react'
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import authService from '../../../services/authService'
 
 export default function AvatarMenu ({ user, onLogout }) {
   const [themeColor, setThemeColor] = useState('#339af0')

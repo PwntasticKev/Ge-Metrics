@@ -52,12 +52,12 @@ model transactions {
 
 model users {
   id             Int       @id @default(autoincrement())
+  email          String    @unique
+  password       String
   name           String?   @db.VarChar(50)
   runescape_name String?   @db.VarChar(50)
   membership     Int?
-  email          String?   @db.VarChar(50)
   img            String?
-  password       String?   @db.VarChar(50)
   timezone       String?   @db.VarChar
   mailchimp_api_key String? @db.VarChar(255)
   access         Boolean   @default(false)
