@@ -1,9 +1,10 @@
 import { Box, Container, Modal } from '@mantine/core'
 import LineChart from '../../shared/line-chart.jsx'
+import Draggable from 'react-draggable'
 
 export default function GraphModal ({ opened, setOpened, id }) {
   return (
-        <>
+        <Draggable handle=".mantine-Modal-header">
             <Modal
                 opened={opened}
                 onClose={() => setOpened(false)}
@@ -15,6 +16,13 @@ export default function GraphModal ({ opened, setOpened, id }) {
                 overlayProps={{
                   blur: 3
                 }}
+                transitionProps={{
+                  transition: 'pop',
+                  duration: 200
+                }}
+                styles={{
+                  header: { cursor: 'move' }
+                }}
             >
                 <Box style={{ resize: 'both', overflow: 'auto', padding: '1rem' }}>
                     <Container px={0}>
@@ -22,6 +30,6 @@ export default function GraphModal ({ opened, setOpened, id }) {
                     </Container>
                 </Box>
             </Modal>
-        </>
+        </Draggable>
   )
 }

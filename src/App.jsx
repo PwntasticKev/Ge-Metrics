@@ -55,6 +55,7 @@ const FutureItems = lazy(() => import('./pages/FutureItems'))
 const Favorites = lazy(() => import('./pages/Favorites'))
 const ProfitOpportunities = lazy(() => import('./pages/ProfitOpportunities'))
 const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
+const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -259,6 +260,7 @@ export default function App () {
               <Route path="/ai-predictions" element={<AIPredictions/>}/>
               <Route path="/money-making" element={<MoneyMaking/>}/>
               <Route path="/combination-items" element={<CombinationItems/>}/>
+              <Route path="/potion-combinations" element={<PotionCombinations/>}/>
               <Route path="/herbs" element={<Herbs/>}/>
               <Route path="/nightmare-zone" element={<NightmareZone/>}/>
               <Route path="/deaths-coffer" element={<DeathsCoffer/>}/>

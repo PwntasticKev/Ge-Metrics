@@ -529,6 +529,16 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         </SubmenuLink>
 
         <MainLink
+          icon={<IconFlask size="1rem"/>}
+          color="teal"
+          label="Potion Combinations"
+          link="/potion-combinations"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
           icon={<IconSword size="1rem"/>}
           color="violet"
           label="Combination Items"
