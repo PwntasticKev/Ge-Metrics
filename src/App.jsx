@@ -1,4 +1,4 @@
-import React, { useContext, useState, lazy, Suspense } from 'react'
+import React, { useContext, useState, lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter as Router, Outlet, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import ErrorPage from './pages/error-page.jsx'
 import Login from './pages/Login'

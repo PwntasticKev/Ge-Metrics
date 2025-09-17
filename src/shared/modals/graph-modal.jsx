@@ -1,10 +1,10 @@
 import { Box, Container, Modal } from '@mantine/core'
 import LineChart from '../../shared/line-chart.jsx'
 
-export default function UserTransaction ({ opened, setOpened, id }) {
+export default function GraphModal ({ opened, setOpened, id }) {
   return (
         <>
-            <Modal opened={opened} onClose={() => setOpened(false)} centered size="xl">
+            <Modal opened={opened} onClose={() => setOpened(false)} centered size="xl" withinPortal={false}>
 
                 <Box>
                     <Container px={0}>
