@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   CategoryScale,
   Chart as ChartJS,
@@ -6,6 +6,7 @@ import {
   LinearScale,
   LineElement,
   PointElement,
+  BarElement,
   Title,
   Tooltip
 } from 'chart.js'
@@ -21,6 +22,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -35,6 +37,7 @@ export default function LineChart ({ id }) {
   const [historyData, setHistoryData] = useState([])
   const [historyStatus, setHistoryStatus] = useState('loading')
   const [isFetching, setIsFetching] = useState(false)
+  const chartRef = useRef(null)
 
   useEffect(() => {
     setItem(getItemById(Number(id)))
@@ -61,6 +64,16 @@ export default function LineChart ({ id }) {
 
     fetchData()
   }, [id, timeframe])
+
+  useEffect(() => {
+    const chart = chartRef.current
+
+    return () => {
+      if (chart) {
+        chart.destroy()
+      }
+    }
+  }, [])
 
   // Update current time every 30 seconds to refresh relative time
   useEffect(() => {
@@ -124,6 +137,17 @@ export default function LineChart ({ id }) {
             return new Intl.NumberFormat().format(value)
           }
         }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        grid: {
+          drawOnChartArea: false
+        },
+        ticks: {
+          color: '#868E96'
+        }
       }
     }
   }
@@ -149,18 +173,29 @@ export default function LineChart ({ id }) {
     labels: historyData.map(d => new Date(d.timestamp * 1000).toLocaleDateString()),
     datasets: [
       {
+        type: 'line',
         label: 'High Price',
         data: historyData.map(d => d.avgHighPrice),
         borderColor: '#47d6ab',
         backgroundColor: 'rgba(71, 214, 171, 0.1)',
-        fill: true
+        fill: true,
+        yAxisID: 'y'
       },
       {
+        type: 'line',
         label: 'Low Price',
         data: historyData.map(d => d.avgLowPrice),
         borderColor: '#f76e6e',
         backgroundColor: 'rgba(247, 110, 110, 0.1)',
-        fill: true
+        fill: true,
+        yAxisID: 'y'
+      },
+      {
+        type: 'bar',
+        label: 'Volume',
+        data: historyData.map(d => d.highPriceVolume + d.lowPriceVolume),
+        backgroundColor: 'rgba(134, 142, 150, 0.5)',
+        yAxisID: 'y1'
       }
     ]
   }
@@ -219,7 +254,7 @@ export default function LineChart ({ id }) {
       {historyData && historyData.length > 0
         ? (
           <div style={{ height: '400px' }}>
-              <Line options={options} data={chartData} />
+              <Line ref={chartRef} options={options} data={chartData} />
           </div>
           )
         : (
