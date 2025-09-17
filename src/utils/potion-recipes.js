@@ -71,17 +71,25 @@ export function usePotionRecipes () {
             .filter(p => typeof p === 'number')
 
           const maxProfit = validProfits.length > 0 ? Math.max(...validProfits) : null
+          const volume = parsePrice(item4.volume) || 0
+          const profitabilityScore = maxProfit !== null ? maxProfit * volume : null
+
+          if (maxProfit === null) {
+            return null
+          }
 
           return {
             name: baseName,
             item4,
             combinations,
             maxProfit,
-            equivalentCosts
+            equivalentCosts,
+            volume,
+            profitabilityScore
           }
         }).filter(Boolean)
 
-        generatedRecipes.sort((a, b) => b.maxProfit - a.maxProfit)
+        generatedRecipes.sort((a, b) => b.profitabilityScore - a.profitabilityScore)
 
         setRecipes(generatedRecipes)
       } catch (e) {

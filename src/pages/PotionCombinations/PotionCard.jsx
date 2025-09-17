@@ -1,6 +1,7 @@
 import React from 'react'
-import { Card, Image, Text, Table, Group, Badge } from '@mantine/core'
+import { Card, Image, Badge, Text, Group, Tooltip } from '@mantine/core'
 import { Link } from 'react-router-dom'
+import { IconInfoCircle } from '@tabler/icons-react'
 
 export function PotionCard ({ recipe }) {
   if (!recipe || !recipe.item4 || !recipe.combinations) {
@@ -42,19 +43,38 @@ export function PotionCard ({ recipe }) {
 
         {/* Right: Content */}
         <div style={{ flex: 1 }}>
-          <Link to={`/item/${item4.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Text weight={500} size="sm" mb="sm">{name}</Text>
-          </Link>
+          <Group position="apart" noWrap>
+            <Link to={`/item/${item4.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Text weight={500} size="sm" mb="sm" lineClamp={1}>{name}</Text>
+            </Link>
+            <Tooltip label="Profitability Score = Best Profit * Volume" withArrow>
+              <Badge color="yellow" variant="light" size="sm">
+                {recipe.profitabilityScore !== null ? recipe.profitabilityScore.toLocaleString() : 'N/A'}
+              </Badge>
+            </Tooltip>
+          </Group>
 
           {/* Show equivalent costs per (4) dose */}
-          {recipe.equivalentCosts && recipe.equivalentCosts.map((cost, index) => (
-            <Group position="apart" key={index} mb="xs">
-              <Text size="xs">Buy ({cost.dose})</Text>
-              <Text size="xs">
-                {cost.costPer4Dose !== null ? `${cost.costPer4Dose.toLocaleString()} gp` : 'N/A'}
-              </Text>
-            </Group>
-          ))}
+          {recipe.equivalentCosts && recipe.equivalentCosts.map((cost, index) => {
+            const isBest = cost.profit === recipe.maxProfit
+            return (
+              <Group
+                position="apart"
+                key={index}
+                mb="xs"
+                p={4}
+                style={{
+                  borderRadius: '4px',
+                  backgroundColor: isBest ? 'rgba(76, 175, 80, 0.1)' : 'transparent'
+                }}
+              >
+                <Text size="xs" weight={isBest ? 700 : 400}>Buy ({cost.dose})</Text>
+                <Text size="xs" weight={isBest ? 700 : 400}>
+                  {cost.costPer4Dose !== null ? `${cost.costPer4Dose.toLocaleString()} gp` : 'N/A'}
+                </Text>
+              </Group>
+            )
+          })}
 
           {/* Divider line */}
           <div style={{ borderTop: '1px solid #dee2e6', margin: '8px 0' }} />

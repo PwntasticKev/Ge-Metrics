@@ -8,10 +8,18 @@ export function CalculationExplainer () {
         <Accordion.Control>How are potion combinations calculated?</Accordion.Control>
         <Accordion.Panel>
           <Text size="sm" mb="md">
-            This page helps you find profitable opportunities by decanting potions. We calculate the profit based on buying lower-dose potions and selling them as 4-dose potions.
+            This page helps you find the best potion decanting opportunities. Cards are sorted by a <strong>Profitability Score</strong>, which prioritizes items with both high profit and high trade volume.
           </Text>
           <Text size="sm" weight={500} mb="sm">Formulas:</Text>
           <List size="sm" spacing="xs">
+            <List.Item>
+              <Text>
+                <Code>Profitability Score</Code> = Best Profit × Volume
+              </Text>
+              <Text size="xs" color="dimmed">
+                This helps find liquid markets with good returns.
+              </Text>
+            </List.Item>
             <List.Item>
               <Text>
                 <Code>(1) to (4)</Code>: Buy 4x (1)-dose potions, sell 1x (4)-dose potion.
@@ -38,7 +46,7 @@ export function CalculationExplainer () {
             </List.Item>
           </List>
           <Text size="xs" mt="md">
-            All buy prices are based on the Grand Exchange low price, and sell prices are based on the high price. The "Best Profit" shown on each card is the highest profit achievable from any of these methods.
+            All buy prices are the equivalent cost to produce one 4-dose potion. The most profitable method is highlighted in green on each card.
           </Text>
         </Accordion.Panel>
       </Accordion.Item>
