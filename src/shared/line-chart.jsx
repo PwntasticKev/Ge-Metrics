@@ -8,13 +8,16 @@ import {
   PointElement,
   BarElement,
   Title,
-  Tooltip
+  Tooltip,
+  TimeScale
 } from 'chart.js'
+import 'chartjs-adapter-date-fns'
 import annotationPlugin from 'chartjs-plugin-annotation'
+import zoomPlugin from 'chartjs-plugin-zoom'
 import { Line } from 'react-chartjs-2'
 import { getItemHistoryById } from '../api/rs-wiki-api.jsx'
 import { getItemById, getRelativeTime } from '../utils/utils.jsx'
-import { Badge, Group, Text, Loader, Center } from '@mantine/core'
+import { Badge, Group, Text, Loader, Center, Button } from '@mantine/core'
 import { IconClock, IconRefresh } from '@tabler/icons-react'
 
 ChartJS.register(
@@ -26,21 +29,36 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  annotationPlugin
+  TimeScale,
+  annotationPlugin,
+  zoomPlugin
 )
 
 export default function LineChart ({ id }) {
   const [item, setItem] = useState(null)
-  const [timeframe, setTimeframe] = useState('24h')
+  const [timeframe, setTimeframe] = useState('1h')
   const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [historyData, setHistoryData] = useState([])
   const [historyStatus, setHistoryStatus] = useState('loading')
   const [isFetching, setIsFetching] = useState(false)
+  const [gameUpdates, setGameUpdates] = useState([])
   const chartRef = useRef(null)
 
   useEffect(() => {
     setItem(getItemById(Number(id)))
+    const fetchGameUpdates = async () => {
+      try {
+        const response = await fetch('/api/game-updates')
+        const data = await response.json()
+        if (data.success) {
+          setGameUpdates(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching game updates:', error)
+      }
+    }
+    fetchGameUpdates()
   }, [id])
 
   useEffect(() => {
@@ -65,21 +83,11 @@ export default function LineChart ({ id }) {
     fetchData()
   }, [id, timeframe])
 
-  useEffect(() => {
-    const chart = chartRef.current
-
-    return () => {
-      if (chart) {
-        chart.destroy()
-      }
-    }
-  }, [])
-
-  // Update current time every 30 seconds to refresh relative time
+  // Update current time every second to refresh relative time
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 30000)
+    }, 1000)
     return () => clearInterval(interval)
   }, [])
 
@@ -97,28 +105,58 @@ export default function LineChart ({ id }) {
         text: `${item?.name || 'Loading...'}: ${timeframe} ${isFetching ? '(Loading...)' : ''}`,
         color: '#C1C2C5'
       },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'x'
+        },
+        zoom: {
+          wheel: {
+            enabled: true
+          },
+          pinch: {
+            enabled: true
+          },
+          mode: 'x'
+        }
+      },
       annotation: {
         annotations: {
-          updateLine: {
-            type: 'line',
-            xMin: historyData?.length ? historyData.length - 1 : 0,
-            xMax: historyData?.length ? historyData.length - 1 : 0,
-            borderColor: '#ffd43b',
-            borderWidth: 2,
-            borderDash: [5, 5],
-            label: {
-              display: true,
-              content: 'Latest Update',
-              position: 'start',
-              backgroundColor: '#ffd43b',
-              color: '#1a1b1e'
+          ...gameUpdates.reduce((acc, update) => {
+            const updateTimestamp = new Date(update.date).getTime()
+
+            if (historyData && historyData.length > 0) {
+              const closestDataPoint = historyData.reduce((prev, curr) => {
+                return (Math.abs(curr.timestamp * 1000 - updateTimestamp) < Math.abs(prev.timestamp * 1000 - updateTimestamp) ? curr : prev)
+              })
+
+              acc[update.title.replace(/\s/g, '')] = {
+                type: 'point',
+                xValue: updateTimestamp,
+                yValue: closestDataPoint.avgHighPrice,
+                backgroundColor: 'rgba(233, 30, 99, 0.7)',
+                borderColor: 'rgba(233, 30, 99, 1)',
+                borderWidth: 2,
+                radius: 8,
+                hoverRadius: 12,
+                label: {
+                  content: update.title,
+                  enabled: true,
+                  position: 'top'
+                }
+              }
             }
-          }
+            return acc
+          }, {})
         }
       }
     },
     scales: {
       x: {
+        type: 'time',
+        time: {
+          unit: 'day'
+        },
         grid: {
           color: '#373A40'
         },
@@ -170,12 +208,11 @@ export default function LineChart ({ id }) {
   }
 
   const chartData = {
-    labels: historyData.map(d => new Date(d.timestamp * 1000).toLocaleDateString()),
     datasets: [
       {
         type: 'line',
         label: 'High Price',
-        data: historyData.map(d => d.avgHighPrice),
+        data: historyData.map(d => ({ x: d.timestamp * 1000, y: d.avgHighPrice })),
         borderColor: '#47d6ab',
         backgroundColor: 'rgba(71, 214, 171, 0.1)',
         fill: true,
@@ -184,7 +221,7 @@ export default function LineChart ({ id }) {
       {
         type: 'line',
         label: 'Low Price',
-        data: historyData.map(d => d.avgLowPrice),
+        data: historyData.map(d => ({ x: d.timestamp * 1000, y: d.avgLowPrice })),
         borderColor: '#f76e6e',
         backgroundColor: 'rgba(247, 110, 110, 0.1)',
         fill: true,
@@ -193,7 +230,7 @@ export default function LineChart ({ id }) {
       {
         type: 'bar',
         label: 'Volume',
-        data: historyData.map(d => d.highPriceVolume + d.lowPriceVolume),
+        data: historyData.map(d => ({ x: d.timestamp * 1000, y: d.highPriceVolume + d.lowPriceVolume })),
         backgroundColor: 'rgba(134, 142, 150, 0.5)',
         yAxisID: 'y1'
       }
@@ -218,6 +255,9 @@ export default function LineChart ({ id }) {
           </Text>
         </Group>
         <Group>
+          <Button variant="light" size="xs" onClick={() => fetchData()} disabled={isFetching}>
+            <IconRefresh size={14} />
+          </Button>
           <Badge color="green" variant="light">
             Live Updates
           </Badge>
