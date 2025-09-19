@@ -3,10 +3,11 @@ import { Card, Image, Badge, Text, Group, Tooltip, ActionIcon, Stack } from '@ma
 import { Link } from 'react-router-dom'
 import { IconChartLine, IconHeart, IconHeartFilled } from '@tabler/icons-react'
 import { VolumeChartModal } from './components/VolumeChartModal'
+import { useFavorites } from '../../contexts/FavoritesContext'
 
 export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
   const [modalOpened, setModalOpened] = useState(false)
-  const [isFavorited, setIsFavorited] = useState(false)
+  const { isFavorite, toggleFavorite } = useFavorites()
 
   if (!recipe || !recipe.item4 || !recipe.combinations) {
     return null
@@ -16,13 +17,29 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
 
   // Determine which method to highlight based on filter mode
   const getBestMethod = () => {
-    if (filterMode === 'profit') {
-      // Highlight method with best profit per potion
+    if (filterMode === 'dose1') {
+      // Only highlight (1) dose method
+      return recipe.combinations.find(combo => combo.dose === '1') || null
+    } else if (filterMode === 'dose2') {
+      // Only highlight (2) dose method
+      return recipe.combinations.find(combo => combo.dose === '2') || null
+    } else if (filterMode === 'dose3') {
+      // Only highlight (3) dose method
+      return recipe.combinations.find(combo => combo.dose === '3') || null
+    } else if (filterMode === 'volume') {
+      // Highlight method with best volume (ignore profit)
+      return recipe.combinations.reduce((best, current) => {
+        const bestVol = (best?.volume || 0)
+        const currentVol = (current?.volume || 0)
+        return currentVol > bestVol ? current : best
+      }, recipe.combinations[0])
+    } else if (filterMode === 'profit') {
+      // Highlight method with best profit (ignore volume)
       return recipe.combinations.reduce((best, current) =>
-        (current.profitPerPotion > best.profitPerPotion) ? current : best
+        (current.profitPerPotion > (best?.profitPerPotion || -Infinity)) ? current : best
       )
     } else {
-      // Highlight method with best score (profit × volume)
+      // Default - use algorithm's best method
       return recipe.combinations.find(combo => combo.dose === recipe.bestMethodDose) || recipe.combinations[0]
     }
   }
@@ -55,17 +72,17 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
         <ActionIcon
           size="sm"
           variant="light"
-          color={isFavorited ? 'red' : 'gray'}
-          onClick={() => setIsFavorited(!isFavorited)}
+          color={isFavorite(name) ? 'red' : 'gray'}
+          onClick={() => toggleFavorite(name)}
         >
-          {isFavorited ? <IconHeartFilled size={14} /> : <IconHeart size={14} />}
+          {isFavorite(name) ? <IconHeartFilled size={14} /> : <IconHeart size={14} />}
         </ActionIcon>
       </Group>
 
       {/* Profit Breakdown - Integrated */}
       <Stack spacing={4}>
         {recipe.combinations && recipe.combinations.map((combo) => {
-          const isBest = combo.dose === bestMethod.dose
+          const isBest = bestMethod && combo.dose === bestMethod.dose
           return (
             <Group
               position="apart"

@@ -29,7 +29,7 @@ export function usePotionRecipes () {
 
   useEffect(() => {
     // Helper function to get cached volume for an item
-    const getCachedVolume = (itemId, volumeType = 'total') => {
+    const getCachedVolume = (itemId, volumeType = 'hourly') => {
       if (!cachedVolumes) return 0
       if (!itemId) return 0
 
@@ -39,13 +39,61 @@ export function usePotionRecipes () {
       // Return different volume types based on preference
       switch (volumeType) {
         case 'hourly':
-          return cachedItem.hourlyVolume || 0
-        case 'current':
-          return cachedItem.volume || 0
+        case 'current': {
+          // Primary: Most recent hourly activity, fallback to daily
+          const hourlyVol = cachedItem.hourlyVolume || 0
+          const dailyVol = cachedItem.volume || ((cachedItem.highPriceVolume || 0) + (cachedItem.lowPriceVolume || 0))
+          return hourlyVol >= 10 ? hourlyVol : (dailyVol >= 20 ? dailyVol : 0)
+        }
+        case 'daily':
+          // Current day's trading volume (high + low from latest data point)
+          return cachedItem.volume || ((cachedItem.highPriceVolume || 0) + (cachedItem.lowPriceVolume || 0))
+        case 'sell':
+        case 'high':
+          // High price volume = people selling = supply available
+          return cachedItem.highPriceVolume || 0
+        case 'buy':
+        case 'low':
+          // Low price volume = people buying = demand/competition
+          return cachedItem.lowPriceVolume || 0
         case 'total':
-        default:
-          return cachedItem.totalVolume || cachedItem.volume || 0
+          // Historical cumulative (avoid for real-time trading decisions)
+          return cachedItem.totalVolume || 0
+        default: {
+          const defaultHourly = cachedItem.hourlyVolume || 0
+          const defaultDaily = cachedItem.volume || 0
+          return defaultHourly >= 10 ? defaultHourly : (defaultDaily >= 20 ? defaultDaily : 0)
+        }
       }
+    }
+
+    // Outlier detection for market manipulation
+    const detectOutliers = (itemId) => {
+      if (!cachedVolumes || !itemId) return { isOutlier: false, reason: null }
+
+      const cachedItem = cachedVolumes.find(v => v.itemId === itemId)
+      if (!cachedItem) return { isOutlier: false, reason: null }
+
+      const hourlyVol = cachedItem.hourlyVolume || 0
+      const dailyVol = cachedItem.volume || 0
+
+      // Skip if insufficient data
+      if (hourlyVol < 10 && dailyVol < 20) {
+        return { isOutlier: false, reason: 'Insufficient volume data' }
+      }
+
+      // Calculate expected hourly volume (daily / 24)
+      const expectedHourlyVol = Math.max(1, Math.floor(dailyVol / 24))
+
+      // Check for 4x+ volume spike
+      if (hourlyVol > 0 && hourlyVol >= (expectedHourlyVol * 4)) {
+        return {
+          isOutlier: true,
+          reason: `Volume spike: ${hourlyVol} vs expected ${expectedHourlyVol} (${Math.round(hourlyVol / expectedHourlyVol)}x normal)`
+        }
+      }
+
+      return { isOutlier: false, reason: null }
     }
 
     const processRecipes = () => {
@@ -73,7 +121,8 @@ export function usePotionRecipes () {
           const item1 = items.find(i => i.name.toLowerCase() === `${baseName.toLowerCase()}(1)`)
 
           const price4 = parsePrice(item4.high)
-          const volume4 = getCachedVolume(item4.id, 'total') // Use total volume for scoring
+          const volume4 = getCachedVolume(item4.id, 'hourly') // Hourly trading volume for 4-dose (fallback to daily)
+          const outlier4 = detectOutliers(item4.id)
 
           const combinations = []
 
@@ -82,45 +131,72 @@ export function usePotionRecipes () {
 
           // (1) dose to (4) dose
           const low1 = parsePrice(item1?.low)
-          const volume1 = getCachedVolume(item1?.id, 'total') // Use total volume
+          const volume1 = getCachedVolume(item1?.id, 'hourly') // Hourly trading volume for 1-dose (fallback to daily)
+          const outlier1 = detectOutliers(item1?.id)
           if (low1 !== null && sellPrice !== null) {
             const cost = low1 * 4 // Buy 4x (1) dose
             const totalProfit = sellPrice - cost // Profit from 1x (4) dose
             const profitPerPotion = Math.round(totalProfit) // Already per potion, no decimals
-            const score = profitPerPotion * (volume1 + volume4)
-            combinations.push({ name: '(1) to (4)', cost: low1, profitPerPotion, score, dose: '1' })
+            // Apply 0.1x penalty to (1) dose due to very low bulk trading viability
+            const score = profitPerPotion * (volume1 + volume4) * 0.1
+            combinations.push({ name: '(1) to (4)', cost: low1, profitPerPotion, score, dose: '1', volume: volume1 + volume4 })
           }
 
           // (2) dose to (4) dose
           const low2 = parsePrice(item2?.low)
-          const volume2 = getCachedVolume(item2?.id, 'total') // Use total volume
+          const volume2 = getCachedVolume(item2?.id, 'hourly') // Hourly trading volume for 2-dose (fallback to daily)
+          const outlier2 = detectOutliers(item2?.id)
           if (low2 !== null && sellPrice !== null) {
             const cost = low2 * 2 // Buy 2x (2) dose
             const totalProfit = sellPrice - cost // Profit from 1x (4) dose
             const profitPerPotion = Math.round(totalProfit) // Already per potion, no decimals
-            const score = profitPerPotion * (volume2 + volume4)
-            combinations.push({ name: '(2) to (4)', cost: low2, profitPerPotion, score, dose: '2' })
+            // Apply 0.2x penalty to (2) dose due to limited bulk trading viability
+            const score = profitPerPotion * (volume2 + volume4) * 0.2
+            combinations.push({ name: '(2) to (4)', cost: low2, profitPerPotion, score, dose: '2', volume: volume2 + volume4 })
           }
 
           // (3) dose to (4) dose
           const low3 = parsePrice(item3?.low)
-          const volume3 = getCachedVolume(item3?.id, 'total') // Use total volume
+          const volume3 = getCachedVolume(item3?.id, 'hourly') // Hourly trading volume for 3-dose (fallback to daily)
+          const outlier3 = detectOutliers(item3?.id)
           if (low3 !== null && sellPrice !== null) {
             const buyCost = low3 * 4 // Buy 4x (3) dose
             const totalProfit = (sellPrice * 3) - buyCost // Get 3x (4) dose
             const profitPerPotion = Math.round(totalProfit / 3) // Profit per (4) dose made
-            const score = profitPerPotion * (volume3 + volume4)
-            combinations.push({ name: '(3) to (4)', cost: low3, profitPerPotion, score, dose: '3' })
+            // Apply 3.0x bonus to (3) dose due to optimal bulk trading viability
+            const score = profitPerPotion * (volume3 + volume4) * 3.0
+            combinations.push({ name: '(3) to (4)', cost: low3, profitPerPotion, score, dose: '3', volume: volume3 + volume4 })
           }
 
           if (combinations.length === 0) {
             return null
           }
 
-          // Find the best method based on profit per potion
+          // Find the best method based on volume-weighted score (profit × volume)
           const bestMethod = combinations.reduce((best, current) =>
-            (current.profitPerPotion !== null && (best.profitPerPotion === null || current.profitPerPotion > best.profitPerPotion)) ? current : best
+            (current.score !== null && (best.score === null || current.score > best.score)) ? current : best
           )
+
+          // Debug logging for Attack potion to verify (3) dose dominance with hourly volume
+          if (item4.name.toLowerCase().includes('attack potion')) {
+            console.log('🧪 Attack Potion Analysis (Hourly Volume + Outlier Detection + Weight Priority):', {
+              combinations: combinations.map(c => {
+                const hourlyVol = c.dose === '1' ? volume1 : c.dose === '2' ? volume2 : c.dose === '3' ? volume3 : volume4
+                const outlier = c.dose === '1' ? outlier1 : c.dose === '2' ? outlier2 : c.dose === '3' ? outlier3 : outlier4
+                return {
+                  dose: c.dose,
+                  profit: c.profitPerPotion,
+                  hourlyVolume: hourlyVol,
+                  isOutlier: outlier.isOutlier,
+                  outlierReason: outlier.reason,
+                  weight: c.dose === '1' ? '0.1x' : c.dose === '2' ? '0.2x' : c.dose === '3' ? '3.0x' : '1.0x',
+                  finalScore: c.score
+                }
+              }),
+              selectedBest: { dose: bestMethod.dose, score: bestMethod.score },
+              message: 'Using HOURLY volume (min 10/hr, fallback daily min 20/day) + outlier detection (4x spike) + 3.0x weight for (3) dose'
+            })
+          }
 
           const bestProfitPerPotion = bestMethod.profitPerPotion
 
@@ -139,7 +215,13 @@ export function usePotionRecipes () {
             combinations,
             bestProfitPerPotion,
             bestMethodDose: bestMethod.dose,
-            profitabilityScore
+            profitabilityScore,
+            outliers: {
+              dose1: outlier1,
+              dose2: outlier2,
+              dose3: outlier3,
+              dose4: outlier4
+            }
           }
         }).filter(r => r && r.bestProfitPerPotion !== null)
 

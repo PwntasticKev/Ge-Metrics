@@ -18,6 +18,9 @@ import './styles/mobile.css'
 // Trial system imports
 import { TrialProvider, useTrialContext } from './contexts/TrialContext'
 import TrialBanner from './components/Trial/TrialBanner'
+
+// Favorites system import
+import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
 
 // Lazy load all protected routes to improve initial load performance
@@ -226,7 +229,8 @@ export default function App () {
     <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme(colorScheme)}>
       <Notifications />
       <TrialProvider>
-        <Router>
+        <FavoritesProvider>
+          <Router>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -293,7 +297,8 @@ export default function App () {
               <Route path="*" element={<ErrorPage/>}/>
             </Route>
           </Routes>
-        </Router>
+          </Router>
+        </FavoritesProvider>
       </TrialProvider>
     </MantineProvider>
   )
