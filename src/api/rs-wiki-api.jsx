@@ -43,7 +43,12 @@ export const getMappingData = async () => {
 export const getItemHistoryById = async (time, itemId) => {
   try {
     const response = await axios.get(
-      `https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=${time}&id=${itemId}`
+      `https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=${time}&id=${itemId}`,
+      {
+        headers: {
+          'User-Agent': 'Ge-Metrics - OSRS Grand Exchange Analytics - kevinlee@email.com'
+        }
+      }
     )
     return response
   } catch (error) {

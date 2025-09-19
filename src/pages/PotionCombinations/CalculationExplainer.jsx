@@ -1,9 +1,14 @@
 import React from 'react'
 import { Accordion, Text, Code, List } from '@mantine/core'
 
-export function CalculationExplainer () {
+export function CalculationExplainer ({ expanded = false, onToggle }) {
   return (
-    <Accordion variant="separated" radius="md" defaultValue="customization">
+    <Accordion
+      variant="separated"
+      radius="md"
+      value={expanded ? 'customization' : null}
+      onChange={() => onToggle && onToggle()}
+    >
       <Accordion.Item value="customization">
         <Accordion.Control>How are potion combinations calculated?</Accordion.Control>
         <Accordion.Panel>

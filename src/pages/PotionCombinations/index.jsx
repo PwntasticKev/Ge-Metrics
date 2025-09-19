@@ -1,7 +1,8 @@
-import React from 'react'
-import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Badge, Group } from '@mantine/core'
-import { IconInfoCircle, IconClock, IconDatabase, IconRefresh } from '@tabler/icons-react'
+import React, { useState, useMemo } from 'react'
+import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Badge, Group, TextInput, Select, Stack } from '@mantine/core'
+import { IconClock, IconDatabase, IconRefresh, IconSearch, IconFilter } from '@tabler/icons-react'
 import { useQuery } from 'react-query'
+import { useDebouncedValue } from '@mantine/hooks'
 import { getVolumesCacheStatus } from '../../services/potionVolumeApi'
 import { PotionCard } from './PotionCard'
 import { usePotionRecipes } from '../../utils/potion-recipes'
@@ -13,6 +14,35 @@ export default function PotionCombinations () {
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 60 * 1000 // 1 minute
   })
+
+  // Filter and search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterMode, setFilterMode] = useState('volume+profit') // 'profit' or 'volume+profit'
+  const [formulaExpanded, setFormulaExpanded] = useState(false)
+
+  // Debounced search for performance
+  const [debouncedSearch] = useDebouncedValue(searchQuery, 300)
+
+  // Filter and sort recipes based on search and filter mode
+  const filteredRecipes = useMemo(() => {
+    let filtered = recipes
+
+    // Apply search filter
+    if (debouncedSearch.trim()) {
+      filtered = filtered.filter(recipe =>
+        recipe.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+      )
+    }
+
+    // Sort based on filter mode
+    if (filterMode === 'profit') {
+      filtered = [...filtered].sort((a, b) => (b.bestProfitPerPotion || 0) - (a.bestProfitPerPotion || 0))
+    } else {
+      filtered = [...filtered].sort((a, b) => (b.normalizedScore || 0) - (a.normalizedScore || 0))
+    }
+
+    return filtered
+  }, [recipes, debouncedSearch, filterMode])
 
   console.log('PotionCombinations component - recipes:', recipes.length, recipes.map(r => r.name))
   console.log('Full recipes data:', recipes)
@@ -76,7 +106,47 @@ export default function PotionCombinations () {
         </Alert>
       )}
 
-      <CalculationExplainer />
+      {/* Search and Filter Controls */}
+      <Stack spacing="md" mb="xl">
+        <TextInput
+          placeholder="Search potions..."
+          icon={<IconSearch size={16} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          size="md"
+          styles={{
+            input: {
+              borderRadius: '8px',
+              backgroundColor: '#f8f9fa'
+            }
+          }}
+        />
+
+        <Group position="apart">
+          <Select
+            placeholder="Filter by..."
+            icon={<IconFilter size={16} />}
+            value={filterMode}
+            onChange={setFilterMode}
+            data={[
+              { value: 'volume+profit', label: 'Best Volume + Profit' },
+              { value: 'profit', label: 'Best Profit Only' }
+            ]}
+            size="sm"
+            style={{ maxWidth: 200 }}
+          />
+
+          <Text size="sm" color="dimmed">
+            {filteredRecipes.length} of {recipes.length} potions
+          </Text>
+        </Group>
+      </Stack>
+
+      <CalculationExplainer
+        expanded={formulaExpanded}
+        onToggle={() => setFormulaExpanded(!formulaExpanded)}
+      />
+
       <SimpleGrid
         cols={4}
         spacing="xl"
@@ -86,8 +156,12 @@ export default function PotionCombinations () {
           { maxWidth: 'xs', cols: 1, spacing: 'sm' }
         ]}
       >
-        {recipes.map(recipe => (
-          <PotionCard key={recipe.name} recipe={recipe} />
+        {filteredRecipes.map(recipe => (
+          <PotionCard
+            key={recipe.name}
+            recipe={recipe}
+            filterMode={filterMode}
+          />
         ))}
       </SimpleGrid>
     </Container>
