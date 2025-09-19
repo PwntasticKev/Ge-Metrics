@@ -97,14 +97,6 @@ export function CalculationExplainer ({ expanded = false, onToggle }) {
                 </List.Item>
                 <List.Item>
                   <Text>
-                    <Code>Best Volume</Code>: Highlights method with highest volume (ignores profit)
-                  </Text>
-                  <Text size="xs" color="dimmed">
-                    Focus purely on market liquidity and trading activity for maximum bulk potential.
-                  </Text>
-                </List.Item>
-                <List.Item>
-                  <Text>
                     <Code>Best Profit</Code>: Highlights method with highest profit (ignores volume)
                   </Text>
                   <Text size="xs" color="dimmed">

@@ -8,91 +8,14 @@ function parsePrice (price: string | number | null): number {
   return parseInt(price.toString().replace(/,/g, ''), 10) || 0
 }
 
-// Fetch volume data from /5m endpoint for ALL items at once (much more efficient)
-export async function fetchAllVolumeDataFromAPI (): Promise<Record<number, {
-  volume: number
-  highPriceVolume: number
-  lowPriceVolume: number
-  hourlyVolume: number
-  hourlyHighVolume: number
-  hourlyLowVolume: number
-  totalVolume: number
-}>> {
-  try {
-    console.log('🔄 Fetching volume data for all items from /5m endpoint...')
-    const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/5m', {
-      headers: {
-        'User-Agent': 'Ge-Metrics OSRS Trading App - Volume Cache Service (contact@ge-metrics.com)'
-      }
-    })
+// No longer fetching bulk volume data - keeping system simple and fast
 
-    if (!response.ok) {
-      console.warn(`Failed to fetch volume data: ${response.status}`)
-      return {}
-    }
-
-    const data = await response.json()
-
-    if (!data.data) {
-      return {}
-    }
-
-    // Convert the /5m data format to our expected format
-    const volumeData: Record<number, any> = {}
-
-    for (const [itemIdStr, itemData] of Object.entries(data.data)) {
-      const itemId = parseInt(itemIdStr)
-      if (itemData && typeof itemData === 'object') {
-        const highVol = itemData.highPriceVolume || 0
-        const lowVol = itemData.lowPriceVolume || 0
-        const totalVol = highVol + lowVol
-
-        volumeData[itemId] = {
-          volume: totalVol, // Current 5-minute volume
-          highPriceVolume: highVol,
-          lowPriceVolume: lowVol,
-          hourlyVolume: totalVol * 12, // Estimate: 5min * 12 = 1 hour
-          hourlyHighVolume: highVol * 12,
-          hourlyLowVolume: lowVol * 12,
-          totalVolume: totalVol // Use current as total for now
-        }
-      }
-    }
-
-    console.log(`✅ Fetched volume data for ${Object.keys(volumeData).length} items`)
-    return volumeData
-  } catch (error) {
-    console.error('Error fetching volume data from /5m endpoint:', error)
-    return {}
-  }
-}
-
-// Get volume data for a specific item from the bulk data
-export function getVolumeForItem (itemId: number, allVolumeData: Record<number, any>) {
-  return allVolumeData[itemId] || {
-    volume: 0,
-    highPriceVolume: 0,
-    lowPriceVolume: 0,
-    hourlyVolume: 0,
-    hourlyHighVolume: 0,
-    hourlyLowVolume: 0,
-    totalVolume: 0
-  }
-}
-
-// Store or update potion volume in database
-export async function storePotionVolume (potionData: {
+// Store or update potion data in database (no volume data needed)
+export async function storePotionData (potionData: {
   itemId: number
   itemName: string
   dose: number
   baseName: string
-  volume: number
-  highPriceVolume?: number
-  lowPriceVolume?: number
-  hourlyVolume?: number
-  hourlyHighVolume?: number
-  hourlyLowVolume?: number
-  totalVolume?: number
   rank?: number
   isActive?: boolean
 }): Promise<PotionVolume> {
@@ -108,13 +31,9 @@ export async function storePotionVolume (potionData: {
     // Update existing record
     const [updated] = await db.update(potionVolumes)
       .set({
-        volume: potionData.volume,
-        highPriceVolume: potionData.highPriceVolume,
-        lowPriceVolume: potionData.lowPriceVolume,
-        hourlyVolume: potionData.hourlyVolume,
-        hourlyHighVolume: potionData.hourlyHighVolume,
-        hourlyLowVolume: potionData.hourlyLowVolume,
-        totalVolume: potionData.totalVolume,
+        itemName: potionData.itemName,
+        dose: potionData.dose,
+        baseName: potionData.baseName,
         rank: potionData.rank,
         isActive: potionData.isActive ?? true,
         lastUpdated: now,
@@ -132,13 +51,13 @@ export async function storePotionVolume (potionData: {
         itemName: potionData.itemName,
         dose: potionData.dose,
         baseName: potionData.baseName,
-        volume: potionData.volume,
-        highPriceVolume: potionData.highPriceVolume,
-        lowPriceVolume: potionData.lowPriceVolume,
-        hourlyVolume: potionData.hourlyVolume,
-        hourlyHighVolume: potionData.hourlyHighVolume,
-        hourlyLowVolume: potionData.hourlyLowVolume,
-        totalVolume: potionData.totalVolume,
+        volume: 0, // Default to 0 - no volume data
+        highPriceVolume: 0,
+        lowPriceVolume: 0,
+        hourlyVolume: 0,
+        hourlyHighVolume: 0,
+        hourlyLowVolume: 0,
+        totalVolume: 0,
         rank: potionData.rank,
         isActive: potionData.isActive ?? true,
         lastUpdated: now,
@@ -318,38 +237,27 @@ export async function updateTopPotionVolumes (): Promise<void> {
 
     console.log(`Found ${topPotions.length} profitable potion families`)
 
-    // Step 6: Fetch volume data for ALL items at once (much more efficient!)
-    console.log('🔄 Fetching volume data for all potions...')
-    const allVolumeData = await fetchAllVolumeDataFromAPI()
-
-    // Step 7: Store volume data for each potion dose
+    // Step 6: Store potion data (no volume fetching - keeping it simple and fast!)
+    console.log('💾 Storing potion data in database...')
     const storagePromises: Promise<void>[] = []
 
     topPotions.forEach((family, familyRank) => {
       [family.item4, family.item3, family.item2, family.item1].forEach((item, doseIndex) => {
         if (item) {
           const dose = 4 - doseIndex
-          const volumeData = getVolumeForItem(item.id, allVolumeData)
 
           storagePromises.push(
-            storePotionVolume({
+            storePotionData({
               itemId: item.id,
               itemName: item.name,
               dose,
               baseName: family.baseName,
-              volume: volumeData.volume,
-              highPriceVolume: volumeData.highPriceVolume,
-              lowPriceVolume: volumeData.lowPriceVolume,
-              hourlyVolume: volumeData.hourlyVolume,
-              hourlyHighVolume: volumeData.hourlyHighVolume,
-              hourlyLowVolume: volumeData.hourlyLowVolume,
-              totalVolume: volumeData.totalVolume,
               rank: familyRank + 1,
               isActive: true
             }).then(() => {
-              console.log(`✅ Cached volume for ${item.name}: ${volumeData.volume}`)
+              console.log(`✅ Cached potion data for ${item.name} (${dose}-dose)`)
             }).catch(error => {
-              console.error(`❌ Failed to cache volume for ${item.name}:`, error)
+              console.error(`❌ Failed to cache potion data for ${item.name}:`, error)
             })
           )
         }

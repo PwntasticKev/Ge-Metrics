@@ -26,13 +26,6 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
     } else if (filterMode === 'dose3') {
       // Only highlight (3) dose method
       return recipe.combinations.find(combo => combo.dose === '3') || null
-    } else if (filterMode === 'volume') {
-      // Highlight method with best volume (ignore profit)
-      return recipe.combinations.reduce((best, current) => {
-        const bestVol = (best?.volume || 0)
-        const currentVol = (current?.volume || 0)
-        return currentVol > bestVol ? current : best
-      }, recipe.combinations[0])
     } else if (filterMode === 'profit') {
       // Highlight method with best profit (ignore volume)
       return recipe.combinations.reduce((best, current) =>

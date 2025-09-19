@@ -20,7 +20,7 @@ export default function PotionCombinations () {
   // Filter and search state
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterMode, setFilterMode] = useState('dose3') // 'dose1', 'dose2', 'dose3', 'volume', 'profit'
+  const [filterMode, setFilterMode] = useState('dose3') // 'dose1', 'dose2', 'dose3', 'profit'
   const [formulaExpanded, setFormulaExpanded] = useState(false)
 
   // Debounced search for performance
@@ -63,13 +63,6 @@ export default function PotionCombinations () {
         const profitA = a.combinations.find(c => c.dose === '3')?.profitPerPotion || -Infinity
         const profitB = b.combinations.find(c => c.dose === '3')?.profitPerPotion || -Infinity
         return profitB - profitA
-      })
-    } else if (filterMode === 'volume') {
-      // Sort by best volume only (ignore profit)
-      filtered = [...filtered].sort((a, b) => {
-        const volumeA = Math.max(...a.combinations.map(c => c.volume || 0))
-        const volumeB = Math.max(...b.combinations.map(c => c.volume || 0))
-        return volumeB - volumeA
       })
     } else if (filterMode === 'profit') {
       // Sort by best profit only (ignore volume)
@@ -178,13 +171,12 @@ export default function PotionCombinations () {
                 icon={<IconFilter size={16} />}
                 value={filterMode}
                 onChange={setFilterMode}
-                data={[
-                  { value: 'dose3', label: 'Best (3) Dose' },
-                  { value: 'dose2', label: 'Best (2) Dose' },
-                  { value: 'dose1', label: 'Best (1) Dose' },
-                  { value: 'volume', label: 'Best Volume' },
-                  { value: 'profit', label: 'Best Profit' }
-                ]}
+            data={[
+              { value: 'dose3', label: 'Best (3) Dose' },
+              { value: 'dose2', label: 'Best (2) Dose' },
+              { value: 'dose1', label: 'Best (1) Dose' },
+              { value: 'profit', label: 'Best Profit' }
+            ]}
                 size="sm"
                 style={{ maxWidth: 200 }}
               />
