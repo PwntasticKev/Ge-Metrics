@@ -17,10 +17,15 @@ export class FavoritesService {
    */
   async addFavorite (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<FavoriteItem> {
     try {
+      const userIdInt = parseInt(userId)
+      if (isNaN(userIdInt)) {
+        throw new Error('Invalid user ID')
+      }
+
       // Check if already favorited
       const existing = await db.select().from(schema.favorites).where(
         and(
-          eq(schema.favorites.userId, userId),
+          eq(schema.favorites.userId, userIdInt),
           eq(schema.favorites.favoriteType, favoriteType),
           eq(schema.favorites.favoriteId, favoriteId)
         )
@@ -32,7 +37,7 @@ export class FavoritesService {
 
       // Add to favorites
       const [newFavorite] = await db.insert(schema.favorites).values({
-        userId,
+        userId: userIdInt,
         favoriteType,
         favoriteId
       }).returning()
@@ -49,9 +54,14 @@ export class FavoritesService {
    */
   async removeFavorite (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<boolean> {
     try {
+      const userIdInt = parseInt(userId)
+      if (isNaN(userIdInt)) {
+        throw new Error('Invalid user ID')
+      }
+
       const result = await db.delete(schema.favorites).where(
         and(
-          eq(schema.favorites.userId, userId),
+          eq(schema.favorites.userId, userIdInt),
           eq(schema.favorites.favoriteType, favoriteType),
           eq(schema.favorites.favoriteId, favoriteId)
         )
@@ -69,7 +79,12 @@ export class FavoritesService {
    */
   async getUserFavorites (userId: string): Promise<FavoriteItem[]> {
     try {
-      return await db.select().from(schema.favorites).where(eq(schema.favorites.userId, userId))
+      const userIdInt = parseInt(userId)
+      if (isNaN(userIdInt)) {
+        throw new Error('Invalid user ID')
+      }
+
+      return await db.select().from(schema.favorites).where(eq(schema.favorites.userId, userIdInt))
     } catch (error) {
       console.error('Error getting user favorites:', error)
       throw error
@@ -81,9 +96,14 @@ export class FavoritesService {
    */
   async getUserFavoritesByType (userId: string, favoriteType: 'item' | 'combination'): Promise<FavoriteItem[]> {
     try {
+      const userIdInt = parseInt(userId)
+      if (isNaN(userIdInt)) {
+        throw new Error('Invalid user ID')
+      }
+
       return await db.select().from(schema.favorites).where(
         and(
-          eq(schema.favorites.userId, userId),
+          eq(schema.favorites.userId, userIdInt),
           eq(schema.favorites.favoriteType, favoriteType)
         )
       )
@@ -98,9 +118,14 @@ export class FavoritesService {
    */
   async isFavorited (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<boolean> {
     try {
+      const userIdInt = parseInt(userId)
+      if (isNaN(userIdInt)) {
+        throw new Error('Invalid user ID')
+      }
+
       const result = await db.select().from(schema.favorites).where(
         and(
-          eq(schema.favorites.userId, userId),
+          eq(schema.favorites.userId, userIdInt),
           eq(schema.favorites.favoriteType, favoriteType),
           eq(schema.favorites.favoriteId, favoriteId)
         )
@@ -157,7 +182,12 @@ export class FavoritesService {
    */
   async clearUserFavorites (userId: string): Promise<number> {
     try {
-      const result = await db.delete(schema.favorites).where(eq(schema.favorites.userId, userId)).returning()
+      const userIdInt = parseInt(userId)
+      if (isNaN(userIdInt)) {
+        throw new Error('Invalid user ID')
+      }
+
+      const result = await db.delete(schema.favorites).where(eq(schema.favorites.userId, userIdInt)).returning()
       return result.length
     } catch (error) {
       console.error('Error clearing user favorites:', error)

@@ -1,4 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useAuth } from '../hooks/useAuth'
+import { getPotionFavorites, togglePotionFavorite } from '../services/favoritesApi'
+import { notifications } from '@mantine/notifications'
 
 const FavoritesContext = createContext()
 
@@ -11,60 +15,131 @@ export const useFavorites = () => {
 }
 
 export const FavoritesProvider = ({ children }) => {
-  const [favorites, setFavorites] = useState([])
-
-  // Load favorites from localStorage on mount
-  useEffect(() => {
+  const { user, isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
+  const [localFavorites, setLocalFavorites] = useState(() => {
+    // Fallback to localStorage for unauthenticated users
     try {
-      const savedFavorites = localStorage.getItem('potionFavorites')
-      if (savedFavorites) {
-        setFavorites(JSON.parse(savedFavorites))
+      const localFavorites = localStorage.getItem('potionFavorites')
+      return localFavorites ? JSON.parse(localFavorites) : []
+    } catch (error) {
+      console.error('Failed to parse favorites from localStorage', error)
+      return []
+    }
+  })
+
+  // Fetch favorites from database if authenticated
+  const { data: dbFavorites = [], isLoading } = useQuery(
+    ['potionFavorites', user?.id],
+    () => getPotionFavorites(user.id.toString()),
+    {
+      enabled: isAuthenticated && !!user?.id,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      onError: (error) => {
+        console.error('Failed to fetch favorites from database:', error)
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to load your favorites. Using local storage as fallback.',
+          color: 'red'
+        })
       }
-    } catch (error) {
-      console.error('Error loading favorites:', error)
     }
-  }, [])
+  )
 
-  // Save favorites to localStorage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem('potionFavorites', JSON.stringify(favorites))
-    } catch (error) {
-      console.error('Error saving favorites:', error)
+  // Toggle favorite mutation
+  const toggleMutation = useMutation(
+    ({ potionName }) => togglePotionFavorite(user.id.toString(), potionName),
+    {
+      onSuccess: (isFavorited, { potionName }) => {
+        // Update the cache immediately
+        queryClient.setQueryData(['potionFavorites', user?.id], (old = []) => {
+          if (isFavorited) {
+            return [...old, potionName]
+          } else {
+            return old.filter(name => name !== potionName)
+          }
+        })
+      },
+      onError: (error, { potionName }) => {
+        console.error('Failed to toggle favorite:', error)
+        notifications.show({
+          title: 'Error',
+          message: `Failed to ${isFavorite(potionName) ? 'remove' : 'add'} favorite. Please try again.`,
+          color: 'red'
+        })
+      }
     }
-  }, [favorites])
+  )
+
+  // Use database favorites if authenticated, otherwise use localStorage
+  const favorites = isAuthenticated && user?.id ? dbFavorites : localFavorites
+
+  // Update localStorage for unauthenticated users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      try {
+        localStorage.setItem('potionFavorites', JSON.stringify(localFavorites))
+      } catch (error) {
+        console.error('Failed to save favorites to localStorage', error)
+      }
+    }
+  }, [localFavorites, isAuthenticated])
 
   const addFavorite = (potionName) => {
-    setFavorites(prev => {
-      if (prev.includes(potionName)) {
-        return prev // Already favorited
+    if (isAuthenticated && user?.id) {
+      // Use database for authenticated users
+      if (!isFavorite(potionName)) {
+        toggleMutation.mutate({ potionName })
       }
-      return [...prev, potionName]
-    })
+    } else {
+      // Use localStorage for unauthenticated users
+      setLocalFavorites(prev => {
+        if (prev.includes(potionName)) {
+          return prev // Already favorited
+        }
+        return [...prev, potionName]
+      })
+    }
   }
 
   const removeFavorite = (potionName) => {
-    setFavorites(prev => prev.filter(name => name !== potionName))
-  }
-
-  const toggleFavorite = (potionName) => {
-    if (favorites.includes(potionName)) {
-      removeFavorite(potionName)
+    if (isAuthenticated && user?.id) {
+      // Use database for authenticated users
+      if (isFavorite(potionName)) {
+        toggleMutation.mutate({ potionName })
+      }
     } else {
-      addFavorite(potionName)
+      // Use localStorage for unauthenticated users
+      setLocalFavorites(prev => prev.filter(name => name !== potionName))
     }
   }
 
-  const isFavorite = (potionName) => {
-    return favorites.includes(potionName)
+  const toggleFavorite = (potionName) => {
+    if (isAuthenticated && user?.id) {
+      // Use database for authenticated users
+      toggleMutation.mutate({ potionName })
+    } else {
+      // Use localStorage for unauthenticated users
+      setLocalFavorites((prevFavorites) => {
+        if (prevFavorites.includes(potionName)) {
+          return prevFavorites.filter((name) => name !== potionName)
+        } else {
+          return [...prevFavorites, potionName]
+        }
+      })
+    }
   }
+
+  const isFavorite = (potionName) => favorites.includes(potionName)
 
   const value = {
     favorites,
     addFavorite,
     removeFavorite,
     toggleFavorite,
-    isFavorite
+    isFavorite,
+    isLoading: isAuthenticated ? isLoading : false,
+    isToggling: toggleMutation.isLoading
   }
 
   return (

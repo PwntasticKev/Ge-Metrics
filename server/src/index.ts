@@ -10,6 +10,7 @@ import { csrfProtection, rateLimit } from './middleware/security.js'
 import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import potionVolumesRouter from './routes/potionVolumes.js'
+import favoritesRouter from './routes/favorites.js'
 import { updateTopPotionVolumes } from './services/potionVolumeService.js'
 
 const app = express()
@@ -57,6 +58,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/potion-volumes', potionVolumesRouter)
+app.use('/api/favorites', favoritesRouter)
 
 // tRPC middleware
 app.use('/trpc', createExpressMiddleware({
