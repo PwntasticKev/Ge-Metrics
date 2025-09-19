@@ -8,8 +8,8 @@ function parsePrice (price: string | number | null): number {
   return parseInt(price.toString().replace(/,/g, ''), 10) || 0
 }
 
-// Fetch volume data from OSRS Wiki API for a single item
-export async function fetchPotionVolumeFromAPI (itemId: number): Promise<{
+// Fetch volume data from /5m endpoint for ALL items at once (much more efficient)
+export async function fetchAllVolumeDataFromAPI (): Promise<Record<number, {
   volume: number
   highPriceVolume: number
   lowPriceVolume: number
@@ -17,58 +17,66 @@ export async function fetchPotionVolumeFromAPI (itemId: number): Promise<{
   hourlyHighVolume: number
   hourlyLowVolume: number
   totalVolume: number
-} | null> {
+}>> {
   try {
-    const response = await fetch(`https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=24h&id=${itemId}`, {
+    console.log('🔄 Fetching volume data for all items from /5m endpoint...')
+    const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/5m', {
       headers: {
         'User-Agent': 'Ge-Metrics OSRS Trading App - Volume Cache Service (contact@ge-metrics.com)'
       }
     })
 
     if (!response.ok) {
-      if (response.status === 400) {
-        // Item doesn't exist or no data available
-        return { volume: 0, highPriceVolume: 0, lowPriceVolume: 0, hourlyVolume: 0, hourlyHighVolume: 0, hourlyLowVolume: 0, totalVolume: 0 }
-      }
-      console.warn(`Failed to fetch volume for item ${itemId}: ${response.status}`)
-      return null
+      console.warn(`Failed to fetch volume data: ${response.status}`)
+      return {}
     }
 
     const data = await response.json()
 
-    if (!data.data || data.data.length === 0) {
-      return { volume: 0, highPriceVolume: 0, lowPriceVolume: 0, hourlyVolume: 0, hourlyHighVolume: 0, hourlyLowVolume: 0, totalVolume: 0 }
+    if (!data.data) {
+      return {}
     }
 
-    // Get most recent data point (current volume)
-    const latestData = data.data[data.data.length - 1]
-    const currentHigh = latestData.highPriceVolume || 0
-    const currentLow = latestData.lowPriceVolume || 0
-    const currentVolume = currentHigh + currentLow
+    // Convert the /5m data format to our expected format
+    const volumeData: Record<number, any> = {}
 
-    // Calculate total volume across all data points
-    let totalHigh = 0
-    let totalLow = 0
+    for (const [itemIdStr, itemData] of Object.entries(data.data)) {
+      const itemId = parseInt(itemIdStr)
+      if (itemData && typeof itemData === 'object') {
+        const highVol = itemData.highPriceVolume || 0
+        const lowVol = itemData.lowPriceVolume || 0
+        const totalVol = highVol + lowVol
 
-    data.data.forEach(point => {
-      totalHigh += point.highPriceVolume || 0
-      totalLow += point.lowPriceVolume || 0
-    })
-
-    const totalVolume = totalHigh + totalLow
-
-    return {
-      volume: currentVolume, // Most recent volume
-      highPriceVolume: currentHigh,
-      lowPriceVolume: currentLow,
-      hourlyVolume: currentVolume, // Same as current for now (24h data points)
-      hourlyHighVolume: currentHigh,
-      hourlyLowVolume: currentLow,
-      totalVolume // Sum across all data points
+        volumeData[itemId] = {
+          volume: totalVol, // Current 5-minute volume
+          highPriceVolume: highVol,
+          lowPriceVolume: lowVol,
+          hourlyVolume: totalVol * 12, // Estimate: 5min * 12 = 1 hour
+          hourlyHighVolume: highVol * 12,
+          hourlyLowVolume: lowVol * 12,
+          totalVolume: totalVol // Use current as total for now
+        }
+      }
     }
+
+    console.log(`✅ Fetched volume data for ${Object.keys(volumeData).length} items`)
+    return volumeData
   } catch (error) {
-    console.error(`Error fetching volume for item ${itemId}:`, error)
-    return null
+    console.error('Error fetching volume data from /5m endpoint:', error)
+    return {}
+  }
+}
+
+// Get volume data for a specific item from the bulk data
+export function getVolumeForItem (itemId: number, allVolumeData: Record<number, any>) {
+  return allVolumeData[itemId] || {
+    volume: 0,
+    highPriceVolume: 0,
+    lowPriceVolume: 0,
+    hourlyVolume: 0,
+    hourlyHighVolume: 0,
+    hourlyLowVolume: 0,
+    totalVolume: 0
   }
 }
 
@@ -310,43 +318,46 @@ export async function updateTopPotionVolumes (): Promise<void> {
 
     console.log(`Found ${topPotions.length} profitable potion families`)
 
-    // Step 6: Fetch volumes for each dose of top potions
-    const volumePromises: Promise<void>[] = []
+    // Step 6: Fetch volume data for ALL items at once (much more efficient!)
+    console.log('🔄 Fetching volume data for all potions...')
+    const allVolumeData = await fetchAllVolumeDataFromAPI()
+
+    // Step 7: Store volume data for each potion dose
+    const storagePromises: Promise<void>[] = []
 
     topPotions.forEach((family, familyRank) => {
       [family.item4, family.item3, family.item2, family.item1].forEach((item, doseIndex) => {
         if (item) {
           const dose = 4 - doseIndex
-          volumePromises.push(
-            fetchPotionVolumeFromAPI(item.id).then(async (volumeData) => {
-              if (volumeData) {
-                await storePotionVolume({
-                  itemId: item.id,
-                  itemName: item.name,
-                  dose,
-                  baseName: family.baseName,
-                  volume: volumeData.volume,
-                  highPriceVolume: volumeData.highPriceVolume,
-                  lowPriceVolume: volumeData.lowPriceVolume,
-                  hourlyVolume: volumeData.hourlyVolume,
-                  hourlyHighVolume: volumeData.hourlyHighVolume,
-                  hourlyLowVolume: volumeData.hourlyLowVolume,
-                  totalVolume: volumeData.totalVolume,
-                  rank: familyRank + 1,
-                  isActive: true
-                })
-                console.log(`Cached volume for ${item.name}: ${volumeData.volume}`)
-              }
+          const volumeData = getVolumeForItem(item.id, allVolumeData)
+
+          storagePromises.push(
+            storePotionVolume({
+              itemId: item.id,
+              itemName: item.name,
+              dose,
+              baseName: family.baseName,
+              volume: volumeData.volume,
+              highPriceVolume: volumeData.highPriceVolume,
+              lowPriceVolume: volumeData.lowPriceVolume,
+              hourlyVolume: volumeData.hourlyVolume,
+              hourlyHighVolume: volumeData.hourlyHighVolume,
+              hourlyLowVolume: volumeData.hourlyLowVolume,
+              totalVolume: volumeData.totalVolume,
+              rank: familyRank + 1,
+              isActive: true
+            }).then(() => {
+              console.log(`✅ Cached volume for ${item.name}: ${volumeData.volume}`)
             }).catch(error => {
-              console.error(`Failed to cache volume for ${item.name}:`, error)
+              console.error(`❌ Failed to cache volume for ${item.name}:`, error)
             })
           )
         }
       })
     })
 
-    // Wait for all volume fetches to complete
-    await Promise.all(volumePromises)
+    // Wait for all storage operations to complete
+    await Promise.all(storagePromises)
 
     console.log('Potion volume cache update completed successfully')
   } catch (error) {

@@ -42,15 +42,19 @@ export const getMappingData = async () => {
 
 export const getItemHistoryById = async (time, itemId) => {
   try {
+    // Use our cached historical data API instead of hitting OSRS Wiki directly
     const response = await axios.get(
-      `https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=${time}&id=${itemId}`,
-      {
-        headers: {
-          'User-Agent': 'Ge-Metrics - OSRS Grand Exchange Analytics - kevinlee@email.com'
-        }
-      }
+      `http://localhost:4000/api/historical/${itemId}?timestep=${time}`
     )
-    return response
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch historical data')
+    }
+
+    // Return in the same format as the original OSRS Wiki API for compatibility
+    return {
+      data: response.data.data
+    }
   } catch (error) {
     console.error('Error fetching item History:', error)
     throw error

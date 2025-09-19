@@ -28,28 +28,35 @@ export const FavoritesProvider = ({ children }) => {
     }
   })
 
-  // Fetch favorites from database if authenticated
+  // Check if user is a mock/public user
+  const isMockUser = user?.id === 'public-user-id' || user?.id?.startsWith('mock-') || user?.id?.startsWith('public-')
+
+  // Fetch favorites from database if authenticated and not a mock user
   const { data: dbFavorites = [], isLoading } = useQuery(
     ['potionFavorites', user?.id],
     () => getPotionFavorites(user.id.toString()),
     {
-      enabled: isAuthenticated && !!user?.id,
+      enabled: isAuthenticated && !!user?.id && !isMockUser,
       staleTime: 5 * 60 * 1000, // 5 minutes
       onError: (error) => {
         console.error('Failed to fetch favorites from database:', error)
-        notifications.show({
-          title: 'Error',
-          message: 'Failed to load your favorites. Using local storage as fallback.',
-          color: 'red'
-        })
+        // Don't show error notification for mock users
+        if (!isMockUser) {
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to load your favorites. Using local storage as fallback.',
+            color: 'red'
+          })
+        }
       }
     }
   )
 
-  // Toggle favorite mutation
+  // Toggle favorite mutation (only for real users, not mock users)
   const toggleMutation = useMutation(
     ({ potionName }) => togglePotionFavorite(user.id.toString(), potionName),
     {
+      enabled: !isMockUser, // Disable for mock users
       onSuccess: (isFavorited, { potionName }) => {
         // Update the cache immediately
         queryClient.setQueryData(['potionFavorites', user?.id], (old = []) => {
@@ -62,37 +69,40 @@ export const FavoritesProvider = ({ children }) => {
       },
       onError: (error, { potionName }) => {
         console.error('Failed to toggle favorite:', error)
-        notifications.show({
-          title: 'Error',
-          message: `Failed to ${isFavorite(potionName) ? 'remove' : 'add'} favorite. Please try again.`,
-          color: 'red'
-        })
+        // Don't show error for mock users (expected to fail)
+        if (!isMockUser) {
+          notifications.show({
+            title: 'Error',
+            message: `Failed to ${isFavorite(potionName) ? 'remove' : 'add'} favorite. Please try again.`,
+            color: 'red'
+          })
+        }
       }
     }
   )
 
-  // Use database favorites if authenticated, otherwise use localStorage
-  const favorites = isAuthenticated && user?.id ? dbFavorites : localFavorites
+  // Use database favorites if authenticated and not mock user, otherwise use localStorage
+  const favorites = isAuthenticated && user?.id && !isMockUser ? dbFavorites : localFavorites
 
-  // Update localStorage for unauthenticated users
+  // Update localStorage for unauthenticated users or mock users
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || isMockUser) {
       try {
         localStorage.setItem('potionFavorites', JSON.stringify(localFavorites))
       } catch (error) {
         console.error('Failed to save favorites to localStorage', error)
       }
     }
-  }, [localFavorites, isAuthenticated])
+  }, [localFavorites, isAuthenticated, isMockUser])
 
   const addFavorite = (potionName) => {
-    if (isAuthenticated && user?.id) {
-      // Use database for authenticated users
+    if (isAuthenticated && user?.id && !isMockUser) {
+      // Use database for real authenticated users
       if (!isFavorite(potionName)) {
         toggleMutation.mutate({ potionName })
       }
     } else {
-      // Use localStorage for unauthenticated users
+      // Use localStorage for unauthenticated users or mock users
       setLocalFavorites(prev => {
         if (prev.includes(potionName)) {
           return prev // Already favorited

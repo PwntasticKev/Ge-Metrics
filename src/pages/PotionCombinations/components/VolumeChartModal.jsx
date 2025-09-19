@@ -13,7 +13,7 @@ import {
   TimeScale
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
-import { getItemHistoryById } from '../../../api/rs-wiki-api'
+import { getItemHistoryById } from '../../../services/historicalDataApi'
 
 ChartJS.register(
   CategoryScale,

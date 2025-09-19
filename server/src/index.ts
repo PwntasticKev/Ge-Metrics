@@ -11,6 +11,7 @@ import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import potionVolumesRouter from './routes/potionVolumes.js'
 import favoritesRouter from './routes/favorites.js'
+import historicalDataRouter from './routes/historicalData.js'
 import { updateTopPotionVolumes } from './services/potionVolumeService.js'
 
 const app = express()
@@ -59,6 +60,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/potion-volumes', potionVolumesRouter)
 app.use('/api/favorites', favoritesRouter)
+app.use('/api/historical', historicalDataRouter)
 
 // tRPC middleware
 app.use('/trpc', createExpressMiddleware({
