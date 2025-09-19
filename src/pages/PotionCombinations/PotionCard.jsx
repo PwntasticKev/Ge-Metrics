@@ -1,34 +1,17 @@
-import React from 'react'
-import { Card, Image, Badge, Text, Group, Tooltip } from '@mantine/core'
+import React, { useState } from 'react'
+import { Card, Image, Badge, Text, Group, Tooltip, ActionIcon } from '@mantine/core'
 import { Link } from 'react-router-dom'
-import { IconInfoCircle } from '@tabler/icons-react'
+import { IconChartLine } from '@tabler/icons-react'
+import { VolumeChartModal } from './components/VolumeChartModal'
 
 export function PotionCard ({ recipe }) {
+  const [modalOpened, setModalOpened] = useState(false)
+
   if (!recipe || !recipe.item4 || !recipe.combinations) {
     return null
   }
 
-  const { name, item4, combinations } = recipe
-
-  const formatProfit = (profit) => {
-    if (typeof profit !== 'number' || isNaN(profit)) {
-      return <Text color="gray">N/A</Text>
-    }
-    const color = profit > 0 ? 'green' : profit < 0 ? 'red' : 'gray'
-    const sign = profit > 0 ? '+' : ''
-    return (
-      <Text color={color} weight={700}>
-        {sign}{profit.toLocaleString()} gp
-      </Text>
-    )
-  }
-
-  const formatCost = (cost) => {
-    if (typeof cost !== 'number' || isNaN(cost)) {
-      return 'N/A'
-    }
-    return `${cost.toLocaleString()} gp`
-  }
+  const { name, item4 } = recipe
 
   return (
     <Card shadow="sm" p="sm" radius="md" withBorder>
@@ -44,23 +27,28 @@ export function PotionCard ({ recipe }) {
         {/* Right: Content */}
         <div style={{ flex: 1 }}>
           <Group position="apart" noWrap>
-            <Link to={`/item/${item4.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Text weight={500} size="sm" mb="sm" lineClamp={1}>{name}</Text>
-            </Link>
-            <Tooltip label="Profitability Score = Best Profit * Volume" withArrow>
+            <Group spacing="xs" align="center">
+              <Link to={`/item/${item4.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Text weight={500} size="sm" lineClamp={1}>{name}</Text>
+              </Link>
+              <ActionIcon size="xs" variant="transparent" onClick={() => setModalOpened(true)}>
+                <IconChartLine size={14} />
+              </ActionIcon>
+            </Group>
+            <Tooltip label="Profitability Score (1-10)" withArrow>
               <Badge color="yellow" variant="light" size="sm">
-                {recipe.profitabilityScore !== null ? recipe.profitabilityScore.toLocaleString() : 'N/A'}
+                {recipe.normalizedScore ? `${recipe.normalizedScore} / 10` : 'N/A'}
               </Badge>
             </Tooltip>
           </Group>
 
-          {/* Show equivalent costs per (4) dose */}
-          {recipe.equivalentCosts && recipe.equivalentCosts.map((cost, index) => {
-            const isBest = cost.profit === recipe.maxProfit
+          {/* Show method costs and profits */}
+          {recipe.combinations && recipe.combinations.map((combo) => {
+            const isBest = combo.dose === recipe.bestMethodDose
             return (
               <Group
                 position="apart"
-                key={index}
+                key={combo.dose}
                 mb="xs"
                 p={4}
                 style={{
@@ -68,9 +56,11 @@ export function PotionCard ({ recipe }) {
                   backgroundColor: isBest ? 'rgba(76, 175, 80, 0.1)' : 'transparent'
                 }}
               >
-                <Text size="xs" weight={isBest ? 700 : 400}>Buy ({cost.dose})</Text>
                 <Text size="xs" weight={isBest ? 700 : 400}>
-                  {cost.costPer4Dose !== null ? `${cost.costPer4Dose.toLocaleString()} gp` : 'N/A'}
+                  ({combo.dose}): {combo.cost !== null ? Math.round(combo.cost).toLocaleString() : 'N/A'}
+                </Text>
+                <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>
+                  {combo.profitPerPotion !== null ? `${Math.round(combo.profitPerPotion).toLocaleString()}/per` : 'N/A'}
                 </Text>
               </Group>
             )
@@ -80,23 +70,15 @@ export function PotionCard ({ recipe }) {
           <div style={{ borderTop: '1px solid #dee2e6', margin: '8px 0' }} />
 
           {/* (4) dose sell price */}
-          <Group position="apart" mb="xs">
-            <Text size="xs" weight={500}>(4)</Text>
-            <Text size="xs" weight={500} color="green">{item4.high ? item4.high.toLocaleString() : 'N/A'}</Text>
-          </Group>
-
-          {/* Best profit */}
           <Group position="apart">
-            <Text size="xs" weight={600}>Best Profit:</Text>
-            <Text size="xs" weight={600} color={recipe.maxProfit > 0 ? 'green' : (recipe.maxProfit < 0 ? 'red' : 'gray')}>
-              {recipe.maxProfit !== null
-                ? `${recipe.maxProfit > 0 ? '+' : ''}${recipe.maxProfit.toLocaleString()}`
-                : 'N/A'
-              }
+            <Text size="xs" weight={500}>Sell (4):</Text>
+            <Text size="xs" weight={500} color="green">
+              {item4.high ? Math.round(parseFloat(item4.high.toString().replace(/,/g, '')) * 0.98).toLocaleString() : 'N/A'}
             </Text>
           </Group>
         </div>
       </Group>
+      {modalOpened && <VolumeChartModal opened={modalOpened} onClose={() => setModalOpened(false)} recipe={recipe} />}
     </Card>
   )
 }

@@ -354,3 +354,41 @@ export const selectOtpSchema = createSelectSchema(otps)
 
 export type Otp = typeof otps.$inferSelect;
 export type NewOtp = typeof otps.$inferInsert;
+
+// Potion Volumes Cache (for 2.5-minute refresh cycle)
+export const potionVolumes = pgTable('potion_volumes', {
+  id: serial('id').primaryKey(),
+  itemId: integer('item_id').notNull(),
+  itemName: text('item_name').notNull(),
+  dose: integer('dose').notNull(), // 1, 2, 3, or 4
+  baseName: text('base_name').notNull(), // e.g., "Prayer potion"
+  volume: integer('volume').default(0), // Total volume (sum of high + low)
+  highPriceVolume: integer('high_price_volume'),
+  lowPriceVolume: integer('low_price_volume'),
+  hourlyVolume: integer('hourly_volume').default(0), // Volume from last hour only
+  hourlyHighVolume: integer('hourly_high_volume'),
+  hourlyLowVolume: integer('hourly_low_volume'),
+  totalVolume: integer('total_volume').default(0), // Cumulative volume over all data points
+  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
+  rank: integer('rank'), // For ordering top potions
+  isActive: boolean('is_active').default(true), // Track if this potion is still in top rankings
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  itemIdIdx: index('potion_volumes_item_id_idx').on(table.itemId),
+  baseNameIdx: index('potion_volumes_base_name_idx').on(table.baseName),
+  rankIdx: index('potion_volumes_rank_idx').on(table.rank),
+  lastUpdatedIdx: index('potion_volumes_last_updated_idx').on(table.lastUpdated),
+  isActiveIdx: index('potion_volumes_is_active_idx').on(table.isActive)
+}))
+
+export const insertPotionVolumeSchema = createInsertSchema(potionVolumes, {
+  itemId: (schema) => schema.positive(),
+  dose: (schema) => schema.min(1).max(4),
+  volume: (schema) => schema.nonnegative()
+})
+
+export const selectPotionVolumeSchema = createSelectSchema(potionVolumes)
+
+export type PotionVolume = typeof potionVolumes.$inferSelect;
+export type NewPotionVolume = typeof potionVolumes.$inferInsert;

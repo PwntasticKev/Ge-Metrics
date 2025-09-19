@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useQuery } from 'react-query'
 import ItemData from './item-data'
-
+import { getAllPotionVolumes, getVolumesCacheStatus } from '../services/potionVolumeApi'
 const parsePrice = (price) => {
+  if (typeof price === 'number') return price
   if (typeof price !== 'string' || !price) {
     return null
   }
@@ -15,90 +17,168 @@ export function usePotionRecipes () {
   const [error, setError] = useState(null)
   const { items } = ItemData()
 
+  // Get cached volume data from API
+  const { data: cachedVolumes } = useQuery('potionVolumes', getAllPotionVolumes, {
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 2.5 * 60 * 1000 // 2.5 minutes
+  })
+  const { data: cacheStatus } = useQuery('potionVolumeStatus', getVolumesCacheStatus, {
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000 // 1 minute
+  })
+
   useEffect(() => {
-    if (items && items.length > 0) {
+    // Helper function to get cached volume for an item
+    const getCachedVolume = (itemId, volumeType = 'total') => {
+      if (!cachedVolumes) return 0
+      if (!itemId) return 0
+
+      const cachedItem = cachedVolumes.find(v => v.itemId === itemId)
+      if (!cachedItem) return 0
+
+      // Return different volume types based on preference
+      switch (volumeType) {
+        case 'hourly':
+          return cachedItem.hourlyVolume || 0
+        case 'current':
+          return cachedItem.volume || 0
+        case 'total':
+        default:
+          return cachedItem.totalVolume || cachedItem.volume || 0
+      }
+    }
+
+    const processRecipes = () => {
+      if (!items || items.length === 0) {
+        setIsLoading(true)
+        return
+      }
+
+      if (!cachedVolumes || cachedVolumes.length === 0) {
+        setIsLoading(true)
+        return
+      }
+
+      setIsLoading(true)
       try {
         const potion4items = items.filter(item =>
           item.name.toLowerCase().includes('(4)') &&
           item.high !== null
         )
-        const potionLog = {}
 
-        const generatedRecipes = potion4items.map(item4 => {
+        const processedRecipes = potion4items.map((item4) => {
           const baseName = item4.name.replace(/\s*\(4\)/i, '')
-
           const item3 = items.find(i => i.name.toLowerCase() === `${baseName.toLowerCase()}(3)`)
           const item2 = items.find(i => i.name.toLowerCase() === `${baseName.toLowerCase()}(2)`)
           const item1 = items.find(i => i.name.toLowerCase() === `${baseName.toLowerCase()}(1)`)
 
           const price4 = parsePrice(item4.high)
+          const volume4 = getCachedVolume(item4.id, 'total') // Use total volume for scoring
+
           const combinations = []
-          const equivalentCosts = []
 
-          // (1) dose
+          // Apply 2% tax to sell price
+          const sellPrice = price4 !== null ? price4 * 0.98 : null
+
+          // (1) dose to (4) dose
           const low1 = parsePrice(item1?.low)
-          if (low1 !== null) {
-            const cost = low1 * 4
-            const profit = price4 !== null ? price4 - cost : null
-            equivalentCosts.push({ dose: '1', costPer4Dose: cost, profit })
-            combinations.push({ name: '(1) to (4)', cost, profit })
+          const volume1 = getCachedVolume(item1?.id, 'total') // Use total volume
+          if (low1 !== null && sellPrice !== null) {
+            const cost = low1 * 4 // Buy 4x (1) dose
+            const totalProfit = sellPrice - cost // Profit from 1x (4) dose
+            const profitPerPotion = Math.round(totalProfit) // Already per potion, no decimals
+            const score = profitPerPotion * (volume1 + volume4)
+            combinations.push({ name: '(1) to (4)', cost: low1, profitPerPotion, score, dose: '1' })
           }
 
-          // (2) dose
+          // (2) dose to (4) dose
           const low2 = parsePrice(item2?.low)
-          if (low2 !== null) {
-            const cost = low2 * 2
-            const profit = price4 !== null ? price4 - cost : null
-            equivalentCosts.push({ dose: '2', costPer4Dose: cost, profit })
-            combinations.push({ name: '(2) to (4)', cost, profit })
+          const volume2 = getCachedVolume(item2?.id, 'total') // Use total volume
+          if (low2 !== null && sellPrice !== null) {
+            const cost = low2 * 2 // Buy 2x (2) dose
+            const totalProfit = sellPrice - cost // Profit from 1x (4) dose
+            const profitPerPotion = Math.round(totalProfit) // Already per potion, no decimals
+            const score = profitPerPotion * (volume2 + volume4)
+            combinations.push({ name: '(2) to (4)', cost: low2, profitPerPotion, score, dose: '2' })
           }
 
-          // (3) dose
+          // (3) dose to (4) dose
           const low3 = parsePrice(item3?.low)
-          if (low3 !== null) {
-            const cost = Math.round((low3 * 4) / 3)
-            const profit = price4 !== null ? price4 - cost : null
-            equivalentCosts.push({ dose: '3', costPer4Dose: cost, profit })
-            combinations.push({ name: '(3) to (4)', cost, profit })
+          const volume3 = getCachedVolume(item3?.id, 'total') // Use total volume
+          if (low3 !== null && sellPrice !== null) {
+            const buyCost = low3 * 4 // Buy 4x (3) dose
+            const totalProfit = (sellPrice * 3) - buyCost // Get 3x (4) dose
+            const profitPerPotion = Math.round(totalProfit / 3) // Profit per (4) dose made
+            const score = profitPerPotion * (volume3 + volume4)
+            combinations.push({ name: '(3) to (4)', cost: low3, profitPerPotion, score, dose: '3' })
           }
 
           if (combinations.length === 0) {
             return null
           }
 
-          const validProfits = combinations
-            .map(c => c.profit)
-            .filter(p => typeof p === 'number')
+          // Find the best method based on profit per potion
+          const bestMethod = combinations.reduce((best, current) =>
+            (current.profitPerPotion !== null && (best.profitPerPotion === null || current.profitPerPotion > best.profitPerPotion)) ? current : best
+          )
 
-          const maxProfit = validProfits.length > 0 ? Math.max(...validProfits) : null
-          const volume = parsePrice(item4.volume) || 0
-          const profitabilityScore = maxProfit !== null ? maxProfit * volume : null
+          const bestProfitPerPotion = bestMethod.profitPerPotion
 
-          if (maxProfit === null) {
+          if (bestProfitPerPotion === null) {
             return null
           }
+
+          const profitabilityScore = bestProfitPerPotion // Use profit per potion for scoring
 
           return {
             name: baseName,
             item4,
+            item3, // Pass full item object
+            item2, // Pass full item object
+            item1, // Pass full item object
             combinations,
-            maxProfit,
-            equivalentCosts,
-            volume,
+            bestProfitPerPotion,
+            bestMethodDose: bestMethod.dose,
             profitabilityScore
           }
-        }).filter(Boolean)
+        }).filter(r => r && r.bestProfitPerPotion !== null)
 
-        generatedRecipes.sort((a, b) => b.profitabilityScore - a.profitabilityScore)
+        let finalRecipes = processedRecipes.map(r => ({ ...r, normalizedScore: 1 }))
 
-        setRecipes(generatedRecipes)
+        const scores = processedRecipes.map(r => r.profitabilityScore).filter(s => s && s > 0)
+        if (scores.length > 0) {
+          const minScore = Math.min(...scores)
+          const maxScore = Math.max(...scores)
+
+          // Second pass: normalize scores to a 1-10 scale
+          finalRecipes = processedRecipes.map(recipe => {
+            let normalizedScore = 1
+            if (recipe.profitabilityScore > 0 && maxScore > minScore) {
+              normalizedScore = 1 + 9 * (recipe.profitabilityScore - minScore) / (maxScore - minScore)
+            } else if (recipe.profitabilityScore > 0) {
+              normalizedScore = 10 // Only one item has profit, it gets a 10
+            }
+            return { ...recipe, normalizedScore: parseFloat(normalizedScore.toFixed(1)) }
+          })
+        } else {
+          // If no items have a positive score, they all get a score of 1
+          finalRecipes = processedRecipes.map(recipe => ({ ...recipe, normalizedScore: 1 }))
+        }
+
+        // Sort by the final normalized score
+        finalRecipes.sort((a, b) => (b.normalizedScore || 0) - (a.normalizedScore || 0))
+
+        setRecipes(finalRecipes)
       } catch (e) {
         setError(e)
+        console.error('Error processing potion recipes:', e)
       } finally {
         setIsLoading(false)
       }
     }
-  }, [items])
+
+    processRecipes()
+  }, [items, cachedVolumes, cacheStatus])
 
   return { recipes, isLoading, error }
 }

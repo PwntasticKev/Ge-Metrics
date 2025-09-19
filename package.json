@@ -22,8 +22,6 @@
     "test:data-loading": "node test-data-loading.cjs",
     "test:comprehensive": "node test-comprehensive.cjs",
     "test:final": "node test-final-verification.cjs",
-    "convex:dev": "npx convex dev",
-    "convex:deploy": "npx convex deploy",
     "collect-history": "node scripts/collectHistoryData.js",
     "collect-all-history": "node scripts/collectAllHistoricalData.js",
     "monitor-alerts": "node scripts/monitorVolumeAlerts.js",
@@ -85,6 +83,7 @@
     "prisma": "^5.0.0",
     "typescript": "^5.0.2",
     "vite": "^4.3.9",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
   }
 }

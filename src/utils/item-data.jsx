@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { getMappingData, getPricingData } from '../api/rs-wiki-api.jsx'
+import {
+  getPricingData,
+  getMappingData
+} from '../api/rs-wiki-api'
 import { allItems, getItemSetProfit } from '../utils/utils.jsx'
 import { itemRecipes } from '../components/Table/data/item-set-filters.jsx'
 
@@ -14,17 +17,33 @@ const ItemData = () => {
       setMapStatus('loading')
       setPriceStatus('loading')
       try {
-        const [mappingData, pricingData] = await Promise.all([
-          getMappingData(),
-          getPricingData()
+        // Fetch all data sources in parallel
+        const [pricingResponse, mappingData] = await Promise.all([
+          getPricingData(),
+          getMappingData()
         ])
 
-        const pricesById = pricingData.data.data || {}
-        const processedItems = allItems(mappingData, pricesById, pricesById)
-        setItems(processedItems)
+        const pricesAndVolumesById = pricingResponse.data.data
+
+        // Create a comprehensive items array with pricing and volume
+        const enrichedItems = mappingData.map(item => {
+          const itemData = pricesAndVolumesById[item.id]
+
+          return {
+            ...item,
+            high: itemData ? itemData.high : null,
+            highTime: itemData ? itemData.highTime : null,
+            low: itemData ? itemData.low : null,
+            lowTime: itemData ? itemData.lowTime : null,
+            volume: itemData ? itemData.highPriceVolume || itemData.lowPriceVolume || itemData.volume || null : null,
+            examine: item.examine || 'No examine text available.'
+          }
+        })
+
+        setItems(enrichedItems)
 
         const processedItemSets = itemRecipes
-          .map(recipe => getItemSetProfit(recipe, processedItems))
+          .map(recipe => getItemSetProfit(recipe, enrichedItems))
           .sort((a, b) => b.profit - a.profit)
         setItemSets(processedItemSets)
 

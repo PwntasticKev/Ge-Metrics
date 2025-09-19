@@ -106,9 +106,11 @@ export const getItemSetProfit = (
     conversionCost,
     qty
   )
-  if (qty.qty) {
+  if (qty && qty.qty) {
     const item = getItemById(qty.id)
-    item.qty = qty.qty
+    if (item) {
+      item.qty = qty.qty
+    }
   }
 
   const originalItem = items.find(item => item.id === itemSet)

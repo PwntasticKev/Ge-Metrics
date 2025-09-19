@@ -6,9 +6,9 @@ export default {
   dialect: 'postgresql',
   dbCredentials: {
     host: 'localhost',
-    user: 'kevinlee',
+    user: 'postgres',
+    password: 'root',
     database: 'auth_db',
-    // password: '', // Add if needed
     port: 5432
   }
 } satisfies Config

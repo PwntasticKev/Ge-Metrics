@@ -9,6 +9,8 @@ import { config } from './config/index.js'
 import { csrfProtection, rateLimit } from './middleware/security.js'
 import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
+import potionVolumesRouter from './routes/potionVolumes.js'
+import { updateTopPotionVolumes } from './services/potionVolumeService.js'
 
 const app = express()
 
@@ -27,7 +29,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: config.FRONTEND_URL,
+  origin: ['http://localhost:5173', 'http://localhost:8000', config.FRONTEND_URL],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
@@ -38,8 +40,8 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cookieParser())
 
-// Rate limiting
-app.use(rateLimit(100, 15 * 60 * 1000)) // 100 requests per 15 minutes
+// Rate limiting (relaxed for development)
+app.use(rateLimit(10000, 15 * 60 * 1000)) // 10,000 requests per 15 minutes
 
 // CSRF protection for state-changing operations
 app.use('/trpc', csrfProtection)
@@ -52,6 +54,9 @@ app.get('/health', (req, res) => {
     environment: config.NODE_ENV
   })
 })
+
+// API routes
+app.use('/api/potion-volumes', potionVolumesRouter)
 
 // tRPC middleware
 app.use('/trpc', createExpressMiddleware({
@@ -124,30 +129,54 @@ app.listen(port, () => {
   console.log(`📋 Health check: http://localhost:${port}/health`)
   console.log(`🔐 tRPC endpoint: http://localhost:${port}/trpc`)
   console.log(`🌍 Environment: ${config.NODE_ENV}`)
-  
+
   // Start background services
   console.log('🔄 Starting background services...')
-  
+
   // Start price cache service (fetches prices every 2 minutes)
   priceCacheService.startPeriodicFetching()
-  
+
   // Start game updates scraper (runs every 6 hours)
   startGameUpdatesScheduler()
+
+  // Start potion volume cache (updates every 2.5 minutes)
+  startPotionVolumeScheduler()
 })
 
 /**
  * Start game updates scheduler
  */
-function startGameUpdatesScheduler(): void {
+function startGameUpdatesScheduler (): void {
   console.log('🎮 Starting game updates scheduler (every 6 hours)...')
-  
+
   // Run immediately on startup
   gameUpdatesScraper.scrapeAndSaveUpdates()
-  
+
   // Schedule to run every 6 hours (6 * 60 * 60 * 1000 ms)
   setInterval(() => {
     gameUpdatesScraper.scrapeAndSaveUpdates()
   }, 6 * 60 * 60 * 1000)
+}
+
+/**
+ * Start potion volume cache scheduler
+ */
+function startPotionVolumeScheduler (): void {
+  console.log('🧪 Starting potion volume cache scheduler (every 2.5 minutes)...')
+
+  // Run immediately on startup (with a 10 second delay to let other services start)
+  setTimeout(() => {
+    updateTopPotionVolumes().catch(error => {
+      console.error('Initial potion volume update failed:', error)
+    })
+  }, 10000)
+
+  // Schedule to run every 2.5 minutes (150 seconds)
+  setInterval(() => {
+    updateTopPotionVolumes().catch(error => {
+      console.error('Scheduled potion volume update failed:', error)
+    })
+  }, 150 * 1000)
 }
 
 export { app }
