@@ -96,18 +96,11 @@ export class HistoricalDataService {
    */
   private async getCachedData (itemId: number, timestep: string): Promise<CachedHistoricalData | null> {
     try {
-      // For simplicity, we'll use the item_price_history table to store cached historical data
-      // We'll use a special timestamp to indicate this is cached historical data
-      const cacheKey = `historical_${timestep}`
+      const cacheKey = `historical_${itemId}_${timestep}`
 
       const result = await db.select()
         .from(itemPriceHistory)
-        .where(
-          and(
-            eq(itemPriceHistory.itemId, itemId),
-            eq(itemPriceHistory.timestamp, new Date(cacheKey)) // Use special timestamp as cache key
-          )
-        )
+        .where(eq(itemPriceHistory.cacheKey, cacheKey))
         .limit(1)
 
       if (result.length === 0) {
@@ -115,9 +108,7 @@ export class HistoricalDataService {
       }
 
       const cached = result[0]
-
-      // Parse the cached data from the JSON field (we'll store it in the 'data' field)
-      const data = JSON.parse(cached.data || '[]')
+      const data = cached.data ? (cached.data as HistoricalDataPoint[]) : []
 
       return {
         itemId,
@@ -136,33 +127,26 @@ export class HistoricalDataService {
    */
   private async cacheData (itemId: number, timestep: string, data: HistoricalDataPoint[]): Promise<void> {
     try {
-      const cacheKey = `historical_${timestep}`
+      const cacheKey = `historical_${itemId}_${timestep}`
       const now = new Date()
 
-      // Delete existing cache entry
-      await db.delete(itemPriceHistory)
-        .where(
-          and(
-            eq(itemPriceHistory.itemId, itemId),
-            eq(itemPriceHistory.timestamp, new Date(cacheKey))
-          )
-        )
-
-      // Insert new cache entry
       await db.insert(itemPriceHistory).values({
         itemId,
-        timestamp: new Date(cacheKey), // Special timestamp for cache identification
-        high: null,
-        low: null,
-        volume: data.length, // Store data length as volume
-        data: JSON.stringify(data), // Store the actual data as JSON
-        createdAt: now
+        cacheKey,
+        data,
+        createdAt: now,
+        timestamp: now // Add a valid timestamp
+      }).onConflictDoUpdate({
+        target: itemPriceHistory.cacheKey,
+        set: {
+          data,
+          createdAt: now
+        }
       })
 
       console.log(`💾 Cached historical data for item ${itemId} (${data.length} points)`)
     } catch (error) {
       console.error('Error caching historical data:', error)
-      // Don't throw - caching failure shouldn't break the API call
     }
   }
 
@@ -170,8 +154,9 @@ export class HistoricalDataService {
    * Check if cached data is still valid
    */
   private isCacheValid (cachedAt: Date): boolean {
+    if (!cachedAt) return false
     const now = Date.now()
-    const cacheAge = now - cachedAt.getTime()
+    const cacheAge = now - new Date(cachedAt).getTime()
     return cacheAge < HistoricalDataService.CACHE_DURATION_MS
   }
 
@@ -183,12 +168,7 @@ export class HistoricalDataService {
       const cutoffDate = new Date(Date.now() - (24 * 60 * 60 * 1000)) // 24 hours ago
 
       const result = await db.delete(itemPriceHistory)
-        .where(
-          and(
-            gte(itemPriceHistory.timestamp, new Date('historical_')), // Only delete cache entries
-            gte(itemPriceHistory.createdAt, cutoffDate)
-          )
-        )
+        .where(gte(itemPriceHistory.createdAt, cutoffDate))
         .returning()
 
       console.log(`🧹 Cleared ${result.length} old historical cache entries`)

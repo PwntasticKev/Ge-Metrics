@@ -99,6 +99,7 @@ export default function AllItems () {
 
                     <AllItemsTable
                       data={processedItems}
+                      items={items}
                       favoriteItems={favoriteItems}
                       onToggleFavorite={toggleFavorite}
                       showFavoriteColumn={true}

@@ -167,11 +167,13 @@ export const itemPriceHistory = pgTable('item_price_history', {
   id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
   itemId: integer('item_id').notNull().references(() => itemMapping.id),
   timestamp: timestamp('timestamp').notNull(),
-  highPrice: integer('high_price'),
-  lowPrice: integer('low_price'),
+  high: integer('high'),
+  low: integer('low'),
   volume: integer('volume'),
-  timeframe: text('timeframe').notNull(), // '5m', '1h', '24h', etc.
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  data: jsonb('data'),
+  timeframe: text('timeframe'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  cacheKey: text('cache_key').unique()
 }, (table) => ({
   itemTimeIdx: index('item_price_history_item_time_idx').on(table.itemId, table.timestamp)
 }))

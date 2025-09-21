@@ -9,7 +9,8 @@ import {
   BarElement,
   Title,
   Tooltip,
-  TimeScale
+  TimeScale,
+  Filler
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 import annotationPlugin from 'chartjs-plugin-annotation'
@@ -31,10 +32,11 @@ ChartJS.register(
   Legend,
   TimeScale,
   annotationPlugin,
-  zoomPlugin
+  zoomPlugin,
+  Filler
 )
 
-export default function LineChart ({ id }) {
+export default function LineChart ({ id, items }) {
   const [item, setItem] = useState(null)
   const [timeframe, setTimeframe] = useState('1h')
   const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
@@ -46,10 +48,10 @@ export default function LineChart ({ id }) {
   const chartRef = useRef(null)
 
   useEffect(() => {
-    setItem(getItemById(Number(id)))
+    setItem(getItemById(Number(id), items))
     const fetchGameUpdates = async () => {
       try {
-        const response = await fetch('/api/game-updates')
+        const response = await fetch('http://localhost:4000/api/game-updates')
         const data = await response.json()
         if (data.success) {
           setGameUpdates(data.data)
@@ -59,7 +61,7 @@ export default function LineChart ({ id }) {
       }
     }
     fetchGameUpdates()
-  }, [id])
+  }, [id, items])
 
   useEffect(() => {
     if (!id) return

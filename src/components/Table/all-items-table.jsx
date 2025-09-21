@@ -210,6 +210,7 @@ function classifyRisk (row) {
 
 export function AllItemsTable ({
   data,
+  items,
   favoriteItems = new Set(),
   onToggleFavorite = null,
   showFavoriteColumn = false
@@ -364,7 +365,7 @@ export function AllItemsTable ({
 
   return (
     <>
-      <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem}/>
+      <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem} items={items}/>
 
       {/* Show/Hide ID Button */}
       <Group position="right" mb="sm">
