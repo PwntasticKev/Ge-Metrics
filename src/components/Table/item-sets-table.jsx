@@ -97,7 +97,7 @@ function Th ({ children, reversed, sorted, onSort }) {
 function filterData (data, search) {
   const query = search.toLowerCase().trim()
   return data.filter((item) =>
-    Object.keys(item).some((key) => {
+    item && Object.keys(item).some((key) => {
       const value = item[key]
       if (typeof value === 'string') {
         return value.toLowerCase().includes(query)
@@ -206,10 +206,11 @@ export function AllItemsTable ({ data }) {
                 </td>
 
                 <td style={{ verticalAlign: 'middle' }}>
+                    <div>
                     <Link to={`/item/${row.id}`} style={{ textDecoration: 'none' }}>
                         {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
-
+                    </div>
                 </td>
                 <td colSpan={2} style={{ verticalAlign: 'middle' }}>
                     {row.items.map((item, idx) => (
@@ -219,8 +220,10 @@ export function AllItemsTable ({ data }) {
                                   ? `${item.name} (${item.qty})`
                                   : item.name
                             } position="left">
+                                <div>
                                 <Image fit="contain" width={25} height={25} src={item.img}
                                        style={{ marginRight: '8px' }}></Image>
+                                </div>
                             </Tooltip>
                             <div>{item.low}</div>
                         </Flex>
@@ -233,7 +236,7 @@ export function AllItemsTable ({ data }) {
                   fontWeight: 'bold',
                   verticalAlign: 'middle'
                 }}>
-                    {row?.profit ?? 'N/A'}
+                    {new Intl.NumberFormat().format(row?.profit) ?? 'N/A'}
                 </td>
                 <td style={{ verticalAlign: 'middle', padding: '8px' }}>
                   <MiniChart itemId={row.id} width={120} height={40} />
@@ -286,7 +289,7 @@ export function AllItemsTable ({ data }) {
                         )
                       : (
                         <tr>
-                            <td colSpan={data.length && Object.keys(data[0]).length}>
+                            <td colSpan={data && data.length > 0 && data[0] ? Object.keys(data[0]).length : 1}>
                                 <Text weight={500} align="center">
                                     Nothing found
                                 </Text>

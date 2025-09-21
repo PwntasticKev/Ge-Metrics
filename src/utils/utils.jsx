@@ -85,12 +85,12 @@ export const allItems = (mapItems, pricesById, volumesById = {}) => {
   return items
 }
 
-const getItemsById = (itemIds) => {
-  return itemIds.map(itemId => items.find(item => item.id === itemId))
+export const getItemsById = (itemIds, allItems) => {
+  return itemIds.map(itemId => allItems.find(item => item.id === itemId))
 }
 
-export const getItemById = (itemId) => {
-  return items.find(item => item.id === itemId)
+export const getItemById = (itemId, allItems) => {
+  return allItems.find(item => item.id === itemId)
 }
 
 export const getItemSetProfit = (
@@ -99,34 +99,35 @@ export const getItemSetProfit = (
     itemsToCreateSet,
     conversionCost = 0,
     qty = { id: null, qty: 0 }
-  }) => {
+  },
+  allItems
+) => {
   const totalPrice = totalPriceConverted(
     itemSet,
     itemsToCreateSet,
     conversionCost,
-    qty
+    qty,
+    allItems
   )
   if (qty && qty.qty) {
-    const item = getItemById(qty.id)
+    const item = getItemById(qty.id, allItems)
     if (item) {
       item.qty = qty.qty
     }
   }
 
-  const originalItem = items.find(item => item.id === itemSet)
+  const originalItem = allItems.find(item => item.id === itemSet)
   //
-  const itemAsSet = getModifiedItem(originalItem, totalPrice, itemsToCreateSet)
+  const itemAsSet = getModifiedItem(originalItem, totalPrice, itemsToCreateSet, allItems)
   //
 
   return itemAsSet
 }
 
-export const getModifiedItem = (item, totalPrice, itemsToCreateSet) => {
-  const highPriceWithoutCommas = item?.high
-    ? parseInt(item.high.replace(/,/g, ''), 10)
-    : 0
+export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) => {
+  const highPrice = item?.high ? Number(item.high) : 0
   const formatter = new Intl.NumberFormat()
-  const convertedItems = itemsToCreateSet.map(itemId => items.find(item => item.id === itemId))
+  const convertedItems = itemsToCreateSet.map(itemId => allItems.find(item => item.id === itemId))
   if (item) {
     return {
       id: item.id,
@@ -134,34 +135,27 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet) => {
       name: `${item.name} (set)`,
       items: convertedItems,
       img: item.img,
-      high: formatter.format(highPriceWithoutCommas),
-      profit: formatter.format(
-        Math.floor(highPriceWithoutCommas * 0.98 - totalPrice)
-      )
+      high: formatter.format(highPrice),
+      profit: Math.floor(highPrice * 0.98 - totalPrice)
     }
   }
 
   return undefined
 }
 
-export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qty = null) => {
+export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qty = null, allItems) => {
   let total = 0
-  const qtyItemLow =
-        qty && getItemById(qty.id)
-          ? String(getItemById(qty.id).low).replace(/,/g, '')
-          : '0'
+  const itemForQty = qty && getItemById(qty.id, allItems)
+  const qtyItemLow = itemForQty?.low ? Number(itemForQty.low) : 0
 
-  const qtyItemNoCommas =
-        parseInt(qtyItemLow, 10) * (qty && qty.qty ? qty.qty - 1 : 0)
+  const qtyCost = qtyItemLow * (qty && qty.qty ? qty.qty - 1 : 0)
 
-  // console.log(itemIdsToCreate, 'itemIdsToCreate')
   itemIdsToCreate.forEach(itemId => {
-    const lowPriceNoCommas = String(getItemById(itemId)?.low).replace(/,/g, '')
-    const price = lowPriceNoCommas ? parseInt(lowPriceNoCommas, 10) : 0
-
-    total += price
+    const item = getItemById(itemId, allItems)
+    const lowPrice = item?.low ? Number(item.low) : 0
+    total += lowPrice
   })
-  return total + qtyItemNoCommas + conversionCost
+  return total + qtyCost + conversionCost
 }
 
 export const getRelativeTime = (timestamp) => {

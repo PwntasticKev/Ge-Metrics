@@ -54,9 +54,11 @@ export default function CombinationItems () {
               <Badge
                 color="blue"
                 size="lg"
-                leftIcon={<IconClock size={14} />}
               >
-                {getRelativeTime(lastFetchTime, currentTime)}
+                <Group spacing="xs">
+                  <IconClock size={14} />
+                  <span>{getRelativeTime(lastFetchTime, currentTime)}</span>
+                </Group>
               </Badge>
               <Badge
                 color={itemSets.length > 0 ? 'green' : 'orange'}
@@ -76,13 +78,18 @@ export default function CombinationItems () {
                   {itemSets.length} combination sets tracked
                 </Text>
               </div>
-              <Badge color="green" leftIcon={<IconRefresh size={12} />}>
-                Live Data
+              <Badge color="green">
+                <Group spacing="xs">
+                  <IconRefresh size={12} />
+                  <span>Live Data</span>
+                </Group>
               </Badge>
             </Group>
           </Card>
 
-          <ItemSetsTable data={itemSets}/>
+          {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
+            <ItemSetsTable data={itemSets} />
+          )}
         </Box>
       )}
     </React.Fragment>

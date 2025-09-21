@@ -1,10 +1,13 @@
 import { Box, Container, Modal } from '@mantine/core'
 import LineChart from '../../shared/line-chart.jsx'
 import Draggable from 'react-draggable'
+import { useRef } from 'react'
 
 export default function GraphModal ({ opened, setOpened, id }) {
+  const nodeRef = useRef(null)
   return (
-        <Draggable handle=".mantine-Modal-header">
+        <Draggable handle=".mantine-Modal-header" nodeRef={nodeRef}>
+            <div ref={nodeRef}>
             <Modal
                 opened={opened}
                 onClose={() => setOpened(false)}
@@ -30,6 +33,7 @@ export default function GraphModal ({ opened, setOpened, id }) {
                     </Container>
                 </Box>
             </Modal>
+            </div>
         </Draggable>
   )
 }

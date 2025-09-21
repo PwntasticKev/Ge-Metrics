@@ -44,6 +44,7 @@ const ItemData = () => {
 
         const processedItemSets = itemRecipes
           .map(recipe => getItemSetProfit(recipe, enrichedItems))
+          .filter(item => item) // Filter out undefined results
           .sort((a, b) => b.profit - a.profit)
         setItemSets(processedItemSets)
 
