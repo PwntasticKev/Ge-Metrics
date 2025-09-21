@@ -1,3 +1,11 @@
+import { db } from '../db'
+import { historicalData } from '../db/schema'
+import { eq, and } from 'drizzle-orm'
+import axios from 'axios'
+import { getLatestTimestamp } from '../utils/data-utils'
+
+const USER_AGENT = 'Ge-Metrics OSRS Trading App - Price Scraper (contact@ge-metrics.com)'
+
 class HistoricalDataService {
   constructor () {
     this.baseUrl = 'https://prices.runescape.wiki/api/v1/osrs'

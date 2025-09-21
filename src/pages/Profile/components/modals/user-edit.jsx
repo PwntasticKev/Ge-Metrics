@@ -39,10 +39,10 @@ export default function UserEdit () {
 
   const handleSubmit = async (values) => {
     setLoading(true)
+    setError(null)
     try {
       // For now, we'll just close the modal since we don't have a profile update endpoint yet
       // TODO: Add profile update tRPC endpoint
-      console.log('Profile update values:', values)
       close()
       // You might want to show a success notification here
     } catch (error) {

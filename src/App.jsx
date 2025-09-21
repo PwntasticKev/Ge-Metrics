@@ -203,7 +203,6 @@ export default function App () {
     const handleStorage = () => {
       const saved = localStorage.getItem('darkMode')
       const newColorScheme = saved ? (JSON.parse(saved) ? 'dark' : 'light') : 'dark'
-      console.log('Theme change detected:', { saved, newColorScheme })
       setColorScheme(newColorScheme)
     }
 
@@ -215,7 +214,6 @@ export default function App () {
       const saved = localStorage.getItem('darkMode')
       const newColorScheme = saved ? (JSON.parse(saved) ? 'dark' : 'light') : 'dark'
       if (newColorScheme !== colorScheme) {
-        console.log('Theme change detected via interval:', { saved, newColorScheme, current: colorScheme })
         setColorScheme(newColorScheme)
       }
     }, 100)

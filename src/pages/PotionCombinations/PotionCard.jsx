@@ -39,12 +39,6 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit', volumeData }
 
   const bestMethod = getBestMethod()
 
-  // --- START DEBUG LOG ---
-  if (item4) {
-    console.log(`Icon for ${name}:`, item4.icon)
-  }
-  // --- END DEBUG LOG ---
-
   const bestMethodVolume = useMemo(() => {
     if (!bestMethod || !volumeData) return null
     const volumeInfo = volumeData[bestMethod.itemId]

@@ -16,7 +16,7 @@ export default function UserCompletion ({ opened, setOpened }) {
             <Modal opened={opened} onClose={() => setOpened(false)} title="Finish Setting Up Your Account" centered>
 
                 <Box maw={300} mx="auto">
-                    <form onSubmit={form.onSubmit((values) => console.log(values))}>
+                    <form onSubmit={form.onSubmit((values) => {})}>
 
                         <TextInput
                             withAsterisk

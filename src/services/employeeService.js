@@ -502,8 +502,6 @@ class EmployeeService {
     if (this.auditLog.length > 1000) {
       this.auditLog = this.auditLog.slice(-1000)
     }
-
-    console.log('Employee audit event:', event)
   }
 
   // Get audit log

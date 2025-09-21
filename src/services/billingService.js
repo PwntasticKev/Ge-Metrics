@@ -271,7 +271,6 @@ class BillingService {
 
       if (result.success) {
         // Log admin action
-        console.log(`Admin ${adminUserId} granted free trial to user ${userId}`)
       }
 
       return result

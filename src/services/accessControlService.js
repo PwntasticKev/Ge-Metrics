@@ -42,7 +42,6 @@ class AccessControlService {
       //   }
       // })
 
-      console.log(`✅ Access granted to user ${userId} by ${approvedBy}`)
       return { success: true, message: 'Access granted successfully' }
     } catch (error) {
       console.error('Error granting access:', error)
@@ -63,7 +62,6 @@ class AccessControlService {
       //   }
       // })
 
-      console.log(`❌ Access revoked from user ${userId} by ${revokedBy}`)
       return { success: true, message: 'Access revoked successfully' }
     } catch (error) {
       console.error('Error revoking access:', error)
@@ -118,7 +116,6 @@ class AccessControlService {
       //   data: { role: newRole }
       // })
 
-      console.log(`🔄 Role updated for user ${userId} to ${newRole} by ${updatedBy}`)
       return { success: true, message: 'Role updated successfully' }
     } catch (error) {
       console.error('Error updating role:', error)

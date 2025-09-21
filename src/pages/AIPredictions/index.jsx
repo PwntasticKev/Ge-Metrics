@@ -598,7 +598,6 @@ export default function AIPredictions () {
         const response = await fetch('/data/whale-activity.json')
         const data = await response.json()
         setWhaleData(data)
-        console.log('Fetched whale data:', data)
       } catch (error) {
         console.error('Failed to fetch whale activity data:', error)
       } finally {

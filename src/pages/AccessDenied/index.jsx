@@ -11,6 +11,7 @@ import {
   Title
 } from '@mantine/core'
 import { IconLock, IconMail, IconClock, IconInfoCircle } from '@tabler/icons-react'
+import { Link } from 'react-router-dom'
 
 export default function AccessDenied () {
   const [emailSent, setEmailSent] = useState(false)

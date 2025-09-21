@@ -31,14 +31,8 @@ export default function PotionCombinations () {
 
   // Memoized Potion Processing
   const recipes = useMemo(() => {
-    console.log('--- RAW DATA ---')
-    console.log('itemMappingData:', itemMapping)
-    console.log('allItemsData:', allItems)
-    console.log('volumeData:', volumeData)
-
     if (itemMapping && allItems && volumeData) {
       const recipes = processPotionData(itemMapping, allItems, volumeData)
-      console.log('--- PROCESSED RECIPES ---', recipes)
       return recipes
     }
     return []

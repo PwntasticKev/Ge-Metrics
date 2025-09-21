@@ -388,8 +388,6 @@ class SecurityService {
       url: window.location.href
     }
 
-    console.log('Security Event:', logEntry)
-
     // In production, send to logging service
     // this.sendToLoggingService(logEntry)
   }

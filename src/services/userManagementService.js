@@ -659,8 +659,6 @@ class UserManagementService {
     const resetToken = `reset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
     // In real app, send email with reset link
-    console.log(`Password reset link for ${user.email}: /reset-password?token=${resetToken}`)
-
     this.logAudit('password_reset_sent', userId, { email: user.email })
 
     return { success: true, message: 'Password reset email sent' }
@@ -673,8 +671,6 @@ class UserManagementService {
     }
 
     // In real app, send email with username
-    console.log(`Username reminder for ${user.email}: Your username is ${user.runescape_name || 'Not set'}`)
-
     this.logAudit('username_reminder_sent', userId, { email: user.email })
 
     return { success: true, message: 'Username reminder sent' }

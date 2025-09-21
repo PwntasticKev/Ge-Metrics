@@ -137,14 +137,6 @@ export function ProfitModifier ({ item }) {
     setTransactionAmount(0)
     setQuantity(1)
     setDate(new Date())
-
-    console.log('Transaction recorded:', {
-      item: item?.name,
-      amount: amount * quantity,
-      quantity,
-      date: useCurrentDate ? new Date() : dateValue,
-      type: transactionType
-    })
   }
 
   const formatCurrency = (value) => {

@@ -284,7 +284,7 @@ class TrialService {
     }
 
     // In production, send to analytics service
-    console.log('Trial Event:', event)
+    // console.log('Trial Event:', event) // Removed for debugging
 
     // Store locally for debugging
     const events = JSON.parse(localStorage.getItem('trial_events') || '[]')

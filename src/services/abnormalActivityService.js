@@ -233,7 +233,6 @@ class AbnormalActivityService {
       //   }
       // })
 
-      console.log(`💾 Activity pattern saved for item ${itemId}`)
     } catch (error) {
       console.error('Error saving activity pattern:', error)
     }

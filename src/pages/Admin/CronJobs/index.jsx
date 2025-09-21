@@ -224,8 +224,6 @@ export default function CronJobs () {
   }
 
   const runJobNow = (jobId) => {
-    console.log(`Manually running job: ${jobId}`)
-    // This would trigger the actual cron job
     setCronJobs(prev => prev.map(job =>
       job.id === jobId
         ? {

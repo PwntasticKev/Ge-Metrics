@@ -124,7 +124,6 @@ export default function OTPSettings ({ user, onUpdate }) {
   const handlePhoneUpdate = async () => {
     try {
       // This would update the phone number in the database
-      console.log('Updating phone number:', phoneNumber)
       onUpdate({ ...user, phone_number: phoneNumber })
     } catch (error) {
       console.error('Error updating phone number:', error)

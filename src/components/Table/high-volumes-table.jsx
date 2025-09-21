@@ -144,7 +144,6 @@ export function HighVolumesTable ({ data }) {
     try {
       // Sort by volume first, then apply search filter
       const volumeSortedData = sortByVolume(data)
-      console.log(`Filtered ${volumeSortedData.length} items with volume data from ${data.length} total items`)
       setSortedData(sortData(volumeSortedData, { sortBy, reversed: reverseSortDirection, search }))
     } catch (error) {
       console.error('Error processing volume data:', error)

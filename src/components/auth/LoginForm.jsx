@@ -23,7 +23,6 @@ const LoginForm = () => {
       // const idToken = await getGoogleIdToken();
       // googleLoginMutation.mutate({ idToken });
 
-      console.log('Google login would be implemented here')
     } catch (error) {
       console.error('Google login error:', error)
     }

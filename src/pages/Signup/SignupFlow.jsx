@@ -167,15 +167,9 @@ const SignupFlow = () => {
         marketingEmails: form.values.marketingEmails
       }
 
-      // Simulate account creation
-      console.log('Creating account:', accountData)
-
-      // Generate user ID (in real app, this would come from your auth service)
-      const userId = 'user_' + Date.now()
-
       // Initialize trial for new user
       if (selectedPlan === 'trial') {
-        initializeTrial(userId, form.values.email)
+        initializeTrial(accountData.email, accountData.email) // Assuming email is the user ID for trial
 
         // Redirect to success page with trial info
         navigate('/signup/success?trial=true')
@@ -430,7 +424,7 @@ const SignupFlow = () => {
                 </Group>
 
                 <Text size="sm" color="dimmed">
-                  Includes {plans.trial.days}-day free trial
+                  Includes {plans.trial.period} free trial
                 </Text>
 
                 {plans[selectedPlan]?.savings && (

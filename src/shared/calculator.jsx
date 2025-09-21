@@ -28,7 +28,6 @@ export default function ProfitCalculator () {
 
   const handleEnter = () => {
     // Here, you can implement the logic to submit the value or perform calculations
-    console.log('Submitted value:', inputValue)
   }
 
   const formattedInputValue = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',')

@@ -325,7 +325,6 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
 
   const handleLogout = () => {
     // Handle logout logic here
-    console.log('Logging out...')
   }
 
   return (

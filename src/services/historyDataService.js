@@ -129,11 +129,9 @@ class HistoryDataService {
   // Collect historical data for a specific item
   async collectItemHistory (itemId, timestep = '1h') {
     try {
-      console.log(`Fetching historical data for item ${itemId}...`)
       const timeSeriesData = await this.fetchTimeSeries(itemId, timestep)
 
       if (!timeSeriesData || !timeSeriesData.data || !timeSeriesData.data[itemId]) {
-        console.log(`No historical data found for item ${itemId}`)
         return { count: 0 }
       }
 
@@ -153,10 +151,7 @@ class HistoryDataService {
         }
       })
 
-      console.log(`Transformed ${records.length} historical records for item ${itemId}`)
       const result = await this.savePriceHistory(records)
-      console.log(`Saved historical data: ${result.count} records`)
-
       return result
     } catch (error) {
       console.error(`Error collecting history for item ${itemId}:`, error)
