@@ -10,9 +10,16 @@ export const itemsRouter = router({
     .query(async () => {
       const allVolumes = await db.select().from(itemVolumes)
       // Convert array to an object for JSON-friendly transfer
-      const volumeMap: Record<number, NewItemVolume> = {}
+      const volumeMap: Record<number, Omit<NewItemVolume, 'id'>> = {}
       allVolumes.forEach(item => {
-        volumeMap[item.itemId] = item
+        volumeMap[item.itemId] = {
+          itemId: item.itemId,
+          highPriceVolume: item.highPriceVolume,
+          lowPriceVolume: item.lowPriceVolume,
+          hourlyHighPriceVolume: item.hourlyHighPriceVolume,
+          hourlyLowPriceVolume: item.hourlyLowPriceVolume,
+          lastUpdatedAt: item.lastUpdatedAt
+        }
       })
       return volumeMap
     }),

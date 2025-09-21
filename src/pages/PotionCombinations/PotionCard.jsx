@@ -87,7 +87,7 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit', volumeData }
 
       {/* Profit Breakdown - Integrated */}
       <Stack spacing={0}>
-        {recipe.combinations && recipe.combinations.map((combo) => {
+        {recipe.combinations && [...recipe.combinations].sort((a, b) => parseInt(a.dose) - parseInt(b.dose)).map((combo) => {
           const isBest = bestMethod && combo.dose === bestMethod.dose
           const volumeInfo = volumeData ? volumeData[combo.itemId] : null
           const totalVolume = volumeInfo ? (volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume).toLocaleString() : <Loader size="xs" />

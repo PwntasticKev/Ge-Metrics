@@ -1,14 +1,18 @@
 import cron from 'node-cron'
-import { updateAllItemVolumes } from '../services/itemVolumeService.js'
+import { updateAllItemVolumes, updateHourlyItemVolumes } from '../services/itemVolumeService'
 
 export function scheduleVolumeUpdates () {
-  // Schedule to run every 5 minutes
+  // Schedule the 24-hour volume update to run every 5 minutes
+  console.log('🕒 Scheduling 24h volume updates (every 5 minutes)...')
   cron.schedule('*/5 * * * *', () => {
-    console.log('🕒 [Cron] Running scheduled item volume update...')
-    updateAllItemVolumes().catch(error => {
-      console.error('💥 [Cron] Error during scheduled volume update:', error)
-    })
+    console.log('🚀 Running scheduled 24h volume update...')
+    updateAllItemVolumes()
   })
 
-  console.log('✅ [Cron] Scheduled volume updates to run every 5 minutes.')
+  // Schedule the 1-hour volume update to run every minute
+  console.log('🕒 Scheduling 1h volume updates (every 1 minute)...')
+  cron.schedule('* * * * *', () => {
+    console.log('🚀 Running scheduled 1h volume update...')
+    updateHourlyItemVolumes()
+  })
 }

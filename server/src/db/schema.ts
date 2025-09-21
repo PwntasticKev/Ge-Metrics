@@ -362,8 +362,10 @@ export type NewOtp = typeof otps.$inferInsert;
 export const itemVolumes = pgTable('item_volumes', {
   id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
   itemId: integer('item_id').notNull().unique(),
-  highPriceVolume: integer('high_price_volume').notNull(),
-  lowPriceVolume: integer('low_price_volume').notNull(),
+  highPriceVolume: integer('high_price_volume').notNull().default(0),
+  lowPriceVolume: integer('low_price_volume').notNull().default(0),
+  hourlyHighPriceVolume: integer('hourly_high_price_volume').default(0),
+  hourlyLowPriceVolume: integer('hourly_low_price_volume').default(0),
   lastUpdatedAt: timestamp('last_updated_at').defaultNow().notNull()
 }, (table) => ({
   itemIdIdx: index('item_volumes_item_id_idx').on(table.itemId)

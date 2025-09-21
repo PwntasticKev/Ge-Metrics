@@ -27,6 +27,7 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
 
         const volumeInfo = itemVolumes[item.id] || { highPriceVolume: 0, lowPriceVolume: 0 }
         const totalVolume = volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume
+        const hourlyTotalVolume = (volumeInfo.hourlyHighPriceVolume || 0) + (volumeInfo.hourlyLowPriceVolume || 0)
 
         const priceInfo = allItems[item.id] || { high: null, low: null }
 
@@ -35,6 +36,7 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
           high: priceInfo.high,
           low: priceInfo.low,
           totalVolume, // Merge volume data
+          hourlyTotalVolume, // Merge hourly volume data
           // Construct the correct image URL, replacing spaces with underscores
           wikiImageUrl: `https://oldschool.runescape.wiki/images/${item.name.replace(/\s+/g, '_')}.png`
         }
@@ -109,14 +111,31 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
     })
     .filter(family => family.combinations.length > 0)
 
-  // Finally, calculate the normalized score based on the results
+  // Finally, calculate the normalized scores based on the results
   const maxProfit = Math.max(...familiesWithStats.map(f => f.bestProfitPerPotion), 0)
+  const maxVolume24h = Math.max(...familiesWithStats.map(f => f.item4.totalVolume || 0), 1)
+  const maxVolume1h = Math.max(...familiesWithStats.map(f => {
+    const bestDose = f.combinations.find(c => c.dose === f.bestMethodDose)
+    return bestDose ? (f.doses[bestDose.dose]?.hourlyTotalVolume || 0) : 0
+  }), 1)
 
   return familiesWithStats.map(family => {
-    const score = maxProfit > 0 ? Math.max(1, Math.round((family.bestProfitPerPotion / maxProfit) * 10)) : 1
+    const profitScore = maxProfit > 0 ? (family.bestProfitPerPotion / maxProfit) : 0
+    const bestDose = family.combinations.find(c => c.dose === family.bestMethodDose)
+    const doseInfo = bestDose ? family.doses[bestDose.dose] : null
+
+    const volumeScore24h = maxVolume24h > 0 ? (family.item4.totalVolume / maxVolume24h) : 0
+    const volumeScore1h = maxVolume1h > 0 && doseInfo ? (doseInfo.hourlyTotalVolume / maxVolume1h) : 0
+
+    // Combine scores (e.g., 60% profit, 40% volume)
+    const combinedScore24h = 0.6 * profitScore + 0.4 * volumeScore24h
+    const combinedScore1h = 0.6 * profitScore + 0.4 * volumeScore1h
+
     return {
       ...family,
-      normalizedScore: score
+      normalizedScore: Math.max(1, Math.round(combinedScore24h * 10)), // Keep original for default
+      normalizedScore24h: Math.max(1, Math.round(combinedScore24h * 10)),
+      normalizedScore1h: Math.max(1, Math.round(combinedScore1h * 10))
     }
   })
 }

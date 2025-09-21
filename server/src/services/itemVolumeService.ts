@@ -1,87 +1,85 @@
-import { db, itemVolumes } from '../db/index.js'
+import { db, itemVolumes } from '../db'
+import { NewItemVolume } from '../db/schema'
 import { sql } from 'drizzle-orm'
-import { config } from '../config/index.js'
 
-const OSRS_WIKI_API_URL = 'https://prices.runescape.wiki/api/v1/osrs/24h'
-
-interface VolumeData {
-  avgHighPrice: number | null
-  highPriceVolume: number
-  avgLowPrice: number | null
-  lowPriceVolume: number
-}
-
-interface ApiResponse {
-  data: {
-    [itemId: string]: VolumeData
-  }
-}
-
-async function fetchItemVolumes (): Promise<ApiResponse | null> {
-  console.log('[ItemVolumeService] Fetching data from OSRS Wiki API...')
-  try {
-    const response = await fetch(OSRS_WIKI_API_URL, {
-      headers: {
-        'User-Agent': config.OSRS_WIKI_USER_AGENT
-      }
-    })
-    if (!response.ok) {
-      console.error(`[ItemVolumeService] API request failed with status ${response.status}: ${response.statusText}`)
-      const errorBody = await response.text()
-      console.error(`[ItemVolumeService] API Error Body: ${errorBody}`)
-      return null
-    }
-    console.log('[ItemVolumeService] API request successful.')
-    const data: ApiResponse = await response.json()
-    return data
-  } catch (error) {
-    console.error('[ItemVolumeService] Failed to fetch item volumes:', error)
-    return null
-  }
-}
-
+// Fetches and updates 24-hour volume data
 export async function updateAllItemVolumes () {
-  console.log('[ItemVolumeService] Starting 24h volume update...')
-  const apiResponse = await fetchItemVolumes()
-
-  if (!apiResponse || !apiResponse.data) {
-    console.error('[ItemVolumeService] No data received from API. Aborting update.')
-    return
-  }
-
-  const volumeData = apiResponse.data
-  console.log(`[ItemVolumeService] Received data for ${Object.keys(volumeData).length} items.`)
-
-  const itemUpdates = Object.entries(volumeData).map(([itemId, data]) => ({
-    itemId: parseInt(itemId, 10),
-    highPriceVolume: data.highPriceVolume || 0,
-    lowPriceVolume: data.lowPriceVolume || 0,
-    lastUpdatedAt: new Date()
-  }))
-
-  if (itemUpdates.length === 0) {
-    console.log('[ItemVolumeService] No valid item volume data to process.')
-    return
-  }
-
-  console.log(`[ItemVolumeService] Preparing to update ${itemUpdates.length} item volumes in the database.`)
-
+  console.log('🔄 Fetching 24h volume data...')
   try {
-    // Using a transaction for bulk upsert
-    await db.transaction(async (tx) => {
-      await tx.insert(itemVolumes)
-        .values(itemUpdates)
-        .onConflictDoUpdate({
-          target: itemVolumes.itemId,
-          set: {
-            highPriceVolume: sql`excluded.high_price_volume`,
-            lowPriceVolume: sql`excluded.low_price_volume`,
-            lastUpdatedAt: sql`excluded.last_updated_at`
-          }
-        })
-    })
-    console.log(`[ItemVolumeService] Successfully upserted ${itemUpdates.length} item volumes.`)
+    const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/24h')
+    if (!response.ok) {
+      throw new Error(`API call failed with status: ${response.status}`)
+    }
+    const jsonResponse = await response.json()
+    const data = jsonResponse.data
+    console.log(`✅ Fetched 24h volume for ${Object.keys(data).length} items.`)
+
+    const volumeUpdates = Object.entries(data).map(([itemId, itemData]: [string, any]) => ({
+      itemId: parseInt(itemId),
+      highPriceVolume: itemData.highPriceVolume || 0,
+      lowPriceVolume: itemData.lowPriceVolume || 0
+    }))
+
+    if (volumeUpdates.length > 0) {
+      console.log('🔄 Upserting 24h volume data into the database...')
+      const chunkSize = 500
+      for (let i = 0; i < volumeUpdates.length; i += chunkSize) {
+        const chunk = volumeUpdates.slice(i, i + chunkSize)
+        await db.insert(itemVolumes)
+          .values(chunk)
+          .onConflictDoUpdate({
+            target: itemVolumes.itemId,
+            set: {
+              highPriceVolume: sql`excluded.high_price_volume`,
+              lowPriceVolume: sql`excluded.low_price_volume`,
+              lastUpdatedAt: new Date()
+            }
+          })
+      }
+      console.log('✅ 24h volume data upsert complete.')
+    }
   } catch (error) {
-    console.error('[ItemVolumeService] Database transaction failed:', error)
+    console.error('❌ Error updating 24h item volumes:', error)
+  }
+}
+
+// Fetches and updates 1-hour volume data
+export async function updateHourlyItemVolumes () {
+  console.log('🔄 Fetching 1h volume data...')
+  try {
+    const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/1h')
+    if (!response.ok) {
+      throw new Error(`API call failed with status: ${response.status}`)
+    }
+    const jsonResponse = await response.json()
+    const data = jsonResponse.data
+    console.log(`✅ Fetched 1h volume for ${Object.keys(data).length} items.`)
+
+    const hourlyVolumeUpdates = Object.entries(data).map(([itemId, itemData]: [string, any]) => ({
+      itemId: parseInt(itemId),
+      hourlyHighPriceVolume: itemData.highPriceVolume || 0,
+      hourlyLowPriceVolume: itemData.lowPriceVolume || 0
+    }))
+
+    if (hourlyVolumeUpdates.length > 0) {
+      console.log('🔄 Upserting 1h volume data into the database...')
+      const chunkSize = 500
+      for (let i = 0; i < hourlyVolumeUpdates.length; i += chunkSize) {
+        const chunk = hourlyVolumeUpdates.slice(i, i + chunkSize)
+        await db.insert(itemVolumes)
+          .values(chunk)
+          .onConflictDoUpdate({
+            target: itemVolumes.itemId,
+            set: {
+              hourlyHighPriceVolume: sql`excluded.hourly_high_price_volume`,
+              hourlyLowPriceVolume: sql`excluded.hourly_low_price_volume`,
+              lastUpdatedAt: new Date()
+            }
+          })
+      }
+      console.log('✅ 1h volume data upsert complete.')
+    }
+  } catch (error) {
+    console.error('❌ Error updating 1h item volumes:', error)
   }
 }

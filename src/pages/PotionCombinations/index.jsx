@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Group, TextInput, Select, Stack, Tabs, NumberInput, Badge } from '@mantine/core'
+import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Group, TextInput, Select, Stack, Tabs, NumberInput, Badge, Grid, Accordion } from '@mantine/core'
 import { IconSearch, IconFilter, IconHeart, IconList, IconPigMoney, IconGraph, IconClock, IconInfoCircle } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { PotionCard } from './PotionCard'
@@ -22,9 +22,10 @@ export default function PotionCombinations () {
   const { favorites } = useFavorites()
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterMode, setFilterMode] = useState('dose3')
+  const [sortOrder, setSortOrder] = useState('dose3') // Default to Best (3) Dose
   const [minProfit, setMinProfit] = useState(0)
   const [minVolume, setMinVolume] = useState(0)
+  const [minHourlyVolume, setMinHourlyVolume] = useState(0)
   const [formulaExpanded, setFormulaExpanded] = useState(false)
   const [debouncedSearch] = useDebouncedValue(searchQuery, 300)
 
@@ -74,38 +75,41 @@ export default function PotionCombinations () {
       })
     }
 
-    // Sort based on filter mode
-    // ... sorting logic ...
-    if (filterMode === 'dose1') {
-      // Sort by (1) dose method profit
+    // 4. Filter by minimum hourly volume
+    if (minHourlyVolume > 0) {
+      filtered = filtered.filter(recipe => {
+        const bestMethod = recipe.combinations.find(c => c.dose === recipe.bestMethodDose)
+        if (!bestMethod) return false
+        const volumeInfo = volumeData[bestMethod.itemId]
+        return volumeInfo && (volumeInfo.hourlyHighPriceVolume + volumeInfo.hourlyLowPriceVolume) >= minHourlyVolume
+      })
+    }
+
+    // Sort based on the unified sortOrder state
+    if (sortOrder === 'dose1') {
       filtered = [...filtered].sort((a, b) => {
         const profitA = a.combinations.find(c => c.dose === '1')?.profitPerPotion || -Infinity
         const profitB = b.combinations.find(c => c.dose === '1')?.profitPerPotion || -Infinity
         return profitB - profitA
       })
-    } else if (filterMode === 'dose2') {
-      // Sort by (2) dose method profit
+    } else if (sortOrder === 'dose2') {
       filtered = [...filtered].sort((a, b) => {
         const profitA = a.combinations.find(c => c.dose === '2')?.profitPerPotion || -Infinity
         const profitB = b.combinations.find(c => c.dose === '2')?.profitPerPotion || -Infinity
         return profitB - profitA
       })
-    } else if (filterMode === 'dose3') {
-      // Sort by (3) dose method profit
+    } else if (sortOrder === 'dose3') {
       filtered = [...filtered].sort((a, b) => {
         const profitA = a.combinations.find(c => c.dose === '3')?.profitPerPotion || -Infinity
         const profitB = b.combinations.find(c => c.dose === '3')?.profitPerPotion || -Infinity
         return profitB - profitA
       })
-    } else if (filterMode === 'profit') {
-      // Sort by best profit only (ignore volume)
+    } else if (sortOrder === 'bestProfitPerPotion') {
       filtered = [...filtered].sort((a, b) => (b.bestProfitPerPotion || 0) - (a.bestProfitPerPotion || 0))
-    } else if (filterMode === 'volume_profit') {
-      // Sort by normalized score (volume + profit)
-      filtered = [...filtered].sort((a, b) => (b.normalizedScore || 0) - (a.normalizedScore || 0))
-    } else {
-      // Default fallback (best score)
-      filtered = [...filtered].sort((a, b) => (b.normalizedScore || 0) - (a.normalizedScore || 0))
+    } else if (sortOrder === 'bestVolumeProfit24h') {
+      filtered = [...filtered].sort((a, b) => (b.normalizedScore24h || 0) - (a.normalizedScore24h || 0))
+    } else if (sortOrder === 'bestVolumeProfit1h') {
+      filtered = [...filtered].sort((a, b) => (b.normalizedScore1h || 0) - (a.normalizedScore1h || 0))
     }
 
     // --- START DEBUG LOGS ---
@@ -113,7 +117,7 @@ export default function PotionCombinations () {
     // --- END DEBUG LOGS ---
 
     return filtered
-  }, [recipes, debouncedSearch, filterMode, activeTab, favorites, minProfit, minVolume, volumeData])
+  }, [recipes, debouncedSearch, sortOrder, activeTab, favorites, minProfit, minVolume, volumeData, minHourlyVolume])
 
   const isLoading = isLoadingMapping || isLoadingAllItems || isLoadingVolumes || isLoadingLastUpdated
   const error = errorMapping || errorItems || errorVolumes
@@ -152,29 +156,32 @@ export default function PotionCombinations () {
         </Tabs.List>
       </Tabs>
 
-      {/* Search and Filter Controls */}
-      <Stack spacing="md" mb="xl">
-        <TextInput
-          placeholder="Search potions..."
-          icon={<IconSearch size={16} />}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.currentTarget.value)}
-        />
-        <Group position="apart">
+      {/* Filter and Sort Controls */}
+      <Grid align="flex-end" gutter="md" mb="md">
+        <Grid.Col span={6}>
+          <TextInput
+            icon={<IconSearch size={16} />}
+            placeholder="Search potions..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.currentTarget.value)}
+          />
+        </Grid.Col>
+        <Grid.Col span={6}>
           <Select
-            placeholder="Filter by..."
-            icon={<IconFilter size={16} />}
-            value={filterMode}
-            onChange={setFilterMode}
+            label="Sort by"
+            value={sortOrder}
+            onChange={setSortOrder}
             data={[
               { value: 'dose3', label: 'Best (3) Dose' },
               { value: 'dose2', label: 'Best (2) Dose' },
               { value: 'dose1', label: 'Best (1) Dose' },
-              { value: 'profit', label: 'Best Profit' },
-              { value: 'volume_profit', label: 'Best Volume + Profit' }
+              { value: 'bestVolumeProfit24h', label: 'Best Volume + Profit (24h)' },
+              { value: 'bestVolumeProfit1h', label: 'Best Volume + Profit (1h)' },
+              { value: 'bestProfitPerPotion', label: 'Best Profit Only' }
             ]}
-            style={{ flex: 1 }}
           />
+        </Grid.Col>
+        <Grid.Col span={6}>
           <NumberInput
             placeholder="Min Profit"
             icon={<IconPigMoney size={16} />}
@@ -184,20 +191,33 @@ export default function PotionCombinations () {
             step={100}
             style={{ flex: 1 }}
           />
+        </Grid.Col>
+        <Grid.Col span={6}>
           <NumberInput
-            placeholder="Min Volume"
-            icon={<IconGraph size={16} />}
+            label="Min Volume (24h)"
             value={minVolume}
             onChange={setMinVolume}
             min={0}
             step={1000}
             style={{ flex: 1 }}
           />
-          <Text size="sm" color="dimmed">
-            {filteredRecipes.length} of {recipes.length} potions
-          </Text>
-        </Group>
-      </Stack>
+        </Grid.Col>
+        <Grid.Col span={6}>
+          <NumberInput
+            label="Min Volume (1h)"
+            value={minHourlyVolume}
+            onChange={setMinHourlyVolume}
+            min={0}
+            step={10}
+            parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+            formatter={(value) =>
+              !Number.isNaN(parseFloat(value))
+                ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                : ''
+            }
+          />
+        </Grid.Col>
+      </Grid>
 
       <CalculationExplainer
         expanded={formulaExpanded}
@@ -217,7 +237,7 @@ export default function PotionCombinations () {
           <PotionCard
             key={recipe.name}
             recipe={recipe}
-            filterMode={filterMode}
+            filterMode={sortOrder}
             volumeData={volumeData}
           />
         ))}
