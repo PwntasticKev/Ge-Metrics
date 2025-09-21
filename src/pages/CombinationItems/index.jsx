@@ -1,6 +1,14 @@
-import { Box, Center, Loader, Group, Text, Badge, Card } from '@mantine/core'
+import {
+  Box,
+  Center,
+  Loader,
+  Group,
+  Text,
+  Badge,
+  Card
+} from '@mantine/core'
 import { IconClock, IconRefresh } from '@tabler/icons-react'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
@@ -25,7 +33,7 @@ export default function CombinationItems () {
   }, [])
 
   return (
-    <>
+    <React.Fragment>
       {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
       {
         (mapStatus === 'loading' || priceStatus === 'loading') &&
@@ -77,6 +85,6 @@ export default function CombinationItems () {
           <ItemSetsTable data={itemSets}/>
         </Box>
       )}
-    </>
+    </React.Fragment>
   )
 }

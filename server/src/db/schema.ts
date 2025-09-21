@@ -1,9 +1,9 @@
-import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb, serial } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
 export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash'),
@@ -11,6 +11,9 @@ export const users = pgTable('users', {
   googleId: text('google_id'),
   name: text('name'),
   avatar: text('avatar'),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  emailVerificationToken: text('email_verification_token'),
+  emailVerificationTokenExpiresAt: timestamp('email_verification_token_expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
@@ -20,8 +23,8 @@ export const users = pgTable('users', {
 }))
 
 export const refreshTokens = pgTable('refresh_tokens', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
@@ -31,8 +34,8 @@ export const refreshTokens = pgTable('refresh_tokens', {
 }))
 
 export const subscriptions = pgTable('subscriptions', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
   stripePriceId: text('stripe_price_id'),
@@ -50,8 +53,8 @@ export const subscriptions = pgTable('subscriptions', {
 }))
 
 export const userWatchlists = pgTable('user_watchlists', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: text('item_id').notNull(),
   itemName: text('item_name').notNull(),
   targetPrice: integer('target_price'),
@@ -65,8 +68,8 @@ export const userWatchlists = pgTable('user_watchlists', {
 }))
 
 export const userTransactions = pgTable('user_transactions', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: text('item_id').notNull(),
   itemName: text('item_name').notNull(),
   transactionType: text('transaction_type').notNull(), // buy, sell
@@ -131,8 +134,8 @@ export type NewUserTransaction = typeof userTransactions.$inferInsert;
 
 // Favorites (per user, for items and combinations)
 export const favorites = pgTable('favorites', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   favoriteType: text('favorite_type').notNull(), // 'item' or 'combination'
   favoriteId: text('favorite_id').notNull(), // itemId or combinationId
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -161,7 +164,7 @@ export const itemMapping = pgTable('item_mapping', {
 
 // Item Price History (5m, 1h, 24h, etc.)
 export const itemPriceHistory = pgTable('item_price_history', {
-  id: serial('id').primaryKey(),
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
   itemId: integer('item_id').notNull().references(() => itemMapping.id),
   timestamp: timestamp('timestamp').notNull(),
   highPrice: integer('high_price'),
@@ -175,7 +178,7 @@ export const itemPriceHistory = pgTable('item_price_history', {
 
 // Game Updates (patches, events, etc.)
 export const gameUpdates = pgTable('game_updates', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   updateDate: timestamp('update_date').notNull(),
   title: text('title').notNull(),
   description: text('description'),
@@ -186,8 +189,8 @@ export const gameUpdates = pgTable('game_updates', {
 
 // User Profits/Stats
 export const userProfits = pgTable('user_profits', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   totalProfit: integer('total_profit').default(0).notNull(),
   weeklyProfit: integer('weekly_profit').default(0).notNull(),
   monthlyProfit: integer('monthly_profit').default(0).notNull(),
@@ -203,8 +206,8 @@ export const userProfits = pgTable('user_profits', {
 
 // User Achievements
 export const userAchievements = pgTable('user_achievements', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   achievementId: text('achievement_id').notNull(),
   achievementName: text('achievement_name').notNull(),
   description: text('description'),
@@ -218,8 +221,8 @@ export const userAchievements = pgTable('user_achievements', {
 
 // User Goals
 export const userGoals = pgTable('user_goals', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   goalType: text('goal_type').notNull(), // 'profit', 'trades', 'items'
   targetValue: integer('target_value').notNull(),
   currentValue: integer('current_value').default(0).notNull(),
@@ -236,10 +239,10 @@ export const userGoals = pgTable('user_goals', {
 
 // Clans
 export const clans = pgTable('clans', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   description: text('description'),
-  ownerId: integer('owner_id').notNull().references(() => users.id),
+  ownerId: uuid('owner_id').notNull().references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
@@ -249,9 +252,9 @@ export const clans = pgTable('clans', {
 
 // Clan Members
 export const clanMembers = pgTable('clan_members', {
-  id: serial('id').primaryKey(),
-  clanId: integer('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  clanId: uuid('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('member'), // 'owner', 'officer', 'member'
   joinedAt: timestamp('joined_at').defaultNow().notNull()
 }, (table) => ({
@@ -261,11 +264,11 @@ export const clanMembers = pgTable('clan_members', {
 
 // Clan Invites
 export const clanInvites = pgTable('clan_invites', {
-  id: serial('id').primaryKey(),
-  clanId: integer('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
-  inviterId: integer('inviter_id').notNull().references(() => users.id),
+  id: uuid('id').primaryKey().defaultRandom(),
+  clanId: uuid('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
+  inviterId: uuid('inviter_id').notNull().references(() => users.id),
   invitedEmail: text('invited_email').notNull(),
-  invitedUserId: integer('invited_user_id').references(() => users.id),
+  invitedUserId: uuid('invited_user_id').references(() => users.id),
   status: text('status').notNull().default('pending'), // 'pending', 'accepted', 'declined'
   message: text('message'),
   expiresAt: timestamp('expires_at'),
@@ -279,8 +282,8 @@ export const clanInvites = pgTable('clan_invites', {
 
 // Employees (for admin management)
 export const employees = pgTable('employees', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('support'), // 'admin', 'support', 'moderator'
   department: text('department'),
   isActive: boolean('is_active').default(true),
@@ -295,8 +298,8 @@ export const employees = pgTable('employees', {
 
 // Audit Log
 export const auditLog = pgTable('audit_log', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id),
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id),
   action: text('action').notNull(),
   resource: text('resource').notNull(),
   resourceId: text('resource_id'),
@@ -337,7 +340,7 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type NewAuditLog = typeof auditLog.$inferInsert;
 
 export const otps = pgTable('otps', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   otpCode: text('otp_code').notNull(),
   type: text('type').notNull(), // e.g., 'password_reset', 'email_verification', etc.
@@ -355,40 +358,15 @@ export const selectOtpSchema = createSelectSchema(otps)
 export type Otp = typeof otps.$inferSelect;
 export type NewOtp = typeof otps.$inferInsert;
 
-// Potion Volumes Cache (for 2.5-minute refresh cycle)
-export const potionVolumes = pgTable('potion_volumes', {
-  id: serial('id').primaryKey(),
-  itemId: integer('item_id').notNull(),
-  itemName: text('item_name').notNull(),
-  dose: integer('dose').notNull(), // 1, 2, 3, or 4
-  baseName: text('base_name').notNull(), // e.g., "Prayer potion"
-  volume: integer('volume').default(0), // Total volume (sum of high + low)
-  highPriceVolume: integer('high_price_volume'),
-  lowPriceVolume: integer('low_price_volume'),
-  hourlyVolume: integer('hourly_volume').default(0), // Volume from last hour only
-  hourlyHighVolume: integer('hourly_high_volume'),
-  hourlyLowVolume: integer('hourly_low_volume'),
-  totalVolume: integer('total_volume').default(0), // Cumulative volume over all data points
-  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
-  rank: integer('rank'), // For ordering top potions
-  isActive: boolean('is_active').default(true), // Track if this potion is still in top rankings
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
+// Item Volumes Cache (for 5-minute refresh cycle)
+export const itemVolumes = pgTable('item_volumes', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  itemId: integer('item_id').notNull().unique(),
+  highPriceVolume: integer('high_price_volume').notNull(),
+  lowPriceVolume: integer('low_price_volume').notNull(),
+  lastUpdatedAt: timestamp('last_updated_at').defaultNow().notNull()
 }, (table) => ({
-  itemIdIdx: index('potion_volumes_item_id_idx').on(table.itemId),
-  baseNameIdx: index('potion_volumes_base_name_idx').on(table.baseName),
-  rankIdx: index('potion_volumes_rank_idx').on(table.rank),
-  lastUpdatedIdx: index('potion_volumes_last_updated_idx').on(table.lastUpdated),
-  isActiveIdx: index('potion_volumes_is_active_idx').on(table.isActive)
+  itemIdIdx: index('item_volumes_item_id_idx').on(table.itemId)
 }))
 
-export const insertPotionVolumeSchema = createInsertSchema(potionVolumes, {
-  itemId: (schema) => schema.positive(),
-  dose: (schema) => schema.min(1).max(4),
-  volume: (schema) => schema.nonnegative()
-})
-
-export const selectPotionVolumeSchema = createSelectSchema(potionVolumes)
-
-export type PotionVolume = typeof potionVolumes.$inferSelect;
-export type NewPotionVolume = typeof potionVolumes.$inferInsert;
+export type NewItemVolume = typeof itemVolumes.$inferInsert;

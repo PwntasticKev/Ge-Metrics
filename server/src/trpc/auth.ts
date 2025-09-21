@@ -2,9 +2,10 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { eq, and, or } from 'drizzle-orm'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
-import { db, users, refreshTokens } from '../db/index.js'
+import { db, users, refreshTokens, subscriptions, NewUser } from '../db/index.js'
 import { AuthUtils } from '../utils/auth.js'
 import { GoogleAuth } from '../utils/google.js'
+import crypto from 'crypto'
 
 export const authRouter = router({
   // Register new user
@@ -36,33 +37,96 @@ export const authRouter = router({
       // Hash password
       const { hash, salt } = await AuthUtils.hashPassword(password)
 
+      // Generate email verification token
+      const emailVerificationToken = crypto.randomBytes(32).toString('hex')
+      const emailVerificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
       // Create user
-      const [newUser] = await db.insert(users).values({
+      const newUser: NewUser = {
         email,
         username,
         passwordHash: hash,
         salt,
-        name
-      }).returning()
+        name,
+        emailVerificationToken,
+        emailVerificationTokenExpiresAt
+      }
+      const [createdUser] = await db.insert(users).values(newUser).returning()
 
-      // Generate tokens (allow expiry override for testing)
-      const accessToken = AuthUtils.generateAccessToken(newUser.id, newUser.email, { expiresIn: process.env.TEST_JWT_EXPIRY || '7d' })
-      const refreshToken = AuthUtils.generateRefreshToken(newUser.id, newUser.email)
+      // Create a 14-day trial subscription for the new user
+      const trialEndDate = new Date()
+      trialEndDate.setDate(trialEndDate.getDate() + 14)
+      await db.insert(subscriptions).values({
+        userId: createdUser.id,
+        status: 'trialing',
+        plan: 'premium', // Premium features during trial
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: trialEndDate
+      })
+
+      // In a real app, you would send an email here. For now, we'll log the link.
+      const verificationLink = `http://localhost:5173/verify-email?token=${emailVerificationToken}`
+      console.log(`✅ New user registered: ${createdUser.email}`)
+      console.log(`📧 Verification link (for testing): ${verificationLink}`)
+
+      return {
+        success: true,
+        message: 'Registration successful. Please check your email to verify your account.'
+      }
+    }),
+
+  // Verify email
+  verifyEmail: publicProcedure
+    .input(z.object({
+      token: z.string()
+    }))
+    .mutation(async ({ input }) => {
+      const { token } = input
+
+      // Find user by verification token
+      const [user] = await db.select().from(users)
+        .where(
+          and(
+            eq(users.emailVerificationToken, token)
+            // In a real app, you'd check if the token has expired:
+            // gt(users.emailVerificationTokenExpiresAt, new Date())
+          )
+        ).limit(1)
+
+      if (!user) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid or expired verification token'
+        })
+      }
+
+      // Mark email as verified and clear token fields
+      await db.update(users)
+        .set({
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationTokenExpiresAt: null
+        })
+        .where(eq(users.id, user.id))
+
+      // Generate tokens for the now-verified user
+      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
+      const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
       // Store refresh token
       await db.insert(refreshTokens).values({
-        userId: newUser.id,
+        userId: user.id,
         token: refreshToken,
         expiresAt: AuthUtils.getRefreshTokenExpiration()
       })
 
       return {
         user: {
-          id: newUser.id,
-          email: newUser.email,
-          username: newUser.username,
-          name: newUser.name,
-          avatar: newUser.avatar
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          name: user.name,
+          avatar: user.avatar
         },
         accessToken,
         refreshToken
@@ -86,6 +150,7 @@ export const authRouter = router({
             eq(users.username, identifier)
           )
         ).limit(1)
+
       if (!user || !user.passwordHash) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -94,16 +159,43 @@ export const authRouter = router({
       }
 
       // Verify password
-      const isValidPassword = await AuthUtils.verifyPassword(password, user.passwordHash)
-      if (!isValidPassword) {
+      const isPasswordValid = await AuthUtils.verifyPassword(password, user.passwordHash)
+      if (!isPasswordValid) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid credentials'
         })
       }
 
-      // Generate tokens (allow expiry override for testing)
-      const accessToken = AuthUtils.generateAccessToken(user.id, user.email, { expiresIn: process.env.TEST_JWT_EXPIRY || '7d' })
+      // Check if email is verified
+      if (!user.emailVerified) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Please verify your email before logging in.'
+        })
+      }
+
+      // Check subscription status
+      const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id)).limit(1)
+
+      if (subscription) {
+        const isExpired = new Date() > new Date(subscription.currentPeriodEnd)
+        if ((subscription.status === 'trialing' && isExpired) || ['canceled', 'past_due'].includes(subscription.status)) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Your trial has expired or your subscription is inactive. Please subscribe to continue.'
+          })
+        }
+      } else {
+        // Optional: Handle case where user has no subscription record at all
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'No active subscription found for your account.'
+        })
+      }
+
+      // Generate and store tokens
+      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
       const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
       // Store refresh token

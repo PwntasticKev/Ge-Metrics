@@ -1,8 +1,12 @@
 import { router } from './trpc.js'
 import { authRouter } from './auth.js'
+import { adminRouter } from './admin.js'
+import { itemsRouter } from './items.js'
 
 export const appRouter = router({
-  auth: authRouter
+  auth: authRouter,
+  admin: adminRouter,
+  items: itemsRouter
 })
 
-export type AppRouter = typeof appRouter;
+export type AppRouter = typeof appRouter

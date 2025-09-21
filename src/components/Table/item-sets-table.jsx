@@ -182,11 +182,13 @@ export function AllItemsTable ({ data }) {
     setSelectedItem(id)
   }
 
-  const rows = currentPageData.map((row, idx) => {
-    const profitValue = Number(String(row.profit ?? '0').replace(/,/g, ''))
-    return (
-            <tr key={idx}>
-                {/* <td>{row.id}</td> */}
+  const rows = currentPageData
+    .filter(row => row && typeof row.profit !== 'undefined' && Array.isArray(row.items))
+    .map((row, idx) => {
+      const profitValue = Number(String(row.profit).replace(/,/g, ''))
+      return (
+              <tr key={idx}>
+                  {/* <td>{row.id}</td> */}
                 <td colSpan={1} style={{ verticalAlign: 'middle' }}>
 
                     <Image
@@ -231,7 +233,7 @@ export function AllItemsTable ({ data }) {
                   fontWeight: 'bold',
                   verticalAlign: 'middle'
                 }}>
-                    {row.profit}
+                    {row?.profit ?? 'N/A'}
                 </td>
                 <td style={{ verticalAlign: 'middle', padding: '8px' }}>
                   <MiniChart itemId={row.id} width={120} height={40} />
@@ -242,8 +244,8 @@ export function AllItemsTable ({ data }) {
                   </Flex>
                 </td>
             </tr>
-    )
-  })
+      )
+    })
 
   return (
         <>

@@ -26,7 +26,8 @@
     "collect-all-history": "node scripts/collectAllHistoricalData.js",
     "monitor-alerts": "node scripts/monitorVolumeAlerts.js",
     "db:migrate": "npx prisma migrate dev",
-    "db:deploy": "npx prisma migrate deploy"
+    "db:deploy": "npx prisma migrate deploy",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

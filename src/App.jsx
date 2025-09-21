@@ -59,6 +59,7 @@ const Favorites = lazy(() => import('./pages/Favorites'))
 const ProfitOpportunities = lazy(() => import('./pages/ProfitOpportunities'))
 const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
 const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmail'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -272,6 +273,7 @@ export default function App () {
               <Route path="/settings" element={<Settings/>}/>
               <Route path="/faq" element={<Faq/>}/>
               <Route path="/status" element={<Status/>}/>
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/item/:id" element={<ItemDetails/>}/>
               <Route path="/profile/:id" element={<Profile/>}/>
               <Route path="/profit-opportunities" element={<ProfitOpportunities/>}/>

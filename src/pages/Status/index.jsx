@@ -47,7 +47,12 @@ const Status = () => {
       { name: 'mapping', url: 'https://prices.runescape.wiki/api/v1/osrs/mapping' },
       { name: 'timeseries', url: 'https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=1h&id=4151' },
       { name: 'fiveMinute', url: 'https://prices.runescape.wiki/api/v1/osrs/5m' },
-      { name: 'oneHour', url: 'https://prices.runescape.wiki/api/v1/osrs/1h' }
+      { name: 'oneHour', url: 'https://prices.runescape.wiki/api/v1/osrs/1h' },
+      { name: 'OSRS Wiki - Latest Prices', url: 'https://prices.runescape.wiki/api/v1/osrs/latest', group: 'OSRS Wiki' },
+      { name: 'OSRS Wiki - 5m Timestamps', url: 'https://prices.runescape.wiki/api/v1/osrs/5m', group: 'OSRS Wiki' },
+      { name: 'OSRS Wiki - Item Mapping', url: 'https://prices.runescape.wiki/api/v1/osrs/mapping', group: 'OSRS Wiki' },
+      { name: 'OSRS Wiki - 24h Volumes', url: 'https://prices.runescape.wiki/api/v1/osrs/24h', group: 'OSRS Wiki' },
+      { name: 'OSRS Wiki - Real-time Volumes', url: 'https://prices.runescape.wiki/api/v1/osrs/volumes', group: 'OSRS Wiki' }
     ]
 
     const results = {}

@@ -7,17 +7,16 @@ import securityService from './securityService'
 
 class AuthService {
   constructor () {
-    this.baseURL = 'http://localhost:4000'
-    this.currentUser = null
-    this.authListeners = []
-
-    // Initialize service
+    this.isBrowser = typeof window !== 'undefined'
+    this.token = null
+    this.user = null
     this.init()
   }
 
-  async init () {
-    // Check for existing session on startup
-    await this.checkExistingSession()
+  init () {
+    if (this.isBrowser) {
+      this.checkExistingSession()
+    }
   }
 
   /**
@@ -199,6 +198,7 @@ class AuthService {
    * Session Management
    */
   async checkExistingSession () {
+    if (!this.isBrowser) return
     try {
       const sessionData = localStorage.getItem('auth_session')
       const authToken = localStorage.getItem('auth_token')
@@ -266,6 +266,7 @@ class AuthService {
    * Data Management
    */
   setAuthData (authData) {
+    if (!this.isBrowser) return
     // Store tokens
     localStorage.setItem('auth_token', authData.accessToken)
     localStorage.setItem('refresh_token', authData.refreshToken)
@@ -279,6 +280,7 @@ class AuthService {
   }
 
   clearAuthData () {
+    if (!this.isBrowser) return
     localStorage.removeItem('auth_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_data')

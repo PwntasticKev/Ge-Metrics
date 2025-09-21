@@ -1,6 +1,9 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
 import { AuthUtils } from '../utils/auth.js'
+import { type Context } from './context.js'
+import { db, users, employees } from '../db/index.js'
+import { eq } from 'drizzle-orm'
 
 // Context creation
 export const createContext = ({ req, res }: CreateExpressContextOptions) => {
@@ -17,7 +20,7 @@ export const router = t.router
 export const publicProcedure = t.procedure
 
 // Auth middleware
-const isAuthenticated = t.middleware(({ ctx, next }) => {
+const isAuthed = t.middleware(({ ctx, next }) => {
   const authHeader = ctx.req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -46,4 +49,22 @@ const isAuthenticated = t.middleware(({ ctx, next }) => {
 })
 
 // Protected procedure
-export const protectedProcedure = t.procedure.use(isAuthenticated)
+export const protectedProcedure = t.procedure.use(isAuthed)
+
+const isAdmin = isAuthed.unstable_pipe(async ({ ctx, next }) => {
+  const [employee] = await db.select().from(employees).where(eq(employees.userId, ctx.user.id)).limit(1)
+
+  if (!employee || employee.role !== 'admin') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to perform this action.' })
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+      employee
+    }
+  })
+})
+
+export const adminProcedure = t.procedure.use(isAdmin)

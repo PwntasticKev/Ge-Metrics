@@ -14,8 +14,8 @@ const config = {
 
   // Authentication Configuration
   auth: {
-    // Authentication bypass - enabled for everyone
-    bypassAuth: true, // Always bypass authentication
+    // Authentication bypass - disabled for testing real auth
+    bypassAuth: false, // Test real authentication
     mockUser: {
       id: 'public-user-id',
       email: 'user@ge-metrics.com',

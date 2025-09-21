@@ -1,7 +1,11 @@
-import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
 import { config } from '../config/index.js'
+import { db, users, refreshTokens } from '../db/index.js'
+
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || 'your_access_token_secret'
+const REFRESH_TOKEN_EXPIRATION = '7d'
 
 export interface JWTPayload {
   userId: string;
@@ -9,20 +13,19 @@ export interface JWTPayload {
   type: 'access' | 'refresh';
 }
 
-export class AuthUtils {
-  // Password hashing
-  static async hashPassword (password: string): Promise<{ hash: string; salt: string }> {
-    const salt = await bcrypt.genSalt(12)
+export const AuthUtils = {
+  async hashPassword (password: string): Promise<{ hash: string, salt: string }> {
+    const salt = await bcrypt.genSalt(10)
     const hash = await bcrypt.hash(password, salt)
     return { hash, salt }
-  }
+  },
 
-  static async verifyPassword (password: string, hash: string): Promise<boolean> {
+  async verifyPassword (password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash)
-  }
+  },
 
   // JWT token generation
-  static generateAccessToken (userId: string, email: string, expiresIn?: string): string {
+  generateAccessToken (userId: string, email: string): string {
     const payload: JWTPayload = {
       userId,
       email,
@@ -30,14 +33,14 @@ export class AuthUtils {
     }
 
     const options: jwt.SignOptions = {
-      expiresIn: (expiresIn || config.JWT_ACCESS_EXPIRES_IN) as unknown as jwt.SignOptions['expiresIn'],
+      expiresIn: (config.JWT_ACCESS_EXPIRES_IN) as unknown as jwt.SignOptions['expiresIn'],
       issuer: 'auth-server',
       audience: 'client-app'
     }
     return jwt.sign(payload, String(config.JWT_ACCESS_SECRET), options)
-  }
+  },
 
-  static generateRefreshToken (userId: string, email: string): string {
+  generateRefreshToken (userId: string, email: string): string {
     const payload: JWTPayload = {
       userId,
       email,
@@ -45,15 +48,15 @@ export class AuthUtils {
     }
 
     const refreshOptions: jwt.SignOptions = {
-      expiresIn: config.JWT_REFRESH_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'],
+      expiresIn: (config.JWT_REFRESH_EXPIRES_IN) as unknown as jwt.SignOptions['expiresIn'],
       issuer: 'auth-server',
       audience: 'client-app'
     }
     return jwt.sign(payload, String(config.JWT_REFRESH_SECRET), refreshOptions)
-  }
+  },
 
   // JWT token verification
-  static verifyAccessToken (token: string): JWTPayload {
+  verifyAccessToken (token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET, {
         issuer: 'auth-server',
@@ -68,9 +71,9 @@ export class AuthUtils {
     } catch (error) {
       throw new Error('Invalid access token')
     }
-  }
+  },
 
-  static verifyRefreshToken (token: string): JWTPayload {
+  verifyRefreshToken (token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_REFRESH_SECRET, {
         issuer: 'auth-server',
@@ -85,11 +88,11 @@ export class AuthUtils {
     } catch (error) {
       throw new Error('Invalid refresh token')
     }
-  }
+  },
 
   // Token expiration helpers
-  static getRefreshTokenExpiration (): Date {
-    const expiresIn = config.JWT_REFRESH_EXPIRES_IN
+  getAccessTokenExpiration (): Date {
+    const expiresIn = config.JWT_ACCESS_EXPIRES_IN
     const now = new Date()
 
     // Parse expiration string (e.g., "7d", "24h", "30m")
@@ -111,10 +114,14 @@ export class AuthUtils {
       default:
         throw new Error('Invalid expiration unit')
     }
-  }
+  },
+
+  getRefreshTokenExpiration (): Date {
+    return this.calculateExpiration(REFRESH_TOKEN_EXPIRATION)
+  },
 
   // Generate unique tokens
-  static generateUniqueToken (): string {
+  generateUniqueToken (): string {
     return randomUUID()
   }
 }

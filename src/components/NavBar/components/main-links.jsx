@@ -28,6 +28,7 @@ import {
   IconTrophy,
   IconHelp,
   IconActivity,
+  IconQuestionMark,
   IconCheck,
   IconHeart,
   IconHome,
@@ -335,16 +336,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
       }}
     >
       <div>
-        <MainLink
-          icon={<IconDashboard size="1rem"/>}
-          color="blue"
-          label="Dashboard"
-          link="/"
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-
+        {/* ACTIVE MENU ITEMS - Keep these visible */}
         <MainLink
           icon={<IconListDetails size="1rem"/>}
           color="indigo"
@@ -356,16 +348,26 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         />
 
         <MainLink
-          icon={<IconTrendingUp size="1rem"/>}
-          color="green"
-          label="High Volume"
-          link="/high-volumes"
+          icon={<IconSword size="1rem"/>}
+          color="violet"
+          label="Combination Items"
+          link="/combination-items"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
         />
 
-        {/* Market Watch Submenu */}
+        <MainLink
+          icon={<IconFlask size="1rem"/>}
+          color="teal"
+          label="Potion Combinations"
+          link="/potion-combinations"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        {/* Market Watch Submenu - Keep this one */}
         <SubmenuLink
           icon={<IconEye size="1rem"/>}
           color="orange"
@@ -450,20 +452,62 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         </SubmenuLink>
 
         <MainLink
-          icon={<IconBookmark size="1rem"/>}
-          color="yellow"
-          label="Watchlist"
-          link="/watchlist"
+          icon={<IconHeart size="1rem"/>}
+          color="red"
+          label="Favorites"
+          link="/favorites"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
         />
 
         <MainLink
-          icon={<IconHeart size="1rem"/>}
-          color="red"
-          label="Favorites"
-          link="/favorites"
+          icon={<IconQuestionMark size="1rem"/>}
+          color="blue"
+          label="FAQ"
+          link="/faq"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
+          icon={<IconActivity size="1rem"/>}
+          color="green"
+          label="API Status"
+          link="/status"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        {/* TEMPORARILY HIDDEN MENU ITEMS - Commented out for now */}
+        {/*
+        <MainLink
+          icon={<IconDashboard size="1rem"/>}
+          color="blue"
+          label="Dashboard"
+          link="/"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
+          icon={<IconTrendingUp size="1rem"/>}
+          color="green"
+          label="High Volume"
+          link="/high-volumes"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
+          icon={<IconBookmark size="1rem"/>}
+          color="yellow"
+          label="Watchlist"
+          link="/watchlist"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
@@ -489,7 +533,6 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           onNavigate={onNavigate}
         />
 
-        {/* Money Making Submenu */}
         <SubmenuLink
           icon={<IconCoins size="1rem"/>}
           color="gold"
@@ -529,26 +572,6 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         </SubmenuLink>
 
         <MainLink
-          icon={<IconFlask size="1rem"/>}
-          color="teal"
-          label="Potion Combinations"
-          link="/potion-combinations"
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-
-        <MainLink
-          icon={<IconSword size="1rem"/>}
-          color="violet"
-          label="Combination Items"
-          link="/combination-items"
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-
-        <MainLink
           icon={<IconUsers size="1rem"/>}
           color="cyan"
           label="Community Leaderboard"
@@ -567,6 +590,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           isMobile={isMobile}
           onNavigate={onNavigate}
         />
+        */}
 
         <MainLink
           icon={<IconSettings size="1rem"/>}

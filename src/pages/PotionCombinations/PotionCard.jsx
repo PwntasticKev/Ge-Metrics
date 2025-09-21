@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
-import { Card, Image, Badge, Text, Group, Tooltip, ActionIcon, Stack } from '@mantine/core'
+import React, { useState, useMemo } from 'react'
+import { Card, Image, Badge, Text, Group, Tooltip, ActionIcon, Stack, Loader } from '@mantine/core'
 import { Link } from 'react-router-dom'
 import { IconChartLine, IconHeart, IconHeartFilled } from '@tabler/icons-react'
 import { VolumeChartModal } from './components/VolumeChartModal'
 import { useFavorites } from '../../contexts/FavoritesContext'
 
-export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
+export function PotionCard ({ recipe, filterMode = 'volume+profit', volumeData }) {
   const [modalOpened, setModalOpened] = useState(false)
   const { isFavorite, toggleFavorite } = useFavorites()
 
@@ -39,12 +39,25 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
 
   const bestMethod = getBestMethod()
 
+  // --- START DEBUG LOG ---
+  if (item4) {
+    console.log(`Icon for ${name}:`, item4.icon)
+  }
+  // --- END DEBUG LOG ---
+
+  const bestMethodVolume = useMemo(() => {
+    if (!bestMethod || !volumeData) return null
+    const volumeInfo = volumeData[bestMethod.itemId]
+    if (!volumeInfo) return 'N/A'
+    return (volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume).toLocaleString()
+  }, [bestMethod, volumeData])
+
   return (
     <Card shadow="sm" p="sm" radius="md" withBorder>
       {/* Header: Image | Title (truncated) | Score */}
       <Group position="apart" align="flex-start" mb="xs" noWrap>
         <Group spacing="sm" align="center" style={{ minWidth: 0, flex: 1 }}>
-          <Image src={item4.img} width={28} height={28} alt={name} fit="contain" />
+          <Image src={item4.wikiImageUrl} width={28} height={28} alt={name} fit="contain" />
           <Link to={`/item/${item4.id}`} style={{ textDecoration: 'none', color: 'inherit', minWidth: 0, flex: 1 }}>
             <Text weight={500} size="sm" lineClamp={1} style={{ minWidth: 0 }}>{name}</Text>
           </Link>
@@ -73,28 +86,36 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit' }) {
       </Group>
 
       {/* Profit Breakdown - Integrated */}
-      <Stack spacing={4}>
+      <Stack spacing={0}>
         {recipe.combinations && recipe.combinations.map((combo) => {
           const isBest = bestMethod && combo.dose === bestMethod.dose
+          const volumeInfo = volumeData ? volumeData[combo.itemId] : null
+          const totalVolume = volumeInfo ? (volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume).toLocaleString() : <Loader size="xs" />
+
           return (
-            <Group
-              position="apart"
+            <div
               key={combo.dose}
-              py={6}
-              px={8}
               style={{
+                padding: '6px 8px',
                 borderRadius: '4px',
                 backgroundColor: isBest ? 'rgba(76, 175, 80, 0.15)' : 'transparent',
-                border: isBest ? '1px solid rgba(76, 175, 80, 0.3)' : 'none'
+                border: isBest ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid transparent'
               }}
             >
-              <Text size="xs" weight={isBest ? 700 : 400}>
-                ({combo.dose}): {combo.cost !== null ? Math.round(combo.cost).toLocaleString() : 'N/A'}
-              </Text>
-              <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>
-                {combo.profitPerPotion !== null ? `${Math.round(combo.profitPerPotion).toLocaleString()}/per` : 'N/A'}
-              </Text>
-            </Group>
+              <Group position="apart">
+                <Stack spacing={0}>
+                  <Text size="xs" weight={isBest ? 700 : 400}>
+                    ({combo.dose}): {combo.cost !== null ? Math.round(combo.cost).toLocaleString() : 'N/A'}
+                  </Text>
+                  <Text size="xs" color="dimmed">
+                    Vol 24h: {totalVolume}
+                  </Text>
+                </Stack>
+                <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>
+                  {combo.profitPerPotion !== null ? `${Math.round(combo.profitPerPotion).toLocaleString()}/per` : 'N/A'}
+                </Text>
+              </Group>
+            </div>
           )
         })}
 
