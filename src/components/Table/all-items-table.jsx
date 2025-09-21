@@ -320,15 +320,15 @@ export function AllItemsTable ({
             {row.name} {row.qty ? `(${row.qty})` : null}
           </Link>
         </td>
-        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.low}</td>
-        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.high}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{new Intl.NumberFormat().format(row.low)}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{new Intl.NumberFormat().format(row.high)}</td>
         <td style={{
           color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
           fontWeight: 'bold',
           verticalAlign: 'middle',
           textAlign: 'center'
         }}>
-          {row.profit}
+          {new Intl.NumberFormat().format(row.profit)}
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.limit}</td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>

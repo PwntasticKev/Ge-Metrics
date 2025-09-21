@@ -58,6 +58,16 @@ export default function AllItems () {
     setFavoriteItems(newFavorites)
   }
 
+  const processedItems = items
+    .map(item => {
+      const highPrice = item.high ? Number(item.high) : 0
+      const lowPrice = item.low ? Number(item.low) : 0
+      const profit = highPrice && lowPrice ? Math.floor(highPrice * 0.99 - lowPrice) : 0
+      return { ...item, profit }
+    })
+    .filter(item => !item.name.includes('3rd age'))
+    .sort((a, b) => b.profit - a.profit)
+
   return (
         <>
             {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
@@ -88,7 +98,7 @@ export default function AllItems () {
                     </Card>
 
                     <AllItemsTable
-                      data={items}
+                      data={processedItems}
                       favoriteItems={favoriteItems}
                       onToggleFavorite={toggleFavorite}
                       showFavoriteColumn={true}
