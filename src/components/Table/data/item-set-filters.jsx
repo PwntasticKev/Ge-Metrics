@@ -198,12 +198,6 @@ export const itemRecipes = [
     conversionCost: 500
   },
   {
-    name: 'Avernic Treads',
-    itemSet: 31088,
-    itemsToCreateSet: [31111, 13237, 13239, 13235],
-    qty: { id: 31111, qty: 4000 }
-  },
-  {
     name: 'Oath Plate',
     itemSet: 30744,
     itemsToCreateSet: [30750, 30753, 30756]
@@ -231,7 +225,7 @@ export const itemRecipes = [
   {
     name: 'Torva Set',
     itemSet: 31145,
-    itemsToCreateSet: [26382, 26384, 26385]
+    itemsToCreateSet: [26382, 26384, 26386]
   },
   {
     name: 'Virtus Set',

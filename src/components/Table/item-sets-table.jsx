@@ -120,7 +120,7 @@ function sortData (data, payload) {
       let bValue = b[sortBy]
 
       // Handle profit specifically for numeric sorting
-      if (sortBy === 'profit') {
+      if (sortBy === 'profit' || sortBy === 'sellPrice') {
         aValue = parseFloat(String(aValue ?? '0').replace(/,/g, '')) || 0
         bValue = parseFloat(String(bValue ?? '0').replace(/,/g, '')) || 0
       }
@@ -135,7 +135,7 @@ function sortData (data, payload) {
   )
 }
 
-export function AllItemsTable ({ data }) {
+export function ItemSetsTable ({ data }) {
   const theme = useMantineTheme()
   const location = useLocation()
 
@@ -230,7 +230,7 @@ export function AllItemsTable ({ data }) {
                     ))}
                 </td>
 
-                <td style={{ verticalAlign: 'middle' }}>{new Intl.NumberFormat().format(row.high)}</td>
+                <td style={{ verticalAlign: 'middle' }}>{new Intl.NumberFormat().format(row.sellPrice)}</td>
                 <td style={{
                   color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
                   fontWeight: 'bold',
@@ -274,10 +274,20 @@ export function AllItemsTable ({ data }) {
                             Name
                         </th>
                         <th colSpan={2}>Items</th>
-                        <th>Sell Price</th>
-                        <th>
+                        <Th
+                            sorted={sortBy === 'sellPrice'}
+                            reversed={reverseSortDirection}
+                            onSort={() => setSorting('sellPrice')}
+                        >
+                            Sell Price
+                        </Th>
+                        <Th
+                            sorted={sortBy === 'profit'}
+                            reversed={reverseSortDirection}
+                            onSort={() => setSorting('profit')}
+                        >
                             Profit
-                        </th>
+                        </Th>
                         <th>Chart</th>
                         <th>Settings</th>
                     </tr>
@@ -311,4 +321,4 @@ export function AllItemsTable ({ data }) {
   )
 }
 
-export default AllItemsTable
+export default ItemSetsTable

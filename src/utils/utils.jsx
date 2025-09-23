@@ -136,6 +136,7 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) =>
       items: convertedItems,
       img: item.img,
       high: formatter.format(highPrice),
+      sellPrice: highPrice, // Use the highest price for the item set
       profit: Math.floor(highPrice * 0.98 - totalPrice)
     }
   }
