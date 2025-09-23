@@ -130,7 +130,7 @@ export default function AvatarMenu ({ user, onLogout }) {
 
         <Menu.Item
           icon={<IconBrandDiscord size={14}/>}
-          onClick={() => window.open('https://discord.gg/your-discord-server', '_blank')}
+          onClick={() => window.open('https://discord.gg/BhN3sAGux7', '_blank')}
         >
           Join Discord
         </Menu.Item>

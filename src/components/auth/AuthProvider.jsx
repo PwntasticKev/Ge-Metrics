@@ -47,22 +47,13 @@ const AuthProvider = ({ children }) => {
 
   // Effect for initialization and auth state changes
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        await authService.checkExistingSession()
-      } catch (error) {
-        console.error('Session check failed on mount:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkSession()
+    // This function triggers the check. The listener below will handle the result.
+    authService.checkExistingSession()
 
     const unsubscribe = authService.onAuthStateChanged((newUser) => {
       setUser(newUser)
-      setIsLoading(false)
-      queryClient.invalidateQueries() // Invalidate queries on auth state change
+      setIsLoading(false) // Set loading to false only after the user state is determined.
+      queryClient.invalidateQueries()
     })
 
     return () => unsubscribe()

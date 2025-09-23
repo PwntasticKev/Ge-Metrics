@@ -311,9 +311,6 @@ class AuthService {
   onAuthStateChanged (callback) {
     this.authListeners.push(callback)
 
-    // Immediately call with current state
-    callback(this.currentUser)
-
     // Return unsubscribe function
     return () => {
       this.authListeners = this.authListeners.filter(listener => listener !== callback)

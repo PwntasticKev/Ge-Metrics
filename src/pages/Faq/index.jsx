@@ -428,7 +428,7 @@ export default function Faq () {
                     variant="filled"
                     color="indigo"
                     rightIcon={<IconExternalLink size={12} />}
-                    onClick={() => window.open('https://discord.gg/your-discord-server', '_blank')}
+                    onClick={() => window.open('https://discord.gg/BhN3sAGux7', '_blank')}
                   >
                     Join Discord
                   </Button>
