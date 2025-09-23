@@ -230,26 +230,10 @@ class AuthService {
   async checkExistingSession () {
     if (!this.isBrowser) return
     try {
-      const sessionData = localStorage.getItem('auth_session')
       const authToken = localStorage.getItem('auth_token')
-
-      if (!sessionData || !authToken) {
-        return false
-      }
-
-      const session = JSON.parse(sessionData)
-
-      // Check if session is expired
-      if (session.expiresAt && session.expiresAt < Date.now()) {
-        this.clearAuthData()
-        return false
-      }
-
-      // Validate session with security service
-      const sessionValidation = securityService.validateSession(session.token)
-      if (!sessionValidation.valid) {
-        this.clearAuthData()
-        return false
+      if (!authToken) {
+        this.notifyAuthListeners(null)
+        return
       }
 
       // Try to get current user from server
@@ -257,14 +241,14 @@ class AuthService {
       if (user) {
         this.currentUser = user
         this.notifyAuthListeners(user)
-        return true
+      } else {
+        this.clearAuthData()
+        this.notifyAuthListeners(null)
       }
-
-      return false
     } catch (error) {
       console.error('Session check error:', error)
       this.clearAuthData()
-      return false
+      this.notifyAuthListeners(null)
     }
   }
 
@@ -304,6 +288,9 @@ class AuthService {
     // Store user data
     this.currentUser = authData.user
     localStorage.setItem('user_data', JSON.stringify(authData.user))
+
+    // Create a new session
+    securityService.createSession(authData.user.id, authData.user)
 
     // Notify listeners
     this.notifyAuthListeners(authData.user)
