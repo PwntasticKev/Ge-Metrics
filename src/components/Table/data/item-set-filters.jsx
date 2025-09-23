@@ -196,6 +196,47 @@ export const itemRecipes = [
     itemSet: 12434,
     itemsToCreateSet: [12432, 12353],
     conversionCost: 500
+  },
+  {
+    name: 'Avernic Treads',
+    itemSet: 31088,
+    itemsToCreateSet: [31111, 13237, 13239, 13235],
+    qty: { id: 31111, qty: 4000 }
+  },
+  {
+    name: 'Oath Plate',
+    itemSet: 30744,
+    itemsToCreateSet: [30750, 30753, 30756]
+  },
+  {
+    name: 'Huey',
+    itemSet: 31169,
+    itemsToCreateSet: [30073, 30076, 30079, 30082]
+  },
+  {
+    name: 'Blue Moon',
+    itemSet: 31139,
+    itemsToCreateSet: [29019, 29013, 29016, 28988]
+  },
+  {
+    name: 'Blood Moon',
+    itemSet: 31136,
+    itemsToCreateSet: [29028, 29022, 29025, 28997]
+  },
+  {
+    name: 'Sunfire',
+    itemSet: 29424,
+    itemsToCreateSet: [28933, 28936, 28939, 28939]
+  },
+  {
+    name: 'Torva Set',
+    itemSet: 31145,
+    itemsToCreateSet: [26382, 26384, 26385]
+  },
+  {
+    name: 'Virtus Set',
+    itemSet: 31148,
+    itemsToCreateSet: [26241, 26243, 26245]
   }
 
 ]
