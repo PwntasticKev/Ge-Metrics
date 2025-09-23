@@ -1,3 +1,4 @@
+import { exec } from 'child_process'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -16,6 +17,19 @@ import { updateAllItemVolumes } from './services/itemVolumeService.js'
 
 async function startServer () {
   const app = express()
+
+  // Run the populate item mapping script before starting the server
+  console.log('🚀 Running populate item mapping script...')
+  exec('npm run db:populate-mapping', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`💥 Error running populate script: ${error}`)
+      return
+    }
+    console.log(`✅ Populate script output: ${stdout}`)
+    if (stderr) {
+      console.error(`💥 Populate script error output: ${stderr}`)
+    }
+  })
 
   // Security middleware
   // app.use(helmet({
@@ -135,10 +149,10 @@ async function startServer () {
     scheduleVolumeUpdates()
 
     // Perform an initial update on server startup
-    // console.log('🚀 Performing initial item volume update on startup...')
-    // updateAllItemVolumes().catch(error => {
-    //   console.error('💥 [Startup] Error during initial volume update:', error)
-    // })
+    console.log('🚀 Performing initial item volume update on startup...')
+    updateAllItemVolumes().catch(error => {
+      console.error('💥 [Startup] Error during initial volume update:', error)
+    })
   })
 }
 
