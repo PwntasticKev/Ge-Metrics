@@ -33,3 +33,4 @@ schema.prisma
 prisma/schema.prisma
 exchange-rs/prisma/schema.prisma
 /schema.prisma
+.vercel
