@@ -1,10 +1,10 @@
-import React, { useContext, useState, lazy, Suspense, useEffect } from 'react'
+import React, { useState, lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Outlet, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import ErrorPage from './pages/error-page.jsx'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
-import { AppShell, MantineProvider, createStyles, Box, LoadingOverlay } from '@mantine/core'
+import { MantineProvider, createStyles, Box, LoadingOverlay } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { getTheme } from './theme/index.js'
 import HeaderNav from './components/Header'
@@ -22,6 +22,7 @@ import TrialBanner from './components/Trial/TrialBanner'
 // Favorites system import
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
+import AuthProvider from './components/auth/AuthProvider'
 
 // Lazy load all protected routes to improve initial load performance
 const AllItems = lazy(() => import('./pages/AllItems'))
@@ -200,11 +201,9 @@ function RequireAuth ({ children }) {
   return children
 }
 
-export default function App () {
-  const { classes } = useStyles()
+function AppContent () {
   const [opened, setOpened] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const { isAuthenticated, user, logout } = useAuth()
+  const { user, logout } = useAuth()
 
   // Theme mode state (global)
   const [colorScheme, setColorScheme] = useState(() => {
@@ -243,7 +242,6 @@ export default function App () {
       <Notifications />
       <TrialProvider>
         <FavoritesProvider>
-          <Router>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -255,8 +253,12 @@ export default function App () {
               element={
                 <RequireAuth>
                   <div>
-                    <HeaderNav setOpened={setOpened} opened={opened} user={user} onLogout={logout} />
-                    <NavMenu opened={opened} setOpened={setOpened} user={user} />
+                    {user && (
+                      <>
+                        <HeaderNav setOpened={setOpened} opened={opened} user={user} onLogout={logout} />
+                        <NavMenu opened={opened} setOpened={setOpened} user={user} />
+                      </>
+                    )}
                     <AppLayout>
                       <Outlet/>
                     </AppLayout>
@@ -311,9 +313,18 @@ export default function App () {
               <Route path="*" element={<ErrorPage/>}/>
             </Route>
           </Routes>
-          </Router>
         </FavoritesProvider>
       </TrialProvider>
     </MantineProvider>
+  )
+}
+
+export default function App () {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   )
 }

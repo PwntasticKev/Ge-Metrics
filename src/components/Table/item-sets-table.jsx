@@ -213,7 +213,7 @@ export function AllItemsTable ({ data }) {
                     </div>
                 </td>
                 <td colSpan={2} style={{ verticalAlign: 'middle' }}>
-                    {row.items.map((item, idx) => (
+                    {row.items.filter(Boolean).map((item, idx) => (
                         <Flex key={idx}>
                             <Tooltip label={
                                 item.qty
@@ -225,12 +225,12 @@ export function AllItemsTable ({ data }) {
                                        style={{ marginRight: '8px' }}></Image>
                                 </div>
                             </Tooltip>
-                            <div>{item.low}</div>
+                            <div>{new Intl.NumberFormat().format(item.low)}</div>
                         </Flex>
                     ))}
                 </td>
 
-                <td style={{ verticalAlign: 'middle' }}>{row.high}</td>
+                <td style={{ verticalAlign: 'middle' }}>{new Intl.NumberFormat().format(row.high)}</td>
                 <td style={{
                   color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
                   fontWeight: 'bold',

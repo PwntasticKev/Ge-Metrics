@@ -131,8 +131,10 @@ function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isM
 
   const linkContent = (
     <UnstyledButton
-      className={`${classes.mainLink} ${isMobile ? classes.mobileMainLink : ''}`}
+      component={Link}
+      to={link}
       onClick={handleClick}
+      className={`${classes.mainLink} ${isMobile ? classes.mobileMainLink : ''}`}
       sx={(theme) => ({
         display: 'block',
         padding: isMobile ? '12px 16px' : (expanded ? '8px 12px' : '8px 8px'),
@@ -181,9 +183,7 @@ function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isM
 
   return (
     <Tooltip label={label} position="right" color={color} disabled={expanded}>
-      <Link to={link} style={{ textDecoration: 'none' }} onClick={onClick}>
-        {linkContent}
-      </Link>
+      {linkContent}
     </Tooltip>
   )
 }
@@ -273,6 +273,8 @@ function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate
 
   const content = (
     <UnstyledButton
+      component={Link}
+      to={link}
       onClick={handleClick}
       className={isMobile ? classes.mobileSubmenuItem : ''}
       sx={(theme) => ({
@@ -304,9 +306,9 @@ function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate
   }
 
   return (
-    <Link to={link} style={{ textDecoration: 'none' }}>
+    <Tooltip label={label} position="right" color={color} disabled={expanded}>
       {content}
-    </Link>
+    </Tooltip>
   )
 }
 

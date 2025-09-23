@@ -57,12 +57,19 @@ class AuthService {
         })
       })
 
-      const data = await response.json()
+      const responseData = await response.json()
 
       if (!response.ok) {
         // Record failed attempt
         securityService.recordFailedAttempt(email)
-        throw new Error(data?.error?.message || 'Login failed')
+        const errorMessage = responseData?.[0]?.error?.json?.message || 'Login failed'
+        throw new Error(errorMessage)
+      }
+
+      // Extract the actual data from the tRPC response
+      const data = responseData.result?.data
+      if (!data || !data.user) {
+        throw new Error('Invalid response from server during login.')
       }
 
       // Clear any previous failed attempts
@@ -70,9 +77,6 @@ class AuthService {
 
       // Store authentication data
       this.setAuthData(data)
-
-      // Manually notify listeners to ensure state update
-      this.notifyAuthListeners(data.user)
 
       // Create security service session
       securityService.createSession(data.user.id, data.user)
@@ -119,10 +123,16 @@ class AuthService {
         })
       })
 
-      const data = await response.json()
+      const responseData = await response.json()
 
       if (!response.ok) {
-        throw new Error(data?.error?.message || 'Registration failed')
+        const errorMessage = responseData?.[0]?.error?.json?.message || 'Registration failed'
+        throw new Error(errorMessage)
+      }
+
+      const data = responseData.result?.data
+      if (!data || !data.user) {
+        throw new Error('Invalid response from server during registration.')
       }
 
       // Store authentication data
@@ -196,7 +206,15 @@ class AuthService {
         return null
       }
 
-      const userData = await response.json()
+      const responseData = await response.json()
+      const userData = responseData.result?.data
+
+      if (!userData) {
+        console.error('Failed to parse user data from response.')
+        this.clearAuthData()
+        return null
+      }
+
       this.currentUser = userData
       return userData
     } catch (error) {

@@ -125,7 +125,7 @@ export const getItemSetProfit = (
 }
 
 export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) => {
-  const highPrice = item?.high ? Number(item.high) : 0
+  const highPrice = safeParseFloat(item?.high, 0)
   const formatter = new Intl.NumberFormat()
   const convertedItems = itemsToCreateSet.map(itemId => allItems.find(item => item.id === itemId))
   if (item) {
@@ -146,13 +146,13 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) =>
 export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qty = null, allItems) => {
   let total = 0
   const itemForQty = qty && getItemById(qty.id, allItems)
-  const qtyItemLow = itemForQty?.low ? Number(itemForQty.low) : 0
+  const qtyItemLow = safeParseFloat(itemForQty?.low, 0)
 
   const qtyCost = qtyItemLow * (qty && qty.qty ? qty.qty - 1 : 0)
 
   itemIdsToCreate.forEach(itemId => {
     const item = getItemById(itemId, allItems)
-    const lowPrice = item?.low ? Number(item.low) : 0
+    const lowPrice = safeParseFloat(item?.low, 0)
     total += lowPrice
   })
   return total + qtyCost + conversionCost

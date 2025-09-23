@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -7,7 +7,6 @@ import {
   Paper,
   Title,
   Text,
-  Container,
   Alert,
   Loader,
   Group,
@@ -22,7 +21,6 @@ import {
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import {
-  IconLogin,
   IconBrandGoogle,
   IconMail,
   IconLock,
@@ -32,7 +30,6 @@ import {
 import bg from '../../assets/gehd.png'
 import { useAuth } from '../../hooks/useAuth'
 import PasswordRecoveryModal from '../../components/auth/PasswordRecoveryModal'
-import { trpc } from '../../utils/trpc.jsx'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -52,13 +49,6 @@ const Login = () => {
       password: (value) => (!value ? 'Password is required' : null)
     }
   })
-
-  useEffect(() => {
-    // Redirect if already logged in
-    if (localStorage.getItem('auth_token')) {
-      navigate('/')
-    }
-  }, [navigate])
 
   if (isLoadingUser) {
     return <Center style={{ minHeight: '100vh' }}><Loader size="lg" /></Center>
