@@ -18,25 +18,35 @@ async function startServer () {
   const app = express()
 
   // Security middleware
-  app.use(helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:']
-      }
-    }
-  }))
+  // app.use(helmet({
+  //   crossOriginEmbedderPolicy: false,
+  //   contentSecurityPolicy: {
+  //     directives: {
+  //       defaultSrc: ["'self'"],
+  //       styleSrc: ["'self'", "'unsafe-inline'"],
+  //       scriptSrc: ["'self'"],
+  //       imgSrc: ["'self'", 'data:', 'https:']
+  //     }
+  //   }
+  // }))
 
   // CORS configuration
-  app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:8000', config.FRONTEND_URL],
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:8000', config.FRONTEND_URL]
+  const corsOptions = {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
-  }))
+  }
+
+  app.options('*', cors(corsOptions))
+  app.use(cors(corsOptions))
 
   // Body parsing
   app.use(express.json({ limit: '10mb' }))
@@ -47,7 +57,7 @@ async function startServer () {
   app.use(rateLimit(10000, 15 * 60 * 1000)) // 10,000 requests per 15 minutes
 
   // CSRF protection for state-changing operations
-  app.use('/trpc', csrfProtection)
+  // app.use('/trpc', csrfProtection)
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -125,10 +135,10 @@ async function startServer () {
     scheduleVolumeUpdates()
 
     // Perform an initial update on server startup
-    console.log('🚀 Performing initial item volume update on startup...')
-    updateAllItemVolumes().catch(error => {
-      console.error('💥 [Startup] Error during initial volume update:', error)
-    })
+    // console.log('🚀 Performing initial item volume update on startup...')
+    // updateAllItemVolumes().catch(error => {
+    //   console.error('💥 [Startup] Error during initial volume update:', error)
+    // })
   })
 }
 

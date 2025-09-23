@@ -33,14 +33,21 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   const token = authHeader.substring(7) // Remove 'Bearer ' prefix
 
   try {
+    console.log('Verifying token:', token)
     const user = AuthUtils.verifyAccessToken(token)
+    console.log('Token decoded successfully:', user)
+    const parsedUser = {
+      ...user,
+      userId: parseInt(user.userId, 10)
+    }
     return next({
       ctx: {
         ...ctx,
-        user
+        user: parsedUser
       }
     })
   } catch (error) {
+    console.error('Token verification failed:', error)
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Invalid or expired token'

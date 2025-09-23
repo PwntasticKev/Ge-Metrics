@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { trpc } from '../utils/trpc'
 import config from '../config/environment.js'
+import { useEffect } from 'react'
 
 // Auth state management
 export const useAuth = () => {
@@ -21,8 +22,23 @@ export const useAuth = () => {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: hasToken && !isAuthBypassed, // Only run the query if we have a token and auth is not bypassed
-    refetchOnWindowFocus: false // Prevent refetching on window focus
+    refetchOnWindowFocus: false, // Prevent refetching on window focus
+    onError: () => {
+      // If the token is invalid, clear it and log the user out
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      queryClient.setQueryData(['auth', 'me'], null)
+    }
   })
+
+  // Effect to handle token errors and clear storage
+  useEffect(() => {
+    if (userError) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      queryClient.setQueryData(['auth', 'me'], null)
+    }
+  }, [userError, queryClient])
 
   // If auth is bypassed, return mock user
   const mockUser = isAuthBypassed ? config.auth.mockUser : null

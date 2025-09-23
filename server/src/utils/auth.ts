@@ -4,7 +4,6 @@ import { randomUUID } from 'crypto'
 import { config } from '../config/index.js'
 import { db, users, refreshTokens } from '../db/index.js'
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || 'your_access_token_secret'
 const REFRESH_TOKEN_EXPIRATION = '7d'
 
 export interface JWTPayload {
@@ -13,19 +12,19 @@ export interface JWTPayload {
   type: 'access' | 'refresh';
 }
 
-export const AuthUtils = {
-  async hashPassword (password: string): Promise<{ hash: string, salt: string }> {
+export class AuthUtils {
+  static async hashPassword (password: string): Promise<{ hash: string, salt: string }> {
     const salt = await bcrypt.genSalt(10)
     const hash = await bcrypt.hash(password, salt)
     return { hash, salt }
-  },
+  }
 
-  async verifyPassword (password: string, hash: string): Promise<boolean> {
+  static async verifyPassword (password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash)
-  },
+  }
 
   // JWT token generation
-  generateAccessToken (userId: string, email: string): string {
+  static generateAccessToken (userId: string, email: string): string {
     const payload: JWTPayload = {
       userId,
       email,
@@ -38,9 +37,9 @@ export const AuthUtils = {
       audience: 'client-app'
     }
     return jwt.sign(payload, String(config.JWT_ACCESS_SECRET), options)
-  },
+  }
 
-  generateRefreshToken (userId: string, email: string): string {
+  static generateRefreshToken (userId: string, email: string): string {
     const payload: JWTPayload = {
       userId,
       email,
@@ -53,10 +52,10 @@ export const AuthUtils = {
       audience: 'client-app'
     }
     return jwt.sign(payload, String(config.JWT_REFRESH_SECRET), refreshOptions)
-  },
+  }
 
   // JWT token verification
-  verifyAccessToken (token: string): JWTPayload {
+  static verifyAccessToken (token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET, {
         issuer: 'auth-server',
@@ -71,9 +70,9 @@ export const AuthUtils = {
     } catch (error) {
       throw new Error('Invalid access token')
     }
-  },
+  }
 
-  verifyRefreshToken (token: string): JWTPayload {
+  static verifyRefreshToken (token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_REFRESH_SECRET, {
         issuer: 'auth-server',
@@ -88,10 +87,10 @@ export const AuthUtils = {
     } catch (error) {
       throw new Error('Invalid refresh token')
     }
-  },
+  }
 
   // Token expiration helpers
-  getAccessTokenExpiration (): Date {
+  static getAccessTokenExpiration (): Date {
     const expiresIn = config.JWT_ACCESS_EXPIRES_IN
     const now = new Date()
 
@@ -114,14 +113,14 @@ export const AuthUtils = {
       default:
         throw new Error('Invalid expiration unit')
     }
-  },
+  }
 
-  getRefreshTokenExpiration (): Date {
-    return this.calculateExpiration(REFRESH_TOKEN_EXPIRATION)
-  },
+  static getRefreshTokenExpiration (): Date {
+    return this.getAccessTokenExpiration()
+  }
 
   // Generate unique tokens
-  generateUniqueToken (): string {
+  static generateUniqueToken (): string {
     return randomUUID()
   }
 }

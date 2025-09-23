@@ -180,9 +180,23 @@ function TrialProtectedContent ({ children }) {
   )
 }
 
-// RequireAuth component for route protection - disabled for public access
+// RequireAuth component for route protection
 function RequireAuth ({ children }) {
-  // Always allow access - authentication is bypassed
+  const { isAuthenticated, isLoading } = useAuth()
+  const location = useLocation()
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <LoadingOverlay visible={true} />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
   return children
 }
 

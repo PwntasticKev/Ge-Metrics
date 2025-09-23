@@ -49,6 +49,12 @@ export const authRouter = router({
         userId: user.id,
         token: refreshToken,
         expiresAt: AuthUtils.getRefreshTokenExpiration()
+      }).onConflictDoUpdate({
+        target: schema.refreshTokens.userId,
+        set: {
+          token: refreshToken,
+          expiresAt: AuthUtils.getRefreshTokenExpiration()
+        }
       })
 
       return {
@@ -101,6 +107,12 @@ export const authRouter = router({
         userId: user.id,
         token: refreshToken,
         expiresAt: AuthUtils.getRefreshTokenExpiration()
+      }).onConflictDoUpdate({
+        target: schema.refreshTokens.userId,
+        set: {
+          token: refreshToken,
+          expiresAt: AuthUtils.getRefreshTokenExpiration()
+        }
       })
 
       return {
@@ -154,13 +166,13 @@ export const authRouter = router({
         const newAccessToken = AuthUtils.generateAccessToken(user.id, user.email)
         const newRefreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
 
-        // Delete old refresh token and create new one
-        await db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.token, refreshToken))
-        await db.insert(schema.refreshTokens).values({
-          userId: user.id,
-          token: newRefreshToken,
-          expiresAt: AuthUtils.getRefreshTokenExpiration()
-        })
+        // Update the existing refresh token
+        await db.update(schema.refreshTokens)
+          .set({
+            token: newRefreshToken,
+            expiresAt: AuthUtils.getRefreshTokenExpiration()
+          })
+          .where(eq(schema.refreshTokens.token, refreshToken))
 
         return {
           user: {

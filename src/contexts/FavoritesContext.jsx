@@ -29,7 +29,7 @@ export const FavoritesProvider = ({ children }) => {
   })
 
   // Check if user is a mock/public user
-  const isMockUser = user?.id === 'public-user-id' || user?.id?.startsWith('mock-') || user?.id?.startsWith('public-')
+  const isMockUser = user?.id === 'public-user-id' || String(user?.id)?.startsWith('mock-') || String(user?.id)?.startsWith('public-')
 
   // Fetch favorites from database if authenticated and not a mock user
   const { data: dbFavorites = [], isLoading } = useQuery(

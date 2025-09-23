@@ -10,6 +10,10 @@ class AuthService {
     this.isBrowser = typeof window !== 'undefined'
     this.token = null
     this.user = null
+    this.authListeners = [] // Initialize auth listeners
+    // VITE_API_URL should point to the backend server, e.g. http://localhost:4000
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    console.log('API Base URL:', this.baseURL)
     this.init()
   }
 
@@ -42,7 +46,7 @@ class AuthService {
       }
 
       // Make login request
-      const response = await fetch(`${this.baseURL}/auth/login`, {
+      const response = await fetch(`${this.baseURL}/trpc/auth.login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -58,7 +62,7 @@ class AuthService {
       if (!response.ok) {
         // Record failed attempt
         securityService.recordFailedAttempt(email)
-        throw new Error(data.error || 'Login failed')
+        throw new Error(data?.error?.message || 'Login failed')
       }
 
       // Clear any previous failed attempts
@@ -66,6 +70,9 @@ class AuthService {
 
       // Store authentication data
       this.setAuthData(data)
+
+      // Manually notify listeners to ensure state update
+      this.notifyAuthListeners(data.user)
 
       // Create security service session
       securityService.createSession(data.user.id, data.user)
@@ -83,6 +90,7 @@ class AuthService {
       const emailValidation = securityService.validateInput(userData.email, 'email')
       const passwordValidation = securityService.validateInput(userData.password, 'password')
       const nameValidation = securityService.validateInput(userData.name, 'text')
+      const usernameValidation = securityService.validateInput(userData.username, 'text')
 
       if (!emailValidation.valid) {
         throw new Error(emailValidation.error)
@@ -93,9 +101,12 @@ class AuthService {
       if (!nameValidation.valid) {
         throw new Error(nameValidation.error)
       }
+      if (!usernameValidation.valid) {
+        throw new Error(usernameValidation.error)
+      }
 
       // Make registration request
-      const response = await fetch(`${this.baseURL}/auth/register`, {
+      const response = await fetch(`${this.baseURL}/trpc/auth.register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -103,14 +114,15 @@ class AuthService {
         body: JSON.stringify({
           email: emailValidation.sanitized || userData.email,
           password: userData.password,
-          name: nameValidation.sanitized || userData.name
+          name: nameValidation.sanitized || userData.name,
+          username: usernameValidation.sanitized || userData.username
         })
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed')
+        throw new Error(data?.error?.message || 'Registration failed')
       }
 
       // Store authentication data
@@ -132,7 +144,7 @@ class AuthService {
 
       if (refreshToken) {
         // Notify server of logout
-        await fetch(`${this.baseURL}/auth/logout`, {
+        await fetch(`${this.baseURL}/trpc/auth.logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -171,7 +183,7 @@ class AuthService {
         return null
       }
 
-      const response = await fetch(`${this.baseURL}/auth/me`, {
+      const response = await fetch(`${this.baseURL}/trpc/auth.me`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`

@@ -23,18 +23,11 @@ export function TRPCProvider ({ children }) {
       links: [
         httpBatchLink({
           url: 'http://localhost:4000/trpc',
-          // Include credentials for authentication
-          fetch: (url, options) => {
-            return fetch(url, {
-              ...options,
-              credentials: 'include'
-            }).catch(() => {
-              // Return a mock response if server is not available
-              return new Response(JSON.stringify({ result: { data: null } }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-              })
-            })
+          async headers () {
+            const token = localStorage.getItem('accessToken')
+            return {
+              Authorization: token ? `Bearer ${token}` : ''
+            }
           }
         })
       ]

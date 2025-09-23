@@ -1,34 +1,5 @@
 {
   "version": "5",
   "dialect": "pg",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "5",
-      "when": 1751599129764,
-      "tag": "0000_bent_shadow_king",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1751600777056,
-      "tag": "0001_lovely_falcon",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1758233650561,
-      "tag": "0002_minor_young_avengers",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1758331618161,
-      "tag": "0003_clammy_magus",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }

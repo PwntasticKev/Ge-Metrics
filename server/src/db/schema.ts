@@ -3,7 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash'),
@@ -24,7 +24,7 @@ export const users = pgTable('users', {
 
 export const refreshTokens = pgTable('refresh_tokens', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
@@ -35,7 +35,7 @@ export const refreshTokens = pgTable('refresh_tokens', {
 
 export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
   stripePriceId: text('stripe_price_id'),
@@ -54,7 +54,7 @@ export const subscriptions = pgTable('subscriptions', {
 
 export const userWatchlists = pgTable('user_watchlists', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: text('item_id').notNull(),
   itemName: text('item_name').notNull(),
   targetPrice: integer('target_price'),
@@ -69,7 +69,7 @@ export const userWatchlists = pgTable('user_watchlists', {
 
 export const userTransactions = pgTable('user_transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: text('item_id').notNull(),
   itemName: text('item_name').notNull(),
   transactionType: text('transaction_type').notNull(), // buy, sell
@@ -135,7 +135,7 @@ export type NewUserTransaction = typeof userTransactions.$inferInsert;
 // Favorites (per user, for items and combinations)
 export const favorites = pgTable('favorites', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   favoriteType: text('favorite_type').notNull(), // 'item' or 'combination'
   favoriteId: text('favorite_id').notNull(), // itemId or combinationId
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -192,7 +192,7 @@ export const gameUpdates = pgTable('game_updates', {
 // User Profits/Stats
 export const userProfits = pgTable('user_profits', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   totalProfit: integer('total_profit').default(0).notNull(),
   weeklyProfit: integer('weekly_profit').default(0).notNull(),
   monthlyProfit: integer('monthly_profit').default(0).notNull(),
@@ -209,7 +209,7 @@ export const userProfits = pgTable('user_profits', {
 // User Achievements
 export const userAchievements = pgTable('user_achievements', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   achievementId: text('achievement_id').notNull(),
   achievementName: text('achievement_name').notNull(),
   description: text('description'),
@@ -224,7 +224,7 @@ export const userAchievements = pgTable('user_achievements', {
 // User Goals
 export const userGoals = pgTable('user_goals', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   goalType: text('goal_type').notNull(), // 'profit', 'trades', 'items'
   targetValue: integer('target_value').notNull(),
   currentValue: integer('current_value').default(0).notNull(),
@@ -244,7 +244,7 @@ export const clans = pgTable('clans', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   description: text('description'),
-  ownerId: uuid('owner_id').notNull().references(() => users.id),
+  ownerId: integer('owner_id').notNull().references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
@@ -256,7 +256,7 @@ export const clans = pgTable('clans', {
 export const clanMembers = pgTable('clan_members', {
   id: uuid('id').primaryKey().defaultRandom(),
   clanId: uuid('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('member'), // 'owner', 'officer', 'member'
   joinedAt: timestamp('joined_at').defaultNow().notNull()
 }, (table) => ({
@@ -268,9 +268,9 @@ export const clanMembers = pgTable('clan_members', {
 export const clanInvites = pgTable('clan_invites', {
   id: uuid('id').primaryKey().defaultRandom(),
   clanId: uuid('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
-  inviterId: uuid('inviter_id').notNull().references(() => users.id),
+  inviterId: integer('inviter_id').notNull().references(() => users.id),
   invitedEmail: text('invited_email').notNull(),
-  invitedUserId: uuid('invited_user_id').references(() => users.id),
+  invitedUserId: integer('invited_user_id').references(() => users.id),
   status: text('status').notNull().default('pending'), // 'pending', 'accepted', 'declined'
   message: text('message'),
   expiresAt: timestamp('expires_at'),
@@ -285,7 +285,7 @@ export const clanInvites = pgTable('clan_invites', {
 // Employees (for admin management)
 export const employees = pgTable('employees', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('support'), // 'admin', 'support', 'moderator'
   department: text('department'),
   isActive: boolean('is_active').default(true),
@@ -301,7 +301,7 @@ export const employees = pgTable('employees', {
 // Audit Log
 export const auditLog = pgTable('audit_log', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: integer('user_id').references(() => users.id),
   action: text('action').notNull(),
   resource: text('resource').notNull(),
   resourceId: text('resource_id'),
@@ -343,7 +343,7 @@ export type NewAuditLog = typeof auditLog.$inferInsert;
 
 export const otps = pgTable('otps', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   otpCode: text('otp_code').notNull(),
   type: text('type').notNull(), // e.g., 'password_reset', 'email_verification', etc.
   expiresAt: timestamp('expires_at').notNull(),
@@ -369,8 +369,6 @@ export const itemVolumes = pgTable('item_volumes', {
   hourlyHighPriceVolume: integer('hourly_high_price_volume').default(0),
   hourlyLowPriceVolume: integer('hourly_low_price_volume').default(0),
   lastUpdatedAt: timestamp('last_updated_at').defaultNow().notNull()
-}, (table) => ({
-  itemIdIdx: index('item_volumes_item_id_idx').on(table.itemId)
-}))
+})
 
 export type NewItemVolume = typeof itemVolumes.$inferInsert;

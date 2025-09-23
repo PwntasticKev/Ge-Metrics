@@ -17,7 +17,7 @@ createdb auth_db 2>/dev/null || echo "Database 'auth_db' already exists"
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install
+npm install --legacy-peer-deps
 
 # Generate database schema
 echo "🔧 Generating database schema..."

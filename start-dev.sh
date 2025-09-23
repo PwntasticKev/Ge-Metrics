@@ -26,18 +26,10 @@ cleanup() {
 # Set trap to cleanup on script exit
 trap cleanup SIGINT SIGTERM
 
-# Start backend server in background
-echo "🔧 Starting backend server..."
-(cd server && npm run dev:full) &
-BACKEND_PID=$!
-
-# Wait for backend to start
-sleep 3
-
-# Start frontend server in background
-echo "⚛️ Starting frontend server..."
+# Start both servers concurrently from the root directory
+echo "🔧 Starting backend and frontend servers..."
 npm run dev &
-FRONTEND_PID=$!
+DEV_PID=$!
 
-# Wait for both processes
-wait
+# Wait for the process
+wait $DEV_PID
