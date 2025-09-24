@@ -19,7 +19,7 @@ export default defineConfig({
     }
   },
   define: {
-    // Ensure process.env is available
-    'process.env': process.env
+    // Expose Vercel's URL to the client
+    'import.meta.env.VITE_VERCEL_URL': JSON.stringify(process.env.VERCEL_URL)
   }
 })

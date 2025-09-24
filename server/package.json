@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
+    "preinstall": "npm install --legacy-peer-deps",
     "dev": "tsx --watch src/index.ts",
-    "dev:full": "npm run db:migrate && npm run dev",
+    "dev:full": "npm run dev",
     "build": "tsup src/index.ts --format esm --dts",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",

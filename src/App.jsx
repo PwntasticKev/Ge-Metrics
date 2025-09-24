@@ -25,6 +25,7 @@ import TrialExpiredModal from './components/Trial/TrialExpiredModal'
 import AuthProvider from './components/auth/AuthProvider'
 
 // Lazy load all protected routes to improve initial load performance
+const HomePage = lazy(() => import('./pages/HomePage'))
 const AllItems = lazy(() => import('./pages/AllItems'))
 const HighVolumes = lazy(() => import('./pages/HighVolumes'))
 const Watchlist = lazy(() => import('./pages/Watchlist'))
@@ -247,6 +248,7 @@ function AppContent () {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup/>}/>
             <Route path="/signup/success" element={<SignupSuccess/>}/>
+            <Route path="/" element={<HomePage />} />
 
             {/* Protected routes */}
             <Route
@@ -266,7 +268,6 @@ function AppContent () {
                 </RequireAuth>
               }
             >
-              <Route path="/" element={<AllItems/>}/>
               <Route path="/all-items" element={<AllItems/>}/>
               <Route path="/high-volumes" element={<HighVolumes/>}/>
               <Route path="/watchlist" element={<Watchlist/>}/>
