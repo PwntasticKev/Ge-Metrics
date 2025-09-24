@@ -1,5 +1,7 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
 import { defineConfig } from 'drizzle-kit'
+
+dotenv.config({ path: '../.env' })
 
 if (!process.env.POSTGRES_URL) {
   throw new Error('POSTGRES_URL is not set in .env file')
