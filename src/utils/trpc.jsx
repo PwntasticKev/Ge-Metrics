@@ -22,7 +22,7 @@ export function TRPCProvider ({ children }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: import.meta.env.PROD
+          url: import.meta.env.VERCEL_URL
             ? '/api/trpc'
             : 'http://localhost:4000/trpc',
           async headers () {
