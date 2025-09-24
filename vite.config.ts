@@ -9,7 +9,14 @@ export default defineConfig({
   server: {
     port: 8000,
     strictPort: true,
-    host: true
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   },
   css: {
     preprocessorOptions: {
