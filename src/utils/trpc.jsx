@@ -22,8 +22,8 @@ export function TRPCProvider ({ children }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: import.meta.env.VITE_VERCEL_URL
-            ? `https://${import.meta.env.VITE_VERCEL_URL}/api/trpc`
+          url: import.meta.env.PROD
+            ? '/api/trpc'
             : 'http://localhost:4000/trpc',
           async headers () {
             const token = localStorage.getItem('accessToken')
