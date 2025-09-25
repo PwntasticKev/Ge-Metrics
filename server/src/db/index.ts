@@ -4,8 +4,8 @@ import { config } from '../config/index.js'
 import * as schema from './schema.js'
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
-const client = postgres(config.DATABASE_URL, { ssl: 'require', max: 1 })
-export const db = drizzle(client, { schema })
+export const connection = postgres(config.DATABASE_URL, { ssl: 'require', max: 1 })
+export const db = drizzle(connection, { schema })
 
 export const migrationsTable = pgTable('__drizzle_migrations', {
   id: text('id').primaryKey(),
