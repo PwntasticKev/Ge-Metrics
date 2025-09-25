@@ -1,7 +1,14 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "server/dist/index.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/server/dist/index.js" },
-    { "source": "/trpc/(.*)", "destination": "/server/dist/index.js" },
+    { "source": "/api/(.*)", "destination": "server/dist/index.js" },
+    { "source": "/trpc/(.*)", "destination": "server/dist/index.js" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
