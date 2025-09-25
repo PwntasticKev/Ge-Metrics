@@ -111,8 +111,8 @@ export const authRouter = router({
         .where(eq(users.id, user.id))
 
       // Generate tokens for the now-verified user
-      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token
       await db.insert(refreshTokens).values({
@@ -273,8 +273,8 @@ export const authRouter = router({
         }
 
         // Generate new tokens
-        const newAccessToken = AuthUtils.generateAccessToken(user.id, user.email)
-        const newRefreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+        const newAccessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+        const newRefreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
         // Update the existing refresh token
         await db.update(refreshTokens)
@@ -364,8 +364,8 @@ export const authRouter = router({
         }
 
         // Generate tokens
-        const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
-        const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+        const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+        const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
         // Store refresh token
         await db.insert(refreshTokens).values({
@@ -445,8 +445,8 @@ export const authRouter = router({
         }
 
         // Generate tokens
-        const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
-        const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+        const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+        const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
         // Store refresh token
         await db.insert(refreshTokens).values({

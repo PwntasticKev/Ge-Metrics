@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
-import { Context } from './context'
+import { type Context } from './context.js'
 import { AuthUtils } from '../utils/auth.js'
 import { db, users, employees } from '../db/index.js'
 import { eq } from 'drizzle-orm'
