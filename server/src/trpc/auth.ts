@@ -38,19 +38,13 @@ export const authRouter = router({
       // Hash password
       const { hash, salt } = await AuthUtils.hashPassword(password)
 
-      // Generate email verification token
-      const emailVerificationToken = crypto.randomBytes(32).toString('hex')
-      const emailVerificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-
       // Create user
       const newUser: NewUser = {
         email,
         username,
         passwordHash: hash,
         salt,
-        name,
-        emailVerificationToken,
-        emailVerificationTokenExpiresAt
+        name
       }
       const [createdUser] = await db.insert(users).values(newUser).returning()
 
@@ -66,9 +60,7 @@ export const authRouter = router({
       })
 
       // In a real app, you would send an email here. For now, we'll log the link.
-      const verificationLink = `${config.FRONTEND_URL}/verify-email?token=${emailVerificationToken}`
       console.log(`✅ New user registered: ${createdUser.email}`)
-      console.log(`📧 Verification link (for testing): ${verificationLink}`)
 
       return {
         success: true,
