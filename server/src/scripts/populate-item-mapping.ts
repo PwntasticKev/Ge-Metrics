@@ -1,5 +1,7 @@
-import { db, itemMapping } from '../db'
-import { NewItemMapping } from '../db/schema'
+import { db, itemMapping } from '../db/index.js'
+import { NewItemMapping } from '../db/schema.js'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
 import 'dotenv/config'
 
 async function populateItemMapping () {

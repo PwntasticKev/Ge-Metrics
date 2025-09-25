@@ -1,5 +1,5 @@
-import { db, itemVolumes } from '../db'
-import { NewItemVolume } from '../db/schema'
+import { db, itemVolumes } from '../db/index.js'
+import { NewItemVolume } from '../db/schema.js'
 import { sql } from 'drizzle-orm'
 
 // Fetches and updates 24-hour volume data

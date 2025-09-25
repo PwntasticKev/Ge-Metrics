@@ -2,11 +2,18 @@
   "version": 2,
   "builds": [
     {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
       "src": "server/src/index.ts",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/server/src/index.ts" }
+    { "source": "/api/(.*)", "destination": "/server/src/index.ts" },
+    { "source": "/trpc/(.*)", "destination": "/server/src/index.ts" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

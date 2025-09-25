@@ -1,5 +1,5 @@
 import cron from 'node-cron'
-import { updateAllItemVolumes, updateHourlyItemVolumes } from '../services/itemVolumeService'
+import { updateAllItemVolumes, updateHourlyItemVolumes } from '../services/itemVolumeService.js'
 
 export function scheduleVolumeUpdates () {
   // Schedule the 24-hour volume update to run every 5 minutes
