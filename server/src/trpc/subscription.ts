@@ -6,20 +6,20 @@ import {
   createCustomerPortalSession,
   cancelSubscription,
   updateSubscription,
-  STRIPE_CONFIG,
+  STRIPE_CONFIG
 } from '../config/stripe.js'
 import { TRPCError } from '@trpc/server'
 
 export const subscriptionRouter = router({
   // Get current user's subscription status
   getStatus: protectedProcedure.query(async ({ ctx }) => {
-    const status = await subscriptionService.getUserSubscriptionStatus(ctx.user.id)
+    const status = await subscriptionService.getUserSubscriptionStatus(ctx.user.userId)
     return status
   }),
 
   // Get subscription details
   getSubscription: protectedProcedure.query(async ({ ctx }) => {
-    const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.id)
+    const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
     return subscription
   }),
 
@@ -29,13 +29,13 @@ export const subscriptionRouter = router({
       priceId: z.string(),
       successUrl: z.string().url(),
       cancelUrl: z.string().url(),
-      trialDays: z.number().optional(),
+      trialDays: z.number().optional()
     }))
     .mutation(async ({ ctx, input }) => {
       try {
         // Create or get customer
         const { customer } = await subscriptionService.createStripeCustomer(
-          ctx.user.id,
+          ctx.user.userId,
           ctx.user.email,
           ctx.user.name || undefined
         )
@@ -48,19 +48,19 @@ export const subscriptionRouter = router({
           cancelUrl: input.cancelUrl,
           trialDays: input.trialDays,
           metadata: {
-            userId: ctx.user.id,
-          },
+            userId: ctx.user.userId
+          }
         })
 
         return {
           sessionId: session.id,
-          url: session.url,
+          url: session.url
         }
       } catch (error) {
         console.error('Failed to create checkout session:', error)
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create checkout session',
+          message: 'Failed to create checkout session'
         })
       }
     }),
@@ -68,16 +68,16 @@ export const subscriptionRouter = router({
   // Create customer portal session
   createPortalSession: protectedProcedure
     .input(z.object({
-      returnUrl: z.string().url(),
+      returnUrl: z.string().url()
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.id)
-        
+        const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
+
         if (!subscription?.stripeCustomerId) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: 'No subscription found',
+            message: 'No subscription found'
           })
         }
 
@@ -87,13 +87,13 @@ export const subscriptionRouter = router({
         )
 
         return {
-          url: session.url,
+          url: session.url
         }
       } catch (error) {
         console.error('Failed to create portal session:', error)
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create portal session',
+          message: 'Failed to create portal session'
         })
       }
     }),
@@ -101,13 +101,13 @@ export const subscriptionRouter = router({
   // Cancel subscription at period end
   cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
     try {
-      await subscriptionService.cancelSubscriptionAtPeriodEnd(ctx.user.id)
+      await subscriptionService.cancelSubscriptionAtPeriodEnd(ctx.user.userId)
       return { success: true }
     } catch (error) {
       console.error('Failed to cancel subscription:', error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to cancel subscription',
+        message: error instanceof Error ? error.message : 'Failed to cancel subscription'
       })
     }
   }),
@@ -115,13 +115,13 @@ export const subscriptionRouter = router({
   // Reactivate subscription
   reactivateSubscription: protectedProcedure.mutation(async ({ ctx }) => {
     try {
-      await subscriptionService.reactivateSubscription(ctx.user.id)
+      await subscriptionService.reactivateSubscription(ctx.user.userId)
       return { success: true }
     } catch (error) {
       console.error('Failed to reactivate subscription:', error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to reactivate subscription',
+        message: error instanceof Error ? error.message : 'Failed to reactivate subscription'
       })
     }
   }),
@@ -129,16 +129,16 @@ export const subscriptionRouter = router({
   // Update subscription plan
   updatePlan: protectedProcedure
     .input(z.object({
-      newPriceId: z.string(),
+      newPriceId: z.string()
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.id)
-        
+        const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
+
         if (!subscription?.stripeSubscriptionId) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: 'No active subscription found',
+            message: 'No active subscription found'
           })
         }
 
@@ -148,14 +148,14 @@ export const subscriptionRouter = router({
         console.error('Failed to update subscription:', error)
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to update subscription',
+          message: 'Failed to update subscription'
         })
       }
     }),
 
   // Check if user has valid subscription
   hasValidSubscription: protectedProcedure.query(async ({ ctx }) => {
-    const hasValid = await subscriptionService.hasValidSubscription(ctx.user.id)
+    const hasValid = await subscriptionService.hasValidSubscription(ctx.user.userId)
     return { hasValidSubscription: hasValid }
   }),
 
@@ -175,8 +175,8 @@ export const subscriptionRouter = router({
             'Advanced analytics',
             'Priority support',
             'Real-time notifications',
-            'Export data',
-          ],
+            'Export data'
+          ]
         },
         {
           id: 'yearly',
@@ -192,10 +192,10 @@ export const subscriptionRouter = router({
             'Advanced market insights',
             'Custom alerts',
             'API access',
-            'Dedicated support',
-          ],
-        },
-      ],
+            'Dedicated support'
+          ]
+        }
+      ]
     }
   }),
 
@@ -203,12 +203,12 @@ export const subscriptionRouter = router({
   startFreeTrial: protectedProcedure.mutation(async ({ ctx }) => {
     try {
       // Check if user already has a subscription
-      const existingSubscription = await subscriptionService.getSubscriptionByUserId(ctx.user.id)
-      
+      const existingSubscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
+
       if (existingSubscription && existingSubscription.plan !== 'free') {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'User already has a subscription',
+          message: 'User already has a subscription'
         })
       }
 
@@ -220,14 +220,14 @@ export const subscriptionRouter = router({
         await subscriptionService.updateSubscription(existingSubscription.id, {
           status: 'active',
           plan: 'premium',
-          currentPeriodEnd: trialEnd,
+          currentPeriodEnd: trialEnd
         })
       } else {
         await subscriptionService.createSubscription({
-          userId: ctx.user.id,
+          userId: ctx.user.userId,
           status: 'active',
           plan: 'premium',
-          currentPeriodEnd: trialEnd,
+          currentPeriodEnd: trialEnd
         })
       }
 
@@ -236,8 +236,8 @@ export const subscriptionRouter = router({
       console.error('Failed to start free trial:', error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to start free trial',
+        message: error instanceof Error ? error.message : 'Failed to start free trial'
       })
     }
-  }),
+  })
 })

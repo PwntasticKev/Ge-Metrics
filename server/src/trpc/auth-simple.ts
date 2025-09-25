@@ -37,8 +37,8 @@ export const authRouter = router({
       })
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(newUser.id, newUser.email)
-      const refreshToken = AuthUtils.generateRefreshToken(newUser.id, newUser.email)
+      const accessToken = AuthUtils.generateAccessToken(String(newUser.id), newUser.email)
+      const refreshToken = AuthUtils.generateRefreshToken(String(newUser.id), newUser.email)
 
       // Store refresh token
       await memoryDb.refreshTokens.create({
@@ -87,8 +87,8 @@ export const authRouter = router({
       }
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token
       await memoryDb.refreshTokens.create({
@@ -131,7 +131,7 @@ export const authRouter = router({
         }
 
         // Get user
-        const user = await memoryDb.users.findById(payload.userId)
+        const user = await memoryDb.users.findById(String(payload.userId))
         if (!user) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
@@ -140,8 +140,8 @@ export const authRouter = router({
         }
 
         // Generate new tokens
-        const newAccessToken = AuthUtils.generateAccessToken(user.id, user.email)
-        const newRefreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+        const newAccessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+        const newRefreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
         // Delete old refresh token and create new one
         await memoryDb.refreshTokens.deleteByToken(refreshToken)
@@ -201,11 +201,11 @@ export const authRouter = router({
       }
 
       // Invalidate any existing password reset OTPs
-      await OtpService.invalidateOtps(user.id, 'password_reset')
+      await OtpService.invalidateOtps(String(user.id), 'password_reset')
 
       // Generate new OTP
       const { otpCode, expiresAt } = await OtpService.generateOtp(
-        user.id,
+        String(user.id),
         'password_reset',
         { expiresInMinutes: 10 }
       )
@@ -243,7 +243,7 @@ export const authRouter = router({
       }
 
       // Verify OTP
-      const otpResult = await OtpService.verifyOtp(user.id, otpCode, 'password_reset')
+      const otpResult = await OtpService.verifyOtp(String(user.id), otpCode, 'password_reset')
       if (!otpResult.valid) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -255,13 +255,13 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(newPassword)
 
       // Update user password
-      await memoryDb.users.update(user.id, {
+      await memoryDb.users.update(String(user.id), {
         passwordHash: hash,
         salt
       })
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(user.id)
+      await memoryDb.refreshTokens.deleteByUserId(String(user.id))
 
       return {
         success: true,
@@ -279,7 +279,7 @@ export const authRouter = router({
       const { currentPassword, newPassword } = input
 
       // Get user
-      const user = await memoryDb.users.findById(ctx.user.userId)
+      const user = await memoryDb.users.findById(String(ctx.user.userId))
       if (!user || !user.passwordHash) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -300,13 +300,13 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(newPassword)
 
       // Update user password
-      await memoryDb.users.update(user.id, {
+      await memoryDb.users.update(String(user.id), {
         passwordHash: hash,
         salt
       })
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(user.id)
+      await memoryDb.refreshTokens.deleteByUserId(String(user.id))
 
       return {
         success: true,
@@ -317,7 +317,7 @@ export const authRouter = router({
   // Get current user (protected route)
   me: protectedProcedure
     .query(async ({ ctx }) => {
-      const user = await memoryDb.users.findById(ctx.user.userId)
+      const user = await memoryDb.users.findById(String(ctx.user.userId))
 
       if (!user) {
         throw new TRPCError({
