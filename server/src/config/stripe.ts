@@ -46,11 +46,7 @@ export const STRIPE_CONFIG = {
     payment_method_types: ['card'],
     billing_address_collection: 'required' as const,
     allow_promotion_codes: true,
-    automatic_tax: { enabled: false },
-    customer_update: {
-      name: 'auto',
-      address: 'auto' as const
-    }
+    automatic_tax: { enabled: false }
   }
 }
 
@@ -91,13 +87,13 @@ export async function createCheckoutSession (params: {
   metadata?: Record<string, string>
 }): Promise<Stripe.Checkout.Session> {
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
-    ...STRIPE_CONFIG.CHECKOUT_SETTINGS,
     line_items: [
       {
         price: params.priceId,
         quantity: 1
       }
     ],
+    mode: 'subscription',
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     metadata: params.metadata || {}

@@ -73,13 +73,13 @@ export class SubscriptionService {
     subscription: Subscription
   }> {
     // Get or create customer in Stripe
-    const customer = await getOrCreateCustomer(email, name, userId)
+    const customer = await getOrCreateCustomer(email, name, String(userId))
 
     // Update or create subscription record with customer ID
     let subscription = await this.getSubscriptionByUserId(userId)
 
     if (subscription) {
-      subscription = await this.updateSubscription(subscription.id, {
+      subscription = await this.updateSubscription(String(subscription.id), {
         stripeCustomerId: customer.id
       })
     } else {
@@ -113,7 +113,7 @@ export class SubscriptionService {
     const existingSubscription = await this.getSubscriptionByUserId(parseInt(userId, 10))
 
     if (existingSubscription) {
-      await this.updateSubscription(existingSubscription.id, {
+      await this.updateSubscription(String(existingSubscription.id), {
         stripeSubscriptionId: stripeSubscription.id,
         stripePriceId: priceId,
         status: stripeSubscription.status as any,
@@ -244,7 +244,7 @@ export class SubscriptionService {
     })
 
     // Update in database
-    await this.updateSubscription(subscription.id, {
+    await this.updateSubscription(String(subscription.id), {
       cancelAtPeriodEnd: true
     })
   }
@@ -263,7 +263,7 @@ export class SubscriptionService {
     })
 
     // Update in database
-    await this.updateSubscription(subscription.id, {
+    await this.updateSubscription(String(subscription.id), {
       cancelAtPeriodEnd: false
     })
   }

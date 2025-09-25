@@ -261,7 +261,7 @@ export const authRouter = router({
       })
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(parseInt(user.id, 10))
+      await memoryDb.refreshTokens.deleteByUserId(user.id)
 
       return {
         success: true,
@@ -306,7 +306,7 @@ export const authRouter = router({
       })
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(parseInt(user.id, 10))
+      await memoryDb.refreshTokens.deleteByUserId(user.id)
 
       return {
         success: true,
