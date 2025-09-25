@@ -88,8 +88,8 @@ export class PricingService {
       const latestPrices = await db
         .select({
           itemId: schema.itemPriceHistory.itemId,
-          highPrice: schema.itemPriceHistory.highPrice,
-          lowPrice: schema.itemPriceHistory.lowPrice,
+          highPrice: schema.itemPriceHistory.high,
+          lowPrice: schema.itemPriceHistory.low,
           volume: schema.itemPriceHistory.volume,
           timestamp: schema.itemPriceHistory.timestamp
         })
@@ -162,7 +162,7 @@ export class PricingService {
 
       if (dbItems.length > 0) {
         console.log(`Using cached item mapping from database (${dbItems.length} items)`)
-        return dbItems
+        return dbItems as ItemMapping[]
       }
 
       // If database is empty, fetch from API
@@ -295,8 +295,8 @@ export class PricingService {
       const records = historyData.map((dataPoint: any) => ({
         itemId,
         timestamp: new Date(dataPoint[0] * 1000),
-        highPrice: dataPoint[1],
-        lowPrice: dataPoint[1],
+        high: dataPoint[1],
+        low: dataPoint[1],
         volume: dataPoint[2] || 0,
         timeframe: timestep
       }))

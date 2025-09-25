@@ -137,7 +137,7 @@ export class OtpService {
         )
       )
 
-    return result.rowCount || 0
+    return result.length || 0
   }
 
   /**

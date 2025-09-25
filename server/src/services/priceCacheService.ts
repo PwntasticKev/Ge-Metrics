@@ -28,9 +28,9 @@ export class PriceCacheService {
   private readonly USER_AGENT = 'GE-Metrics Price Cache Service - Contact: admin@ge-metrics.com'
   private isFetching = false
 
-  private constructor() {}
+  private constructor () {}
 
-  public static getInstance(): PriceCacheService {
+  public static getInstance (): PriceCacheService {
     if (!PriceCacheService.instance) {
       PriceCacheService.instance = new PriceCacheService()
     }
@@ -40,9 +40,9 @@ export class PriceCacheService {
   /**
    * Main method to get prices - returns cached data or fetches fresh data
    */
-  async getPrices(): Promise<PriceData> {
+  async getPrices (): Promise<PriceData> {
     const now = Date.now()
-    
+
     // Check if we need to fetch new data
     if (now - this.lastFetchTime >= this.FETCH_INTERVAL) {
       console.log('Cache expired, fetching fresh price data...')
@@ -57,17 +57,17 @@ export class PriceCacheService {
   /**
    * Fetch fresh price data from the API and cache it
    */
-  async fetchAndCachePrices(): Promise<void> {
+  async fetchAndCachePrices (): Promise<void> {
     if (this.isFetching) {
       console.log('Already fetching, skipping...')
       return
     }
 
     this.isFetching = true
-    
+
     try {
       console.log('🔄 Fetching fresh price data from OSRS Wiki API...')
-      
+
       // Fetch both latest prices and volume data
       const [latestResponse, volumeResponse] = await Promise.all([
         axios.get(`${this.API_BASE_URL}/latest`, {
@@ -92,10 +92,9 @@ export class PriceCacheService {
 
       // Save to database
       await this.savePricesToDatabase(mergedData)
-      
+
       this.lastFetchTime = Date.now()
       console.log(`✅ Successfully cached ${Object.keys(mergedData).length} items`)
-      
     } catch (error) {
       console.error('❌ Error fetching prices:', error)
       throw error
@@ -107,7 +106,7 @@ export class PriceCacheService {
   /**
    * Save price data to database
    */
-  private async savePricesToDatabase(priceData: any): Promise<void> {
+  private async savePricesToDatabase (priceData: any): Promise<void> {
     const timestamp = new Date()
     const records = []
 
@@ -140,16 +139,16 @@ export class PriceCacheService {
   /**
    * Get cached prices from database
    */
-  private async getCachedPrices(): Promise<PriceData> {
+  private async getCachedPrices (): Promise<PriceData> {
     try {
       // Get the most recent price data for each item
       const oneMinuteAgo = new Date(Date.now() - 60 * 1000)
-      
+
       const latestPrices = await db
         .select({
           itemId: itemPriceHistory.itemId,
-          highPrice: itemPriceHistory.highPrice,
-          lowPrice: itemPriceHistory.lowPrice,
+          highPrice: itemPriceHistory.high,
+          lowPrice: itemPriceHistory.low,
           volume: itemPriceHistory.volume,
           timestamp: itemPriceHistory.timestamp
         })
@@ -189,7 +188,7 @@ export class PriceCacheService {
   /**
    * Get prices for specific items
    */
-  async getItemPrices(itemIds: number[]): Promise<PriceData> {
+  async getItemPrices (itemIds: number[]): Promise<PriceData> {
     const allPrices = await this.getPrices()
     const filteredPrices: PriceData = {}
 
@@ -206,15 +205,15 @@ export class PriceCacheService {
   /**
    * Get high volume items
    */
-  async getHighVolumeItems(limit: number = 100): Promise<any[]> {
+  async getHighVolumeItems (limit = 100): Promise<any[]> {
     try {
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000)
-      
+
       const highVolumeItems = await db
         .select({
           itemId: itemPriceHistory.itemId,
-          highPrice: itemPriceHistory.highPrice,
-          lowPrice: itemPriceHistory.lowPrice,
+          highPrice: itemPriceHistory.high,
+          lowPrice: itemPriceHistory.low,
           volume: itemPriceHistory.volume,
           timestamp: itemPriceHistory.timestamp
         })
@@ -244,10 +243,10 @@ export class PriceCacheService {
   /**
    * Get cache statistics
    */
-  async getCacheStats(): Promise<any> {
+  async getCacheStats (): Promise<any> {
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-      
+
       const stats = await db
         .select({
           itemId: itemPriceHistory.itemId,
@@ -274,14 +273,14 @@ export class PriceCacheService {
       }
     } catch (error) {
       console.error('❌ Error getting cache stats:', error)
-      return { error: error.message }
+      return { error: (error as Error).message }
     }
   }
 
   /**
    * Force refresh cache
    */
-  async forceRefresh(): Promise<void> {
+  async forceRefresh (): Promise<void> {
     console.log('🔄 Force refreshing price cache...')
     this.lastFetchTime = 0
     await this.fetchAndCachePrices()
@@ -290,12 +289,12 @@ export class PriceCacheService {
   /**
    * Start automatic price fetching
    */
-  startPeriodicFetching(): void {
+  startPeriodicFetching (): void {
     console.log('🚀 Starting periodic price fetching every 2 minutes...')
-    
+
     // Immediate fetch
     this.fetchAndCachePrices()
-    
+
     // Set up interval
     setInterval(() => {
       this.fetchAndCachePrices()
