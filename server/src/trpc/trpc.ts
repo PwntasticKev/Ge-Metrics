@@ -1,13 +1,26 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
-import { type Context } from './context.js'
 import { AuthUtils } from '../utils/auth.js'
 import { db, users, employees } from '../db/index.js'
 import { eq } from 'drizzle-orm'
 
 // Context creation
 export const createContext = ({ req, res }: CreateExpressContextOptions) => {
-  return { req, res }
+  const authHeader = req.headers.authorization
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    try {
+      const decodedUser = AuthUtils.verifyAccessToken(token)
+      const user = {
+        ...decodedUser,
+        userId: parseInt(decodedUser.userId, 10)
+      }
+      return { req, res, user }
+    } catch (error) {
+      // Ignore invalid token, user will be unauthenticated
+    }
+  }
+  return { req, res, user: null }
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
@@ -21,38 +34,19 @@ export const publicProcedure = t.procedure
 
 // Auth middleware
 const isAuthed = t.middleware(({ ctx, next }) => {
-  const authHeader = ctx.req.headers.authorization
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!ctx.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'No authorization token provided'
+      message: 'No authorization token provided or token is invalid'
     })
   }
 
-  const token = authHeader.substring(7) // Remove 'Bearer ' prefix
-
-  try {
-    console.log('Verifying token:', token)
-    const user = AuthUtils.verifyAccessToken(token)
-    console.log('Token decoded successfully:', user)
-    const parsedUser = {
-      ...user,
-      userId: parseInt(user.userId, 10)
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user
     }
-    return next({
-      ctx: {
-        ...ctx,
-        user: parsedUser
-      }
-    })
-  } catch (error) {
-    console.error('Token verification failed:', error)
-    throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'Invalid or expired token'
-    })
-  }
+  })
 })
 
 // Protected procedure

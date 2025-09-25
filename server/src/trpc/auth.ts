@@ -251,7 +251,7 @@ export const authRouter = router({
           .where(
             and(
               eq(refreshTokens.token, refreshToken),
-              eq(refreshTokens.userId, payload.userId)
+              eq(refreshTokens.userId, parseInt(payload.userId, 10))
             )
           )
           .limit(1)
@@ -264,7 +264,7 @@ export const authRouter = router({
         }
 
         // Get user
-        const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1)
+        const [user] = await db.select().from(users).where(eq(users.id, parseInt(payload.userId, 10))).limit(1)
         if (!user) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
