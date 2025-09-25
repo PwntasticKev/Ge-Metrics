@@ -258,7 +258,7 @@ export class PricingService {
         console.log(`Using cached historical data for item ${itemId} (${dbHistory.length} records)`)
         return dbHistory.map(record => ({
           timestamp: record.timestamp.getTime() / 1000,
-          price: record.highPrice,
+          price: record.high,
           volume: record.volume
         }))
       }

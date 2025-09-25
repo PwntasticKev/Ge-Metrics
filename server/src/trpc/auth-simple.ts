@@ -279,7 +279,7 @@ export const authRouter = router({
       const { currentPassword, newPassword } = input
 
       // Get user
-      const user = await memoryDb.users.findById(String(ctx.user.userId))
+      const user = await memoryDb.users.findById(ctx.user.userId)
       if (!user || !user.passwordHash) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -317,7 +317,7 @@ export const authRouter = router({
   // Get current user (protected route)
   me: protectedProcedure
     .query(async ({ ctx }) => {
-      const user = await memoryDb.users.findById(String(ctx.user.userId))
+      const user = await memoryDb.users.findById(ctx.user.userId)
 
       if (!user) {
         throw new TRPCError({

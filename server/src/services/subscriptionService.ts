@@ -36,7 +36,7 @@ export class SubscriptionService {
 
   // Update subscription
   async updateSubscription (
-    subscriptionId: number,
+    subscriptionId: string,
     data: Partial<Subscription>
   ): Promise<Subscription> {
     const [subscription] = await db

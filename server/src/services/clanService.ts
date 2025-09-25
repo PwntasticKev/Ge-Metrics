@@ -36,7 +36,7 @@ export class ClanService {
   /**
    * Create a new clan
    */
-  async createClan (ownerId: string, name: string, description: string): Promise<Clan> {
+  async createClan (ownerId: number, name: string, description: string): Promise<Clan> {
     try {
       // Check if user already owns a clan
       const existingClan = await db.select().from(schema.clans).where(eq(schema.clans.ownerId, ownerId))
@@ -64,7 +64,7 @@ export class ClanService {
         role: 'owner'
       })
 
-      return newClan
+      return newClan as unknown as Clan
     } catch (error) {
       console.error('Error creating clan:', error)
       throw error
@@ -129,7 +129,7 @@ export class ClanService {
   /**
    * Delete clan (only owner can do this)
    */
-  async deleteClan (clanId: string, userId: string): Promise<boolean> {
+  async deleteClan (clanId: string, userId: number): Promise<boolean> {
     try {
       const clan = await this.getClan(clanId)
       if (!clan || clan.ownerId !== userId) {
@@ -151,7 +151,7 @@ export class ClanService {
   /**
    * Invite user to clan
    */
-  async inviteToClan (clanId: string, inviterId: string, invitedEmail: string, message?: string): Promise<ClanInvite> {
+  async inviteToClan (clanId: string, inviterId: number, invitedEmail: string, message?: string): Promise<ClanInvite> {
     try {
       // Check if inviter is clan member
       const member = await this.getClanMember(clanId, inviterId)
@@ -198,7 +198,7 @@ export class ClanService {
   /**
    * Accept clan invite
    */
-  async acceptClanInvite (inviteId: string, userId: string): Promise<ClanMember> {
+  async acceptClanInvite (inviteId: string, userId: number): Promise<ClanMember> {
     try {
       // Get invite
       const invites = await db.select().from(schema.clanInvites).where(eq(schema.clanInvites.id, inviteId))
@@ -268,7 +268,7 @@ export class ClanService {
   /**
    * Get clan member
    */
-  async getClanMember (clanId: string, userId: string): Promise<ClanMember | null> {
+  async getClanMember (clanId: string, userId: number): Promise<ClanMember | null> {
     try {
       const members = await db.select().from(schema.clanMembers).where(
         and(
@@ -305,7 +305,7 @@ export class ClanService {
   /**
    * Update clan member role
    */
-  async updateClanMemberRole (clanId: string, userId: string, newRole: 'owner' | 'officer' | 'member'): Promise<ClanMember> {
+  async updateClanMemberRole (clanId: string, userId: number, newRole: 'owner' | 'officer' | 'member'): Promise<ClanMember> {
     try {
       const [updatedMember] = await db.update(schema.clanMembers).set({
         role: newRole
@@ -326,7 +326,7 @@ export class ClanService {
   /**
    * Remove member from clan
    */
-  async removeClanMember (clanId: string, userId: string, removedBy: string): Promise<boolean> {
+  async removeClanMember (clanId: string, userId: number, removedBy: number): Promise<boolean> {
     try {
       // Check if remover has permission
       const remover = await this.getClanMember(clanId, removedBy)
@@ -362,7 +362,7 @@ export class ClanService {
   /**
    * Leave clan
    */
-  async leaveClan (clanId: string, userId: string): Promise<boolean> {
+  async leaveClan (clanId: string, userId: number): Promise<boolean> {
     try {
       const member = await this.getClanMember(clanId, userId)
       if (!member) {
@@ -390,7 +390,7 @@ export class ClanService {
   /**
    * Get user's clan
    */
-  async getUserClan (userId: string): Promise<{ clan: Clan; member: ClanMember } | null> {
+  async getUserClan (userId: number): Promise<{ clan: Clan; member: ClanMember } | null> {
     try {
       const members = await db.select().from(schema.clanMembers).where(eq(schema.clanMembers.userId, userId))
       if (members.length === 0) {
@@ -410,7 +410,7 @@ export class ClanService {
   /**
    * Get pending invites for user
    */
-  async getPendingInvites (userId: string): Promise<ClanInvite[]> {
+  async getPendingInvites (userId: number): Promise<ClanInvite[]> {
     try {
       // Get user's email
       const users = await db.select().from(schema.users).where(eq(schema.users.id, userId))
