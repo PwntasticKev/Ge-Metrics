@@ -36,8 +36,7 @@ export const subscriptionRouter = router({
         // Create or get customer
         const { customer } = await subscriptionService.createStripeCustomer(
           ctx.user.userId,
-          ctx.user.email,
-          ctx.user.name || undefined
+          ctx.user.email
         )
 
         // Create checkout session

@@ -41,8 +41,8 @@ export const authRouter = router({
       const user = newUser[0]
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token
       await db.insert(schema.refreshTokens).values({
@@ -99,8 +99,8 @@ export const authRouter = router({
       }
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(user.id, user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token
       await db.insert(schema.refreshTokens).values({
@@ -152,7 +152,7 @@ export const authRouter = router({
         }
 
         // Get user
-        const users = await db.select().from(schema.users).where(eq(schema.users.id, payload.userId))
+        const users = await db.select().from(schema.users).where(eq(schema.users.id, parseInt(payload.userId)))
         if (users.length === 0) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
@@ -163,8 +163,8 @@ export const authRouter = router({
         const user = users[0]
 
         // Generate new tokens
-        const newAccessToken = AuthUtils.generateAccessToken(user.id, user.email)
-        const newRefreshToken = AuthUtils.generateRefreshToken(user.id, user.email)
+        const newAccessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
+        const newRefreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
 
         // Update the existing refresh token
         await db.update(schema.refreshTokens)
