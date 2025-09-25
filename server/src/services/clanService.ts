@@ -421,7 +421,7 @@ export class ClanService {
       const userEmail = users[0].email
       return await db.select().from(schema.clanInvites).where(
         and(
-          eq(schema.clanInvites.invitedEmail, userEmail),
+          eq(schema.clanInvites.invitedEmail, userEmail || ''),
           eq(schema.clanInvites.status, 'pending')
         )
       )

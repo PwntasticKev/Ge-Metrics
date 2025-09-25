@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm'
 
 export interface FavoriteItem {
   id: string
-  userId: string
+  userId: number
   favoriteType: string
   favoriteId: string
   createdAt: Date
@@ -15,7 +15,7 @@ export class FavoritesService {
   /**
    * Validate and convert user ID, handling mock users
    */
-  private validateUserId(userId: string): number {
+  private validateUserId (userId: string): number {
     // Handle mock/public user - these don't have database entries
     if (userId === 'public-user-id' || userId.startsWith('mock-') || userId.startsWith('public-')) {
       throw new Error('Mock users cannot save favorites to database')
@@ -32,9 +32,9 @@ export class FavoritesService {
   /**
    * Add an item to user's favorites
    */
-  async addFavorite (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<FavoriteItem> {
+  async addFavorite (userId: number, favoriteType: 'item' | 'combination', favoriteId: string): Promise<FavoriteItem> {
     try {
-      const userIdInt = this.validateUserId(userId)
+      const userIdInt = this.validateUserId(String(userId))
 
       // Check if already favorited
       const existing = await db.select().from(schema.favorites).where(
@@ -66,9 +66,9 @@ export class FavoritesService {
   /**
    * Remove an item from user's favorites
    */
-  async removeFavorite (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<boolean> {
+  async removeFavorite (userId: number, favoriteType: 'item' | 'combination', favoriteId: string): Promise<boolean> {
     try {
-      const userIdInt = this.validateUserId(userId)
+      const userIdInt = this.validateUserId(String(userId))
 
       const result = await db.delete(schema.favorites).where(
         and(
@@ -88,9 +88,9 @@ export class FavoritesService {
   /**
    * Get all favorites for a user
    */
-  async getUserFavorites (userId: string): Promise<FavoriteItem[]> {
+  async getUserFavorites (userId: number): Promise<FavoriteItem[]> {
     try {
-      const userIdInt = this.validateUserId(userId)
+      const userIdInt = this.validateUserId(String(userId))
 
       return await db.select().from(schema.favorites).where(eq(schema.favorites.userId, userIdInt))
     } catch (error) {
@@ -102,9 +102,9 @@ export class FavoritesService {
   /**
    * Get favorites by type for a user
    */
-  async getUserFavoritesByType (userId: string, favoriteType: 'item' | 'combination'): Promise<FavoriteItem[]> {
+  async getUserFavoritesByType (userId: number, favoriteType: 'item' | 'combination'): Promise<FavoriteItem[]> {
     try {
-      const userIdInt = this.validateUserId(userId)
+      const userIdInt = this.validateUserId(String(userId))
 
       return await db.select().from(schema.favorites).where(
         and(
@@ -121,9 +121,9 @@ export class FavoritesService {
   /**
    * Check if an item is favorited by a user
    */
-  async isFavorited (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<boolean> {
+  async isFavorited (userId: number, favoriteType: 'item' | 'combination', favoriteId: string): Promise<boolean> {
     try {
-      const userIdInt = this.validateUserId(userId)
+      const userIdInt = this.validateUserId(String(userId))
 
       const result = await db.select().from(schema.favorites).where(
         and(
@@ -143,7 +143,7 @@ export class FavoritesService {
   /**
    * Toggle favorite status
    */
-  async toggleFavorite (userId: string, favoriteType: 'item' | 'combination', favoriteId: string): Promise<{ isFavorited: boolean; favorite?: FavoriteItem }> {
+  async toggleFavorite (userId: number, favoriteType: 'item' | 'combination', favoriteId: string): Promise<{ isFavorited: boolean; favorite?: FavoriteItem }> {
     try {
       const isCurrentlyFavorited = await this.isFavorited(userId, favoriteType, favoriteId)
 
@@ -182,9 +182,9 @@ export class FavoritesService {
   /**
    * Clear all favorites for a user
    */
-  async clearUserFavorites (userId: string): Promise<number> {
+  async clearUserFavorites (userId: number): Promise<number> {
     try {
-      const userIdInt = this.validateUserId(userId)
+      const userIdInt = this.validateUserId(String(userId))
 
       const result = await db.delete(schema.favorites).where(eq(schema.favorites.userId, userIdInt)).returning()
       return result.length

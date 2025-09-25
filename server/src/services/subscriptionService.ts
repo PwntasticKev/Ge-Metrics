@@ -7,13 +7,13 @@ import type Stripe from 'stripe'
 
 export class SubscriptionService {
   // Create a new subscription in the database
-  async createSubscription(data: NewSubscription): Promise<Subscription> {
+  async createSubscription (data: NewSubscription): Promise<Subscription> {
     const [subscription] = await db.insert(subscriptions).values(data).returning()
     return subscription
   }
 
   // Get subscription by user ID
-  async getSubscriptionByUserId(userId: number): Promise<Subscription | null> {
+  async getSubscriptionByUserId (userId: number): Promise<Subscription | null> {
     const [subscription] = await db
       .select()
       .from(subscriptions)
@@ -24,7 +24,7 @@ export class SubscriptionService {
   }
 
   // Get subscription by Stripe subscription ID
-  async getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | null> {
+  async getSubscriptionByStripeId (stripeSubscriptionId: string): Promise<Subscription | null> {
     const [subscription] = await db
       .select()
       .from(subscriptions)
@@ -35,8 +35,8 @@ export class SubscriptionService {
   }
 
   // Update subscription
-  async updateSubscription(
-    subscriptionId: string,
+  async updateSubscription (
+    subscriptionId: number,
     data: Partial<Subscription>
   ): Promise<Subscription> {
     const [subscription] = await db
@@ -49,7 +49,7 @@ export class SubscriptionService {
   }
 
   // Update subscription by Stripe ID
-  async updateSubscriptionByStripeId(
+  async updateSubscriptionByStripeId (
     stripeSubscriptionId: string,
     data: Partial<Subscription>
   ): Promise<Subscription | null> {
@@ -63,12 +63,12 @@ export class SubscriptionService {
   }
 
   // Delete subscription
-  async deleteSubscription(subscriptionId: string): Promise<void> {
+  async deleteSubscription (subscriptionId: string): Promise<void> {
     await db.delete(subscriptions).where(eq(subscriptions.id, subscriptionId))
   }
 
   // Create or update customer in Stripe and database
-  async createStripeCustomer(userId: number, email: string, name?: string): Promise<{
+  async createStripeCustomer (userId: number, email: string, name?: string): Promise<{
     customer: Stripe.Customer
     subscription: Subscription
   }> {
@@ -77,17 +77,17 @@ export class SubscriptionService {
 
     // Update or create subscription record with customer ID
     let subscription = await this.getSubscriptionByUserId(userId)
-    
+
     if (subscription) {
       subscription = await this.updateSubscription(subscription.id, {
-        stripeCustomerId: customer.id,
+        stripeCustomerId: customer.id
       })
     } else {
       subscription = await this.createSubscription({
         userId,
         stripeCustomerId: customer.id,
         status: 'inactive',
-        plan: 'free',
+        plan: 'free'
       } as NewSubscription)
     }
 
@@ -95,7 +95,7 @@ export class SubscriptionService {
   }
 
   // Handle subscription creation from Stripe webhook
-  async handleSubscriptionCreated(stripeSubscription: Stripe.Subscription): Promise<void> {
+  async handleSubscriptionCreated (stripeSubscription: Stripe.Subscription): Promise<void> {
     const customerId = stripeSubscription.customer as string
     const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer
     const userId = customer.metadata?.userId
@@ -111,7 +111,7 @@ export class SubscriptionService {
 
     // Create or update subscription
     const existingSubscription = await this.getSubscriptionByUserId(parseInt(userId, 10))
-    
+
     if (existingSubscription) {
       await this.updateSubscription(existingSubscription.id, {
         stripeSubscriptionId: stripeSubscription.id,
@@ -120,7 +120,7 @@ export class SubscriptionService {
         plan,
         currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
         currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end
       })
     } else {
       await this.createSubscription({
@@ -132,13 +132,13 @@ export class SubscriptionService {
         plan,
         currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
         currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end
       } as NewSubscription)
     }
   }
 
   // Handle subscription update from Stripe webhook
-  async handleSubscriptionUpdated(stripeSubscription: Stripe.Subscription): Promise<void> {
+  async handleSubscriptionUpdated (stripeSubscription: Stripe.Subscription): Promise<void> {
     const priceId = stripeSubscription.items.data[0]?.price?.id
     const plan = this.getPlanFromPriceId(priceId)
 
@@ -148,123 +148,123 @@ export class SubscriptionService {
       plan,
       currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
       currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-      cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+      cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end
     })
   }
 
   // Handle subscription deletion from Stripe webhook
-  async handleSubscriptionDeleted(stripeSubscription: Stripe.Subscription): Promise<void> {
+  async handleSubscriptionDeleted (stripeSubscription: Stripe.Subscription): Promise<void> {
     await this.updateSubscriptionByStripeId(stripeSubscription.id, {
       status: 'canceled',
-      cancelAtPeriodEnd: false,
+      cancelAtPeriodEnd: false
     })
   }
 
   // Handle invoice payment succeeded
-  async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
+  async handleInvoicePaymentSucceeded (invoice: Stripe.Invoice): Promise<void> {
     if (invoice.subscription) {
       // Update subscription status to active
       await this.updateSubscriptionByStripeId(invoice.subscription as string, {
-        status: 'active',
+        status: 'active'
       })
     }
   }
 
   // Handle invoice payment failed
-  async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
+  async handleInvoicePaymentFailed (invoice: Stripe.Invoice): Promise<void> {
     if (invoice.subscription) {
       // Update subscription status to past_due
       await this.updateSubscriptionByStripeId(invoice.subscription as string, {
-        status: 'past_due',
+        status: 'past_due'
       })
     }
   }
 
   // Utility function to determine plan from price ID
-  private getPlanFromPriceId(priceId?: string): 'free' | 'premium' {
+  private getPlanFromPriceId (priceId?: string): 'free' | 'premium' {
     if (!priceId) return 'free'
-    
+
     // This should match your actual Stripe price IDs
     // You can also store this mapping in your database or config
     const monthlyPriceIds = process.env.STRIPE_PRICE_MONTHLY?.split(',') || []
     const yearlyPriceIds = process.env.STRIPE_PRICE_YEARLY?.split(',') || []
-    
+
     if (monthlyPriceIds.includes(priceId) || yearlyPriceIds.includes(priceId)) {
       return 'premium'
     }
-    
+
     return 'free'
   }
 
   // Get subscription status for user
-  async getUserSubscriptionStatus(userId: number): Promise<{
+  async getUserSubscriptionStatus (userId: number): Promise<{
     isActive: boolean
     plan: string
     status: string
     currentPeriodEnd?: Date
   }> {
     const subscription = await this.getSubscriptionByUserId(userId)
-    
+
     if (!subscription) {
       return {
         isActive: false,
         plan: 'free',
-        status: 'inactive',
+        status: 'inactive'
       }
     }
 
-    const isActive = subscription.status === 'active' && 
+    const isActive = subscription.status === 'active' &&
                     (!subscription.currentPeriodEnd || subscription.currentPeriodEnd > new Date())
 
     return {
       isActive,
       plan: subscription.plan,
       status: subscription.status,
-      currentPeriodEnd: subscription.currentPeriodEnd || undefined,
+      currentPeriodEnd: subscription.currentPeriodEnd || undefined
     }
   }
 
   // Check if user has access to premium features
-  async hasValidSubscription(userId: number): Promise<boolean> {
+  async hasValidSubscription (userId: number): Promise<boolean> {
     const status = await this.getUserSubscriptionStatus(userId)
     return status.isActive && status.plan === 'premium'
   }
 
   // Cancel subscription at period end
-  async cancelSubscriptionAtPeriodEnd(userId: number): Promise<void> {
+  async cancelSubscriptionAtPeriodEnd (userId: number): Promise<void> {
     const subscription = await this.getSubscriptionByUserId(userId)
-    
+
     if (!subscription?.stripeSubscriptionId) {
       throw new Error('No active subscription found')
     }
 
     // Cancel in Stripe
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-      cancel_at_period_end: true,
+      cancel_at_period_end: true
     })
 
     // Update in database
     await this.updateSubscription(subscription.id, {
-      cancelAtPeriodEnd: true,
+      cancelAtPeriodEnd: true
     })
   }
 
   // Reactivate canceled subscription
-  async reactivateSubscription(userId: number): Promise<void> {
+  async reactivateSubscription (userId: number): Promise<void> {
     const subscription = await this.getSubscriptionByUserId(userId)
-    
+
     if (!subscription?.stripeSubscriptionId) {
       throw new Error('No subscription found')
     }
 
     // Reactivate in Stripe
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-      cancel_at_period_end: false,
+      cancel_at_period_end: false
     })
 
     // Update in database
     await this.updateSubscription(subscription.id, {
-      cancelAtPeriodEnd: false,
+      cancelAtPeriodEnd: false
     })
   }
 }

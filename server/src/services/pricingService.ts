@@ -173,7 +173,7 @@ export class PricingService {
         }
       })
 
-      const items = response.data.map((item: any) => ({
+      const items: ItemMapping[] = response.data.map((item: any) => ({
         id: item.id,
         name: item.name,
         examine: item.examine,
@@ -295,8 +295,8 @@ export class PricingService {
       const records = historyData.map((dataPoint: any) => ({
         itemId,
         timestamp: new Date(dataPoint[0] * 1000),
-        high: dataPoint[1],
-        low: dataPoint[1],
+        highPrice: dataPoint[1],
+        lowPrice: dataPoint[1],
         volume: dataPoint[2] || 0,
         timeframe: timestep
       }))

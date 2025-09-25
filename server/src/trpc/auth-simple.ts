@@ -255,7 +255,7 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(newPassword)
 
       // Update user password
-      await memoryDb.users.update(String(user.id), {
+      await memoryDb.users.update(user.id, {
         passwordHash: hash,
         salt
       })
@@ -300,7 +300,7 @@ export const authRouter = router({
       const { hash, salt } = await AuthUtils.hashPassword(newPassword)
 
       // Update user password
-      await memoryDb.users.update(String(user.id), {
+      await memoryDb.users.update(user.id, {
         passwordHash: hash,
         salt
       })
