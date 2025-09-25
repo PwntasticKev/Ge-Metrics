@@ -6,6 +6,7 @@ import { db, users, refreshTokens, subscriptions, NewUser } from '../db/index.js
 import { AuthUtils } from '../utils/auth.js'
 import { GoogleAuth } from '../utils/google.js'
 import crypto from 'crypto'
+import { config } from '../config/index.js'
 
 export const authRouter = router({
   // Register new user
@@ -65,7 +66,7 @@ export const authRouter = router({
       })
 
       // In a real app, you would send an email here. For now, we'll log the link.
-      const verificationLink = `http://localhost:5173/verify-email?token=${emailVerificationToken}`
+      const verificationLink = `${config.FRONTEND_URL}/verify-email?token=${emailVerificationToken}`
       console.log(`✅ New user registered: ${createdUser.email}`)
       console.log(`📧 Verification link (for testing): ${verificationLink}`)
 
@@ -475,6 +476,103 @@ export const authRouter = router({
           code: 'BAD_REQUEST',
           message: 'Google authentication failed'
         })
+      }
+    }),
+
+  requestPasswordChangeOtp: publicProcedure
+    .input(z.object({
+      email: z.string().email()
+    }))
+    .mutation(async ({ input }) => {
+      const { email } = input
+
+      const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1)
+
+      if (!user) {
+        // To prevent email enumeration, we don't throw an error here.
+        // We'll just log it and return a success message.
+        console.warn(`Password change OTP requested for non-existent user: ${email}`)
+        return {
+          success: true,
+          message: 'If a user with this email exists, an OTP will be sent.'
+        }
+      }
+
+      const otpCode = crypto.randomBytes(3).toString('hex').toUpperCase() // 6-digit hex
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+
+      await db.update(users)
+        .set({
+          passwordResetOtp: otpCode,
+          passwordResetOtpExpiresAt: otpExpiresAt
+        })
+        .where(eq(users.id, user.id))
+
+      // In a real app, send the OTP via email. For now, we'll log it.
+      console.log(`🔑 OTP for ${email}: ${otpCode}`)
+
+      const response = {
+        success: true,
+        message: 'OTP sent to your email.',
+        expiresAt: otpExpiresAt.toISOString()
+      }
+
+      if (config.NODE_ENV === 'development') {
+        response.otpCode = otpCode
+      }
+
+      return response
+    }),
+
+  changePasswordWithOtp: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+      otpCode: z.string().length(6),
+      newPassword: z.string().min(8)
+    }))
+    .mutation(async ({ input }) => {
+      const { email, otpCode, newPassword } = input
+
+      const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1)
+
+      if (!user || !user.passwordResetOtp || !user.passwordResetOtpExpiresAt) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid OTP or user not found'
+        })
+      }
+
+      if (user.passwordResetOtp !== otpCode) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid OTP'
+        })
+      }
+
+      if (new Date() > user.passwordResetOtpExpiresAt) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'OTP has expired'
+        })
+      }
+
+      const { hash, salt } = await AuthUtils.hashPassword(newPassword)
+
+      await db.update(users)
+        .set({
+          passwordHash: hash,
+          salt,
+          passwordResetOtp: null,
+          passwordResetOtpExpiresAt: null
+        })
+        .where(eq(users.id, user.id))
+
+      // Invalidate all existing refresh tokens for this user
+      await db.delete(refreshTokens).where(eq(refreshTokens.userId, user.id))
+
+      return {
+        success: true,
+        message: 'Password changed successfully'
       }
     }),
 

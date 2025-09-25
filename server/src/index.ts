@@ -45,7 +45,10 @@ async function startServer () {
   // }))
 
   // CORS configuration
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:8000', config.FRONTEND_URL]
+  const allowedOrigins = [config.FRONTEND_URL]
+  if (config.NODE_ENV === 'development') {
+    allowedOrigins.push('http://localhost:5173', 'http://localhost:8000')
+  }
   app.use(cors({
     origin: allowedOrigins,
     credentials: true
@@ -132,7 +135,7 @@ async function startServer () {
 
   // Start server
   app.listen(config.PORT, () => {
-    console.log(`🚀 Server listening on http://localhost:${config.PORT}`)
+    console.log(`🚀 Server listening on port ${config.PORT}`)
 
     // Schedule the cron job for regular volume updates
     scheduleVolumeUpdates()

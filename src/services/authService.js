@@ -12,7 +12,7 @@ class AuthService {
     this.user = null
     this.authListeners = [] // Initialize auth listeners
     // VITE_API_URL should point to the backend server, e.g. http://localhost:4000
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    this.baseURL = import.meta.env.VITE_API_URL || ''
     console.log('API Base URL:', this.baseURL)
     this.init()
   }
