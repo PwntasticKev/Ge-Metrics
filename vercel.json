@@ -2,18 +2,39 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "src": "server/dist/index.js",
+      "use": "@vercel/node"
     },
     {
-      "src": "server/src/index.ts",
-      "use": "@vercel/node"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/server/src/index.ts" },
-    { "source": "/trpc/(.*)", "destination": "/server/src/index.ts" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/server/dist/index.js"
+    },
+    {
+      "source": "/trpc/(.*)",
+      "destination": "/server/dist/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/update-volumes",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/scrape-updates",
+      "schedule": "0 */6 * * *"
+    }
   ]
 }
