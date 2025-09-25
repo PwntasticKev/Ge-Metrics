@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { router, protectedProcedure } from './trpc.js'
 import { subscriptionService } from '../services/subscriptionService.js'
+import { NewSubscription } from '../db/schema.js'
 import {
   createCheckoutSession,
   createCustomerPortalSession,
@@ -13,13 +14,13 @@ import { TRPCError } from '@trpc/server'
 export const subscriptionRouter = router({
   // Get current user's subscription status
   getStatus: protectedProcedure.query(async ({ ctx }) => {
-    const status = await subscriptionService.getUserSubscriptionStatus(String(ctx.user.userId))
+    const status = await subscriptionService.getUserSubscriptionStatus(ctx.user.userId)
     return status
   }),
 
   // Get subscription details
   getSubscription: protectedProcedure.query(async ({ ctx }) => {
-    const subscription = await subscriptionService.getSubscriptionByUserId(String(ctx.user.userId))
+    const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
     return subscription
   }),
 
@@ -35,7 +36,7 @@ export const subscriptionRouter = router({
       try {
         // Create or get customer
         const { customer } = await subscriptionService.createStripeCustomer(
-          String(ctx.user.userId),
+          ctx.user.userId,
           ctx.user.email
         )
 
@@ -47,7 +48,7 @@ export const subscriptionRouter = router({
           cancelUrl: input.cancelUrl,
           trialDays: input.trialDays,
           metadata: {
-            userId: String(ctx.user.userId)
+            userId: String(ctx.user.userId) // Stripe metadata values must be strings
           }
         })
 
@@ -71,7 +72,7 @@ export const subscriptionRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const subscription = await subscriptionService.getSubscriptionByUserId(String(ctx.user.userId))
+        const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
 
         if (!subscription?.stripeCustomerId) {
           throw new TRPCError({
@@ -100,7 +101,7 @@ export const subscriptionRouter = router({
   // Cancel subscription at period end
   cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
     try {
-      await subscriptionService.cancelSubscriptionAtPeriodEnd(String(ctx.user.userId))
+      await subscriptionService.cancelSubscriptionAtPeriodEnd(ctx.user.userId)
       return { success: true }
     } catch (error) {
       console.error('Failed to cancel subscription:', error)
@@ -114,7 +115,7 @@ export const subscriptionRouter = router({
   // Reactivate subscription
   reactivateSubscription: protectedProcedure.mutation(async ({ ctx }) => {
     try {
-      await subscriptionService.reactivateSubscription(String(ctx.user.userId))
+      await subscriptionService.reactivateSubscription(ctx.user.userId)
       return { success: true }
     } catch (error) {
       console.error('Failed to reactivate subscription:', error)
@@ -132,7 +133,7 @@ export const subscriptionRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const subscription = await subscriptionService.getSubscriptionByUserId(String(ctx.user.userId))
+        const subscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
 
         if (!subscription?.stripeSubscriptionId) {
           throw new TRPCError({
@@ -154,7 +155,7 @@ export const subscriptionRouter = router({
 
   // Check if user has valid subscription
   hasValidSubscription: protectedProcedure.query(async ({ ctx }) => {
-    const hasValid = await subscriptionService.hasValidSubscription(String(ctx.user.userId))
+    const hasValid = await subscriptionService.hasValidSubscription(ctx.user.userId)
     return { hasValidSubscription: hasValid }
   }),
 
@@ -202,7 +203,7 @@ export const subscriptionRouter = router({
   startFreeTrial: protectedProcedure.mutation(async ({ ctx }) => {
     try {
       // Check if user already has a subscription
-      const existingSubscription = await subscriptionService.getSubscriptionByUserId(String(ctx.user.userId))
+      const existingSubscription = await subscriptionService.getSubscriptionByUserId(ctx.user.userId)
 
       if (existingSubscription && existingSubscription.plan !== 'free') {
         throw new TRPCError({
@@ -223,11 +224,11 @@ export const subscriptionRouter = router({
         })
       } else {
         await subscriptionService.createSubscription({
-          userId: String(ctx.user.userId),
+          userId: ctx.user.userId,
           status: 'active',
           plan: 'premium',
           currentPeriodEnd: trialEnd
-        })
+        } as NewSubscription)
       }
 
       return { success: true, trialEnd }
