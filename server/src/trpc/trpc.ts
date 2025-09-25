@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
-import { AuthUtils } from '../utils/auth.js'
+import AuthUtils from '../utils/auth.js'
 import { type Context } from './context.js'
 import { db, users, employees } from '../db/index.js'
 import { eq } from 'drizzle-orm'
@@ -13,7 +13,7 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
 export type Context = Awaited<ReturnType<typeof createContext>>;
 
 // Initialize tRPC
-const t = initTRPC.context<Context>().create()
+export const t = initTRPC.context<Context>().create()
 
 // Base router and procedure
 export const router = t.router
