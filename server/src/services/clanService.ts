@@ -6,7 +6,7 @@ export interface Clan {
   id: string
   name: string
   description: string
-  ownerId: string
+  ownerId: number
   createdAt: Date
   updatedAt: Date
 }
@@ -14,7 +14,7 @@ export interface Clan {
 export interface ClanMember {
   id: string
   clanId: string
-  userId: string
+  userId: number
   role: 'owner' | 'officer' | 'member'
   joinedAt: Date
 }
@@ -22,9 +22,9 @@ export interface ClanMember {
 export interface ClanInvite {
   id: string
   clanId: string
-  inviterId: string
+  inviterId: number
   invitedEmail: string
-  invitedUserId?: string
+  invitedUserId?: number
   status: 'pending' | 'accepted' | 'declined'
   message?: string
   expiresAt?: Date
@@ -316,7 +316,7 @@ export class ClanService {
         )
       ).returning()
 
-      return updatedMember
+      return updatedMember as unknown as ClanMember
     } catch (error) {
       console.error('Error updating clan member role:', error)
       throw error
@@ -400,7 +400,7 @@ export class ClanService {
       const member = members[0]
       const clan = await this.getClan(member.clanId)
 
-      return clan ? { clan, member } : null
+      return clan ? { clan, member: member as unknown as ClanMember } : null
     } catch (error) {
       console.error('Error getting user clan:', error)
       throw error
@@ -424,7 +424,7 @@ export class ClanService {
           eq(schema.clanInvites.invitedEmail, userEmail || ''),
           eq(schema.clanInvites.status, 'pending')
         )
-      )
+      ) as unknown as ClanInvite[]
     } catch (error) {
       console.error('Error getting pending invites:', error)
       throw error
