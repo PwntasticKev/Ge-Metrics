@@ -33,6 +33,7 @@ export const authRouter = router({
       // Create user
       const newUser = await db.insert(schema.users).values({
         email,
+        username: email, // Use email as a temporary username
         passwordHash: hash,
         salt,
         name
