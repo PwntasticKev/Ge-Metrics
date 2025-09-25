@@ -124,16 +124,20 @@ if (!process.env.VERCEL) {
   // Run the populate item mapping script before starting the server
   // NOTE: In production, this should be a build step or a separate cron job.
   console.log('🚀 Running populate item mapping script...')
-  exec('npm run db:populate-mapping', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`💥 Error running populate script: ${error}`)
-      return
-    }
-    console.log(`✅ Populate script output: ${stdout}`)
-    if (stderr) {
-      console.error(`💥 Populate script error output: ${stderr}`)
-    }
-  })
+  try {
+    exec('npm run db:populate-mapping', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`💥 Error running populate script: ${error}`)
+        return
+      }
+      console.log(`✅ Populate script output: ${stdout}`)
+      if (stderr) {
+        console.error(`💥 Populate script error output: ${stderr}`)
+      }
+    })
+  } catch (error) {
+    console.error('CRITICAL: Failed to execute db:populate-mapping script.', error)
+  }
 
   // Start server
   app.listen(config.PORT, () => {
