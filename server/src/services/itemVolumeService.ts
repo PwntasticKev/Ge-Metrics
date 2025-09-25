@@ -83,3 +83,32 @@ export async function updateHourlyItemVolumes () {
     console.error('❌ Error updating 1h item volumes:', error)
   }
 }
+
+// Get all cached potion volumes
+export async function getAllPotionVolumes () {
+  return db.select().from(itemVolumes)
+}
+
+// Get potion volume by item ID
+export async function getPotionVolumeById (id: number) {
+  return db.select().from(itemVolumes).where(sql`item_id = ${id}`)
+}
+
+// In a real app, you'd have a mapping of potion base names to item IDs
+// For this example, we'll just search by a name convention if possible
+export async function getPotionVolumesByBaseName (baseName: string) {
+  // This is a placeholder. You'd need a more robust way to link names to IDs.
+  // This example assumes item names are stored elsewhere and you can query them.
+  return []
+}
+
+// Get cache status
+export async function getVolumesCacheStatus () {
+  const lastUpdate = await db.select({ lastUpdatedAt: itemVolumes.lastUpdatedAt }).from(itemVolumes).orderBy(sql`last_updated_at DESC`).limit(1)
+  const totalItems = await db.select({ count: sql`count(*)` }).from(itemVolumes)
+
+  return {
+    lastUpdatedAt: lastUpdate[0]?.lastUpdatedAt || null,
+    totalItems: totalItems[0]?.count || 0
+  }
+}

@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm'
 export interface Clan {
   id: string
   name: string
-  description: string
+  description: string | null
   ownerId: number
   createdAt: Date
   updatedAt: Date

@@ -20,7 +20,7 @@ router.get('/:userId', async (req, res) => {
       })
     }
 
-    const favorites = await favoritesService.getUserFavorites(userId)
+    const favorites = await favoritesService.getUserFavorites(parseInt(userId, 10))
 
     res.json({
       success: true,
@@ -58,7 +58,7 @@ router.get('/:userId/:favoriteType', async (req, res) => {
       })
     }
 
-    const favorites = await favoritesService.getUserFavoritesByType(userId, favoriteType as 'item' | 'combination')
+    const favorites = await favoritesService.getUserFavoritesByType(parseInt(userId, 10), favoriteType as 'item' | 'combination')
 
     res.json({
       success: true,
@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
       })
     }
 
-    const favorite = await favoritesService.addFavorite(userId, favoriteType, favoriteId)
+    const favorite = await favoritesService.addFavorite(parseInt(userId, 10), favoriteType, favoriteId)
 
     res.status(201).json({
       success: true,
@@ -105,7 +105,7 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error adding favorite:', error)
 
-    if (error.message === 'Item is already in favorites') {
+    if (error instanceof Error && error.message === 'Item is already in favorites') {
       return res.status(409).json({
         success: false,
         error: 'Item is already in favorites'
@@ -142,7 +142,7 @@ router.delete('/', async (req, res) => {
       })
     }
 
-    const removed = await favoritesService.removeFavorite(userId, favoriteType, favoriteId)
+    const removed = await favoritesService.removeFavorite(parseInt(userId, 10), favoriteType, favoriteId)
 
     if (!removed) {
       return res.status(404).json({
@@ -187,7 +187,7 @@ router.post('/toggle', async (req, res) => {
       })
     }
 
-    const result = await favoritesService.toggleFavorite(userId, favoriteType, favoriteId)
+    const result = await favoritesService.toggleFavorite(parseInt(userId, 10), favoriteType, favoriteId)
 
     res.json({
       success: true,
@@ -225,7 +225,7 @@ router.get('/check/:userId/:favoriteType/:favoriteId', async (req, res) => {
       })
     }
 
-    const isFavorited = await favoritesService.isFavorited(userId, favoriteType as 'item' | 'combination', favoriteId)
+    const isFavorited = await favoritesService.isFavorited(parseInt(userId, 10), favoriteType as 'item' | 'combination', favoriteId)
 
     res.json({
       success: true,

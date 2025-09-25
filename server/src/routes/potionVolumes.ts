@@ -4,8 +4,8 @@ import {
   getPotionVolumeById,
   getPotionVolumesByBaseName,
   getVolumesCacheStatus,
-  updateTopPotionVolumes
-} from '../services/potionVolumeService.js'
+  updateAllItemVolumes
+} from '../services/itemVolumeService.js'
 
 const router = Router()
 
@@ -90,7 +90,7 @@ router.get('/potion/:baseName', async (req, res) => {
 router.post('/refresh', async (req, res) => {
   try {
     // Run the update in the background
-    updateTopPotionVolumes().catch(error => {
+    updateAllItemVolumes().catch((error: Error) => {
       console.error('Background volume update failed:', error)
     })
 

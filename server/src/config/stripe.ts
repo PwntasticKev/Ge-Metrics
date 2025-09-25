@@ -7,28 +7,28 @@ if (!config.STRIPE_SECRET_KEY) {
 
 export const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
-  typescript: true,
+  typescript: true
 })
 
 // Stripe configuration constants
 export const STRIPE_CONFIG = {
   // Webhook configuration
   WEBHOOK_ENDPOINT_SECRET: config.STRIPE_WEBHOOK_SECRET || '',
-  
+
   // Price IDs for different plans
   PRICES: {
     MONTHLY: config.STRIPE_PRICE_MONTHLY || 'price_monthly_default',
-    YEARLY: config.STRIPE_PRICE_YEARLY || 'price_yearly_default',
+    YEARLY: config.STRIPE_PRICE_YEARLY || 'price_yearly_default'
   },
-  
+
   // Product configuration
   PRODUCTS: {
-    PREMIUM: config.STRIPE_PRODUCT_PREMIUM || 'prod_premium_default',
+    PREMIUM: config.STRIPE_PRODUCT_PREMIUM || 'prod_premium_default'
   },
-  
+
   // Trial configuration
   TRIAL_DAYS: 30,
-  
+
   // Customer portal configuration
   PORTAL_SETTINGS: {
     features: {
@@ -36,26 +36,26 @@ export const STRIPE_CONFIG = {
       subscription_cancel: { enabled: true },
       subscription_pause: { enabled: false },
       subscription_update: { enabled: true },
-      invoice_history: { enabled: true },
-    },
+      invoice_history: { enabled: true }
+    }
   },
-  
+
   // Checkout session configuration
   CHECKOUT_SETTINGS: {
     mode: 'subscription' as const,
     payment_method_types: ['card'],
-  billing_address_collection: 'required' as const,
+    billing_address_collection: 'required' as const,
     allow_promotion_codes: true,
     automatic_tax: { enabled: false },
     customer_update: {
       name: 'auto',
-      address: 'auto',
-    },
-  },
+      address: 'auto' as const
+    }
+  }
 }
 
 // Helper function to validate webhook signature
-export function validateWebhookSignature(
+export function validateWebhookSignature (
   payload: string | Buffer,
   signature: string,
   endpointSecret: string
@@ -69,19 +69,19 @@ export function validateWebhookSignature(
 }
 
 // Helper function to create customer portal session
-export async function createCustomerPortalSession(
+export async function createCustomerPortalSession (
   customerId: string,
   returnUrl: string
 ): Promise<Stripe.BillingPortal.Session> {
   return await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
-    configuration: undefined, // Use default configuration or specify custom one
+    configuration: undefined // Use default configuration or specify custom one
   })
 }
 
 // Helper function to create checkout session
-export async function createCheckoutSession(params: {
+export async function createCheckoutSession (params: {
   priceId: string
   customerId?: string
   customerEmail?: string
@@ -95,12 +95,12 @@ export async function createCheckoutSession(params: {
     line_items: [
       {
         price: params.priceId,
-        quantity: 1,
-      },
+        quantity: 1
+      }
     ],
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-    metadata: params.metadata || {},
+    metadata: params.metadata || {}
   }
 
   // Add customer information
@@ -113,7 +113,7 @@ export async function createCheckoutSession(params: {
   // Add trial period if specified
   if (params.trialDays && params.trialDays > 0) {
     sessionParams.subscription_data = {
-      trial_period_days: params.trialDays,
+      trial_period_days: params.trialDays
     }
   }
 
@@ -121,7 +121,7 @@ export async function createCheckoutSession(params: {
 }
 
 // Helper function to get or create customer
-export async function getOrCreateCustomer(
+export async function getOrCreateCustomer (
   email: string,
   name?: string,
   userId?: string
@@ -129,7 +129,7 @@ export async function getOrCreateCustomer(
   // First, try to find existing customer by email
   const existingCustomers = await stripe.customers.list({
     email,
-    limit: 1,
+    limit: 1
   })
 
   if (existingCustomers.data.length > 0) {
@@ -140,7 +140,7 @@ export async function getOrCreateCustomer(
   const customerData: Stripe.CustomerCreateParams = {
     email,
     name,
-    metadata: {},
+    metadata: {}
   }
 
   if (userId) {
@@ -151,13 +151,13 @@ export async function getOrCreateCustomer(
 }
 
 // Helper function to cancel subscription
-export async function cancelSubscription(
+export async function cancelSubscription (
   subscriptionId: string,
-  cancelAtPeriodEnd: boolean = true
+  cancelAtPeriodEnd = true
 ): Promise<Stripe.Subscription> {
   if (cancelAtPeriodEnd) {
     return await stripe.subscriptions.update(subscriptionId, {
-      cancel_at_period_end: true,
+      cancel_at_period_end: true
     })
   } else {
     return await stripe.subscriptions.cancel(subscriptionId)
@@ -165,32 +165,32 @@ export async function cancelSubscription(
 }
 
 // Helper function to update subscription
-export async function updateSubscription(
+export async function updateSubscription (
   subscriptionId: string,
   newPriceId: string
 ): Promise<Stripe.Subscription> {
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-  
+
   return await stripe.subscriptions.update(subscriptionId, {
     items: [
       {
         id: subscription.items.data[0].id,
-        price: newPriceId,
-      },
+        price: newPriceId
+      }
     ],
-    proration_behavior: 'create_prorations',
+    proration_behavior: 'create_prorations'
   })
 }
 
 // Helper function to process refund
-export async function processRefund(
+export async function processRefund (
   paymentIntentId: string,
   amount?: number,
   reason?: string
 ): Promise<Stripe.Refund> {
   const refundParams: Stripe.RefundCreateParams = {
     payment_intent: paymentIntentId,
-    reason: reason as Stripe.RefundCreateParams.Reason || 'requested_by_customer',
+    reason: reason as Stripe.RefundCreateParams.Reason || 'requested_by_customer'
   }
 
   if (amount) {
