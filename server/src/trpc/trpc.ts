@@ -59,7 +59,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 export const protectedProcedure = t.procedure.use(isAuthed)
 
 const isAdmin = isAuthed.unstable_pipe(async ({ ctx, next }) => {
-  const [employee] = await db.select().from(employees).where(eq(employees.userId, ctx.user.id)).limit(1)
+  const [employee] = await db.select().from(employees).where(eq(employees.userId, ctx.user.userId)).limit(1)
 
   if (!employee || employee.role !== 'admin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to perform this action.' })

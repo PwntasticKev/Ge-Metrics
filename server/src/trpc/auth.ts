@@ -347,6 +347,7 @@ export const authRouter = router({
           // Create new user
           [user] = await db.insert(users).values({
             email: googleUser.email,
+            username: googleUser.email, // Use email as a temporary username
             googleId: googleUser.id,
             name: googleUser.name,
             avatar: googleUser.picture
@@ -428,6 +429,7 @@ export const authRouter = router({
           // Create new user
           [user] = await db.insert(users).values({
             email: googleUser.email,
+            username: googleUser.email, // Use email as a temporary username
             googleId: googleUser.id,
             name: googleUser.name,
             avatar: googleUser.picture
@@ -511,7 +513,12 @@ export const authRouter = router({
       // In a real app, send the OTP via email. For now, we'll log it.
       console.log(`🔑 OTP for ${email}: ${otpCode}`)
 
-      const response = {
+      const response: {
+        success: boolean;
+        message: string;
+        expiresAt: string;
+        otpCode?: string;
+      } = {
         success: true,
         message: 'OTP sent to your email.',
         expiresAt: otpExpiresAt.toISOString()
