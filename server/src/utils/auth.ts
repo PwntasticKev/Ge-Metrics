@@ -12,7 +12,7 @@ export interface JWTPayload {
   type: 'access' | 'refresh';
 }
 
-export default class AuthUtils {
+export class AuthUtils {
   static async hashPassword (password: string): Promise<{ hash: string, salt: string }> {
     const salt = await bcrypt.genSalt(10)
     const hash = await bcrypt.hash(password, salt)
