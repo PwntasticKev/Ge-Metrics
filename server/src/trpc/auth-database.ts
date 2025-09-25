@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
-import { db } from '../db/index.js'
 import * as schema from '../db/schema.js'
-import { eq } from 'drizzle-orm'
+import { db } from '../db/index.js'
+import { eq, and } from 'drizzle-orm'
 import { AuthUtils } from '../utils/auth.js'
 import { OtpService } from '../services/otpService.js'
 

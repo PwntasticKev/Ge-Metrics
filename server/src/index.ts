@@ -15,6 +15,8 @@ import historicalDataRouter from './routes/historicalData.js'
 import { scheduleVolumeUpdates } from './tasks/updateVolumes.js'
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
 
+console.log('🚀 [Vercel] Serverless function starting...')
+
 const app = express()
 
 // Security middleware
@@ -45,6 +47,8 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cookieParser())
 
+console.log('✅ [Vercel] Core middleware loaded.')
+
 // Rate limiting (relaxed for development)
 app.use(rateLimit(10000, 15 * 60 * 1000)) // 10,000 requests per 15 minutes
 
@@ -64,8 +68,15 @@ app.get('/health', (req, res) => {
 app.use('/api/favorites', favoritesRouter)
 app.use('/api/historical', historicalDataRouter)
 
+console.log('✅ [Vercel] API routes configured.')
+
 // tRPC middleware
-app.use('/trpc', createExpressMiddleware({ router: appRouter, createContext }))
+app.use('/trpc', (req, res, next) => {
+  console.log(`➡️ [Vercel] tRPC request received for: ${req.path}`)
+  createExpressMiddleware({ router: appRouter, createContext })(req, res, next)
+})
+
+console.log('✅ [Vercel] tRPC middleware configured.')
 
 // Cookie management endpoints
 app.post('/auth/set-tokens', (req, res) => {
@@ -106,11 +117,18 @@ app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken })
 })
 
+console.log('✅ [Vercel] Auth and CSRF endpoints configured.')
+
 // Error handling middleware
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('❌ Unhandled error:', error)
+  console.error('❌ [Vercel] Unhandled Error:', {
+    message: error.message,
+    stack: error.stack,
+    url: req.originalUrl,
+    method: req.method
+  })
   res.status(500).json({
-    error: config.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    error: config.NODE_ENV === 'development' ? error.message : 'A server error occurred. Please try again later.'
   })
 })
 
@@ -118,6 +136,8 @@ app.use((error: Error, req: express.Request, res: express.Response, next: expres
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' })
 })
+
+console.log('✅ [Vercel] Error handlers and 404 route configured.')
 
 // This block will only run in a local development environment, not on Vercel.
 if (!process.env.VERCEL) {
@@ -170,5 +190,7 @@ function startGameUpdatesScheduler (): void {
     gameUpdatesScraper.scrapeAndSaveUpdates()
   }, 6 * 60 * 60 * 1000)
 }
+
+console.log('✅ [Vercel] Serverless function initialization complete.')
 
 export default app
