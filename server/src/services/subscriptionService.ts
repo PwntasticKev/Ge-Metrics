@@ -13,7 +13,7 @@ export class SubscriptionService {
   }
 
   // Get subscription by user ID
-  async getSubscriptionByUserId(userId: string): Promise<Subscription | null> {
+  async getSubscriptionByUserId(userId: number): Promise<Subscription | null> {
     const [subscription] = await db
       .select()
       .from(subscriptions)
@@ -68,7 +68,7 @@ export class SubscriptionService {
   }
 
   // Create or update customer in Stripe and database
-  async createStripeCustomer(userId: string, email: string, name?: string): Promise<{
+  async createStripeCustomer(userId: number, email: string, name?: string): Promise<{
     customer: Stripe.Customer
     subscription: Subscription
   }> {
@@ -88,7 +88,7 @@ export class SubscriptionService {
         stripeCustomerId: customer.id,
         status: 'inactive',
         plan: 'free',
-      })
+      } as NewSubscription)
     }
 
     return { customer, subscription }
@@ -110,7 +110,7 @@ export class SubscriptionService {
     const plan = this.getPlanFromPriceId(priceId)
 
     // Create or update subscription
-    const existingSubscription = await this.getSubscriptionByUserId(userId)
+    const existingSubscription = await this.getSubscriptionByUserId(parseInt(userId, 10))
     
     if (existingSubscription) {
       await this.updateSubscription(existingSubscription.id, {
@@ -124,7 +124,7 @@ export class SubscriptionService {
       })
     } else {
       await this.createSubscription({
-        userId,
+        userId: parseInt(userId, 10),
         stripeCustomerId: customerId,
         stripeSubscriptionId: stripeSubscription.id,
         stripePriceId: priceId,
@@ -133,7 +133,7 @@ export class SubscriptionService {
         currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
         currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
         cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
-      })
+      } as NewSubscription)
     }
   }
 
@@ -197,7 +197,7 @@ export class SubscriptionService {
   }
 
   // Get subscription status for user
-  async getUserSubscriptionStatus(userId: string): Promise<{
+  async getUserSubscriptionStatus(userId: number): Promise<{
     isActive: boolean
     plan: string
     status: string
@@ -225,13 +225,13 @@ export class SubscriptionService {
   }
 
   // Check if user has access to premium features
-  async hasValidSubscription(userId: string): Promise<boolean> {
+  async hasValidSubscription(userId: number): Promise<boolean> {
     const status = await this.getUserSubscriptionStatus(userId)
     return status.isActive && status.plan === 'premium'
   }
 
   // Cancel subscription at period end
-  async cancelSubscriptionAtPeriodEnd(userId: string): Promise<void> {
+  async cancelSubscriptionAtPeriodEnd(userId: number): Promise<void> {
     const subscription = await this.getSubscriptionByUserId(userId)
     
     if (!subscription?.stripeSubscriptionId) {
@@ -250,7 +250,7 @@ export class SubscriptionService {
   }
 
   // Reactivate canceled subscription
-  async reactivateSubscription(userId: string): Promise<void> {
+  async reactivateSubscription(userId: number): Promise<void> {
     const subscription = await this.getSubscriptionByUserId(userId)
     
     if (!subscription?.stripeSubscriptionId) {

@@ -91,7 +91,7 @@ export const authRouter = router({
       const user = users[0]
 
       // Verify password
-      const isValidPassword = await AuthUtils.verifyPassword(password, user.passwordHash)
+      const isValidPassword = await AuthUtils.verifyPassword(password, user.passwordHash || '')
       if (!isValidPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -321,7 +321,7 @@ export const authRouter = router({
       const user = users[0]
 
       // Verify current password
-      const isValidPassword = await AuthUtils.verifyPassword(currentPassword, user.passwordHash)
+      const isValidPassword = await AuthUtils.verifyPassword(currentPassword, user.passwordHash || '')
       if (!isValidPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
