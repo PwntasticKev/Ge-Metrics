@@ -12,19 +12,19 @@ export interface JWTPayload {
   type: 'access' | 'refresh';
 }
 
-export class AuthUtils {
-  static async hashPassword (password: string): Promise<{ hash: string, salt: string }> {
+class AuthUtils {
+  async hashPassword (password: string): Promise<{ hash: string, salt: string }> {
     const salt = await bcrypt.genSalt(10)
     const hash = await bcrypt.hash(password, salt)
     return { hash, salt }
   }
 
-  static async verifyPassword (password: string, hash: string): Promise<boolean> {
+  async verifyPassword (password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash)
   }
 
   // JWT token generation
-  static generateAccessToken (userId: string, email: string): string {
+  generateAccessToken (userId: string, email: string): string {
     const payload: JWTPayload = {
       userId,
       email,
@@ -39,7 +39,7 @@ export class AuthUtils {
     return jwt.sign(payload, String(config.JWT_ACCESS_SECRET), options)
   }
 
-  static generateRefreshToken (userId: string, email: string): string {
+  generateRefreshToken (userId: string, email: string): string {
     const payload: JWTPayload = {
       userId,
       email,
@@ -55,7 +55,7 @@ export class AuthUtils {
   }
 
   // JWT token verification
-  static verifyAccessToken (token: string): JWTPayload {
+  verifyAccessToken (token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET, {
         issuer: 'auth-server',
@@ -72,7 +72,7 @@ export class AuthUtils {
     }
   }
 
-  static verifyRefreshToken (token: string): JWTPayload {
+  verifyRefreshToken (token: string): JWTPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_REFRESH_SECRET, {
         issuer: 'auth-server',
@@ -90,7 +90,7 @@ export class AuthUtils {
   }
 
   // Token expiration helpers
-  static getAccessTokenExpiration (): Date {
+  getAccessTokenExpiration (): Date {
     const expiresIn = config.JWT_ACCESS_EXPIRES_IN
     const now = new Date()
 
@@ -115,12 +115,14 @@ export class AuthUtils {
     }
   }
 
-  static getRefreshTokenExpiration (): Date {
+  getRefreshTokenExpiration (): Date {
     return this.getAccessTokenExpiration()
   }
 
   // Generate unique tokens
-  static generateUniqueToken (): string {
+  generateUniqueToken (): string {
     return randomUUID()
   }
 }
+
+export default new AuthUtils()

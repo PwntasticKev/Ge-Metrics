@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
 import { memoryDb } from '../db/memory.js'
-import { AuthUtils } from '../utils/auth.js'
+import AuthUtils from '../utils/auth.js'
 import { OtpService } from '../services/otpService.js'
 
 export const authRouter = router({
