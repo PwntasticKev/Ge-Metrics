@@ -201,11 +201,11 @@ export const authRouter = router({
       }
 
       // Invalidate any existing password reset OTPs
-      await OtpService.invalidateOtps(String(user.id), 'password_reset')
+      await OtpService.invalidateOtps(user.id, 'password_reset')
 
       // Generate new OTP
       const { otpCode, expiresAt } = await OtpService.generateOtp(
-        String(user.id),
+        user.id,
         'password_reset',
         { expiresInMinutes: 10 }
       )
@@ -243,7 +243,7 @@ export const authRouter = router({
       }
 
       // Verify OTP
-      const otpResult = await OtpService.verifyOtp(String(user.id), otpCode, 'password_reset')
+      const otpResult = await OtpService.verifyOtp(user.id, otpCode, 'password_reset')
       if (!otpResult.valid) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -261,7 +261,7 @@ export const authRouter = router({
       })
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(String(user.id))
+      await memoryDb.refreshTokens.deleteByUserId(user.id)
 
       return {
         success: true,
@@ -306,7 +306,7 @@ export const authRouter = router({
       })
 
       // Invalidate all refresh tokens for this user
-      await memoryDb.refreshTokens.deleteByUserId(String(user.id))
+      await memoryDb.refreshTokens.deleteByUserId(user.id)
 
       return {
         success: true,

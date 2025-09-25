@@ -264,7 +264,7 @@ export class SubscriptionManagementService {
     offset?: number
   }): Promise<schema.Subscription[]> {
     try {
-      let query = db.select().from(schema.subscriptions)
+      let query = db.select().from(schema.subscriptions).$dynamic()
 
       if (filters?.status) {
         query = query.where(eq(schema.subscriptions.status, filters.status))
