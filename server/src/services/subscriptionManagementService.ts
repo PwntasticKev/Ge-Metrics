@@ -107,7 +107,7 @@ export class SubscriptionManagementService {
 
       const [newSubscription] = await db.insert(schema.subscriptions).values({
         userId,
-        plan,
+        plan: planId,
         status: 'active',
         stripeCustomerId: stripeData?.customerId,
         stripeSubscriptionId: stripeData?.subscriptionId,
@@ -132,7 +132,7 @@ export class SubscriptionManagementService {
   /**
    * Update a user's subscription
    */
-  async updateSubscription (subscriptionId: number, updates: Partial<{
+  async updateSubscription (subscriptionId: string, updates: Partial<{
     plan: string
     status: string
     stripeCustomerId: string
@@ -165,7 +165,7 @@ export class SubscriptionManagementService {
   /**
    * Cancel a subscription
    */
-  async cancelSubscription (subscriptionId: number, cancelAtPeriodEnd = true): Promise<schema.Subscription> {
+  async cancelSubscription (subscriptionId: string, cancelAtPeriodEnd = true): Promise<schema.Subscription> {
     try {
       const subscription = await this.getSubscriptionById(subscriptionId)
       if (!subscription) {
@@ -199,7 +199,7 @@ export class SubscriptionManagementService {
   /**
    * Reactivate a canceled subscription
    */
-  async reactivateSubscription (subscriptionId: number): Promise<schema.Subscription> {
+  async reactivateSubscription (subscriptionId: string): Promise<schema.Subscription> {
     try {
       const subscription = await this.getSubscriptionById(subscriptionId)
       if (!subscription) {
@@ -242,7 +242,7 @@ export class SubscriptionManagementService {
   /**
    * Get subscription by ID
    */
-  async getSubscriptionById (subscriptionId: number): Promise<schema.Subscription | null> {
+  async getSubscriptionById (subscriptionId: string): Promise<schema.Subscription | null> {
     try {
       const subscriptions = await db.select().from(schema.subscriptions)
         .where(eq(schema.subscriptions.id, subscriptionId))
