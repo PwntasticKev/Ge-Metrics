@@ -16,7 +16,7 @@ export interface ClanMember {
   clanId: string
   userId: number
   role: 'owner' | 'officer' | 'member'
-  joinedAt: Date
+  joinedAt: Date | null
 }
 
 export interface ClanInvite {
@@ -64,7 +64,7 @@ export class ClanService {
         role: 'owner'
       })
 
-      return newClan as unknown as Clan
+      return newClan as Clan
     } catch (error) {
       console.error('Error creating clan:', error)
       throw error
@@ -188,7 +188,7 @@ export class ClanService {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       }).returning()
 
-      return newInvite
+      return newInvite as ClanInvite
     } catch (error) {
       console.error('Error inviting to clan:', error)
       throw error
@@ -229,7 +229,7 @@ export class ClanService {
         role: 'member'
       }).returning()
 
-      return newMember
+      return newMember as ClanMember
     } catch (error) {
       console.error('Error accepting clan invite:', error)
       throw error
@@ -258,7 +258,7 @@ export class ClanService {
    */
   async getClanMembers (clanId: string): Promise<ClanMember[]> {
     try {
-      return await db.select().from(schema.clanMembers).where(eq(schema.clanMembers.clanId, clanId))
+      return await db.select().from(schema.clanMembers).where(eq(schema.clanMembers.clanId, clanId)) as ClanMember[]
     } catch (error) {
       console.error('Error getting clan members:', error)
       throw error
@@ -276,7 +276,7 @@ export class ClanService {
           eq(schema.clanMembers.userId, userId)
         )
       )
-      return members.length > 0 ? members[0] : null
+      return members.length > 0 ? members[0] as ClanMember : null
     } catch (error) {
       console.error('Error getting clan member:', error)
       throw error
@@ -316,7 +316,7 @@ export class ClanService {
         )
       ).returning()
 
-      return updatedMember as unknown as ClanMember
+      return updatedMember as ClanMember
     } catch (error) {
       console.error('Error updating clan member role:', error)
       throw error
@@ -400,7 +400,7 @@ export class ClanService {
       const member = members[0]
       const clan = await this.getClan(member.clanId)
 
-      return clan ? { clan, member: member as unknown as ClanMember } : null
+      return clan ? { clan, member: member as ClanMember } : null
     } catch (error) {
       console.error('Error getting user clan:', error)
       throw error
@@ -424,7 +424,7 @@ export class ClanService {
           eq(schema.clanInvites.invitedEmail, userEmail || ''),
           eq(schema.clanInvites.status, 'pending')
         )
-      ) as unknown as ClanInvite[]
+      ) as ClanInvite[]
     } catch (error) {
       console.error('Error getting pending invites:', error)
       throw error
