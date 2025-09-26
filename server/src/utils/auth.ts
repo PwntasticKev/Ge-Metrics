@@ -104,4 +104,5 @@ class AuthUtils {
   }
 }
 
+// Default export for consistent importing
 export default new AuthUtils()
