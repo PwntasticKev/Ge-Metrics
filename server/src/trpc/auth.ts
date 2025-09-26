@@ -1,11 +1,12 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq, and, or } from 'drizzle-orm'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
-import { db, users } from '../db/index.js'
-import { eq } from 'drizzle-orm'
-import { config } from '../config/index.js'
+import { db, users, refreshTokens, subscriptions, NewUser } from '../db/index.js'
 import * as AuthUtils from '../utils/auth.js'
-import { getGoogleUser } from '../utils/google.js'
+import { GoogleAuth } from '../utils/google.js'
+import crypto from 'crypto'
+import { config } from '../config/index.js'
 import { OtpService } from '../services/otpService.js'
 
 export const authRouter = router({
