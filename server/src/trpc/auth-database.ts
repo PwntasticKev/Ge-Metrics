@@ -4,8 +4,10 @@ import { router, publicProcedure, protectedProcedure } from './trpc.js'
 import * as schema from '../db/schema.js'
 import { db } from '../db/index.js'
 import { eq, and } from 'drizzle-orm'
-import { authUtils } from '../utils/auth.js'
+import * as AuthModule from '../utils/auth.js'
 import { OtpService } from '../services/otpService.js'
+
+const authUtils = (AuthModule as any).authUtils || (AuthModule as any).default || new ((AuthModule as any).AuthUtils)()
 
 export const authRouter = router({
   // Register new user

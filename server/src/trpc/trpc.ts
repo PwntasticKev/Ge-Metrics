@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
 import { eq } from 'drizzle-orm'
 import { db, employees } from '../db/index.js'
-import { authUtils } from '../utils/auth.js'
+import * as AuthModule from '../utils/auth.js'
 
 // Context creation
 export const createContext = ({ req, res }: CreateExpressContextOptions) => {
@@ -10,7 +10,13 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
     try {
-      const decodedUser = authUtils.verifyAccessToken(token)
+      // Robustly get the auth utilities instance
+      const utils =
+        (AuthModule as any).authUtils || // prefer the named instance
+        (AuthModule as any).default || // fall back to default export
+        new (AuthModule as any).AuthUtils() // last resort: instantiate the class
+
+      const decodedUser = utils.verifyAccessToken(token)
       const user = {
         ...decodedUser,
         userId: parseInt(decodedUser.userId, 10)

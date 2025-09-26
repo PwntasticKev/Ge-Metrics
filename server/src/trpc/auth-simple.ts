@@ -2,8 +2,10 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
 import { memoryDb } from '../db/memory.js'
-import { authUtils } from '../utils/auth.js'
+import * as AuthModule from '../utils/auth.js'
 import { OtpService } from '../services/otpService.js'
+
+const authUtils = (AuthModule as any).authUtils || (AuthModule as any).default || new ((AuthModule as any).AuthUtils)()
 
 export const authRouter = router({
   // Register new user
