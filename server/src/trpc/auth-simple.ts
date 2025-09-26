@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
 import { memoryDb } from '../db/memory.js'
-import AuthUtils from '../utils/auth.js'
+import { authUtils } from '../utils/auth.js'
 import { OtpService } from '../services/otpService.js'
 
 export const authRouter = router({
@@ -26,7 +26,7 @@ export const authRouter = router({
       }
 
       // Hash password
-      const { hash, salt } = await AuthUtils.hashPassword(password)
+      const { hash, salt } = await authUtils.hashPassword(password)
 
       // Create user
       const newUser = await memoryDb.users.create({
@@ -37,14 +37,14 @@ export const authRouter = router({
       })
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(String(newUser.id), newUser.email)
-      const refreshToken = AuthUtils.generateRefreshToken(String(newUser.id), newUser.email)
+      const accessToken = authUtils.generateAccessToken(String(newUser.id), newUser.email)
+      const refreshToken = authUtils.generateRefreshToken(String(newUser.id), newUser.email)
 
       // Store refresh token
       await memoryDb.refreshTokens.create({
         userId: newUser.id,
         token: refreshToken,
-        expiresAt: AuthUtils.getRefreshTokenExpiration()
+        expiresAt: authUtils.getRefreshTokenExpiration()
       })
 
       return {
@@ -78,7 +78,7 @@ export const authRouter = router({
       }
 
       // Verify password
-      const isValidPassword = await AuthUtils.verifyPassword(password, user.passwordHash)
+      const isValidPassword = await authUtils.verifyPassword(password, user.passwordHash)
       if (!isValidPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -87,14 +87,14 @@ export const authRouter = router({
       }
 
       // Generate tokens
-      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token
       await memoryDb.refreshTokens.create({
         userId: user.id,
         token: refreshToken,
-        expiresAt: AuthUtils.getRefreshTokenExpiration()
+        expiresAt: authUtils.getRefreshTokenExpiration()
       })
 
       return {
@@ -119,7 +119,7 @@ export const authRouter = router({
 
       try {
         // Verify refresh token
-        const payload = AuthUtils.verifyRefreshToken(refreshToken)
+        const payload = authUtils.verifyRefreshToken(refreshToken)
 
         // Check if refresh token exists in database
         const tokenRecord = await memoryDb.refreshTokens.findByToken(refreshToken)
@@ -140,15 +140,15 @@ export const authRouter = router({
         }
 
         // Generate new tokens
-        const newAccessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-        const newRefreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+        const newAccessToken = authUtils.generateAccessToken(String(user.id), user.email)
+        const newRefreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
         // Delete old refresh token and create new one
         await memoryDb.refreshTokens.deleteByToken(refreshToken)
         await memoryDb.refreshTokens.create({
           userId: user.id,
           token: newRefreshToken,
-          expiresAt: AuthUtils.getRefreshTokenExpiration()
+          expiresAt: authUtils.getRefreshTokenExpiration()
         })
 
         return {
@@ -252,7 +252,7 @@ export const authRouter = router({
       }
 
       // Hash new password
-      const { hash, salt } = await AuthUtils.hashPassword(newPassword)
+      const { hash, salt } = await authUtils.hashPassword(newPassword)
 
       // Update user password
       await memoryDb.users.update(user.id, {
@@ -288,7 +288,7 @@ export const authRouter = router({
       }
 
       // Verify current password
-      const isValidPassword = await AuthUtils.verifyPassword(currentPassword, user.passwordHash)
+      const isValidPassword = await authUtils.verifyPassword(currentPassword, user.passwordHash)
       if (!isValidPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -297,7 +297,7 @@ export const authRouter = router({
       }
 
       // Hash new password
-      const { hash, salt } = await AuthUtils.hashPassword(newPassword)
+      const { hash, salt } = await authUtils.hashPassword(newPassword)
 
       // Update user password
       await memoryDb.users.update(user.id, {

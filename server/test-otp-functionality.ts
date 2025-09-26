@@ -4,7 +4,7 @@ import { db } from './src/db/index.js'
 import * as schema from './src/db/schema.js'
 import { eq } from 'drizzle-orm'
 import { OtpService } from './src/services/otpService.js'
-import AuthUtils from './src/utils/auth.js'
+import { authUtils } from './src/utils/auth.js'
 
 // Colors for console output
 const colors = {
@@ -79,7 +79,7 @@ async function testOtpFunctionality () {
     const otpResult = await OtpService.verifyOtp(user.id, newOtpCode, 'password_reset')
     if (otpResult.valid) {
       const newPassword = 'NewPassword123'
-      const { hash, salt } = await AuthUtils.hashPassword(newPassword)
+      const { hash, salt } = await authUtils.hashPassword(newPassword)
 
       await db.update(schema.users)
         .set({

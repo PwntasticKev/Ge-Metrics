@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server'
 import { eq, and, or } from 'drizzle-orm'
 import { router, publicProcedure, protectedProcedure } from './trpc.js'
 import { db, users, refreshTokens, subscriptions, NewUser } from '../db/index.js'
-import AuthUtils from '../utils/auth.js'
+import { authUtils } from '../utils/auth.js'
 import { GoogleAuth } from '../utils/google.js'
 import crypto from 'crypto'
 import { config } from '../config/index.js'
@@ -37,7 +37,7 @@ export const authRouter = router({
       }
 
       // Hash password
-      const { hash, salt } = await AuthUtils.hashPassword(password)
+      const { hash, salt } = await authUtils.hashPassword(password)
 
       // Create user
       const newUser: NewUser = {
@@ -104,19 +104,19 @@ export const authRouter = router({
         .where(eq(users.id, user.id))
 
       // Generate tokens for the now-verified user
-      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token
       await db.insert(refreshTokens).values({
         userId: user.id,
         token: refreshToken,
-        expiresAt: AuthUtils.getRefreshTokenExpiration()
+        expiresAt: authUtils.getRefreshTokenExpiration()
       }).onConflictDoUpdate({
         target: refreshTokens.userId,
         set: {
           token: refreshToken,
-          expiresAt: AuthUtils.getRefreshTokenExpiration()
+          expiresAt: authUtils.getRefreshTokenExpiration()
         }
       })
 
@@ -159,7 +159,7 @@ export const authRouter = router({
       }
 
       // Verify password
-      const isPasswordValid = await AuthUtils.verifyPassword(password, user.passwordHash)
+      const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
       if (!isPasswordValid) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -196,19 +196,19 @@ export const authRouter = router({
       }
 
       // Generate and store tokens
-      const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-      const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
       // Store refresh token with upsert
       await db.insert(refreshTokens).values({
         userId: user.id,
         token: refreshToken,
-        expiresAt: AuthUtils.getRefreshTokenExpiration()
+        expiresAt: authUtils.getRefreshTokenExpiration()
       }).onConflictDoUpdate({
         target: refreshTokens.userId,
         set: {
           token: refreshToken,
-          expiresAt: AuthUtils.getRefreshTokenExpiration()
+          expiresAt: authUtils.getRefreshTokenExpiration()
         }
       })
 
@@ -235,7 +235,7 @@ export const authRouter = router({
 
       try {
         // Verify refresh token
-        const payload = AuthUtils.verifyRefreshToken(refreshToken)
+        const payload = authUtils.verifyRefreshToken(refreshToken)
 
         // Check if refresh token exists in database
         const [tokenRecord] = await db
@@ -266,14 +266,14 @@ export const authRouter = router({
         }
 
         // Generate new tokens
-        const newAccessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-        const newRefreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+        const newAccessToken = authUtils.generateAccessToken(String(user.id), user.email)
+        const newRefreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
         // Update the existing refresh token
         await db.update(refreshTokens)
           .set({
             token: newRefreshToken,
-            expiresAt: AuthUtils.getRefreshTokenExpiration()
+            expiresAt: authUtils.getRefreshTokenExpiration()
           })
           .where(eq(refreshTokens.token, refreshToken))
 
@@ -358,19 +358,19 @@ export const authRouter = router({
         }
 
         // Generate tokens
-        const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-        const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+        const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+        const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
         // Store refresh token
         await db.insert(refreshTokens).values({
           userId: user.id,
           token: refreshToken,
-          expiresAt: AuthUtils.getRefreshTokenExpiration()
+          expiresAt: authUtils.getRefreshTokenExpiration()
         }).onConflictDoUpdate({
           target: refreshTokens.userId,
           set: {
             token: refreshToken,
-            expiresAt: AuthUtils.getRefreshTokenExpiration()
+            expiresAt: authUtils.getRefreshTokenExpiration()
           }
         })
 
@@ -440,19 +440,19 @@ export const authRouter = router({
         }
 
         // Generate tokens
-        const accessToken = AuthUtils.generateAccessToken(String(user.id), user.email)
-        const refreshToken = AuthUtils.generateRefreshToken(String(user.id), user.email)
+        const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+        const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
         // Store refresh token
         await db.insert(refreshTokens).values({
           userId: user.id,
           token: refreshToken,
-          expiresAt: AuthUtils.getRefreshTokenExpiration()
+          expiresAt: authUtils.getRefreshTokenExpiration()
         }).onConflictDoUpdate({
           target: refreshTokens.userId,
           set: {
             token: refreshToken,
-            expiresAt: AuthUtils.getRefreshTokenExpiration()
+            expiresAt: authUtils.getRefreshTokenExpiration()
           }
         })
 
@@ -556,7 +556,7 @@ export const authRouter = router({
         })
       }
 
-      const { hash, salt } = await AuthUtils.hashPassword(newPassword)
+      const { hash, salt } = await authUtils.hashPassword(newPassword)
 
       await db.update(users)
         .set({

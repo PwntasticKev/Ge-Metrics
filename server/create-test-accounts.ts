@@ -5,7 +5,7 @@
 
 import { db } from './src/db'
 import { users, employees, subscriptions, NewUser } from './src/db/schema'
-import AuthUtils from './src/utils/auth'
+import { authUtils } from './src/utils/auth'
 import { eq } from 'drizzle-orm'
 import dotenv from 'dotenv'
 
@@ -25,7 +25,7 @@ async function createTestAccounts () {
     // 1. Create Admin User
     const existingAdmin = await db.select().from(users).where(eq(users.email, 'admin@ge-metrics-test.com')).limit(1)
     if (existingAdmin.length === 0) {
-      const { hash, salt } = await AuthUtils.hashPassword(TEST_PASSWORD)
+      const { hash, salt } = await authUtils.hashPassword(TEST_PASSWORD)
       const newAdmin: NewUser = {
         email: 'admin@ge-metrics-test.com',
         username: 'admin_user',
@@ -77,7 +77,7 @@ async function createTestAccounts () {
     // 2. Create Normal User
     const existingUser = await db.select().from(users).where(eq(users.email, 'user@ge-metrics-test.com')).limit(1)
     if (existingUser.length === 0) {
-      const { hash, salt } = await AuthUtils.hashPassword(TEST_PASSWORD)
+      const { hash, salt } = await authUtils.hashPassword(TEST_PASSWORD)
       const newNormalUser: NewUser = {
         email: 'user@ge-metrics-test.com',
         username: 'normal_user',
@@ -111,7 +111,7 @@ async function createTestAccounts () {
     // 3. Create Expired Trial User
     const existingExpiredUser = await db.select().from(users).where(eq(users.email, 'expired@ge-metrics-test.com')).limit(1)
     if (existingExpiredUser.length === 0) {
-      const { hash, salt } = await AuthUtils.hashPassword(TEST_PASSWORD)
+      const { hash, salt } = await authUtils.hashPassword(TEST_PASSWORD)
       const newExpiredUser: NewUser = {
         email: 'expired@ge-metrics-test.com',
         username: 'expired_user',
