@@ -2,14 +2,13 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/dist/index.js",
+      "src": "server/src/index.ts",
       "use": "@vercel/node"
     },
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "cd server && npm install && npm run build && cd .. && npm install && npm run build",
         "distDir": "dist"
       }
     }
@@ -17,11 +16,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/server/dist/index.js"
+      "destination": "/server/src/index.ts"
     },
     {
       "source": "/trpc/(.*)",
-      "destination": "/server/dist/index.js"
+      "destination": "/server/src/index.ts"
     },
     {
       "source": "/(.*)",
