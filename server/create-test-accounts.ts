@@ -5,7 +5,7 @@
 
 import { db } from './src/db'
 import { users, employees, subscriptions, NewUser } from './src/db/schema'
-import { AuthUtils } from './src/utils/auth'
+import AuthUtils from './src/utils/auth'
 import { eq } from 'drizzle-orm'
 import dotenv from 'dotenv'
 
