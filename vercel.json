@@ -31,11 +31,11 @@
   "crons": [
     {
       "path": "/api/cron/update-volumes",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/scrape-updates",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
