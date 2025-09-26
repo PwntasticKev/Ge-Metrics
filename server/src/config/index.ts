@@ -30,6 +30,8 @@ if (parsedConfig.CORRECT_DATABASE_URL) {
   parsedConfig.DATABASE_URL = parsedConfig.CORRECT_DATABASE_URL
 }
 
+console.log('[GE-METRICS_CONFIG_LOG] Final DATABASE_URL being used:', parsedConfig.DATABASE_URL)
+
 export const config = parsedConfig
 
 export type Config = z.infer<typeof configSchema>;
