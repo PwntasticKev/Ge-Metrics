@@ -15,182 +15,102 @@ import historicalDataRouter from './routes/historicalData.js'
 import { scheduleVolumeUpdates } from './tasks/updateVolumes.js'
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
 
-console.log('🚀 [Vercel] Serverless function starting...')
+console.log('--- VERCEL LOG START ---')
+try {
+  console.log('Importing child_process...')
+  const { exec } = await import('child_process')
 
-const app = express()
+  console.log('Importing express...')
+  const express = (await import('express')).default
 
-// Security middleware
-// app.use(helmet({
-//   crossOriginEmbedderPolicy: false,
-//   contentSecurityPolicy: {
-//     directives: {
-//       defaultSrc: ["'self'"],
-//       styleSrc: ["'self'", "'unsafe-inline'"],
-//       scriptSrc: ["'self'"],
-//       imgSrc: ["'self'", 'data:', 'https:']
-//     }
-//   }
-// }))
+  console.log('Importing cors...')
+  const cors = (await import('cors')).default
 
-// CORS configuration
-const allowedOrigins = [config.FRONTEND_URL]
-if (config.NODE_ENV === 'development') {
-  allowedOrigins.push('http://localhost:5173', 'http://localhost:8000')
-}
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}))
+  console.log('Importing helmet...')
+  const helmet = (await import('helmet')).default
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-app.use(cookieParser())
+  console.log('Importing cookie-parser...')
+  const cookieParser = (await import('cookie-parser')).default
 
-console.log('✅ [Vercel] Core middleware loaded.')
+  console.log('Importing tRPC adapter...')
+  const { createExpressMiddleware } = await import('@trpc/server/adapters/express')
 
-// Rate limiting (relaxed for development)
-app.use(rateLimit(10000, 15 * 60 * 1000)) // 10,000 requests per 15 minutes
+  console.log('Importing tRPC appRouter...')
+  const { appRouter } = await import('./trpc/index.js')
 
-// CSRF protection for state-changing operations
-// app.use('/trpc', csrfProtection)
+  console.log('Importing tRPC createContext...')
+  const { createContext } = await import('./trpc/trpc.js')
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: config.NODE_ENV
-  })
-})
+  console.log('Importing config...')
+  const { config } = await import('./config/index.js')
+  console.log(`NODE_ENV: ${config.NODE_ENV}`)
+  console.log(`FRONTEND_URL loaded: ${config.FRONTEND_URL}`)
 
-// API routes
-app.use('/api/favorites', favoritesRouter)
-app.use('/api/historical', historicalDataRouter)
+  console.log('Importing security middleware...')
+  const { csrfProtection, rateLimit } = await import('./middleware/security.js')
 
-console.log('✅ [Vercel] API routes configured.')
+  console.log('Importing services...')
+  const priceCacheService = (await import('./services/priceCacheService.js')).default
+  const gameUpdatesScraper = (await import('./services/gameUpdatesScraper.js')).default
 
-// tRPC middleware
-app.use('/trpc', (req, res, next) => {
-  console.log(`➡️ [Vercel] tRPC request received for: ${req.path}`)
-  createExpressMiddleware({ router: appRouter, createContext })(req, res, next)
-})
+  console.log('Importing routers...')
+  const favoritesRouter = (await import('./routes/favorites.js')).default
+  const historicalDataRouter = (await import('./routes/historicalData.js')).default
 
-console.log('✅ [Vercel] tRPC middleware configured.')
+  console.log('Importing tasks...')
+  const { scheduleVolumeUpdates } = await import('./tasks/updateVolumes.js')
+  const { updateAllItemVolumes } = await import('./services/itemVolumeService.js')
 
-// Cookie management endpoints
-app.post('/auth/set-tokens', (req, res) => {
-  const { accessToken, refreshToken } = req.body
+  console.log('--- IMPORTS SUCCEEDED ---')
 
-  if (!accessToken || !refreshToken) {
-    return res.status(400).json({ error: 'Tokens required' })
+  const app = express()
+  console.log('Express app initialized.')
+
+  // CORS configuration
+  const allowedOrigins = [config.FRONTEND_URL]
+  if (config.NODE_ENV === 'development') {
+    allowedOrigins.push('http://localhost:5173', 'http://localhost:8000')
   }
+  console.log('Allowed origins:', allowedOrigins)
+  app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+  }))
+  console.log('CORS middleware configured.')
 
-  // Set HTTP-only cookies
-  res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000 // 15 minutes
+  // Body parsing and cookies
+  app.use(express.json({ limit: '10mb' }))
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+  app.use(cookieParser())
+  console.log('Body parsing and cookie parser middleware configured.')
+
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() })
   })
+  console.log('Health check configured.')
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  // API and tRPC routes
+  app.use('/api/favorites', favoritesRouter)
+  app.use('/api/historical', historicalDataRouter)
+  app.use('/trpc', createExpressMiddleware({ router: appRouter, createContext }))
+  console.log('API and tRPC routes configured.')
+
+  // Final error handler
+  app.use((error, req, res, next) => {
+    console.error('--- UNHANDLED ERROR ---')
+    console.error(error)
+    res.status(500).json({ error: 'A server error occurred.' })
   })
+  console.log('Error handler configured.')
 
-  res.json({ success: true })
-})
+  console.log('--- INITIALIZATION COMPLETE ---')
 
-app.post('/auth/clear-tokens', (req, res) => {
-  res.clearCookie('accessToken')
-  res.clearCookie('refreshToken')
-  res.json({ success: true })
-})
-
-// Get CSRF token endpoint
-app.get('/csrf-token', (req, res) => {
-  // Generate a simple CSRF token (in production, use a more secure method)
-  const csrfToken = Buffer.from(`${Date.now()}-${Math.random()}`).toString('base64')
-  res.json({ csrfToken })
-})
-
-console.log('✅ [Vercel] Auth and CSRF endpoints configured.')
-
-// Error handling middleware
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('❌ [Vercel] Unhandled Error:', {
-    message: error.message,
-    stack: error.stack,
-    url: req.originalUrl,
-    method: req.method
-  })
-  res.status(500).json({
-    error: config.NODE_ENV === 'development' ? error.message : 'A server error occurred. Please try again later.'
-  })
-})
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' })
-})
-
-console.log('✅ [Vercel] Error handlers and 404 route configured.')
-
-// This block will only run in a local development environment, not on Vercel.
-if (!process.env.VERCEL) {
-  // Run the populate item mapping script before starting the server
-  // NOTE: In production, this should be a build step or a separate cron job.
-  console.log('🚀 Running populate item mapping script...')
-  try {
-    exec('npm run db:populate-mapping', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`💥 Error running populate script: ${error}`)
-        return
-      }
-      console.log(`✅ Populate script output: ${stdout}`)
-      if (stderr) {
-        console.error(`💥 Populate script error output: ${stderr}`)
-      }
-    })
-  } catch (error) {
-    console.error('CRITICAL: Failed to execute db:populate-mapping script.', error)
-  }
-
-  // Start server
-  app.listen(config.PORT, () => {
-    console.log(`🚀 Server listening on port ${config.PORT}`)
-
-    // Schedule cron jobs
-    // NOTE: In production, cron jobs should be configured in vercel.json.
-    scheduleVolumeUpdates()
-    startGameUpdatesScheduler()
-
-    // Perform an initial update on server startup
-    console.log('🚀 Performing initial item volume update on startup...')
-    updateAllItemVolumes().catch(error => {
-      console.error('💥 [Startup] Error during initial volume update:', error)
-    })
-  })
+  // Export the app for Vercel
+  module.exports = app
+} catch (e) {
+  console.error('--- FATAL STARTUP ERROR ---')
+  console.error(e)
+  // Exit gracefully to prevent Vercel from thinking the function is running
+  process.exit(1)
 }
-
-/**
- * Start game updates scheduler
- */
-function startGameUpdatesScheduler (): void {
-  console.log('🎮 Starting game updates scheduler (every 6 hours)...')
-
-  // Run immediately on startup
-  gameUpdatesScraper.scrapeAndSaveUpdates()
-
-  // Schedule to run every 6 hours (6 * 60 * 60 * 1000 ms)
-  setInterval(() => {
-    gameUpdatesScraper.scrapeAndSaveUpdates()
-  }, 6 * 60 * 60 * 1000)
-}
-
-console.log('✅ [Vercel] Serverless function initialization complete.')
-
-export default app
