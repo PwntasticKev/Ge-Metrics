@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "buildTimestamp": "2025-01-25-23:30",
   "builds": [
     {
       "src": "server/dist/index.js",
