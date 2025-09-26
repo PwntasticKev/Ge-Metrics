@@ -5,6 +5,7 @@ dotenv.config()
 
 const configSchema = z.object({
   DATABASE_URL: z.string().min(1, 'Database URL is required'),
+  CORRECT_DATABASE_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT access secret must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT refresh secret must be at least 32 characters'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
@@ -22,6 +23,13 @@ const configSchema = z.object({
   STRIPE_PRODUCT_PREMIUM: z.string().optional()
 })
 
-export const config = configSchema.parse(process.env)
+const parsedConfig = configSchema.parse(process.env)
+
+// If the correct URL exists (on Vercel), use it to overwrite the locked one.
+if (parsedConfig.CORRECT_DATABASE_URL) {
+  parsedConfig.DATABASE_URL = parsedConfig.CORRECT_DATABASE_URL
+}
+
+export const config = parsedConfig
 
 export type Config = z.infer<typeof configSchema>;
