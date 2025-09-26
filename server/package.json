@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "dev:full": "npm run dev",
-    "build": "rm -rf dist && tsc && echo \"--- Vercel Build Log: Contents of compiled dist/utils/auth.js ---\" && cat dist/utils/auth.js && echo \"--- End of Vercel Build Log ---\" && npx drizzle-kit migrate",
+    "build": "rm -rf dist && tsc && echo '--- Running database migration script ---' && tsx src/db/migrate.ts",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
