@@ -17,7 +17,7 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
       }
       return { req, res, user }
     } catch (error) {
-      // Ignore invalid token, user will be unauthenticated
+      // Ignore invalid token, user will be unauthenticated.
     }
   }
   return { req, res, user: null }
