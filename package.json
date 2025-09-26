@@ -10,8 +10,6 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "build": "vite build",
-    "build:server": "cd server && npm install && npm run build",
-    "vercel-build": "npm run build:server && npx drizzle-kit migrate && npm run build",
     "start:server": "cd server && npm start",
     "start:client": "vite",
     "test": "vitest",

@@ -2,16 +2,19 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
+      "src": "server/package.json",
+      "use": "@vercel/node",
       "config": {
-        "buildCommand": "npm run vercel-build",
-        "distDir": "dist"
+        "buildCommand": "npm install && npm run build"
       }
     },
     {
-      "src": "server/dist/index.js",
-      "use": "@vercel/node"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "buildCommand": "npm install && npm run build",
+        "distDir": "dist"
+      }
     }
   ],
   "rewrites": [

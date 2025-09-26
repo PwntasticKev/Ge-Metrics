@@ -125,4 +125,5 @@ class AuthUtils {
   }
 }
 
+export { AuthUtils }
 export default new AuthUtils()
