@@ -4,7 +4,7 @@ import { db } from './src/db/index.js'
 import * as schema from './src/db/schema.js'
 import { eq } from 'drizzle-orm'
 import { OtpService } from './src/services/otpService.js'
-import * as AuthUtils from './src/utils/auth.js'
+import AuthUtils from './src/utils/auth.js'
 
 // Colors for console output
 const colors = {
