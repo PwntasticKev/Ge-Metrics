@@ -4,7 +4,7 @@ import { db } from './src/db/index.js'
 import * as schema from './src/db/schema.js'
 import { eq } from 'drizzle-orm'
 import { OtpService } from './src/services/otpService.js'
-import AuthUtils from './src/utils/auth.js'
+import * as AuthUtils from './src/utils/auth.js'
 
 // Colors for console output
 const colors = {
@@ -13,7 +13,8 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   reset: '\x1b[0m',
-  bold: '\x1b[1m'
+  bold: '\x1b[1m',
+  cyan: '\x1b[36m'
 }
 
 function log (message: string, color: keyof typeof colors = 'reset') {
