@@ -10,7 +10,7 @@ import { processPotionData } from '../../utils/potion-calculation'
 import { getRelativeTime } from '../../utils/utils'
 
 export default function PotionCombinations () {
-  // TRPC Data Fetching
+  // TRPC Data Fetching.
   const { data: itemMapping, isLoading: isLoadingMapping, error: errorMapping } = trpc.items.getItemMapping.useQuery()
   const { data: allItems, isLoading: isLoadingAllItems, error: errorItems } = trpc.items.getAllItems.useQuery()
   const { data: volumeData, isLoading: isLoadingVolumes, error: errorVolumes } = trpc.items.getAllVolumes.useQuery()
