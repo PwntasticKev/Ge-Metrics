@@ -3,17 +3,14 @@
   "buildTimestamp": "2025-01-25-23:30",
   "builds": [
     {
-      "src": "server/package.json",
-      "use": "@vercel/node",
-      "config": {
-        "buildCommand": "npm install && npm run build"
-      }
+      "src": "server/dist/index.js",
+      "use": "@vercel/node"
     },
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "npm install && npm run build",
+        "buildCommand": "cd server && npm install && npm run build && cd .. && npm install && npm run build",
         "distDir": "dist"
       }
     }
