@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
 import { config } from '../config/index.js'
 
+console.log(`[VERCEL_BUILD_LOG] Loading auth.ts @ ${new Date().toISOString()}`)
+
 export interface JWTPayload {
   userId: string;
   email: string;
