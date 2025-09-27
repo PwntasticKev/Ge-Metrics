@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "dev:full": "npm run dev",
-    "build": "rm -rf dist && tsc && npx drizzle-kit migrate",
+    "build": "rm -rf dist && tsc && echo '--- AGGRESSIVE MIGRATION LOG START ---' && npx drizzle-kit migrate --config ./drizzle.config.ts > migration.log 2>&1 && cat migration.log && echo '--- AGGRESSIVE MIGRATION LOG END ---'",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
