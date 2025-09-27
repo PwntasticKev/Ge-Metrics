@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import { createExpressMiddleware } from '@trpc/server/adapters/express'
 import { appRouter } from './trpc/index.js'
 import { createContext } from './trpc/trpc.js'
+import { runMigrations } from './db/migrate.js'
 import { config } from './config/index.js'
 import { csrfProtection, rateLimit } from './middleware/security.js'
 import priceCacheService from './services/priceCacheService.js'
@@ -16,6 +17,13 @@ import { scheduleVolumeUpdates } from './tasks/updateVolumes.js'
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
 
 const app = express()
+
+// Run migrations on startup
+runMigrations().catch((error) => {
+  console.error('Migration failed on startup:', error)
+  // In a real production app, you might want to prevent the app from starting.
+  // For Vercel, we will log the error and let it continue, so we can see the logs.
+})
 
 // CORS configuration
 const allowedOrigins = [config.FRONTEND_URL]

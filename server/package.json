@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "dev:full": "npm run dev",
-    "build": "rm -rf dist && tsc && echo '--- MIGRATION ATTEMPT START ---' && npx drizzle-kit migrate --config ./drizzle.config.ts && echo '--- MIGRATION ATTEMPT END ---'",
+    "build": "rm -rf dist && tsc",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
