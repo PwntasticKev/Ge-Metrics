@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import {
   Paper,
   TextInput,
@@ -15,7 +15,7 @@ import {
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useNavigate } from 'react-router-dom'
-import authService from '../../services/authService'
+import { AuthContext } from '../../contexts/AuthContext'
 import securityService from '../../services/securityService'
 import { IconX, IconCheck } from '@tabler/icons-react'
 import bg from '../../assets/gehd.png'
@@ -54,6 +54,7 @@ function getStrength (password) {
 
 const SignupFlow = () => {
   const navigate = useNavigate()
+  const { register } = useContext(AuthContext)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -113,21 +114,25 @@ const SignupFlow = () => {
     setLoading(true)
     setError(null)
 
-    try {
-      const { email, password, name, runescapeName, marketingEmails } = form.values
-      const registeredUser = await authService.register({
-        email,
-        password,
-        name,
-        username: runescapeName, // Use 'username' to match the backend
-        marketingEmails
-      })
-      navigate('/login')
-    } catch (err) {
-      setError(err.message || 'An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    const { email, password, name, runescapeName, marketingEmails } = form.values
+
+    register({
+      email,
+      password,
+      name,
+      username: runescapeName, // Use 'username' to match the backend
+      marketingEmails
+    }, {
+      onSuccess: (data) => {
+        // Here you can add a success notification if you have a notification system
+        console.log(data.message) // "Registration successful..."
+        navigate('/login')
+      },
+      onError: (err) => {
+        setError(err.message || 'An unexpected error occurred. Please try again.')
+        setLoading(false)
+      }
+    })
   }
 
   return (

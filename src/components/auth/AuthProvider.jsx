@@ -88,13 +88,26 @@ const AuthProvider = ({ children }) => {
     }
   }
 
+  const register = async (userData, callbacks) => {
+    try {
+      const data = await authService.register(userData)
+      if (callbacks && callbacks.onSuccess) {
+        callbacks.onSuccess(data)
+      }
+    } catch (error) {
+      if (callbacks && callbacks.onError) {
+        callbacks.onError(error)
+      }
+    }
+  }
+
   const value = {
     user,
     isAuthenticated: !!user,
     isLoading,
     login,
     logout: authService.logout.bind(authService),
-    register: authService.register.bind(authService)
+    register
   }
 
   return (

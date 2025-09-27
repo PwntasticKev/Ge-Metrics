@@ -131,16 +131,13 @@ class AuthService {
       }
 
       const data = responseData.result?.data
-      if (!data || !data.user) {
+      // The new response is simpler, just check for success.
+      if (!data || !data.success) {
         throw new Error('Invalid response from server during registration.')
       }
 
-      // Store authentication data
-      this.setAuthData(data)
-
-      // Create security service session
-      securityService.createSession(data.user.id, data.user)
-
+      // Since registration no longer logs the user in, we don't set auth data here.
+      // We just return the success data.
       return data
     } catch (error) {
       console.error('Registration error:', error)
