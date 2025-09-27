@@ -1,11 +1,32 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
+import postgres, { Options } from 'postgres'
 import { config } from '../config/index.js'
 import * as schema from './schema.js'
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
-export const connection = postgres(config.DATABASE_URL, { ssl: 'require', max: 1 })
+// Base options for all environments
+const baseOptions: Options<{}> = {
+  // Add any other base options here if needed
+}
+
+// Production-specific options
+const prodOptions: Options<{}> = {
+  ...baseOptions,
+  ssl: 'require',
+  max: 1
+}
+
+const connectionOptions = config.NODE_ENV === 'production' ? prodOptions : baseOptions
+
+// Pooled connection for the serverless app
+export const connection = postgres(config.DATABASE_URL, connectionOptions)
 export const db = drizzle(connection, { schema })
+
+// Unpooled connection for migrations
+const migrationConnectionUrl = config.DATABASE_URL_UNPOOLED || config.DATABASE_URL
+console.log('[GE-METRICS_MIGRATE_LOG] Using migration connection URL:', migrationConnectionUrl)
+export const migrationConnection = postgres(migrationConnectionUrl, connectionOptions)
+export const migrationDb = drizzle(migrationConnection, { schema })
 
 export const migrationsTable = pgTable('__drizzle_migrations', {
   id: text('id').primaryKey(),

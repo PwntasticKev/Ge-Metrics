@@ -6,6 +6,8 @@ dotenv.config()
 const configSchema = z.object({
   DATABASE_URL: z.string().min(1, 'Database URL is required'),
   CORRECT_DATABASE_URL: z.string().optional(),
+  DATABASE_URL_UNPOOLED: z.string().optional(),
+  CORRECT_DATABASE_URL_UNPOOLED: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT access secret must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT refresh secret must be at least 32 characters'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
@@ -28,6 +30,10 @@ const parsedConfig = configSchema.parse(process.env)
 // If the correct URL exists (on Vercel), use it to overwrite the locked one.
 if (parsedConfig.CORRECT_DATABASE_URL) {
   parsedConfig.DATABASE_URL = parsedConfig.CORRECT_DATABASE_URL
+}
+// Do the same for the unpooled URL
+if (parsedConfig.CORRECT_DATABASE_URL_UNPOOLED) {
+  parsedConfig.DATABASE_URL_UNPOOLED = parsedConfig.CORRECT_DATABASE_URL_UNPOOLED
 }
 
 console.log('[GE-METRICS_CONFIG_LOG] Final DATABASE_URL being used:', parsedConfig.DATABASE_URL)
