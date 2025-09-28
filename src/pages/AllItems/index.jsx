@@ -53,7 +53,11 @@ export default function AllItems () {
       const highPrice = item.high ? Number(item.high) : 0
       const lowPrice = item.low ? Number(item.low) : 0
       const profit = highPrice && lowPrice ? Math.floor(highPrice * 0.99 - lowPrice) : 0
-      return { ...item, profit }
+      return {
+        ...item,
+        profit,
+        img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_')
+      }
     })
     .filter(item => !item.name.includes('3rd age'))
     .sort((a, b) => b.profit - a.profit)
