@@ -3,11 +3,11 @@ import { defineConfig } from 'drizzle-kit'
 
 dotenv.config({ path: '../.env' })
 
-// This environment variable is set by Vercel and is the unpooled connection string
-const dbUrl = process.env.CORRECT_DATABASE_URL_UNPOOLED || process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL
+// Unify the database URL to use DATABASE_URL, same as the application
+const dbUrl = process.env.DATABASE_URL
 
 if (!dbUrl) {
-  throw new Error('Database URL is not set. Please set CORRECT_DATABASE_URL_UNPOOLED, DATABASE_URL_UNPOOLED, or POSTGRES_URL.')
+  throw new Error('DATABASE_URL is not set in your .env file.')
 }
 
 export default defineConfig({

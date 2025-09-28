@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from 'react-query'
-import { getAllPotionVolumes, getVolumesCacheStatus } from '../services/potionVolumeApi'
+import { trpc } from '../utils/trpc'
 import ItemData from './item-data'
 
 const parsePrice = (price) => {
@@ -17,15 +16,17 @@ export function usePotionRecipes () {
   const [error, setError] = useState(null)
   const { items } = ItemData()
 
-  // Get cached potion data from API (no volume data needed)
-  const { data: cachedPotions } = useQuery('potionData', getAllPotionVolumes, {
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 2.5 * 60 * 1000 // 2.5 minutes
+  // Use the new tRPC query to get the latest volume data on demand
+  const { data: volumeData, isLoading: isVolumeLoading, error: volumeError } = trpc.volumes.getLatestVolumes.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false // Optional: prevent refetching on window focus
   })
 
   useEffect(() => {
+    // We are not using cachedPotions anymore, but we can use volumeData for more advanced logic later.
+    // The main purpose of this query now is to ensure we have up-to-date prices before calculating.
     const processRecipes = () => {
-      if (!items || items.length === 0) {
+      if (!items || items.length === 0 || isVolumeLoading) {
         setIsLoading(true)
         return
       }
@@ -136,7 +137,7 @@ export function usePotionRecipes () {
     }
 
     processRecipes()
-  }, [items, cachedPotions])
+  }, [items, volumeData, isVolumeLoading])
 
   return {
     recipes,

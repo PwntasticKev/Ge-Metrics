@@ -13,7 +13,7 @@ import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import favoritesRouter from './routes/favorites.js'
 import historicalDataRouter from './routes/historicalData.js'
-import { scheduleVolumeUpdates } from './tasks/updateVolumes.js'
+// import { scheduleVolumeUpdates } from './tasks/updateVolumes.js' - This is no longer needed
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
 
 const app = express()

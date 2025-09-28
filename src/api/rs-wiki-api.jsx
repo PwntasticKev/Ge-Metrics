@@ -1,100 +1,53 @@
-import axios from 'axios'
+import {
+  LATEST_PRICES_URL,
+  MAPPING_URL,
+  TIMESERIES_URL
+} from '../utils/constants'
 
+// Fetches the latest price data for all items
 export const getPricingData = async () => {
   try {
-    const response = await axios.get(
-      'https://prices.runescape.wiki/api/v1/osrs/latest'
-    )
-    return response
+    const response = await fetch(LATEST_PRICES_URL)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return { success: true, data }
   } catch (error) {
-    console.error('Error fetching Pricing data:', error)
-    throw error
+    console.error('Failed to fetch pricing data:', error)
+    return { success: false, error }
   }
 }
 
-export const getDmmPricingData = async () => {
-  try {
-    const response = await axios.get(
-      'https://prices.runescape.wiki/api/v1/dmm/latest'
-    )
-    return response
-  } catch (error) {
-    console.error('Error fetching Pricing data for DMM:', error)
-    throw error
-  }
-}
-
+// Fetches the item mapping data
 export const getMappingData = async () => {
   try {
-    const response = await axios.get(
-      'https://prices.runescape.wiki/api/v1/osrs/mapping'
-    )
-    // Cache items when first grabbing and add images for performance
-    return response.data.map(item => ({
-      ...item,
-      img: `https://oldschool.runescape.wiki/images/c/c1/${item.name.replace(/\s+/g, '_')}.png?${item.id}b`
-    }))
-  } catch (error) {
-    console.error('Error fetching Mapping data:', error)
-    throw error
-  }
-}
-
-export const getItemHistoryById = async (time, itemId) => {
-  try {
-    // Use our cached historical data API instead of hitting OSRS Wiki directly
-    const response = await axios.get(
-      `http://localhost:4000/api/historical/${itemId}?timestep=${time}`
-    )
-
-    if (!response.data.success) {
-      throw new Error(response.data.error || 'Failed to fetch historical data')
+    const response = await fetch(MAPPING_URL)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
+    const data = await response.json()
+    // Ensure we always return an array, even if the API call fails or returns unexpected data.
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('Failed to fetch mapping data:', error)
+    // Return an empty array on error to prevent crashes downstream.
+    return []
+  }
+}
 
-    // Return in the same format as the original OSRS Wiki API for compatibility
-    return {
-      data: response.data.data
+// Fetches historical data for a specific item
+export const getItemHistoryById = async (timeframe, id) => {
+  try {
+    const url = `${TIMESERIES_URL}?timestep=${timeframe}&id=${id}`
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
+    const data = await response.json()
+    return { success: true, data }
   } catch (error) {
-    console.error('Error fetching item History:', error)
-    throw error
-  }
-}
-
-export const getVolumeData = async () => {
-  try {
-    const response = await axios.get(
-      'https://prices.runescape.wiki/api/v1/osrs/latest'
-    )
-    return response
-  } catch (error) {
-    console.error('Error fetching Volume data:', error)
-    throw error
-  }
-}
-
-export const get5MinuteData = async (timestamp) => {
-  try {
-    const url = timestamp
-      ? `https://prices.runescape.wiki/api/v1/osrs/5m?timestamp=${timestamp}`
-      : 'https://prices.runescape.wiki/api/v1/osrs/5m'
-    const response = await axios.get(url)
-    return response
-  } catch (error) {
-    console.error('Error fetching 5-minute data:', error)
-    throw error
-  }
-}
-
-export const get1HourData = async (timestamp) => {
-  try {
-    const url = timestamp
-      ? `https://prices.runescape.wiki/api/v1/osrs/1h?timestamp=${timestamp}`
-      : 'https://prices.runescape.wiki/api/v1/osrs/1h'
-    const response = await axios.get(url)
-    return response
-  } catch (error) {
-    console.error('Error fetching 1-hour data:', error)
-    throw error
+    console.error(`Failed to fetch history for item ${id}:`, error)
+    return { success: false, error }
   }
 }

@@ -61,6 +61,7 @@ export const allItems = (mapItems, pricesById, volumesById = {}) => {
     const newItem = {
       ...item,
       ...priceById,
+      img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_'),
       volume: volumeById.volume || null,
       profit,
       low,
@@ -127,14 +128,24 @@ export const getItemSetProfit = (
 export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) => {
   const highPrice = safeParseFloat(item?.high, 0)
   const formatter = new Intl.NumberFormat()
-  const convertedItems = itemsToCreateSet.map(itemId => allItems.find(item => item.id === itemId))
+  const convertedItems = itemsToCreateSet.map(itemId => {
+    const foundItem = allItems.find(item => item.id === itemId)
+    if (foundItem) {
+      return {
+        ...foundItem,
+        img: `https://oldschool.runescape.wiki/images/${foundItem.icon}`.replace(/ /g, '_')
+      }
+    }
+    return null
+  }).filter(Boolean)
+
   if (item) {
     return {
       id: item.id,
       background: true,
       name: `${item.name} (set)`,
       items: convertedItems,
-      img: item.img,
+      img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_'),
       high: formatter.format(highPrice),
       sellPrice: highPrice, // Use the highest price for the item set
       profit: Math.floor(highPrice * 0.98 - totalPrice)

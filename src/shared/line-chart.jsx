@@ -63,25 +63,24 @@ export default function LineChart ({ id, items }) {
     fetchGameUpdates()
   }, [id, items])
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!id) return
-
-    const fetchData = async () => {
-      setIsFetching(true)
-      setHistoryStatus('loading')
-      try {
-        const result = await getItemHistoryById(timeframe, id)
-        setHistoryData(result?.data?.data || [])
-        setHistoryStatus('success')
-        setLastUpdateTime(new Date())
-      } catch (error) {
-        console.error('Error fetching history data:', error)
-        setHistoryStatus('error')
-      } finally {
-        setIsFetching(false)
-      }
+    setIsFetching(true)
+    setHistoryStatus('loading')
+    try {
+      const result = await getItemHistoryById(timeframe, id)
+      setHistoryData(result?.data?.data || [])
+      setHistoryStatus('success')
+      setLastUpdateTime(new Date())
+    } catch (error) {
+      console.error('Error fetching history data:', error)
+      setHistoryStatus('error')
+    } finally {
+      setIsFetching(false)
     }
+  }
 
+  useEffect(() => {
     fetchData()
   }, [id, timeframe])
 

@@ -3,6 +3,7 @@ import { publicProcedure, router } from './trpc.js'
 import { db, itemVolumes, itemMapping } from '../db/index.js'
 import { NewItemVolume } from '../db/schema.js'
 import { eq, desc } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
 
 export const itemsRouter = router({
   // Get all cached item volumes
@@ -69,5 +70,30 @@ export const itemsRouter = router({
       // This is a placeholder. The actual logic is in `processPotionData` on the client.
       // We could move that logic here in the future if needed.
       return []
+    }),
+
+  getItemHistory: publicProcedure
+    .input(z.object({
+      timestep: z.string(),
+      itemId: z.number()
+    }))
+    .query(async ({ input }) => {
+      const { timestep, itemId } = input
+      const url = `https://prices.runescape.wiki/api/v1/osrs/timeseries?timestep=${timestep}&id=${itemId}`
+      try {
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch item history from OSRS Wiki API: ${response.statusText}`)
+        }
+        const data = await response.json()
+        return data
+      } catch (error) {
+        console.error(`Error fetching item history for ID ${itemId}:`, error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch item history.',
+          cause: error
+        })
+      }
     })
 })

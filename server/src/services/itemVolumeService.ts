@@ -16,6 +16,8 @@ export async function updateAllItemVolumes () {
 
     const volumeUpdates = Object.entries(data).map(([itemId, itemData]: [string, any]) => ({
       itemId: parseInt(itemId),
+      highPrice: itemData.high || null,
+      lowPrice: itemData.low || null,
       highPriceVolume: itemData.highPriceVolume || 0,
       lowPriceVolume: itemData.lowPriceVolume || 0
     }))
@@ -30,6 +32,8 @@ export async function updateAllItemVolumes () {
           .onConflictDoUpdate({
             target: itemVolumes.itemId,
             set: {
+              highPrice: sql`excluded.high_price`,
+              lowPrice: sql`excluded.low_price`,
               highPriceVolume: sql`excluded.high_price_volume`,
               lowPriceVolume: sql`excluded.low_price_volume`,
               lastUpdatedAt: new Date()

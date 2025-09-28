@@ -26,15 +26,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/update-volumes",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-updates",
-      "schedule": "0 1 * * *"
-    }
   ]
 }
