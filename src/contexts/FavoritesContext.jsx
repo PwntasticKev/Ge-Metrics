@@ -17,6 +17,7 @@ export const useFavorites = () => {
 export const FavoritesProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
+  const [isReady, setIsReady] = useState(false)
   const [localFavorites, setLocalFavorites] = useState(() => {
     // Fallback to localStorage for unauthenticated users
     try {
@@ -38,6 +39,9 @@ export const FavoritesProvider = ({ children }) => {
     {
       enabled: isAuthenticated && !!user?.id && !isMockUser,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      onSuccess: () => {
+        setIsReady(true)
+      },
       onError: (error) => {
         console.error('Failed to fetch favorites from database:', error)
         // Don't show error notification for mock users
@@ -48,6 +52,7 @@ export const FavoritesProvider = ({ children }) => {
             color: 'red'
           })
         }
+        setIsReady(true)
       }
     }
   )
@@ -80,6 +85,12 @@ export const FavoritesProvider = ({ children }) => {
       }
     }
   )
+
+  useEffect(() => {
+    if (!isAuthenticated || isMockUser) {
+      setIsReady(true)
+    }
+  }, [isAuthenticated, isMockUser])
 
   // Use database favorites if authenticated and not mock user, otherwise use localStorage
   const favorites = isAuthenticated && user?.id && !isMockUser ? dbFavorites : localFavorites
@@ -154,7 +165,7 @@ export const FavoritesProvider = ({ children }) => {
 
   return (
     <FavoritesContext.Provider value={value}>
-      {children}
+      {isReady ? children : null}
     </FavoritesContext.Provider>
   )
 }
