@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import {
   CategoryScale,
   Chart as ChartJS,
@@ -37,18 +37,18 @@ ChartJS.register(
 )
 
 export default function LineChart ({ id, items }) {
-  const [item, setItem] = useState(null)
-  const [timeframe, setTimeframe] = useState('1h')
-  const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [historyData, setHistoryData] = useState([])
-  const [historyStatus, setHistoryStatus] = useState('loading')
+  const [timeframe, setTimeframe] = useState('5m')
+  const [historyData, setHistoryData] = useState(null) // Initialize with null
+  const [historyStatus, setHistoryStatus] = useState('idle') // set to idle
   const [isFetching, setIsFetching] = useState(false)
+  const [lastUpdateTime, setLastUpdateTime] = useState(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
   const [gameUpdates, setGameUpdates] = useState([])
   const chartRef = useRef(null)
 
+  const item = useMemo(() => getItemById(id, items) || {}, [id, items])
+
   useEffect(() => {
-    setItem(getItemById(Number(id), items))
     const fetchGameUpdates = async () => {
       try {
         const response = await fetch('http://localhost:4000/api/game-updates')
@@ -86,10 +86,10 @@ export default function LineChart ({ id, items }) {
 
   // Update current time every second to refresh relative time
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
-    return () => clearInterval(interval)
+    return () => clearInterval(timer)
   }, [])
 
   const options = {
@@ -191,7 +191,7 @@ export default function LineChart ({ id, items }) {
     }
   }
 
-  if (historyStatus === 'loading') {
+  if (historyStatus === 'loading' || historyStatus === 'idle') {
     return (
         <Center style={{ height: 400 }}>
             <Loader />
@@ -205,6 +205,14 @@ export default function LineChart ({ id, items }) {
         <Center style={{ height: 400 }}>
             <Text color="red">Error loading chart data. Please try again later.</Text>
         </Center>
+    )
+  }
+
+  if (!historyData || historyData.length === 0) {
+    return (
+      <Center style={{ height: 400 }}>
+        <Text>No historical data available for this item and timeframe.</Text>
+      </Center>
     )
   }
 
