@@ -37,7 +37,9 @@ import {
   IconCalculator,
   IconCrown,
   IconStar,
-  IconCalendar
+  IconCalendar,
+  IconPlant2,
+  IconWash
 } from '@tabler/icons-react'
 import { Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
@@ -363,6 +365,26 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           color="teal"
           label="Potion Combinations"
           link="/potion-combinations"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
+          icon={<IconPlant2 size="1rem"/>}
+          color="green"
+          label="Saplings"
+          link="/saplings"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
+          icon={<IconWash size="1rem"/>}
+          color="cyan"
+          label="Herb Cleaning"
+          link="/herb-cleaning"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}

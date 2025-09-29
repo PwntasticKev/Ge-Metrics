@@ -23,6 +23,7 @@ import TrialBanner from './components/Trial/TrialBanner'
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
 import AuthProvider from './components/auth/AuthProvider'
+import HerbCleaning from './pages/HerbCleaning/index.jsx'
 
 // Lazy load all protected routes to improve initial load performance
 const HomePage = lazy(() => import('./pages/HomePage'))
@@ -62,6 +63,7 @@ const ProfitOpportunities = lazy(() => import('./pages/ProfitOpportunities'))
 const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
 const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmail'))
+const Saplings = lazy(() => import('./pages/Saplings/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -292,6 +294,8 @@ function AppContent () {
               <Route path="/item/:id" element={<ItemDetails/>}/>
               <Route path="/profile/:id" element={<Profile/>}/>
               <Route path="/profit-opportunities" element={<ProfitOpportunities/>}/>
+              <Route path="/saplings" element={<Saplings />} />
+              <Route path="/herb-cleaning" element={<HerbCleaning />} />
               {/* Market Watch Submenu Routes */}
               <Route path="/market-watch/food" element={<FoodIndex/>}/>
               <Route path="/market-watch/logs" element={<LogsIndex/>}/>

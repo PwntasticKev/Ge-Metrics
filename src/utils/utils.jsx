@@ -140,10 +140,12 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) =>
   }).filter(Boolean)
 
   if (item) {
+    const setName = itemsToCreateSet.length > 1 ? `${item.name} (set)` : item.name
+
     return {
       id: item.id,
       background: true,
-      name: `${item.name} (set)`,
+      name: setName,
       items: convertedItems,
       img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_'),
       high: formatter.format(highPrice),
