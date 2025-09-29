@@ -19,7 +19,13 @@ export default function HerbCleaning () {
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [herbSets, setHerbSets] = useState([])
-  const { favoriteItemsSet, toggleFavorite, isLoadingFavorites } = useFavorites()
+  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
+
+  const favoriteItemIds = new Set(
+    favoriteItems
+      .filter(fav => fav.itemType === 'herb')
+      .map(fav => fav.itemId)
+  )
 
   useEffect(() => {
     if (priceStatus === 'success' && items.length > 0) {
@@ -81,8 +87,8 @@ export default function HerbCleaning () {
           {priceStatus === 'success' && herbSets && herbSets.length > 0 && (
             <ItemSetsTable
               data={herbSets}
-              favoriteItems={favoriteItemsSet}
-              onToggleFavorite={toggleFavorite}
+              favoriteItems={favoriteItemIds}
+              onToggleFavorite={(itemId) => toggleFavorite(itemId, 'herb')}
             />
           )}
         </Box>

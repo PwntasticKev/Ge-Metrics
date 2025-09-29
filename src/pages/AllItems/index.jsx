@@ -5,26 +5,19 @@ import { useState, useEffect } from 'react'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
 import { trpc } from '../../utils/trpc.jsx'
+import { useFavorites } from '../../hooks/useFavorites.js'
 
 export default function AllItems () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
-  const utils = trpc.useContext()
-  const { data: favoriteItemIds, isLoading: isLoadingFavorites } = trpc.favorites.getAll.useQuery()
-  const addFavorite = trpc.favorites.add.useMutation({
-    onSuccess: () => {
-      utils.favorites.getAll.invalidate()
-    }
-  })
-  const removeFavorite = trpc.favorites.remove.useMutation({
-    onSuccess: () => {
-      utils.favorites.getAll.invalidate()
-    }
-  })
-
-  const favoriteItemsSet = new Set(favoriteItemIds)
+  const favoriteItemIds = new Set(
+    favoriteItems
+      .filter(fav => fav.itemType === 'item')
+      .map(fav => fav.itemId)
+  )
 
   useEffect(() => {
     if (priceStatus === 'success') {
@@ -40,12 +33,8 @@ export default function AllItems () {
     return () => clearInterval(interval)
   }, [])
 
-  const toggleFavorite = (itemId) => {
-    if (favoriteItemsSet.has(itemId)) {
-      removeFavorite.mutate({ itemId })
-    } else {
-      addFavorite.mutate({ itemId })
-    }
+  const handleToggleFavorite = (itemId) => {
+    toggleFavorite(itemId, 'item')
   }
 
   const processedItems = items
@@ -96,8 +85,8 @@ export default function AllItems () {
                     <AllItemsTable
                       data={processedItems}
                       items={items}
-                      favoriteItems={favoriteItemsSet}
-                      onToggleFavorite={toggleFavorite}
+                      favoriteItems={favoriteItemIds}
+                      onToggleFavorite={handleToggleFavorite}
                       showFavoriteColumn={true}
                     />
                 </Box>

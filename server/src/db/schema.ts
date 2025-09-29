@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb, uniqueIndex } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
@@ -139,10 +139,11 @@ export const favorites = pgTable('favorites', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: integer('item_id').notNull(),
+  itemType: text('item_type').notNull(), // e.g., 'item', 'combination', 'sapling'
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   userFavoriteIdx: index('favorites_user_id_idx').on(table.userId),
-  uniqueFavorite: index('favorites_unique_idx').on(table.userId, table.itemId)
+  uniqueFavorite: uniqueIndex('favorites_unique_idx').on(table.userId, table.itemId, table.itemType)
 }))
 
 // Item Mapping (item definitions)

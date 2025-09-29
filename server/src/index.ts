@@ -11,7 +11,6 @@ import { config } from './config/index.js'
 import { csrfProtection, rateLimit } from './middleware/security.js'
 import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
-import favoritesRouter from './routes/favorites.js'
 import historicalDataRouter from './routes/historicalData.js'
 // import { scheduleVolumeUpdates } from './tasks/updateVolumes.js' - This is no longer needed
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
@@ -50,7 +49,6 @@ app.get('/health', (req, res) => {
 })
 
 // API routes
-app.use('/api/favorites', favoritesRouter)
 app.use('/api/historical', historicalDataRouter)
 
 // tRPC middleware

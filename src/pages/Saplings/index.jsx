@@ -20,7 +20,13 @@ export default function Saplings () {
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [saplingSets, setSaplingSets] = useState([])
-  const { favoriteItemsSet, toggleFavorite, isLoadingFavorites } = useFavorites()
+  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
+
+  const favoriteItemIds = new Set(
+    favoriteItems
+      .filter(fav => fav.itemType === 'sapling')
+      .map(fav => fav.itemId)
+  )
 
   useEffect(() => {
     if (priceStatus === 'success' && items.length > 0) {
@@ -83,8 +89,8 @@ export default function Saplings () {
           {priceStatus === 'success' && saplingSets && saplingSets.length > 0 && (
             <ItemSetsTable
               data={saplingSets}
-              favoriteItems={favoriteItemsSet}
-              onToggleFavorite={toggleFavorite}
+              favoriteItems={favoriteItemIds}
+              onToggleFavorite={(itemId) => toggleFavorite(itemId, 'sapling')}
             />
           )}
         </Box>

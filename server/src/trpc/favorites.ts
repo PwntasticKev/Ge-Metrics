@@ -10,24 +10,29 @@ export const favoritesRouter = router({
     .query(async ({ ctx }) => {
       const userId = ctx.user.id
       const userFavorites = await db.select({
-        itemId: favorites.itemId
+        itemId: favorites.itemId,
+        itemType: favorites.itemType
       }).from(favorites).where(eq(favorites.userId, userId))
 
-      // Return an array of item IDs
-      return userFavorites.map(fav => fav.itemId)
+      // Return an array of favorite objects
+      return userFavorites
     }),
 
   // Add a new favorite
   add: protectedProcedure
-    .input(z.object({ itemId: z.number() }))
+    .input(z.object({
+      itemId: z.number(),
+      itemType: z.string()
+    }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user.id
-      const { itemId } = input
+      const { itemId, itemType } = input
 
       // Use onConflictDoNothing to prevent duplicates
       await db.insert(favorites).values({
         userId,
-        itemId
+        itemId,
+        itemType
       }).onConflictDoNothing()
 
       return { success: true, message: 'Favorite added.' }
@@ -35,13 +40,16 @@ export const favoritesRouter = router({
 
   // Remove a favorite
   remove: protectedProcedure
-    .input(z.object({ itemId: z.number() }))
+    .input(z.object({
+      itemId: z.number(),
+      itemType: z.string()
+    }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user.id
-      const { itemId } = input
+      const { itemId, itemType } = input
 
       await db.delete(favorites)
-        .where(and(eq(favorites.userId, userId), eq(favorites.itemId, itemId)))
+        .where(and(eq(favorites.userId, userId), eq(favorites.itemId, itemId), eq(favorites.itemType, itemType)))
 
       return { success: true, message: 'Favorite removed.' }
     })

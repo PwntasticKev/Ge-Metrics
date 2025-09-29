@@ -20,11 +20,22 @@ export default function CombinationItems () {
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [itemSets, setItemSets] = useState([])
-  const { favoriteItemsSet, toggleFavorite, isLoadingFavorites } = useFavorites()
+  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
+
+  const favoriteItemIds = new Set(
+    favoriteItems
+      .filter(fav => fav.itemType === 'combination')
+      .map(fav => fav.itemId)
+  )
 
   useEffect(() => {
     if (priceStatus === 'success' && items.length > 0) {
       setLastFetchTime(new Date())
+      const processedItemSets = itemRecipes
+        .map(recipe => getItemSetProfit(recipe, items))
+        .filter(item => item)
+        .sort((a, b) => b.profit - a.profit)
+      setItemSets(processedItemSets)
     }
   }, [priceStatus, items])
 
@@ -96,8 +107,8 @@ export default function CombinationItems () {
           {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
             <ItemSetsTable
               data={itemSets}
-              favoriteItems={favoriteItemsSet}
-              onToggleFavorite={toggleFavorite}
+              favoriteItems={favoriteItemIds}
+              onToggleFavorite={(itemId) => toggleFavorite(itemId, 'combination')}
             />
           )}
 
