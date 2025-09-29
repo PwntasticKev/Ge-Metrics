@@ -17,9 +17,11 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
         new (AuthModule as any).AuthUtils() // last resort: instantiate the class
 
       const decodedUser = utils.verifyAccessToken(token)
+      // The decoded token has a 'userId' property which is a string.
+      // We parse it to an integer and create an 'id' property for consistency in the context.
       const user = {
         ...decodedUser,
-        userId: parseInt(decodedUser.userId, 10)
+        id: parseInt(decodedUser.userId, 10)
       }
       return { req, res, user }
     } catch (error) {
@@ -50,6 +52,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   return next({
     ctx: {
       ...ctx,
+      // Pass the user object from the context, which now has a numeric `id`
       user: ctx.user
     }
   })
@@ -59,7 +62,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 export const protectedProcedure = t.procedure.use(isAuthed)
 
 const isAdmin = isAuthed.unstable_pipe(async ({ ctx, next }) => {
-  const [employee] = await db.select().from(employees).where(eq(employees.userId, ctx.user.userId)).limit(1)
+  const [employee] = await db.select().from(employees).where(eq(employees.userId, ctx.user.id)).limit(1)
 
   if (!employee || employee.role !== 'admin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to perform this action.' })

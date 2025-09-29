@@ -13,12 +13,14 @@ import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { saplingRecipes } from '../../components/Table/data/sapling-filters.jsx'
+import { useFavorites } from '../../hooks/useFavorites.js'
 
 export default function Saplings () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [saplingSets, setSaplingSets] = useState([])
+  const { favoriteItemsSet, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   useEffect(() => {
     if (priceStatus === 'success' && items.length > 0) {
@@ -39,11 +41,13 @@ export default function Saplings () {
     return () => clearInterval(interval)
   }, [])
 
+  const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
+
   return (
     <React.Fragment>
       {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
       {
-        (mapStatus === 'loading' || priceStatus === 'loading') &&
+        isLoading &&
         <Center maw={400} h={300} mx="auto">
           <Loader/>
         </Center>
@@ -77,7 +81,11 @@ export default function Saplings () {
           </Group>
 
           {priceStatus === 'success' && saplingSets && saplingSets.length > 0 && (
-            <ItemSetsTable data={saplingSets} />
+            <ItemSetsTable
+              data={saplingSets}
+              favoriteItems={favoriteItemsSet}
+              onToggleFavorite={toggleFavorite}
+            />
           )}
         </Box>
       )}

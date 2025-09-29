@@ -17,7 +17,15 @@ import {
   Button,
   ActionIcon
 } from '@mantine/core'
-import { IconChevronDown, IconChevronUp, IconSearch, IconSelector, IconChartHistogram, IconHeartFilled } from '@tabler/icons-react'
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconSearch,
+  IconSelector,
+  IconChartHistogram,
+  IconHeartFilled,
+  IconHeart
+} from '@tabler/icons-react'
 import TableSettingsMenu from './components/table-settings-menu.jsx'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
@@ -135,7 +143,7 @@ function sortData (data, payload) {
   )
 }
 
-export function ItemSetsTable ({ data }) {
+export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
   const theme = useMantineTheme()
   const location = useLocation()
 
@@ -186,6 +194,7 @@ export function ItemSetsTable ({ data }) {
     .filter(row => row && typeof row.profit !== 'undefined' && Array.isArray(row.items))
     .map((row, idx) => {
       const profitValue = Number(String(row.profit).replace(/,/g, ''))
+      const isFavorite = favoriteItems.has(row.id)
       return (
               <tr key={idx}>
                   {/* <td>{row.id}</td> */}
@@ -243,6 +252,13 @@ export function ItemSetsTable ({ data }) {
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>
                   <Flex gap="xs">
+                    <ActionIcon
+                      color="red"
+                      variant="light"
+                      onClick={() => onToggleFavorite(row.id)}
+                    >
+                      {isFavorite ? <IconHeartFilled size={16} /> : <IconHeart size={16} />}
+                    </ActionIcon>
                     <TableSettingsMenu itemId={row.id}/>
                   </Flex>
                 </td>

@@ -138,14 +138,11 @@ export type NewUserTransaction = typeof userTransactions.$inferInsert;
 export const favorites = pgTable('favorites', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  favoriteType: text('favorite_type').notNull(), // 'item' or 'combination'
-  favoriteId: text('favorite_id').notNull(), // itemId or combinationId
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
+  itemId: integer('item_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   userFavoriteIdx: index('favorites_user_id_idx').on(table.userId),
-  favoriteTypeIdx: index('favorites_type_idx').on(table.favoriteType),
-  uniqueFavorite: index('favorites_unique_idx').on(table.userId, table.favoriteType, table.favoriteId)
+  uniqueFavorite: index('favorites_unique_idx').on(table.userId, table.itemId)
 }))
 
 // Item Mapping (item definitions)

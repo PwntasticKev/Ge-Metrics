@@ -11,15 +11,19 @@ import { IconClock, IconRefresh } from '@tabler/icons-react'
 import React, { useState, useEffect } from 'react'
 import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
 import ItemData from '../../utils/item-data.jsx'
-import { getRelativeTime } from '../../utils/utils.jsx'
+import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
+import { itemRecipes } from '../../components/Table/data/item-set-filters.jsx'
+import { useFavorites } from '../../hooks/useFavorites.js'
 
 export default function CombinationItems () {
-  const { items, itemSets, mapStatus, priceStatus } = ItemData()
+  const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [itemSets, setItemSets] = useState([])
+  const { favoriteItemsSet, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   useEffect(() => {
-    if (priceStatus === 'success') {
+    if (priceStatus === 'success' && items.length > 0) {
       setLastFetchTime(new Date())
     }
   }, [priceStatus, items])
@@ -32,16 +36,18 @@ export default function CombinationItems () {
     return () => clearInterval(interval)
   }, [])
 
+  const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
+
   return (
     <React.Fragment>
       {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
       {
-        (mapStatus === 'loading' || priceStatus === 'loading') &&
+        isLoading &&
         <Center maw={400} h={300} mx="auto">
           <Loader/>
         </Center>
       }
-      {priceStatus === 'success' && items.length > 0 && (
+      {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
         <Box sx={{ py: 4 }}>
           <Group position="apart" mb="md">
             <div>
@@ -88,8 +94,13 @@ export default function CombinationItems () {
           </Card>
 
           {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
-            <ItemSetsTable data={itemSets} />
+            <ItemSetsTable
+              data={itemSets}
+              favoriteItems={favoriteItemsSet}
+              onToggleFavorite={toggleFavorite}
+            />
           )}
+
         </Box>
       )}
     </React.Fragment>

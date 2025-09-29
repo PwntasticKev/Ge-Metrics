@@ -58,7 +58,7 @@ const FormulaDocumentation = lazy(() => import('./pages/Admin/FormulaDocumentati
 const CronJobs = lazy(() => import('./pages/Admin/CronJobs'))
 const AIPredictions = lazy(() => import('./pages/AIPredictions'))
 const FutureItems = lazy(() => import('./pages/FutureItems'))
-const Favorites = lazy(() => import('./pages/Favorites'))
+const Favorites = lazy(() => import('./pages/Favorites/index.jsx'))
 const ProfitOpportunities = lazy(() => import('./pages/ProfitOpportunities'))
 const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
 const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))

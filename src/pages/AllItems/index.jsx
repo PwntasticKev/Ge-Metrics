@@ -4,25 +4,27 @@ import { IconClock } from '@tabler/icons-react'
 import { useState, useEffect } from 'react'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
+import { trpc } from '../../utils/trpc.jsx'
 
 export default function AllItems () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [favoriteItems, setFavoriteItems] = useState(new Set())
 
-  // Load favorites from localStorage on mount
-  useEffect(() => {
-    const savedFavorites = localStorage.getItem('favoriteItems')
-    if (savedFavorites) {
-      setFavoriteItems(new Set(JSON.parse(savedFavorites)))
+  const utils = trpc.useContext()
+  const { data: favoriteItemIds, isLoading: isLoadingFavorites } = trpc.favorites.getAll.useQuery()
+  const addFavorite = trpc.favorites.add.useMutation({
+    onSuccess: () => {
+      utils.favorites.getAll.invalidate()
     }
-  }, [])
+  })
+  const removeFavorite = trpc.favorites.remove.useMutation({
+    onSuccess: () => {
+      utils.favorites.getAll.invalidate()
+    }
+  })
 
-  // Save favorites to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('favoriteItems', JSON.stringify([...favoriteItems]))
-  }, [favoriteItems])
+  const favoriteItemsSet = new Set(favoriteItemIds)
 
   useEffect(() => {
     if (priceStatus === 'success') {
@@ -39,13 +41,11 @@ export default function AllItems () {
   }, [])
 
   const toggleFavorite = (itemId) => {
-    const newFavorites = new Set(favoriteItems)
-    if (newFavorites.has(itemId)) {
-      newFavorites.delete(itemId)
+    if (favoriteItemsSet.has(itemId)) {
+      removeFavorite.mutate({ itemId })
     } else {
-      newFavorites.add(itemId)
+      addFavorite.mutate({ itemId })
     }
-    setFavoriteItems(newFavorites)
   }
 
   const processedItems = items
@@ -62,11 +62,13 @@ export default function AllItems () {
     .filter(item => !item.name.includes('3rd age'))
     .sort((a, b) => b.profit - a.profit)
 
+  const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
+
   return (
         <>
             {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
             {
-                (mapStatus === 'loading' || priceStatus === 'loading') &&
+                isLoading &&
                 <Center maw={400} h={300} mx="auto">
                     <Loader/>
                 </Center>
@@ -94,7 +96,7 @@ export default function AllItems () {
                     <AllItemsTable
                       data={processedItems}
                       items={items}
-                      favoriteItems={favoriteItems}
+                      favoriteItems={favoriteItemsSet}
                       onToggleFavorite={toggleFavorite}
                       showFavoriteColumn={true}
                     />
