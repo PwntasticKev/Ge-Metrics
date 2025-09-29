@@ -1,9 +1,27 @@
-import { Button, MediaQuery, Navbar, Drawer, Burger, createStyles } from '@mantine/core'
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import {
+  createStyles,
+  Navbar,
+  UnstyledButton,
+  Tooltip,
+  Title,
+  rem,
+  Flex,
+  Text,
+  Group
+} from '@mantine/core'
+import {
+  IconGauge,
+  IconUser,
+  IconSettings,
+  IconLogout,
+  IconSwitchHorizontal,
+  IconChevronRight,
+  IconChevronLeft
+} from '@tabler/icons-react'
 import { MainLinks } from './components/main-links.jsx'
-import { useMediaQuery } from '@mantine/hooks'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { UserButton } from './components/user-button.jsx'
+import { useLocation } from 'react-router-dom'
 
 const useStyles = createStyles((theme) => ({
   navbar: {
@@ -56,133 +74,37 @@ const useStyles = createStyles((theme) => ({
   }
 }))
 
-export default function NavMenu ({ opened, setOpened }) {
+export default function NavMenu ({ user, isMobile }) {
   const { classes } = useStyles()
-  const [expanded, setExpanded] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [expanded, setExpanded] = useState(() => {
+    const saved = localStorage.getItem('navbarExpanded')
+    return saved ? JSON.parse(saved) : false
+  })
 
-  // Auto-close mobile menu on route change
-  useEffect(() => {
-    if (isMobile && opened) {
-      setOpened(false)
-    }
-  }, [location.pathname, isMobile, opened, setOpened])
-
-  // Load saved navbar state on component mount
-  useEffect(() => {
-    const savedExpanded = localStorage.getItem('navbarExpanded')
-    if (savedExpanded !== null && !isMobile) {
-      setExpanded(JSON.parse(savedExpanded))
-    }
-  }, [isMobile])
-
-  // Handle navbar expand/collapse with localStorage persistence
-  const handleToggleExpanded = () => {
+  const toggleNavbar = () => {
     const newExpanded = !expanded
     setExpanded(newExpanded)
     localStorage.setItem('navbarExpanded', JSON.stringify(newExpanded))
   }
 
-  // Handle mobile navigation item click
-  const handleMobileNavClick = (path) => {
-    setOpened(false) // Close drawer
-    navigate(path) // Navigate to route
-  }
-
-  // Mobile drawer
-  if (isMobile) {
-    return (
-      <Drawer
-        opened={opened}
-        onClose={() => setOpened(false)}
-        padding={0}
-        size="280px"
-        className={classes.mobileDrawer}
-        styles={(theme) => ({
-          drawer: {
-            backgroundColor: theme.colorScheme === 'dark'
-              ? theme.colors.dark[7]
-              : theme.white
-          },
-          header: {
-            display: 'none' // Hide default header, we'll create our own
-          },
-          body: {
-            padding: 0,
-            height: '100%'
-          }
-        })}
-        withCloseButton={false}
-        overlayProps={{
-          opacity: 0.55,
-          blur: 3
-        }}
-      >
-        <div className={classes.drawerHeader}>
-          <div className={classes.drawerTitle}>GE Metrics</div>
-        </div>
-        <MainLinks
-          expanded={true}
-          isMobile={true}
-          onNavigate={handleMobileNavClick}
-        />
-      </Drawer>
-    )
-  }
-
-  // Desktop navbar
   return (
     <Navbar
+      width={{ sm: expanded ? 240 : 80 }}
       p="md"
-      width={{
-        base: expanded ? 220 : 80,
-        sm: expanded ? 220 : 80,
-        lg: expanded ? 240 : 90
-      }}
-      className={classes.navbar}
-      styles={(theme) => ({
-        root: {
-          backgroundColor: theme.colorScheme === 'dark'
-            ? theme.colors.dark[7]
-            : theme.white,
-          borderRight: `1px solid ${
-            theme.colorScheme === 'dark'
-              ? theme.colors.dark[4]
-              : theme.colors.gray[3]
-          }`,
-          position: 'fixed',
-          top: 60,
-          left: 0,
-          height: 'calc(100vh - 60px)',
-          zIndex: 100
-        }
-      })}
+      className={!isMobile ? classes.navbar : ''}
     >
-      <Navbar.Section mb="xs">
-        <Button
-          variant="subtle"
-          size="sm"
-          onClick={handleToggleExpanded}
-          leftIcon={expanded ? <IconChevronLeft size={16} /> : <IconChevronRight size={16} />}
-          className={classes.expandButton}
-          styles={(theme) => ({
-            root: {
-              justifyContent: expanded ? 'flex-start' : 'center',
-              padding: expanded ? '8px 12px' : '8px'
-            },
-            label: {
-              fontSize: theme.fontSizes.sm
-            }
-          })}
-        >
-          {expanded ? 'Collapse' : ''}
-        </Button>
+      <Navbar.Section grow>
+        <MainLinks expanded={expanded} />
       </Navbar.Section>
-
-      <Navbar.Section grow mt="xs">
-        <MainLinks expanded={expanded} isMobile={false} />
+      <Navbar.Section>
+        <UserButton expanded={expanded} />
+        {!isMobile && (
+          <UnstyledButton className={classes.expandButton} onClick={toggleNavbar}>
+            <Group position="center">
+              {expanded ? <IconChevronLeft /> : <IconChevronRight />}
+            </Group>
+          </UnstyledButton>
+        )}
       </Navbar.Section>
     </Navbar>
   )

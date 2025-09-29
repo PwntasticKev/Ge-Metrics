@@ -4,7 +4,7 @@ import ErrorPage from './pages/error-page.jsx'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
-import { MantineProvider, createStyles, Box, LoadingOverlay } from '@mantine/core'
+import { MantineProvider, createStyles, Box, LoadingOverlay, Drawer } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { getTheme } from './theme/index.js'
 import HeaderNav from './components/Header'
@@ -204,9 +204,25 @@ function RequireAuth ({ children }) {
   return children
 }
 
+function MobileNav ({ opened, setOpened, user }) {
+  return (
+    <Drawer
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title="Menu"
+      padding="md"
+      size="full"
+    >
+      <NavMenu opened={opened} setOpened={setOpened} user={user} isMobile={true} />
+    </Drawer>
+  )
+}
+
 function AppContent () {
   const [opened, setOpened] = useState(false)
   const { user, logout } = useAuth()
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const toggle = () => setOpened((o) => !o)
 
   // Theme mode state (global)
   const [colorScheme, setColorScheme] = useState(() => {
@@ -259,8 +275,10 @@ function AppContent () {
                   <div>
                     {user && (
                       <>
-                        <HeaderNav setOpened={setOpened} opened={opened} user={user} onLogout={logout} />
-                        <NavMenu opened={opened} setOpened={setOpened} user={user} />
+                        <HeaderNav setOpened={toggle} opened={opened} user={user} onLogout={logout} />
+                        {isMobile
+                          ? <MobileNav opened={opened} setOpened={setOpened} user={user} />
+                          : <NavMenu user={user} />}
                       </>
                     )}
                     <AppLayout>

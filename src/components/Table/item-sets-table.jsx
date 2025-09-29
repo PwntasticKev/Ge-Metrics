@@ -30,6 +30,7 @@ import TableSettingsMenu from './components/table-settings-menu.jsx'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
 import { Link, useLocation } from 'react-router-dom'
+import { useMediaQuery } from '@mantine/hooks'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -146,6 +147,7 @@ function sortData (data, payload) {
 export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
   const theme = useMantineTheme()
   const location = useLocation()
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   const { classes, cx } = useStyles()
   const [search, setSearch] = useState('')
@@ -253,13 +255,21 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
                 <td style={{ verticalAlign: 'middle' }}>
                   <Flex gap="xs">
                     <ActionIcon
+                      size={isMobile ? 'sm' : 'md'}
                       color="red"
-                      variant="light"
+                      variant={isFavorite ? 'filled' : 'light'}
                       onClick={() => onToggleFavorite(row.id)}
                     >
-                      {isFavorite ? <IconHeartFilled size={16} /> : <IconHeart size={16} />}
+                      {isFavorite ? <IconHeartFilled size={isMobile ? 14 : 16} /> : <IconHeart size={isMobile ? 14 : 16} />}
                     </ActionIcon>
-                    <TableSettingsMenu itemId={row.id}/>
+                    <ActionIcon
+                      variant="light"
+                      color="blue"
+                      onClick={() => setGraphInfo(row.id)}
+                      size={isMobile ? 'sm' : 'md'}
+                    >
+                      <IconChartHistogram size={isMobile ? 14 : 16} />
+                    </ActionIcon>
                   </Flex>
                 </td>
             </tr>

@@ -14,7 +14,7 @@ import {
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-export default function AvatarMenu ({ user, onLogout }) {
+export default function AvatarMenu ({ user, onLogout, size = 30 }) {
   const [themeColor, setThemeColor] = useState('#339af0')
   const [darkMode, setDarkMode] = useState(true)
 
@@ -56,6 +56,7 @@ export default function AvatarMenu ({ user, onLogout }) {
               transition: 'transform 0.2s ease'
             }
           }}
+          size={size}
         >
           {user?.name ? user.name[0].toUpperCase() : (user?.email ? user.email[0].toUpperCase() : 'U')}
         </Avatar>
