@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   getPricingData,
-  getMappingData
+  getMappingData,
+  getVolumeData
 } from '../api/rs-wiki-api'
-import { allItems, getItemSetProfit } from '../utils/utils.jsx'
+import { allItems, getItemSetProfit, safeParseFloat } from '../utils/utils.jsx'
 import { itemRecipes } from '../components/Table/data/item-set-filters.jsx'
 
 const ItemData = () => {
@@ -17,25 +18,30 @@ const ItemData = () => {
       setMapStatus('loading')
       setPriceStatus('loading')
       try {
-        // Fetch all data sources in parallel
-        const [pricingResponse, mappingData] = await Promise.all([
+        const [pricingResponse, mappingData, volumeResponse] = await Promise.all([
           getPricingData(),
-          getMappingData()
+          getMappingData(),
+          getVolumeData()
         ])
 
-        const pricesAndVolumesById = pricingResponse.data.data
+        const pricesById = pricingResponse.data.data
+        const volumesById = volumeResponse.data.data
 
-        // Create a comprehensive items array with pricing and volume
         const enrichedItems = mappingData.map(item => {
-          const itemData = pricesAndVolumesById[item.id]
+          const priceData = pricesById[item.id]
+          const highPrice = safeParseFloat(priceData?.high, 0)
+          const lowPrice = safeParseFloat(priceData?.low, 0)
+          const volumeData = volumesById[item.id]
 
           return {
             ...item,
-            high: itemData ? itemData.high : null,
-            highTime: itemData ? itemData.highTime : null,
-            low: itemData ? itemData.low : null,
-            lowTime: itemData ? itemData.lowTime : null,
-            volume: itemData ? itemData.highPriceVolume || itemData.lowPriceVolume || itemData.volume || null : null,
+            img: `https://oldschool.runescape.wiki/images/${item.icon.replace(/ /g, '_')}`,
+            high: highPrice,
+            highTime: priceData ? priceData.highTime : null,
+            low: lowPrice,
+            lowTime: priceData ? priceData.lowTime : null,
+            volume: volumeData || 0,
+            profit: Math.floor(highPrice * 0.99 - lowPrice), // 1% tax
             examine: item.examine || 'No examine text available.'
           }
         })
@@ -44,7 +50,7 @@ const ItemData = () => {
 
         const processedItemSets = itemRecipes
           .map(recipe => getItemSetProfit(recipe, enrichedItems))
-          .filter(item => item) // Filter out undefined results
+          .filter(item => item)
           .sort((a, b) => b.profit - a.profit)
         setItemSets(processedItemSets)
 
@@ -70,5 +76,4 @@ const ItemData = () => {
     deathsCofferItems: []
   }
 }
-
 export default ItemData

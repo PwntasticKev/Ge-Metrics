@@ -10,9 +10,11 @@ import {
   Grid,
   Stack,
   SimpleGrid,
-  Divider
+  Divider,
+  SegmentedControl,
+  Tooltip
 } from '@mantine/core'
-import { IconClock, IconTrendingUp, IconTrendingDown, IconActivity } from '@tabler/icons-react'
+import { IconClock, IconTrendingUp, IconTrendingDown, IconActivity, IconPercentage } from '@tabler/icons-react'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -21,11 +23,19 @@ import {
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend
 } from 'chart.js'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
+import {
+  foodFilter,
+  potionsFilter,
+  herbsFilter,
+  runesFilter,
+  logsFilter,
+  oresAndBarsFilter
+} from '../../utils/market-watch-filters.js'
 
 ChartJS.register(
   CategoryScale,
@@ -33,94 +43,46 @@ ChartJS.register(
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  ChartTooltip,
   Legend
 )
 
 const marketWatchIndexes = {
   food: {
     name: 'Food Index',
-    description: 'Popular consumable foods for PvM and general gameplay',
-    items: [
-      'Cooked karambwan', 'Guthix rest(4)', 'Jug of wine', 'Lobster', 'Manta ray',
-      'Monkfish', 'Pineapple pizza', 'Saradomin brew(4)', 'Tuna potato', 'Anglerfish'
-    ],
-    color: 'red'
-  },
-  logs: {
-    name: 'Log Index',
-    description: 'Woodcutting logs from different tree types',
-    items: [
-      'Achey tree logs', 'Arctic pine logs', 'Logs', 'Magic logs', 'Mahogany logs',
-      'Maple logs', 'Oak logs', 'Teak logs', 'Willow logs', 'Yew logs', 'Redwood logs'
-    ],
-    color: 'green'
-  },
-  runes: {
-    name: 'Rune Index',
-    description: 'Essential runes for Magic combat and teleports',
-    items: [
-      'Astral rune', 'Blood rune', 'Chaos rune', 'Cosmic rune', 'Death rune',
-      'Law rune', 'Nature rune', 'Soul rune'
-    ],
-    color: 'purple'
-  },
-  metals: {
-    name: 'Metal Index',
-    description: 'Mining ores and smithing bars',
-    items: [
-      'Adamantite bar', 'Adamantite ore', 'Bronze bar', 'Coal', 'Copper ore',
-      'Gold bar', 'Gold ore', 'Iron bar', 'Iron ore', 'Mithril bar', 'Mithril ore',
-      'Runite bar', 'Runite ore', 'Silver bar', 'Silver ore', 'Steel bar', 'Tin ore'
-    ],
-    color: 'gray'
-  },
-  'bot-farm': {
-    name: 'Bot Farm Index',
-    description: 'High-volume items commonly targeted by automated accounts',
-    items: [
-      'Adamantite bar', 'Air orb', 'Black dragonhide', 'Blue dragon scale', 'Blue dragonhide',
-      'Bow string', 'Cannonball', 'Chinchompa', 'Coal', 'Dragon bones', 'Flax',
-      'Green dragonhide', 'Iron ore', 'Magic logs', 'Mithril bar', 'Nature rune',
-      'Pure essence', 'Raw lobster', 'Raw monkfish', 'Raw shark', 'Raw swordfish',
-      'Red chinchompa', 'Rune essence', 'Runite bar', 'Steel bar', 'White berries',
-      'Wine of zamorak', 'Yew logs'
-    ],
-    color: 'red'
+    description: 'Tracks the market health of popular consumables.',
+    color: 'blue',
+    filter: foodFilter
   },
   potions: {
     name: 'Potions Index',
-    description: 'Combat and skill potions for PvM and training',
-    items: [
-      'Anti-venom+(4)', 'Antidote++(4)', 'Extended antifire(4)', 'Magic potion(4)',
-      'Prayer potion(4)', 'Ranging potion(4)', 'Sanfew serum(4)', 'Saradomin brew(4)',
-      'Stamina potion(4)', 'Super attack(4)', 'Super combat potion(4)', 'Super defence(4)',
-      'Super energy(4)', 'Super restore(4)', 'Super strength(4)', 'Superantipoison(4)'
-    ],
-    color: 'blue'
-  },
-  raids: {
-    name: 'Raids Index',
-    description: 'High-value items from Chambers of Xeric and Theatre of Blood',
-    items: [
-      'Ancestral robe bottom', 'Ancestral robe top', "Dinh's bulwark", 'Dragon claws',
-      'Dragon hunter crossbow', 'Elder maul', 'Kodai wand', 'Dexterous prayer scroll',
-      'Twisted bow', 'Twisted buckler', 'Arcane prayer scroll'
-    ],
-    color: 'yellow'
+    description: 'Tracks the value of common combat and utility potions.',
+    color: 'green',
+    filter: potionsFilter
   },
   herbs: {
-    name: 'Herb Index',
-    description: 'Herblore herbs both grimy and clean',
-    items: [
-      'Avantoe', 'Cadantine', 'Dwarf weed', 'Grimy avantoe', 'Grimy cadantine',
-      'Grimy dwarf weed', 'Grimy guam leaf', 'Grimy harralander', 'Grimy irit leaf',
-      'Grimy kwuarm', 'Grimy lantadyme', 'Grimy marrentill', 'Grimy ranarr weed',
-      'Grimy snapdragon', 'Grimy tarromin', 'Grimy toadflax', 'Grimy torstol',
-      'Guam leaf', 'Harralander', 'Irit leaf', 'Kwuarm', 'Lantadyme', 'Marrentill',
-      'Ranarr weed', 'Snapdragon', 'Tarromin', 'Toadflax', 'Torstol'
-    ],
-    color: 'green'
+    name: 'Herbs Index',
+    description: 'Monitors the market for clean herbs used in Herblore.',
+    color: 'teal',
+    filter: herbsFilter
+  },
+  runes: {
+    name: 'Runes Index',
+    description: 'Follows the market for elemental and catalytic runes.',
+    color: 'violet',
+    filter: runesFilter
+  },
+  logs: {
+    name: 'Logs Index',
+    description: 'An index of logs used in Fletching and Construction.',
+    color: 'orange',
+    filter: logsFilter
+  },
+  metal: {
+    name: 'Metal Index',
+    description: 'Tracks the value of primary ores and bars.',
+    color: 'gray',
+    filter: oresAndBarsFilter
   }
 }
 
@@ -128,6 +90,7 @@ export default function MarketWatchIndex ({ indexType }) {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [chartView, setChartView] = useState('price') // 'price', 'volume', or 'profit'
 
   const indexConfig = marketWatchIndexes[indexType] || marketWatchIndexes.food
 
@@ -144,14 +107,14 @@ export default function MarketWatchIndex ({ indexType }) {
     return () => clearInterval(interval)
   }, [])
 
-  // Filter items for this index
+  // Filter items for this index using the new dynamic filter
   const indexItems = useMemo(() => {
-    return items.filter(item =>
-      indexConfig.items.some(indexItemName =>
-        item.name && item.name.toLowerCase().includes(indexItemName.toLowerCase())
-      )
-    )
-  }, [items, indexConfig.items])
+    if (!items || items.length === 0) {
+      return []
+    }
+    // Use the filter function from the index config
+    return items.filter(indexConfig.filter)
+  }, [items, indexConfig.filter])
 
   // Calculate index statistics (like a stock market index)
   const indexStats = useMemo(() => {
@@ -162,7 +125,8 @@ export default function MarketWatchIndex ({ indexType }) {
         avgProfit: 0,
         marketCap: 0,
         dailyChange: 0,
-        itemCount: 0
+        itemCount: 0,
+        profitableCount: 0
       }
     }
 
@@ -187,9 +151,8 @@ export default function MarketWatchIndex ({ indexType }) {
       return sum + price
     }, 0) / indexItems.length
 
-    // Index calculation: normalize average price to index range (70-130)
-    // For food items, typical prices range from 100-10000 gp
-    const indexValue = Math.max(70, Math.min(130, Math.floor((averagePrice / 100) + 70)))
+    // Index calculation: normalize volume-weighted average price to index range (70-130)
+    const indexValue = Math.max(70, Math.min(130, Math.floor((volumeWeightedPrice / 100) + 70)))
 
     const totalProfit = indexItems.reduce((sum, item) => {
       const profit = parseInt(item.profit?.toString().replace(/,/g, '') || '0')
@@ -210,18 +173,19 @@ export default function MarketWatchIndex ({ indexType }) {
       return sum + volatility
     }, 0) / indexItems.length
 
-    const dailyChange = ((Math.random() - 0.5) * Math.min(priceVolatility / 2, 3)).toFixed(2)
+    const profitableCount = indexItems.filter(item => parseInt(item.profit?.toString().replace(/,/g, '') || '0') > 0).length
 
     return {
       totalVolume,
       indexValue,
       avgProfit: Math.floor(totalProfit / indexItems.length),
       marketCap: totalMarketCap,
-      dailyChange: parseFloat(dailyChange),
+      dailyChange: parseFloat(priceVolatility.toFixed(2)), // Replaced random dailyChange with priceVolatility
       itemCount: indexItems.length,
       averagePrice: Math.floor(averagePrice),
       volumeWeightedPrice: Math.floor(volumeWeightedPrice),
-      priceVolatility: priceVolatility.toFixed(1)
+      priceVolatility: priceVolatility.toFixed(1),
+      profitableCount
     }
   }, [indexItems])
 
@@ -229,26 +193,44 @@ export default function MarketWatchIndex ({ indexType }) {
   const chartData = useMemo(() => {
     const sortedItems = [...indexItems]
       .sort((a, b) => {
-        const priceA = parseInt(a.high?.toString().replace(/,/g, '') || '0')
-        const priceB = parseInt(b.high?.toString().replace(/,/g, '') || '0')
-        return priceB - priceA
+        if (chartView === 'volume') {
+          return (b.volume || 0) - (a.volume || 0)
+        } else if (chartView === 'profit') {
+          return (b.profit || 0) - (a.profit || 0)
+        }
+        // Default to sorting by price
+        return (b.high || 0) - (a.high || 0)
       })
       .slice(0, 10) // Top 10 items
+
+    const getChartLabel = () => {
+      if (chartView === 'volume') return 'Volume'
+      if (chartView === 'profit') return 'Profit (gp)'
+      return 'High Price (gp)'
+    }
+
+    const getChartData = (item) => {
+      if (chartView === 'volume') return item.volume || 0
+      if (chartView === 'profit') return item.profit || 0
+      return item.high || 0
+    }
 
     return {
       labels: sortedItems.map(item => item.name?.slice(0, 15) + '...' || 'Unknown'),
       datasets: [
         {
-          label: 'High Price',
-          data: sortedItems.map(item => parseInt(item.high?.toString().replace(/,/g, '') || '0')),
+          label: getChartLabel(),
+          data: sortedItems.map(getChartData),
           borderColor: `var(--mantine-color-${indexConfig.color}-5)`,
           backgroundColor: `var(--mantine-color-${indexConfig.color}-1)`,
           fill: true,
-          tension: 0.4
+          tension: 0.4,
+          pointRadius: 3, // Add points to the line
+          pointBackgroundColor: `var(--mantine-color-${indexConfig.color}-7)`
         }
       ]
     }
-  }, [indexItems, indexConfig.color])
+  }, [indexItems, indexConfig.color, chartView])
 
   if (mapStatus === 'loading' || priceStatus === 'loading') {
     return (
@@ -287,9 +269,11 @@ export default function MarketWatchIndex ({ indexType }) {
           <Badge
             color="blue"
             size="lg"
-            leftIcon={<IconClock size={14} />}
           >
-            {getRelativeTime(lastFetchTime, currentTime)}
+            <Group spacing="xs" noWrap>
+              <IconClock size={14} />
+              <span>{getRelativeTime(lastFetchTime, currentTime)}</span>
+            </Group>
           </Badge>
           <Badge
             color={indexStats.itemCount > 0 ? 'green' : 'orange'}
@@ -305,30 +289,19 @@ export default function MarketWatchIndex ({ indexType }) {
         <Card withBorder p="md">
           <Group position="apart">
             <div>
-              <Text size="xs" color="dimmed" weight={500}>MARKET CAP</Text>
-              <Text size="xl" weight={700}>
-                {(indexStats.marketCap / 1000000).toFixed(1)}M gp
-              </Text>
-            </div>
-            <IconActivity size={24} color="blue" />
-          </Group>
-        </Card>
-
-        <Card withBorder p="md">
-          <Group position="apart">
-            <div>
               <Text size="xs" color="dimmed" weight={500}>INDEX VALUE</Text>
               <Group spacing="xs" align="baseline">
                 <Text size="xl" weight={700}>
                   {indexStats.indexValue.toLocaleString()}
                 </Text>
-                <Text
-                  size="sm"
-                  weight={500}
-                  color={indexStats.dailyChange >= 0 ? 'green' : 'red'}
-                >
-                  {indexStats.dailyChange >= 0 ? '+' : ''}{indexStats.dailyChange}%
-                </Text>
+                <Tooltip label="Represents the average price change of items in this index over the last 24 hours." withArrow>
+                  <Text
+                    size="sm"
+                    weight={500}
+                  >
+                    {indexStats.priceVolatility}% Volatility
+                  </Text>
+                </Tooltip>
               </Group>
             </div>
             <IconTrendingUp size={24} color={indexStats.dailyChange >= 0 ? 'green' : 'red'} />
@@ -338,12 +311,24 @@ export default function MarketWatchIndex ({ indexType }) {
         <Card withBorder p="md">
           <Group position="apart">
             <div>
-              <Text size="xs" color="dimmed" weight={500}>AVG PROFIT</Text>
+              <Text size="xs" color="dimmed" weight={500}>AVG PROFIT MARGIN</Text>
               <Text size="xl" weight={700} color={indexStats.avgProfit >= 0 ? 'green' : 'red'}>
                 {indexStats.avgProfit >= 0 ? '+' : ''}{indexStats.avgProfit.toLocaleString()} gp
               </Text>
             </div>
             <IconTrendingDown size={24} color={indexStats.avgProfit >= 0 ? 'green' : 'red'} />
+          </Group>
+        </Card>
+
+        <Card withBorder p="md">
+          <Group position="apart">
+            <div>
+              <Text size="xs" color="dimmed" weight={500}>PROFITABLE RATIO</Text>
+              <Text size="xl" weight={700}>
+                {indexStats.profitableCount} / {indexStats.itemCount}
+              </Text>
+            </div>
+            <IconPercentage size={24} color="cyan" />
           </Group>
         </Card>
 
@@ -364,7 +349,18 @@ export default function MarketWatchIndex ({ indexType }) {
 
       {/* Chart */}
       <Card withBorder p="md" mb="xl">
-        <Text weight={500} mb="md">Top Items by Price</Text>
+        <Group position="apart" mb="md">
+          <Text weight={500}>Top 10 Items by {chartView.charAt(0).toUpperCase() + chartView.slice(1)}</Text>
+          <SegmentedControl
+            value={chartView}
+            onChange={setChartView}
+            data={[
+              { label: 'Price', value: 'price' },
+              { label: 'Volume', value: 'volume' },
+              { label: 'Profit', value: 'profit' }
+            ]}
+          />
+        </Group>
         <Box h={300}>
           <Line
             data={chartData}
@@ -378,7 +374,20 @@ export default function MarketWatchIndex ({ indexType }) {
               },
               scales: {
                 y: {
-                  beginAtZero: true
+                  beginAtZero: false, // Allow the chart to autoscale better
+                  ticks: {
+                    callback: function (value, index, values) {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}m`
+                      if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                      return value.toLocaleString()
+                    }
+                  }
+                },
+                x: {
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45
+                  }
                 }
               }
             }}
@@ -390,29 +399,46 @@ export default function MarketWatchIndex ({ indexType }) {
       <Card withBorder p="md">
         <Text weight={500} mb="md">All {indexConfig.name} Items ({indexItems.length})</Text>
         <Stack spacing="xs">
-          {indexItems.map((item, index) => (
-            <Group key={index} position="apart" p="xs" style={{
-              backgroundColor: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-              borderRadius: '4px'
-            }}>
-              <Group>
-                <Text weight={500}>{item.name}</Text>
-                <Badge size="sm" color="blue">ID: {item.id}</Badge>
+          {indexItems.map((item, index) => {
+            const profitPerItem = parseInt(item.profit?.toString().replace(/,/g, '') || '0')
+            const volume24h = parseInt(item.volume?.toString().replace(/,/g, '') || '0')
+            const lowPrice = parseInt(item.low?.toString().replace(/,/g, '') || '0')
+            const roi = lowPrice > 0 ? ((profitPerItem / lowPrice) * 100).toFixed(2) : 0
+
+            return (
+              <Group key={index} position="apart" p="xs" style={{
+                backgroundColor: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+                borderRadius: '4px'
+              }}>
+                <Group>
+                  <img src={item.img} alt={item.name} style={{ width: 24, height: 24 }} />
+                  <Text weight={500}>{item.name}</Text>
+                  <Badge size="sm" color="blue">ID: {item.id}</Badge>
+                </Group>
+                <Group spacing="md">
+                  <Text size="sm" color="dimmed">Volume: {volume24h.toLocaleString()}</Text>
+                  <Text size="sm" weight={500}>High: {item.high?.toLocaleString()}</Text>
+                  <Text size="sm" weight={500}>Low: {item.low?.toLocaleString()}</Text>
+                  <Text
+                    size="sm"
+                    weight={500}
+                    color={profitPerItem >= 0 ? 'green' : 'red'}
+                    style={{ minWidth: '100px', textAlign: 'right' }}
+                  >
+                    Profit: {profitPerItem.toLocaleString()} gp
+                  </Text>
+                  <Text
+                    size="sm"
+                    weight={700}
+                    color={roi >= 0 ? 'green' : 'red'}
+                    style={{ minWidth: '100px', textAlign: 'right' }}
+                  >
+                    ROI: {roi}%
+                  </Text>
+                </Group>
               </Group>
-              <Group spacing="md">
-                <Text size="sm" color="dimmed">Volume: {item.volume}</Text>
-                <Text size="sm" weight={500}>High: {item.high}</Text>
-                <Text size="sm" weight={500}>Low: {item.low}</Text>
-                <Text
-                  size="sm"
-                  weight={500}
-                  color={item.profit && parseInt(item.profit.toString().replace(/,/g, '')) >= 0 ? 'green' : 'red'}
-                >
-                  Profit: {item.profit}
-                </Text>
-              </Group>
-            </Group>
-          ))}
+            )
+          })}
         </Stack>
       </Card>
     </Box>
