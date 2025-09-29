@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   Container,
   Title,
@@ -29,20 +29,32 @@ import {
   IconBrandTwitter,
   IconBrandYoutube,
   IconBrandDiscord,
-  IconHelp,
-  IconSearch,
-  IconPlus,
-  IconMinus,
-  IconChevronDown,
-  IconChevronUp,
   IconMail,
-  IconBrandReddit,
-  IconBrandTwitch
+  IconCalculator
 } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
+import ItemData from '../../utils/item-data'
+import { FlippingProfitCalculator, HighAlchCalculator } from './Calculators'
 
 export default function Faq () {
   const [activeAccordion, setActiveAccordion] = useState(['website-faq'])
+  const { items, priceStatus } = ItemData()
+
+  const topFlips = useMemo(() => {
+    if (priceStatus !== 'success') return []
+    return items
+      .filter(item => item.tradeable && item.highPriceVolume > 1000)
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 4)
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        buyPrice: item.low.toLocaleString(),
+        sellPrice: item.high.toLocaleString(),
+        profit: item.profit.toLocaleString(),
+        volume: 'High'
+      }))
+  }, [items, priceStatus])
 
   const flippingExperts = [
     {
@@ -100,6 +112,19 @@ export default function Faq () {
         variant="separated"
         radius="md"
       >
+        {/* Calculators & Tools */}
+        <Accordion.Item value="calculators">
+          <Accordion.Control icon={<IconCalculator size={20} />}>
+            <Title order={3}>Calculators & Tools</Title>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <SimpleGrid cols={2} spacing="xl" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
+              <FlippingProfitCalculator />
+              <HighAlchCalculator />
+            </SimpleGrid>
+          </Accordion.Panel>
+        </Accordion.Item>
+
         {/* Website FAQ */}
         <Accordion.Item value="website-faq">
           <Accordion.Control icon={<IconInfoCircle size={20} />}>
@@ -126,7 +151,7 @@ export default function Faq () {
               <Card withBorder p="md">
                 <Title order={4} mb="sm">How accurate are the profit calculations?</Title>
                 <Text>
-                  All profits are calculated using the current 2% Grand Exchange tax.
+                  All profits are calculated using the current 1% Grand Exchange tax.
                   The "After Tax" price shows what you'll actually receive when selling items.
                 </Text>
               </Card>
@@ -163,9 +188,7 @@ export default function Faq () {
                     <Text weight={500}>Step 1: Choose Your Items</Text>
                   </Group>
                   <Text color="dimmed" size="sm">
-                    Start with high-volume items like <Link to="/item/526">Dragon bones</Link>,
-                    <Link to="/item/1515">Yew logs</Link>, or <Link to="/item/4587">Rune scimitar</Link>.
-                    These items trade frequently and have predictable price patterns.
+                    Start with high-volume items like those shown above, or browse our <Link to="/high-volumes">High Volumes</Link> page.
                   </Text>
                 </Card>
 
@@ -210,13 +233,13 @@ export default function Faq () {
               </Stack>
 
               <Card withBorder p="md">
-                <Title order={4} mb="md">Example Profitable Flips</Title>
-                <SimpleGrid cols={2} spacing="sm">
-                  {exampleFlips.map((flip, index) => (
-                    <Card key={index} withBorder p="sm" sx={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                <Title order={4} mb="md">🔥 Live Profitable Flips</Title>
+                <SimpleGrid cols={2} spacing="sm" breakpoints={[{ maxWidth: 'xs', cols: 1 }]}>
+                  {topFlips.map((flip) => (
+                    <Card key={flip.id} withBorder p="sm" component={Link} to={`/item/${flip.id}`} sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)' } }}>
                       <Group position="apart" mb="xs">
-                        <Text weight={500}>{flip.item}</Text>
-                        <Badge color={flip.volume === 'High' ? 'green' : 'yellow'} size="sm">
+                        <Text weight={500}>{flip.name}</Text>
+                        <Badge color="green" size="sm">
                           {flip.volume} Vol
                         </Badge>
                       </Group>
