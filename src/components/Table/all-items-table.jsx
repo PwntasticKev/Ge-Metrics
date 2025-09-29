@@ -118,8 +118,16 @@ function filterData (data, filters) {
     }
 
     // Third Age filter
-    if (thirdAge && !item.name.toLowerCase().includes('3rd age')) {
-      return false
+    if (thirdAge) {
+      const thirdAgeKeywords = [
+        '3rd age',
+        'third-age',
+        '3rd-age'
+      ]
+      const isThirdAge = thirdAgeKeywords.some(keyword =>
+        item.name.toLowerCase().includes(keyword)
+      )
+      if (!isThirdAge) return false
     }
 
     // Volume filter (based on buy limit as proxy for volume)
@@ -257,7 +265,18 @@ export function AllItemsTable ({
     profitMax
   }
 
-  const [showId, setShowId] = useState(true)
+  const [showId, setShowId] = useState(false)
+
+  useEffect(() => {
+    const storedShowId = localStorage.getItem('showId')
+    if (storedShowId) {
+      setShowId(JSON.parse(storedShowId))
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('showId', JSON.stringify(showId))
+  }, [showId])
 
   useEffect(() => {
     setSortedData(sortData(data, {
@@ -391,17 +410,9 @@ export function AllItemsTable ({
             style={{ flex: 1 }}
           />
           <Group spacing="xs">
-            <ActionIcon
-              variant="light"
-              color="blue"
-              onClick={() => setFiltersOpen(!filtersOpen)}
-              size="lg"
-            >
-              {filtersOpen ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
-            </ActionIcon>
             <Button
               variant="light"
-              leftIcon={<IconFilter size={16} />}
+              leftIcon={filtersOpen ? <IconChevronUp size={16} /> : <IconFilter size={16} />}
               onClick={() => setFiltersOpen(!filtersOpen)}
             >
               Filters {activeFiltersCount > 0 && <Badge size="xs" ml="xs">{activeFiltersCount}</Badge>}
@@ -541,9 +552,9 @@ export function AllItemsTable ({
                   children: React.Children.map(row.props.children, (cell, i) => {
                     // Always left-align the Name column, regardless of ID visibility
                     if (i === nameColIndex) {
-                      return React.cloneElement(cell, { style: { ...cell.props.style, textAlign: 'left', verticalAlign: 'middle' } })
+                      return cell ? React.cloneElement(cell, { style: { ...cell.props.style, textAlign: 'left', verticalAlign: 'middle' } }) : null
                     }
-                    return React.cloneElement(cell, { style: { ...cell.props.style, textAlign: 'center', verticalAlign: 'middle' } })
+                    return cell ? React.cloneElement(cell, { style: { ...cell.props.style, textAlign: 'center', verticalAlign: 'middle' } }) : null
                   })
                 })
               )

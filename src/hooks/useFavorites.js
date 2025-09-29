@@ -1,8 +1,8 @@
 import { trpc } from '../utils/trpc.jsx'
 
-export function useFavorites () {
+export function useFavorites (itemType) {
   const utils = trpc.useContext()
-  const { data: favoriteItems, isLoading: isLoadingFavorites } = trpc.favorites.getAll.useQuery(undefined, {
+  const { data: favoriteItems, isLoading: isLoadingFavorites } = trpc.favorites.getAll.useQuery({ itemType }, {
     initialData: []
   })
 
