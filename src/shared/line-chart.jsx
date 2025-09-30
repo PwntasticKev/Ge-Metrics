@@ -48,21 +48,6 @@ export default function LineChart ({ id, items }) {
 
   const item = useMemo(() => getItemById(id, items) || {}, [id, items])
 
-  useEffect(() => {
-    const fetchGameUpdates = async () => {
-      try {
-        const response = await fetch('http://localhost:4000/api/game-updates')
-        const data = await response.json()
-        if (data.success) {
-          setGameUpdates(data.data)
-        }
-      } catch (error) {
-        console.error('Error fetching game updates:', error)
-      }
-    }
-    fetchGameUpdates()
-  }, [id, items])
-
   const fetchData = async () => {
     if (!id) return
     setIsFetching(true)
@@ -122,34 +107,7 @@ export default function LineChart ({ id, items }) {
         }
       },
       annotation: {
-        annotations: {
-          ...gameUpdates.reduce((acc, update) => {
-            const updateTimestamp = new Date(update.date).getTime()
-
-            if (historyData && historyData.length > 0) {
-              const closestDataPoint = historyData.reduce((prev, curr) => {
-                return (Math.abs(curr.timestamp * 1000 - updateTimestamp) < Math.abs(prev.timestamp * 1000 - updateTimestamp) ? curr : prev)
-              })
-
-              acc[update.title.replace(/\s/g, '')] = {
-                type: 'point',
-                xValue: updateTimestamp,
-                yValue: closestDataPoint.avgHighPrice,
-                backgroundColor: 'rgba(233, 30, 99, 0.7)',
-                borderColor: 'rgba(233, 30, 99, 1)',
-                borderWidth: 2,
-                radius: 8,
-                hoverRadius: 12,
-                label: {
-                  content: update.title,
-                  enabled: true,
-                  position: 'top'
-                }
-              }
-            }
-            return acc
-          }, {})
-        }
+        annotations: {}
       }
     },
     scales: {

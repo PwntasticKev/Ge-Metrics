@@ -16,8 +16,11 @@ import {
 } from '@mantine/core'
 import { IconKey, IconMail, IconCheck, IconAlertCircle, IconSettings, IconShield } from '@tabler/icons-react'
 import OTPSettings from '../../components/OTP/OTPSettings.jsx'
+import { trpc } from '../../utils/trpc.jsx'
 
 export default function Settings () {
+  const { data: currentUser, isLoading: isUserLoading, error: userError } = trpc.auth.me.useQuery()
+  const utils = trpc.useContext()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -30,25 +33,15 @@ export default function Settings () {
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
-  // Mock user data - this would come from your auth context
-  const [currentUser, setCurrentUser] = useState({
-    id: 1,
-    name: 'John Doe',
-    email: 'john@example.com',
-    mailchimp_api_key: process.env.REACT_APP_MAILCHIMP_API_KEY || '',
-    phone_number: '',
-    otp_enabled: false
-  })
+  const handleUserUpdate = () => {
+    utils.auth.me.invalidate()
+  }
 
   useEffect(() => {
-    // Load user settings
-    setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    if (currentUser) {
       setMailchimpApiKey(currentUser.mailchimp_api_key || '')
-      setLoading(false)
-    }, 500)
-  }, [])
+    }
+  }, [currentUser])
 
   const handleSaveSettings = async () => {
     setSaving(true)
@@ -144,7 +137,7 @@ export default function Settings () {
 
   const isApiKeyConfigured = mailchimpApiKey && mailchimpApiKey.trim().length > 0
 
-  if (loading && !mailchimpApiKey) {
+  if (isUserLoading) {
     return (
       <Box sx={{ py: 4 }}>
         <Group spacing="sm" mb="md">
@@ -277,7 +270,7 @@ export default function Settings () {
         </Card>
 
         {/* Security Settings */}
-        <OTPSettings user={currentUser} onUpdate={setCurrentUser} />
+        <OTPSettings user={currentUser} onUpdate={handleUserUpdate} />
 
         {/* Account Information */}
         <Card withBorder p="lg">
