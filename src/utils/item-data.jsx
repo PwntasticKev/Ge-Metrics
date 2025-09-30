@@ -6,6 +6,8 @@ import {
 } from '../api/rs-wiki-api'
 import { allItems, getItemSetProfit, safeParseFloat } from '../utils/utils.jsx'
 import { itemRecipes } from '../components/Table/data/item-set-filters.jsx'
+import { saplingRecipes } from '../components/Table/data/sapling-filters.jsx'
+import { herbCleaningRecipes } from '../components/Table/data/herb-cleaning-filters.jsx'
 
 const ItemData = () => {
   const [items, setItems] = useState([])
@@ -48,7 +50,13 @@ const ItemData = () => {
 
         setItems(enrichedItems)
 
-        const processedItemSets = itemRecipes
+        const allRecipes = [
+          ...itemRecipes,
+          ...saplingRecipes,
+          ...herbCleaningRecipes
+        ]
+
+        const processedItemSets = allRecipes
           .map(recipe => getItemSetProfit(recipe, enrichedItems))
           .filter(item => item)
           .sort((a, b) => b.profit - a.profit)

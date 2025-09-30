@@ -26,8 +26,6 @@ import {
   IconHeartFilled,
   IconHeart
 } from '@tabler/icons-react'
-import TableSettingsMenu from './components/table-settings-menu.jsx'
-import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
 import { Link, useLocation } from 'react-router-dom'
 import { useMediaQuery } from '@mantine/hooks'
@@ -144,7 +142,7 @@ function sortData (data, payload) {
   )
 }
 
-export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
+export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraphInfo }) {
   const theme = useMantineTheme()
   const location = useLocation()
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -154,8 +152,6 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
   const [sortedData, setSortedData] = useState(data)
   const [sortBy, setSortBy] = useState(null)
   const [reverseSortDirection, setReverseSortDirection] = useState(false)
-  const [graphModal, setGraphModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState(null)
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 100
@@ -185,11 +181,6 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
 
   const shouldResetField = () => {
     setSearch('')
-  }
-
-  const setGraphInfo = (id) => {
-    setGraphModal(true)
-    setSelectedItem(id)
   }
 
   const rows = currentPageData
@@ -265,7 +256,7 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
                     <ActionIcon
                       variant="light"
                       color="blue"
-                      onClick={() => setGraphInfo(row.id)}
+                      onClick={() => setGraphInfo({ itemId: row.id, isSet: true, isOpen: true })}
                       size={isMobile ? 'sm' : 'md'}
                     >
                       <IconChartHistogram size={isMobile ? 14 : 16} />
@@ -278,8 +269,6 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite }) {
 
   return (
         <>
-            <GraphModal opened={graphModal} setOpened={setGraphModal} id={selectedItem}/>
-
             <TextInput
                 placeholder="Search by any field"
                 mb="md"
