@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
 import { eq, and, or } from 'drizzle-orm'
-import { router, publicProcedure, protectedProcedure } from './trpc.js'
-import { db, users, refreshTokens, subscriptions, NewUser } from '../db/index.js'
+import { db, users, refreshTokens, subscriptions, NewUser, userSettings } from '../db/index.js'
+import { publicProcedure, router, protectedProcedure } from './trpc.js'
 import * as AuthModule from '../utils/auth.js'
 import { GoogleAuth } from '../utils/google.js'
 import crypto from 'crypto'
@@ -50,6 +50,9 @@ export const authRouter = router({
         name
       }
       const [createdUser] = await db.insert(users).values(newUser).returning()
+
+      // Create user settings
+      await db.insert(userSettings).values({ userId: createdUser.id })
 
       // Create a 14-day trial subscription for the new user
       const trialEndDate = new Date()

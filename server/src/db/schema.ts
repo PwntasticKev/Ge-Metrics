@@ -374,3 +374,21 @@ export const itemVolumes = pgTable('item_volumes', {
 })
 
 export type NewItemVolume = typeof itemVolumes.$inferInsert;
+
+export const userSettings = pgTable('user_settings', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  mailchimpApiKey: text('mailchimp_api_key'),
+  emailNotifications: boolean('email_notifications').default(true).notNull(),
+  volumeAlerts: boolean('volume_alerts').default(true).notNull(),
+  priceDropAlerts: boolean('price_drop_alerts').default(true).notNull(),
+  cooldownPeriod: integer('cooldown_period').default(5), // in minutes
+  otpEnabled: boolean('otp_enabled').default(false).notNull(),
+  otpSecret: text('otp_secret'),
+  otpVerified: boolean('otp_verified').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+})
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type NewUserSettings = typeof userSettings.$inferInsert;
