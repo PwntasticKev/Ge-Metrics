@@ -16,7 +16,8 @@ import {
   Box,
   BackgroundImage,
   Center,
-  useMantineTheme
+  useMantineTheme,
+  PinInput
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -30,13 +31,17 @@ import {
 import bg from '../../assets/gehd.png'
 import { useAuth } from '../../hooks/useAuth'
 import PasswordRecoveryModal from '../../components/auth/PasswordRecoveryModal'
+import { trpc } from '../../utils/trpc'
 
 const Login = () => {
   const navigate = useNavigate()
   const theme = useMantineTheme()
   const [error, setError] = useState('')
   const [recoveryModalOpened, setRecoveryModalOpened] = useState(false)
-  const { isLoadingUser, userError, login, isLoggingIn } = useAuth()
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
+  const [otp, setOtp] = useState('')
+  const { isLoadingUser, userError, login, loginWithOtp, isLoggingIn } = useAuth()
+  const verifyOtpMutation = trpc.auth.verifyOtpAndLogin.useMutation()
 
   const form = useForm({
     initialValues: {
@@ -63,20 +68,43 @@ const Login = () => {
       email: values.identifier,
       password: values.password
     }, {
-      onSuccess: () => {
-        setError('')
-        notifications.show({
-          title: 'Login Successful',
-          message: 'Welcome back!',
-          color: 'green',
-          icon: <IconCheck size={18} />
-        })
-        navigate('/')
+      onSuccess: (data) => {
+        if (data.twoFactorRequired) {
+          setTwoFactorRequired(true)
+          setError('')
+        } else {
+          setError('')
+          notifications.show({
+            title: 'Login Successful',
+            message: 'Welcome back!',
+            color: 'green',
+            icon: <IconCheck size={18} />
+          })
+          navigate('/all-items')
+        }
       },
       onError: (error) => {
         setError(error.message || 'Login failed')
       }
     })
+  }
+
+  const handleVerifyOtp = async () => {
+    try {
+      await loginWithOtp({
+        email: form.values.identifier,
+        token: otp
+      })
+      notifications.show({
+        title: 'Login Successful',
+        message: 'Welcome back!',
+        color: 'green',
+        icon: <IconCheck size={18} />
+      })
+      navigate('/all-items')
+    } catch (error) {
+      setError(error.message || 'OTP verification failed')
+    }
   }
 
   const handleGoogleLogin = () => {
@@ -124,10 +152,12 @@ const Login = () => {
           }}
         >
           <Title order={2} align="center" mb="xs" color="white">
-            Login
+            {twoFactorRequired ? 'Enter Verification Code' : 'Login'}
           </Title>
           <Text align="center" color="gray.4" mb="lg">
-            Welcome back to GE-Metrics
+            {twoFactorRequired
+              ? 'Enter the 6-digit code from your authenticator app.'
+              : 'Welcome back to GE-Metrics'}
           </Text>
 
           {error && (
@@ -136,87 +166,123 @@ const Login = () => {
             </Alert>
           )}
 
-          <form onSubmit={form.onSubmit(handleLogin)}>
+          {twoFactorRequired
+            ? (
             <Stack>
-              <TextInput
-                placeholder="Enter your email"
-                required
-                size="md"
-                icon={<IconMail size={16} />}
-                {...form.getInputProps('identifier')}
-                styles={{
-                  input: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '1px solid rgba(255, 255, 255, 0.3)'
-                  },
-                  label: { color: 'white' }
-                }}
-              />
-              <PasswordInput
-                placeholder="Enter your password"
-                required
-                size="md"
-                icon={<IconLock size={16} />}
-                {...form.getInputProps('password')}
-                styles={{
-                  input: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '1px solid rgba(255, 255, 255, 0.3)'
-                  },
-                  label: { color: 'white' }
-                }}
-              />
-              <Group position="apart">
-                <Checkbox
-                  label="Remember me"
-                  {...form.getInputProps('rememberMe', { type: 'checkbox' })}
-                  styles={{ label: { color: 'white' } }}
+              <Center>
+                <PinInput
+                  value={otp}
+                  onChange={setOtp}
+                  length={6}
+                  size="lg"
+                  styles={{
+                    input: {
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                      border: '1px solid rgba(255, 255, 255, 0.3)'
+                    }
+                  }}
                 />
-                <Text
-                  component="button"
-                  type="button"
-                  onClick={() => setRecoveryModalOpened(true)}
-                  size="sm"
-                  style={{ color: theme.colors.blue[3], background: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  Forgot password?
-                </Text>
-              </Group>
+              </Center>
               <Button
-                type="submit"
+                onClick={handleVerifyOtp}
                 fullWidth
                 size="md"
-                loading={isLoggingIn}
+                loading={verifyOtpMutation.isLoading}
                 variant="gradient"
-                gradient={{ from: 'blue', to: 'cyan' }}
+                gradient={{ from: 'teal', to: 'lime' }}
               >
-                Log In
+                Verify & Log In
               </Button>
             </Stack>
-          </form>
+              )
+            : (
+            <form onSubmit={form.onSubmit(handleLogin)}>
+              <Stack>
+                <TextInput
+                  placeholder="Enter your email"
+                  required
+                  size="md"
+                  icon={<IconMail size={16} />}
+                  {...form.getInputProps('identifier')}
+                  styles={{
+                    input: {
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                      border: '1px solid rgba(255, 255, 255, 0.3)'
+                    },
+                    label: { color: 'white' }
+                  }}
+                />
+                <PasswordInput
+                  placeholder="Enter your password"
+                  required
+                  size="md"
+                  icon={<IconLock size={16} />}
+                  {...form.getInputProps('password')}
+                  styles={{
+                    input: {
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                      border: '1px solid rgba(255, 255, 255, 0.3)'
+                    },
+                    label: { color: 'white' }
+                  }}
+                />
+                <Group position="apart">
+                  <Checkbox
+                    label="Remember me"
+                    {...form.getInputProps('rememberMe', { type: 'checkbox' })}
+                    styles={{ label: { color: 'white' } }}
+                  />
+                  <Text
+                    component="button"
+                    type="button"
+                    onClick={() => setRecoveryModalOpened(true)}
+                    size="sm"
+                    style={{ color: theme.colors.blue[3], background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    Forgot password?
+                  </Text>
+                </Group>
+                <Button
+                  type="submit"
+                  fullWidth
+                  size="md"
+                  loading={isLoggingIn}
+                  variant="gradient"
+                  gradient={{ from: 'blue', to: 'cyan' }}
+                >
+                  Log In
+                </Button>
+              </Stack>
+            </form>
+              )}
 
-          <Divider my="lg" label="or" labelPosition="center"
-            styles={{ label: { color: 'gray.5' } }}
-          />
+          {!twoFactorRequired && (
+            <>
+              <Divider my="lg" label="or" labelPosition="center"
+                styles={{ label: { color: 'gray.5' } }}
+              />
 
-          <Button
-            fullWidth
-            size="md"
-            variant="default"
-            leftIcon={<IconBrandGoogle size={18} />}
-            onClick={handleGoogleLogin}
-          >
-            Continue with Google
-          </Button>
+              <Button
+                fullWidth
+                size="md"
+                variant="default"
+                leftIcon={<IconBrandGoogle size={18} />}
+                onClick={handleGoogleLogin}
+              >
+                Continue with Google
+              </Button>
 
-          <Text align="center" mt="md" color="gray.4">
-            Don't have an account?{' '}
-            <Link to="/signup" style={{ color: theme.colors.blue[3], fontWeight: 500 }}>
-              Register
-            </Link>
-          </Text>
+              <Text align="center" mt="md" color="gray.4">
+                Don't have an account?{' '}
+                <Link to="/signup" style={{ color: theme.colors.blue[3], fontWeight: 500 }}>
+                  Register
+                </Link>
+              </Text>
+            </>
+          )}
         </Paper>
       </Box>
 

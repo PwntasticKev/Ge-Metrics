@@ -1,123 +1,93 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { httpBatchLink, createTRPCProxyClient } from '@trpc/client'
-import { trpc } from '../../utils/trpc'
-import authService from '../../services/authService' // Import authService
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: (failureCount, error) => {
-        // Don't retry on 401 errors
-        if (error?.status === 401) {
-          return false
-        }
-        return failureCount < 3
-      }
-    }
-  }
-})
-
-// Create tRPC client
-const trpcClient = createTRPCProxyClient({
-  links: [
-    httpBatchLink({
-      url: 'http://localhost:4000/trpc',
-      async headers () {
-        const token = localStorage.getItem('auth_token')
-        return {
-          Authorization: token ? `Bearer ${token}` : ''
-        }
-      }
-    })
-  ]
-})
+import { trpc } from '../../utils/trpc'
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isRedirecting, setIsRedirecting] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
 
-  // Effect for initialization and auth state changes
+  const { data: me, refetch: refetchMe, isError } = trpc.auth.me.useQuery(
+    undefined,
+    { enabled: false, retry: false }
+  )
+
+  const loginMutation = trpc.auth.login.useMutation()
+  const otpLoginMutation = trpc.auth.verifyOtpAndLogin.useMutation()
+
+  const checkSession = async () => {
+    setIsLoading(true)
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      try {
+        const userProfile = await refetchMe()
+        if (userProfile.data) {
+          setUser(userProfile.data)
+        } else {
+          setUser(null)
+          localStorage.removeItem('accessToken')
+        }
+      } catch (error) {
+        setUser(null)
+        localStorage.removeItem('accessToken')
+      }
+    }
+    setIsLoading(false)
+  }
+
   useEffect(() => {
-    // This function triggers the check. The listener below will handle the result.
-    authService.checkExistingSession()
+    checkSession()
+  }, [])
 
-    const unsubscribe = authService.onAuthStateChanged((newUser) => {
-      setUser(newUser)
-      setIsLoading(false) // Set loading to false only after the user state is determined.
-      queryClient.invalidateQueries()
+  const login = (credentials, callbacks) => {
+    loginMutation.mutate(credentials, {
+      onSuccess: (data) => {
+        if (data && !data.twoFactorRequired) {
+          localStorage.setItem('accessToken', data.accessToken)
+          checkSession() // Refetch user to set the context
+        }
+        callbacks?.onSuccess(data)
+      },
+      onError: callbacks?.onError
     })
+  }
 
-    return () => unsubscribe()
-  }, []) // Empty dependency array ensures this runs only once
-
-  // Effect for handling redirection logic
-  useEffect(() => {
-    if (isLoading) return // Don't redirect while still loading
-
-    const publicPaths = ['/login', '/signup']
-    const isPublicPath = publicPaths.includes(location.pathname)
-
-    if (user && isPublicPath) {
-      // If user is logged in and on a public path, redirect to home
-      navigate('/')
-    } else if (!user && !isPublicPath) {
-      // If user is not logged in and not on a public path, redirect to login
-      navigate('/login')
-    }
-  }, [user, location.pathname, isLoading, navigate])
-
-  const login = async (credentials, callbacks) => {
+  const loginWithOtp = async (credentials) => {
     try {
-      const data = await authService.login(credentials.email, credentials.password)
-      if (callbacks && callbacks.onSuccess) {
-        callbacks.onSuccess(data)
+      const data = await otpLoginMutation.mutateAsync(credentials)
+      if (data && data.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken)
+        await checkSession()
       }
+      return data
     } catch (error) {
-      if (callbacks && callbacks.onError) {
-        callbacks.onError(error)
-      }
+      throw error // Re-throw to be caught in the component
     }
   }
 
-  const register = async (userData, callbacks) => {
-    try {
-      const data = await authService.register(userData)
-      if (callbacks && callbacks.onSuccess) {
-        callbacks.onSuccess(data)
-      }
-    } catch (error) {
-      if (callbacks && callbacks.onError) {
-        callbacks.onError(error)
-      }
-    }
+  const logout = () => {
+    setUser(null)
+    localStorage.removeItem('accessToken')
+    // Invalidate queries if needed, using the context from trpc.jsx
+    navigate('/login')
   }
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
+    isLoggingIn: loginMutation.isLoading,
     login,
-    logout: authService.logout.bind(authService),
-    register
-  }
+    loginWithOtp,
+    logout
+  }), [user, isLoading, loginMutation.isLoading])
 
+  // The TRPCProvider is now in App.jsx, wrapping this AuthProvider.
+  // This simplifies AuthProvider to only handle auth logic.
   return (
     <AuthContext.Provider value={value}>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
-        </QueryClientProvider>
-      </trpc.Provider>
+      {children}
     </AuthContext.Provider>
   )
 }

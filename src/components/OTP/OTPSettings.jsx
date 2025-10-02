@@ -5,326 +5,207 @@ import {
   Button,
   Group,
   Stack,
-  Switch,
-  TextInput,
   Image,
   Alert,
-  Divider,
   Badge,
   CopyButton,
   ActionIcon,
   Tooltip,
-  Grid,
   Code,
-  Box
+  Box,
+  PinInput,
+  Center
 } from '@mantine/core'
 import {
   IconShield,
-  IconLock,
-  IconLockOpen,
-  IconQrcode,
-  IconDeviceMobile,
-  IconMail,
   IconCheck,
-  IconX,
-  IconAlertTriangle,
-  IconInfoCircle,
-  IconRefresh,
-  IconDownload,
   IconCopy,
-  IconEye,
-  IconEyeOff,
-  IconKey,
-  IconUser,
-  IconSettings,
-  IconBell,
-  IconClock
+  IconDeviceMobile
 } from '@tabler/icons-react'
-import otpService from '../../services/otpService.js'
+import { trpc } from '../../utils/trpc'
+import { notifications } from '@mantine/notifications'
 
 export default function OTPSettings ({ user, onUpdate }) {
-  const [otpEnabled, setOtpEnabled] = useState(user?.otp_enabled || false)
-  const [setupInProgress, setSetupInProgress] = useState(false)
-  const [disableModalOpened, setDisableModalOpened] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [verificationCode, setVerificationCode] = useState('')
+  const { data: settings, refetch } = trpc.settings.get.useQuery()
+  const setupOtp = trpc.otp.setup.useMutation()
+  const verifyOtp = trpc.otp.verifyAndEnable.useMutation()
+  const disableOtp = trpc.otp.disable.useMutation()
+
   const [setupData, setSetupData] = useState(null)
-  const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || '')
-  const [qrBlurred, setQrBlurred] = useState(true)
+  const [verificationCode, setVerificationCode] = useState('')
+
+  const otpEnabled = settings?.otpEnabled || false
 
   const handleSetupOTP = async () => {
     try {
-      setLoading(true)
-      const result = await otpService.setupOTP(user.id, user.email)
-
-      if (result.success) {
-        setSetupData(result)
-        setSetupInProgress(true)
-        setQrBlurred(true) // Reset blur state
-      }
+      const result = await setupOtp.mutateAsync()
+      setSetupData(result)
     } catch (error) {
-      console.error('Error setting up OTP:', error)
-    } finally {
-      setLoading(false)
+      notifications.show({
+        title: 'Setup Failed',
+        message: error.message || 'Could not start 2FA setup.',
+        color: 'red'
+      })
     }
   }
 
   const handleVerifyAndEnable = async () => {
+    if (verificationCode.length !== 6) return
     try {
-      setLoading(true)
-      const result = await otpService.enableOTP(user.id, verificationCode)
-
+      const result = await verifyOtp.mutateAsync({ token: verificationCode })
       if (result.success) {
-        setOtpEnabled(true)
-        setSetupInProgress(false)
-        setVerificationCode('')
+        notifications.show({
+          title: '2FA Enabled',
+          message: 'Two-Factor Authentication has been successfully enabled.',
+          color: 'green',
+          icon: <IconCheck size={18} />
+        })
         setSetupData(null)
-        onUpdate({ ...user, otp_enabled: true })
-      } else {
-        alert(result.error || 'Invalid verification code')
+        setVerificationCode('')
+        refetch()
+        onUpdate() // This will refetch user/settings in the parent
       }
     } catch (error) {
-      console.error('Error enabling OTP:', error)
-      alert('Error enabling OTP')
-    } finally {
-      setLoading(false)
+      notifications.show({
+        title: 'Verification Failed',
+        message: error.message || 'Invalid verification code.',
+        color: 'red'
+      })
     }
   }
 
   const handleDisableOTP = async () => {
     try {
-      setLoading(true)
-      const result = await otpService.disableOTP(user.id)
-
+      const result = await disableOtp.mutateAsync()
       if (result.success) {
-        setOtpEnabled(false)
-        setDisableModalOpened(false)
-        setSetupInProgress(false)
-        setSetupData(null)
-        onUpdate({ ...user, otp_enabled: false })
+        notifications.show({
+          title: '2FA Disabled',
+          message: 'Two-Factor Authentication has been disabled.',
+          color: 'orange'
+        })
+        refetch()
+        onUpdate()
       }
     } catch (error) {
-      console.error('Error disabling OTP:', error)
-    } finally {
-      setLoading(false)
+      notifications.show({
+        title: 'Failed to Disable 2FA',
+        message: error.message,
+        color: 'red'
+      })
     }
   }
 
   const handleCancelSetup = () => {
-    setSetupInProgress(false)
     setSetupData(null)
     setVerificationCode('')
-    setQrBlurred(true)
-  }
-
-  const toggleQrBlur = () => {
-    setQrBlurred(!qrBlurred)
-  }
-
-  const handlePhoneUpdate = async () => {
-    try {
-      // This would update the phone number in the database
-      onUpdate({ ...user, phone_number: phoneNumber })
-    } catch (error) {
-      console.error('Error updating phone number:', error)
-    }
   }
 
   return (
-    <>
-      <Card withBorder p="lg">
-        <Group spacing="sm" mb="md">
-          <IconShield size={20} />
-          <Text size="lg" weight={600}>Two-Factor Authentication</Text>
-          {otpEnabled
-            ? (
-            <Badge color="green" size="sm" leftIcon={<IconShield size={12} />}>
-              Enabled
-            </Badge>
-              )
-            : (
-            <Badge color="red" size="sm" leftIcon={<IconShield size={12} />}>
-              Disabled
-            </Badge>
-              )}
-        </Group>
+    <Card withBorder p="lg">
+      <Group spacing="sm" mb="md">
+        <IconShield size={20} />
+        <Text size="lg" weight={600}>Two-Factor Authentication</Text>
+        {otpEnabled
+          ? <Badge color="green" size="sm">Enabled</Badge>
+          : <Badge color="red" size="sm">Disabled</Badge>}
+      </Group>
 
-        <Stack spacing="md">
-          <Alert color={otpEnabled ? 'green' : 'yellow'} icon={<IconShield size={16} />}>
-            <Text size="sm">
-              {otpEnabled
-                ? 'Two-factor authentication is enabled on your account. Your account is more secure.'
-                : 'Two-factor authentication adds an extra layer of security to your account. We recommend enabling it.'}
-            </Text>
-          </Alert>
+      <Stack spacing="md">
+        <Alert color={otpEnabled ? 'green' : 'yellow'}>
+          <Text size="sm">
+            {otpEnabled
+              ? 'Two-factor authentication is active on your account.'
+              : 'Add an extra layer of security to your account. We recommend enabling 2FA.'}
+          </Text>
+        </Alert>
 
-          {!otpEnabled && !setupInProgress && (
-            <div>
-              <Text size="sm" mb="md">
-                Enable 2FA to protect your account with an additional security layer using your mobile device.
+        {!otpEnabled && !setupData && (
+          <Button
+            onClick={handleSetupOTP}
+            loading={setupOtp.isLoading}
+            color="green"
+            leftIcon={<IconShield size={16} />}
+          >
+            Enable Two-Factor Authentication
+          </Button>
+        )}
+
+        {setupData && (
+          <Box>
+            <Alert color="blue" icon={<IconDeviceMobile size={16} />} mb="md">
+              <Text size="sm">
+                Scan the QR code with your authenticator app (e.g., Google Authenticator, Authy).
               </Text>
-              <Button
-                leftIcon={<IconShield size={16} />}
-                onClick={handleSetupOTP}
-                loading={loading}
-                color="green"
-              >
-                Setup Two-Factor Authentication
-              </Button>
-            </div>
-          )}
+            </Alert>
 
-          {setupInProgress && setupData && (
-            <Box>
-              <Alert color="blue" icon={<IconDeviceMobile size={16} />} mb="md">
-                <Text size="sm">
-                  Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.)
-                  or enter the manual key.
-                </Text>
-              </Alert>
+            <Stack spacing="lg" align="center">
+              <Image
+                src={setupData.qrCodeDataURL}
+                alt="2FA QR Code"
+                width={200}
+                height={200}
+              />
 
-              <Stack spacing="md">
-                <div style={{ textAlign: 'center', position: 'relative' }}>
-                  <Image
-                    src={setupData.qrCodeURL}
-                    alt="QR Code for 2FA setup"
-                    width={200}
-                    height={200}
-                    fit="contain"
-                    style={{
-                      filter: qrBlurred ? 'blur(8px)' : 'none',
-                      transition: 'filter 0.3s ease',
-                      cursor: 'pointer'
-                    }}
-                    onClick={toggleQrBlur}
-                  />
-                  {qrBlurred && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        background: 'rgba(0,0,0,0.8)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onClick={toggleQrBlur}
-                    >
-                      <IconEye size={16} />
-                      <Text size="sm">Click to reveal QR code</Text>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Text size="sm" weight={500} mb="xs">Manual Entry Key:</Text>
-                  <Group spacing="xs">
-                    <Code style={{ flex: 1, fontSize: '12px' }}>{setupData.secret}</Code>
-                    <CopyButton value={setupData.secret}>
-                      {({ copied, copy }) => (
-                        <Tooltip label={copied ? 'Copied' : 'Copy'}>
-                          <ActionIcon color={copied ? 'teal' : 'gray'} onClick={copy}>
-                            {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                    </CopyButton>
-                  </Group>
-                </div>
-
-                <div>
-                  <Text size="sm" weight={500} mb="xs">Backup Codes:</Text>
-                  <Text size="xs" color="dimmed" mb="xs">
-                    Save these codes in a safe place. You can use them to access your account if you lose your device.
-                  </Text>
-                  <Grid>
-                    {setupData.backupCodes.map((code, index) => (
-                      <Grid.Col span={6} key={index}>
-                        <Code size="xs">{code}</Code>
-                      </Grid.Col>
-                    ))}
-                  </Grid>
-                </div>
-
-                <Divider />
-
-                <div>
-                  <Text size="sm" weight={500} mb="xs">Verify Setup:</Text>
-                  <Text size="xs" color="dimmed" mb="sm">
-                    Enter the 6-digit code from your authenticator app to complete setup:
-                  </Text>
-                  <TextInput
-                    placeholder="123456"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
-                    maxLength={6}
-                    icon={<IconKey size={16} />}
-                  />
-                </div>
-
-                <Group position="right">
-                  <Button variant="outline" onClick={handleCancelSetup}>
-                    Cancel Setup
-                  </Button>
-                  <Button
-                    onClick={handleVerifyAndEnable}
-                    loading={loading}
-                    disabled={verificationCode.length !== 6}
-                    color="green"
-                  >
-                    Enable 2FA
-                  </Button>
+              <div>
+                <Text size="sm" weight={500} mb="xs">Or enter this key manually:</Text>
+                <Group spacing="xs">
+                  <Code style={{ flex: 1, fontSize: '12px' }}>{setupData.secret}</Code>
+                  <CopyButton value={setupData.secret}>
+                    {({ copied, copy }) => (
+                      <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                        <ActionIcon color={copied ? 'teal' : 'gray'} onClick={copy}>
+                          {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                  </CopyButton>
                 </Group>
-              </Stack>
-            </Box>
-          )}
+              </div>
 
-          {otpEnabled && (
-            <div>
-              <Text size="sm" mb="md">
-                Two-factor authentication is active on your account. You can disable it below.
-              </Text>
-              <Group>
+              <div>
+                <Text size="sm" weight={500} mb="xs">Verify Setup:</Text>
+                <Text size="xs" color="dimmed" mb="sm">
+                  Enter the 6-digit code from your authenticator app.
+                </Text>
+                <Center>
+                  <PinInput
+                    value={verificationCode}
+                    onChange={setVerificationCode}
+                    length={6}
+                    size="lg"
+                  />
+                </Center>
+              </div>
+
+              <Group position="right" style={{ width: '100%' }}>
+                <Button variant="outline" onClick={handleCancelSetup}>
+                  Cancel
+                </Button>
                 <Button
-                  leftIcon={<IconShield size={16} />}
-                  onClick={handleDisableOTP}
-                  loading={loading}
-                  color="red"
-                  variant="outline"
+                  onClick={handleVerifyAndEnable}
+                  loading={verifyOtp.isLoading}
+                  disabled={verificationCode.length !== 6}
+                  color="green"
                 >
-                  Disable 2FA
+                  Verify & Enable
                 </Button>
               </Group>
-            </div>
-          )}
+            </Stack>
+          </Box>
+        )}
 
-          <Divider />
-
-          <div>
-            <Text size="sm" weight={500} mb="xs">Recovery Phone Number (Optional)</Text>
-            <Text size="xs" color="dimmed" mb="sm">
-              Add a phone number for account recovery purposes.
-            </Text>
-            <Group>
-              <TextInput
-                placeholder="+1 (555) 123-4567"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <Button variant="outline" onClick={handlePhoneUpdate}>
-                Update
-              </Button>
-            </Group>
-          </div>
-        </Stack>
-      </Card>
-    </>
+        {otpEnabled && (
+          <Button
+            onClick={handleDisableOTP}
+            loading={disableOtp.isLoading}
+            color="red"
+            variant="outline"
+            leftIcon={<IconShield size={16} />}
+          >
+            Disable 2FA
+          </Button>
+        )}
+      </Stack>
+    </Card>
   )
 }

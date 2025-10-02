@@ -11,12 +11,8 @@ import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
 import { useMediaQuery } from '@mantine/hooks'
 import { useAuth } from './hooks/useAuth'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { trpc } from './utils/trpc'
-import { httpBatchLink } from '@trpc/client'
-
-// Import mobile styles
-import './styles/mobile.css'
+import { TRPCProvider } from './utils/trpc.jsx' // Import the central provider
+import AuthProvider from './components/auth/AuthProvider'
 
 // Trial system imports
 import { TrialProvider, useTrialContext } from './contexts/TrialContext'
@@ -25,7 +21,6 @@ import TrialBanner from './components/Trial/TrialBanner'
 // Favorites system import
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
-import AuthProvider from './components/auth/AuthProvider'
 import HerbCleaning from './pages/HerbCleaning/index.jsx'
 
 // Lazy load all protected routes to improve initial load performance
@@ -222,22 +217,6 @@ function MobileNav ({ opened, setOpened, user }) {
 }
 
 function AppContent () {
-  const [queryClient] = useState(() => new QueryClient())
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: 'http://localhost:4000/trpc',
-          headers () {
-            const token = localStorage.getItem('auth_token')
-            return {
-              authorization: token ? `Bearer ${token}` : ''
-            }
-          }
-        })
-      ]
-    })
-  )
   const [opened, setOpened] = useState(false)
   const { user, logout } = useAuth()
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -276,101 +255,97 @@ function AppContent () {
   }, [colorScheme])
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme(colorScheme)}>
-          <Notifications />
-          <TrialProvider>
-            <FavoritesProvider itemType="item">
-              <Routes>
-                {/* Public routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup/>}/>
-                <Route path="/signup/success" element={<SignupSuccess/>}/>
-                <Route path="/" element={<HomePage />} />
+    <MantineProvider withGlobalStyles withNormalizeCSS theme={getTheme(colorScheme)}>
+      <Notifications />
+      <TrialProvider>
+        <FavoritesProvider itemType="item">
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/signup/success" element={<SignupSuccess />} />
+            <Route path="/" element={<Navigate to="/all-items" />} />
 
-                {/* Protected routes */}
-                <Route
-                  element={
-                    <RequireAuth>
-                      <div>
-                        {user && (
-                          <>
-                            <HeaderNav setOpened={toggle} opened={opened} user={user} onLogout={logout} />
-                            {isMobile
-                              ? <MobileNav opened={opened} setOpened={setOpened} user={user} />
-                              : <NavMenu user={user} />}
-                          </>
-                        )}
-                        <AppLayout>
-                          <Outlet/>
-                        </AppLayout>
-                      </div>
-                    </RequireAuth>
-                  }
-                >
-                  <Route path="/all-items" element={<AllItems/>}/>
-                  <Route path="/high-volumes" element={<HighVolumes/>}/>
-                  <Route path="/watchlist" element={<Watchlist/>}/>
-                  <Route path="/favorites" element={<Favorites/>}/>
-                  <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}>
-                    <h2>Market Watch Overview</h2>
-                    <p>Coming Soon - Comprehensive market analysis dashboard</p>
-                  </div>}/>
-                  <Route path="/future-items" element={<FutureItems/>}/>
-                  <Route path="/ai-predictions" element={<AIPredictions/>}/>
-                  <Route path="/money-making" element={<MoneyMaking/>}/>
-                  <Route path="/combination-items" element={<CombinationItems/>}/>
-                  <Route path="/potion-combinations" element={<PotionCombinations/>}/>
-                  <Route path="/herbs" element={<Herbs/>}/>
-                  <Route path="/nightmare-zone" element={<NightmareZone/>}/>
-                  <Route path="/deaths-coffer" element={<DeathsCoffer/>}/>
-                  <Route path="/community" element={<CommunityLeaderboard/>}/>
-                  <Route path="/settings" element={<Settings/>}/>
-                  <Route path="/faq" element={<Faq/>}/>
-                  <Route path="/status" element={<Status/>}/>
-                  <Route path="/verify-email" element={<VerifyEmailPage />} />
-                  <Route path="/item/:id" element={<ItemDetails/>}/>
-                  <Route path="/profile/:id" element={<Profile/>}/>
-                  <Route path="/profit-opportunities" element={<ProfitOpportunities/>}/>
-                  <Route path="/saplings" element={<Saplings />} />
-                  <Route path="/herb-cleaning" element={<HerbCleaning />} />
-                  {/* Market Watch Submenu Routes */}
-                  <Route path="/market-watch/food" element={<FoodIndex/>}/>
-                  <Route path="/market-watch/logs" element={<LogsIndex/>}/>
-                  <Route path="/market-watch/runes" element={<RunesIndex/>}/>
-                  <Route path="/market-watch/metals" element={<MetalsIndex/>}/>
-                  <Route path="/market-watch/bot-farm" element={<BotFarmIndex/>}/>
-                  <Route path="/market-watch/potions" element={<PotionsIndex/>}/>
-                  <Route path="/market-watch/raids" element={<RaidsIndex/>}/>
-                  <Route path="/market-watch/herbs" element={<HerbsIndex/>}/>
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<AdminPanel/>}/>
-                  <Route path="/admin/billing" element={<BillingDashboard/>}/>
-                  <Route path="/admin/users" element={<UserManagement/>}/>
-                  <Route path="/admin/settings" element={<SystemSettings/>}/>
-                  <Route path="/admin/security" element={<SecurityLogs/>}/>
-                  <Route path="/admin/formulas" element={<FormulaDocumentation/>}/>
-                  <Route path="/admin/cron-jobs" element={<CronJobs/>}/>
-                  {/* Legacy routes for backwards compatibility */}
-                  <Route path="/access-denied" element={<AccessDenied/>}/>
-                  <Route path="*" element={<ErrorPage/>}/>
-                </Route>
-              </Routes>
-            </FavoritesProvider>
-          </TrialProvider>
-        </MantineProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+            {/* Protected routes */}
+            <Route
+              element={
+                <RequireAuth>
+                  <div>
+                    {user && (
+                      <>
+                        <HeaderNav setOpened={toggle} opened={opened} user={user} onLogout={logout} />
+                        {isMobile
+                          ? <MobileNav opened={opened} setOpened={setOpened} user={user} />
+                          : <NavMenu user={user} />}
+                      </>
+                    )}
+                    <AppLayout>
+                      <Outlet />
+                    </AppLayout>
+                  </div>
+                </RequireAuth>
+              }
+            >
+              <Route path="/home" element={<Navigate to="/all-items" />} />
+              <Route path="/all-items" element={<AllItems />} />
+              <Route path="/high-volumes" element={<HighVolumes />} />
+              <Route path="/watchlist" element={<Watchlist />} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}><h2>Market Watch Overview</h2><p>Coming Soon - Comprehensive market analysis dashboard</p></div>} />
+              <Route path="/future-items" element={<FutureItems />} />
+              <Route path="/ai-predictions" element={<AIPredictions />} />
+              <Route path="/money-making" element={<MoneyMaking />} />
+              <Route path="/combination-items" element={<CombinationItems />} />
+              <Route path="/potion-combinations" element={<PotionCombinations />} />
+              <Route path="/herbs" element={<Herbs />} />
+              <Route path="/nightmare-zone" element={<NightmareZone />} />
+              <Route path="/deaths-coffer" element={<DeathsCoffer />} />
+              <Route path="/community" element={<CommunityLeaderboard />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/faq" element={<Faq />} />
+              <Route path="/status" element={<Status />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/item/:id" element={<ItemDetails />} />
+              <Route path="/profile/:id" element={<Profile />} />
+              <Route path="/profit-opportunities" element={<ProfitOpportunities />} />
+              <Route path="/saplings" element={<Saplings />} />
+              <Route path="/herb-cleaning" element={<HerbCleaning />} />
+              {/* Market Watch Submenu Routes */}
+              <Route path="/market-watch/food" element={<FoodIndex />} />
+              <Route path="/market-watch/logs" element={<LogsIndex />} />
+              <Route path="/market-watch/runes" element={<RunesIndex />} />
+              <Route path="/market-watch/metals" element={<MetalsIndex />} />
+              <Route path="/market-watch/bot-farm" element={<BotFarmIndex />} />
+              <Route path="/market-watch/potions" element={<PotionsIndex />} />
+              <Route path="/market-watch/raids" element={<RaidsIndex />} />
+              <Route path="/market-watch/herbs" element={<HerbsIndex />} />
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/admin/billing" element={<BillingDashboard />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/settings" element={<SystemSettings />} />
+              <Route path="/admin/security" element={<SecurityLogs />} />
+              <Route path="/admin/formulas" element={<FormulaDocumentation />} />
+              <Route path="/admin/cron-jobs" element={<CronJobs />} />
+              {/* Legacy routes for backwards compatibility */}
+              <Route path="/access-denied" element={<AccessDenied />} />
+              <Route path="*" element={<ErrorPage />} />
+            </Route>
+          </Routes>
+        </FavoritesProvider>
+      </TrialProvider>
+    </MantineProvider>
   )
 }
 
 export default function App () {
   return (
-    <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </Router>
+    <TRPCProvider>
+      <Router>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </Router>
+    </TRPCProvider>
   )
 }

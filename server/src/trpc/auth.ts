@@ -8,6 +8,7 @@ import { GoogleAuth } from '../utils/google.js'
 import crypto from 'crypto'
 import { config } from '../config/index.js'
 import { OtpService } from '../services/otpService.js'
+import { authenticator } from 'otplib'
 
 const authUtils = (AuthModule as any).authUtils || (AuthModule as any).default || new ((AuthModule as any).AuthUtils)()
 
@@ -141,101 +142,107 @@ export const authRouter = router({
   // Login user
   login: publicProcedure
     .input(z.object({
-      email: z.string().email(), // email or username
+      email: z.string(), // Can be email or username
       password: z.string()
     }))
     .mutation(async ({ input }) => {
       const { email, password } = input
 
-      try {
-        // Find user by email or username
-        const [user] = await db.select().from(users)
-          .where(
-            or(
-              eq(users.email, email),
-              eq(users.username, email)
-            )
-          ).limit(1)
+      // Find user by email or username
+      const [user] = await db.select().from(users)
+        .where(or(eq(users.email, email), eq(users.username, email)))
+        .limit(1)
 
-        if (!user || !user.passwordHash) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Invalid credentials'
-          })
-        }
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+      }
 
-        // Verify password
-        const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
-        if (!isPasswordValid) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Invalid credentials'
-          })
-        }
+      // Verify password
+      const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
+      if (!isPasswordValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+      }
 
-        // Check if email is verified
-        if (!user.emailVerified) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Please verify your email before logging in.'
-          })
-        }
+      if (!user.emailVerified) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
+      }
 
-        // Check subscription status
-        // const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id)).limit(1)
-        const subscription = { status: 'active', currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) }
+      // Check for 2FA
+      const settings = await db.query.userSettings.findFirst({
+        where: eq(userSettings.userId, user.id)
+      })
 
-        if (subscription) {
-          const isExpired = new Date() > new Date(subscription.currentPeriodEnd)
-          if ((subscription.status === 'trialing' && isExpired) || ['canceled', 'past_due'].includes(subscription.status)) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: 'Your trial has expired or your subscription is inactive. Please subscribe to continue.'
-            })
-          }
-        } else {
-          // Optional: Handle case where user has no subscription record at all
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'No active subscription found for your account.'
-          })
-        }
+      if (settings?.otpEnabled) {
+        return { twoFactorRequired: true }
+      }
 
-        // Generate and store tokens
-        const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
-        const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
+      // If 2FA is not enabled, proceed with login
+      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
 
-        // Store refresh token with upsert
-        await db.insert(refreshTokens).values({
-          userId: user.id,
-          token: refreshToken,
-          expiresAt: authUtils.getRefreshTokenExpiration()
-        }).onConflictDoUpdate({
-          target: refreshTokens.userId,
-          set: {
-            token: refreshToken,
-            expiresAt: authUtils.getRefreshTokenExpiration()
-          }
-        })
+      await db.insert(refreshTokens).values({
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: authUtils.getRefreshTokenExpiration()
+      }).onConflictDoUpdate({
+        target: refreshTokens.userId,
+        set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
+      })
 
-        return {
-          user: {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            name: user.name,
-            avatar: user.avatar
-          },
-          accessToken,
-          refreshToken
-        }
-      } catch (error) {
-        // Log the detailed error for debugging, but return a generic message to the client
-        console.error('Login procedure failed:', error)
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred during login.'
-        })
+      return {
+        user: { id: user.id, email: user.email, username: user.username, name: user.name, avatar: user.avatar },
+        accessToken,
+        refreshToken
+      }
+    }),
+
+  verifyOtpAndLogin: publicProcedure
+    .input(z.object({
+      email: z.string(),
+      token: z.string()
+    }))
+    .mutation(async ({ input }) => {
+      const { email, token } = input
+
+      const [user] = await db.select().from(users)
+        .where(or(eq(users.email, email), eq(users.username, email)))
+        .limit(1)
+
+      if (!user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+      }
+
+      const settings = await db.query.userSettings.findFirst({
+        where: eq(userSettings.userId, user.id)
+      })
+
+      if (!settings || !settings.otpEnabled || !settings.otpSecret) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: '2FA not enabled for this user.' })
+      }
+
+      const isValid = authenticator.check(token, settings.otpSecret)
+
+      if (!isValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP token' })
+      }
+
+      // OTP is valid, proceed with login
+      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
+
+      await db.insert(refreshTokens).values({
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: authUtils.getRefreshTokenExpiration()
+      }).onConflictDoUpdate({
+        target: refreshTokens.userId,
+        set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
+      })
+
+      return {
+        user: { id: user.id, email: user.email, username: user.username, name: user.name, avatar: user.avatar },
+        accessToken,
+        refreshToken
       }
     }),
 

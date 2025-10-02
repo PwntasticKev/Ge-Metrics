@@ -8,7 +8,7 @@ import qrcode from 'qrcode'
 
 export const otpRouter = router({
   setup: protectedProcedure.mutation(async ({ ctx }) => {
-    const userId = ctx.user.id
+    const userId = ctx.user.userId // Corrected from ctx.user.id
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId)
     })
@@ -20,7 +20,20 @@ export const otpRouter = router({
     const secret = authenticator.generateSecret()
     const otpauth = authenticator.keyuri(user.email, 'GE-Metrics', secret)
 
-    await db.update(userSettings).set({ otpSecret: secret, otpVerified: false }).where(eq(userSettings.userId, userId))
+    await db.insert(userSettings)
+      .values({
+        userId,
+        otpSecret: secret,
+        otpVerified: false
+      })
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: {
+          otpSecret: secret,
+          otpVerified: false,
+          updatedAt: new Date()
+        }
+      })
 
     const qrCodeDataURL = await qrcode.toDataURL(otpauth)
 
@@ -33,7 +46,7 @@ export const otpRouter = router({
   verifyAndEnable: protectedProcedure
     .input(z.object({ token: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.userId // Corrected from ctx.user.id
+      const userId = ctx.user.userId
       const settings = await db.query.userSettings.findFirst({
         where: eq(userSettings.userId, userId)
       })
@@ -53,7 +66,7 @@ export const otpRouter = router({
     }),
 
   disable: protectedProcedure.mutation(async ({ ctx }) => {
-    const userId = ctx.user.userId // Corrected from ctx.user.id
+    const userId = ctx.user.userId
     await db.update(userSettings)
       .set({
         otpEnabled: false,

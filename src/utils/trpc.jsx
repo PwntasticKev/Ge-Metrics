@@ -22,7 +22,7 @@ export function TRPCProvider ({ children }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: '/api/trpc',
+          url: '/trpc', // Corrected from '/api/trpc'
           async headers () {
             const token = localStorage.getItem('accessToken')
             return {
