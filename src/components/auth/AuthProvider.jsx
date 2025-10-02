@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
-import { trpc } from '../../utils/trpc'
+import { trpc } from '../../utils/trpc.jsx'
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
@@ -16,7 +16,7 @@ const AuthProvider = ({ children }) => {
   const loginMutation = trpc.auth.login.useMutation()
   const otpLoginMutation = trpc.auth.verifyOtpAndLogin.useMutation()
 
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     setIsLoading(true)
     const token = localStorage.getItem('accessToken')
     if (token) {
@@ -34,26 +34,26 @@ const AuthProvider = ({ children }) => {
       }
     }
     setIsLoading(false)
-  }
+  }, [refetchMe])
 
   useEffect(() => {
     checkSession()
-  }, [])
+  }, [checkSession])
 
-  const login = (credentials, callbacks) => {
+  const login = useCallback((credentials, callbacks) => {
     loginMutation.mutate(credentials, {
       onSuccess: (data) => {
         if (data && !data.twoFactorRequired) {
           localStorage.setItem('accessToken', data.accessToken)
-          checkSession() // Refetch user to set the context
+          checkSession()
         }
         callbacks?.onSuccess(data)
       },
       onError: callbacks?.onError
     })
-  }
+  }, [loginMutation, checkSession])
 
-  const loginWithOtp = async (credentials) => {
+  const loginWithOtp = useCallback(async (credentials) => {
     try {
       const data = await otpLoginMutation.mutateAsync(credentials)
       if (data && data.accessToken) {
@@ -62,29 +62,26 @@ const AuthProvider = ({ children }) => {
       }
       return data
     } catch (error) {
-      throw error // Re-throw to be caught in the component
+      throw error
     }
-  }
+  }, [otpLoginMutation, checkSession])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null)
     localStorage.removeItem('accessToken')
-    // Invalidate queries if needed, using the context from trpc.jsx
     navigate('/login')
-  }
+  }, [navigate])
 
   const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
-    isLoggingIn: loginMutation.isLoading,
+    isLoggingIn: loginMutation.isLoading || otpLoginMutation.isLoading,
     login,
     loginWithOtp,
     logout
-  }), [user, isLoading, loginMutation.isLoading])
+  }), [user, isLoading, loginMutation.isLoading, otpLoginMutation.isLoading, login, loginWithOtp, logout])
 
-  // The TRPCProvider is now in App.jsx, wrapping this AuthProvider.
-  // This simplifies AuthProvider to only handle auth logic.
   return (
     <AuthContext.Provider value={value}>
       {children}

@@ -29,7 +29,7 @@ export class AuthUtils {
       type: 'access'
     }
     const options: jwt.SignOptions = {
-      expiresIn: config.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+      expiresIn: '24h', // Changed from config to 24 hours
       issuer: 'auth-server',
       audience: 'client-app'
     }

@@ -64,6 +64,7 @@ const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmail'))
 const Saplings = lazy(() => import('./pages/Saplings/index.jsx'))
 const ComingSoon = lazy(() => import('./pages/ComingSoon/index.jsx'))
+const BillingPage = lazy(() => import('./pages/Billing/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -312,6 +313,7 @@ function AppContent () {
               <Route path="/saplings" element={<Saplings />} />
               <Route path="/herb-cleaning" element={<HerbCleaning />} />
               <Route path="/transaction-history" element={<ComingSoon />} />
+              <Route path="/billing" element={<BillingPage />} />
               {/* Market Watch Submenu Routes */}
               <Route path="/market-watch/food" element={<FoodIndex />} />
               <Route path="/market-watch/logs" element={<LogsIndex />} />

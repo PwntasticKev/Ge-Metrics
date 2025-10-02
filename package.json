@@ -74,7 +74,8 @@
     "react-query": "^3.39.3",
     "react-router-dom": "^6.13.0",
     "recharts": "^2.15.3",
-    "sass": "^1.63.4"
+    "sass": "^1.63.4",
+    "stripe": "^19.0.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

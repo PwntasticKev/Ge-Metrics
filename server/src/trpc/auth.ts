@@ -58,11 +58,11 @@ export const authRouter = router({
       // Create a 14-day trial subscription for the new user
       const trialEndDate = new Date()
       trialEndDate.setDate(trialEndDate.getDate() + 14)
+
       await db.insert(subscriptions).values({
         userId: createdUser.id,
         status: 'trialing',
-        plan: 'premium', // Premium features during trial
-        currentPeriodStart: new Date(),
+        plan: 'premium',
         currentPeriodEnd: trialEndDate
       })
 
@@ -165,6 +165,21 @@ export const authRouter = router({
 
       if (!user.emailVerified) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
+      }
+
+      // Check subscription status
+      const subscription = await db.query.subscriptions.findFirst({
+        where: eq(subscriptions.userId, user.id)
+      })
+
+      const isTrialExpired = subscription && subscription.status === 'trialing' && subscription.currentPeriodEnd < new Date()
+      const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
+
+      if (isTrialExpired || isSubscriptionInactive) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Your subscription is inactive. Please subscribe to continue.'
+        })
       }
 
       // Check for 2FA

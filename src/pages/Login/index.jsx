@@ -41,7 +41,6 @@ const Login = () => {
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [otp, setOtp] = useState('')
   const { isLoadingUser, userError, login, loginWithOtp, isLoggingIn } = useAuth()
-  const verifyOtpMutation = trpc.auth.verifyOtpAndLogin.useMutation()
 
   const form = useForm({
     initialValues: {
@@ -188,7 +187,7 @@ const Login = () => {
                 onClick={handleVerifyOtp}
                 fullWidth
                 size="md"
-                loading={verifyOtpMutation.isLoading}
+                loading={isLoggingIn}
                 variant="gradient"
                 gradient={{ from: 'teal', to: 'lime' }}
               >
