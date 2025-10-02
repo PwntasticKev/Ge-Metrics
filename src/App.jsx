@@ -13,6 +13,7 @@ import { useMediaQuery } from '@mantine/hooks'
 import { useAuth } from './hooks/useAuth'
 import { TRPCProvider } from './utils/trpc.jsx' // Import the central provider
 import AuthProvider from './components/auth/AuthProvider'
+import AdminRoute from './components/auth/AdminRoute'
 
 // Trial system imports
 import { TrialProvider, useTrialContext } from './contexts/TrialContext'
@@ -62,6 +63,7 @@ const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
 const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmail'))
 const Saplings = lazy(() => import('./pages/Saplings/index.jsx'))
+const ComingSoon = lazy(() => import('./pages/ComingSoon/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -307,9 +309,9 @@ function AppContent () {
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/item/:id" element={<ItemDetails />} />
               <Route path="/profile/:id" element={<Profile />} />
-              <Route path="/profit-opportunities" element={<ProfitOpportunities />} />
               <Route path="/saplings" element={<Saplings />} />
               <Route path="/herb-cleaning" element={<HerbCleaning />} />
+              <Route path="/transaction-history" element={<ComingSoon />} />
               {/* Market Watch Submenu Routes */}
               <Route path="/market-watch/food" element={<FoodIndex />} />
               <Route path="/market-watch/logs" element={<LogsIndex />} />
@@ -320,13 +322,13 @@ function AppContent () {
               <Route path="/market-watch/raids" element={<RaidsIndex />} />
               <Route path="/market-watch/herbs" element={<HerbsIndex />} />
               {/* Admin routes */}
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/admin/billing" element={<BillingDashboard />} />
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/settings" element={<SystemSettings />} />
-              <Route path="/admin/security" element={<SecurityLogs />} />
-              <Route path="/admin/formulas" element={<FormulaDocumentation />} />
-              <Route path="/admin/cron-jobs" element={<CronJobs />} />
+              <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+              <Route path="/admin/billing" element={<AdminRoute><BillingDashboard /></AdminRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+              <Route path="/admin/settings" element={<AdminRoute><SystemSettings /></AdminRoute>} />
+              <Route path="/admin/security" element={<AdminRoute><SecurityLogs /></AdminRoute>} />
+              <Route path="/admin/formulas" element={<AdminRoute><FormulaDocumentation /></AdminRoute>} />
+              <Route path="/admin/cron-jobs" element={<AdminRoute><CronJobs /></AdminRoute>} />
               {/* Legacy routes for backwards compatibility */}
               <Route path="/access-denied" element={<AccessDenied />} />
               <Route path="*" element={<ErrorPage />} />

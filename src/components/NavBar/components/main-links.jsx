@@ -39,11 +39,12 @@ import {
   IconStar,
   IconCalendar,
   IconPlant2,
-  IconWash
+  IconWash,
+  IconTool
 } from '@tabler/icons-react'
 import { Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
-import { employeeService } from '../../../services/employeeService'
+import { useAuth } from '../../../hooks/useAuth'
 
 const useStyles = createStyles((theme) => ({
   control: {
@@ -318,17 +319,10 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
   const [marketWatchOpen, setMarketWatchOpen] = useState(false)
   const [moneyMakingOpen, setMoneyMakingOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
-
-  // Get user role from employee service
-  const currentUserEmail = 'admin@ge-metrics.com' // This should come from auth context
-  const isEmployee = employeeService.isEmployee(currentUserEmail)
-
-  // Check specific permissions
-  const canViewBilling = employeeService.hasPermission(currentUserEmail, 'billing:read')
-  const canManageUsers = employeeService.hasPermission(currentUserEmail, 'users:read')
+  const { user, logout } = useAuth()
 
   const handleLogout = () => {
-    // Handle logout logic here
+    logout()
   }
 
   return (
@@ -646,7 +640,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         />
 
         {/* Admin Submenu - Only for employees with proper permissions */}
-        {isEmployee && (
+        {user && user.role === 'admin' && (
           <SubmenuLink
             icon={<IconShield size="1rem"/>}
             color="red"
@@ -656,28 +650,24 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
           >
-            {canViewBilling && (
-              <SubmenuItem
-                icon={<IconChartLine size="0.8rem"/>}
-                color="green"
-                label="Billing Dashboard"
-                link="/admin/billing"
-                expanded={expanded}
-                isMobile={isMobile}
-                onNavigate={onNavigate}
-              />
-            )}
-            {canManageUsers && (
-              <SubmenuItem
-                icon={<IconUsers size="0.8rem"/>}
-                color="blue"
-                label="User Management"
-                link="/admin/users"
-                expanded={expanded}
-                isMobile={isMobile}
-                onNavigate={onNavigate}
-              />
-            )}
+            <SubmenuItem
+              icon={<IconChartLine size="0.8rem"/>}
+              color="green"
+              label="Billing Dashboard"
+              link="/admin/billing"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
+            <SubmenuItem
+              icon={<IconUsers size="0.8rem"/>}
+              color="blue"
+              label="User Management"
+              link="/admin/users"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
             <SubmenuItem
               icon={<IconShield size="0.8rem"/>}
               color="gray"
@@ -705,6 +695,15 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               isMobile={isMobile}
               onNavigate={onNavigate}
             />
+            <SubmenuItem
+              icon={<IconTool size="0.8rem"/>}
+              color="teal"
+              label="Cron Jobs"
+              link="/admin/cron-jobs"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
           </SubmenuLink>
         )}
 
@@ -714,17 +713,6 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           label="Log Out"
           link="/login"
           onClick={handleLogout}
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-
-        {/* New link for Profit Opportunities */}
-        <MainLink
-          icon={<IconCrown size="1rem"/>}
-          color="gold"
-          label="Profit Opportunities"
-          link="/profit-opportunities"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}

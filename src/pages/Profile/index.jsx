@@ -94,26 +94,11 @@ const PROFIT_DATA = [
 export default function Profile () {
   const theme = useMantineTheme()
   const { user, logout } = useAuth()
+  const { data: settings } = trpc.settings.get.useQuery()
   const [activeModal, setActiveModal] = useState('')
   const [selectedAvatar, setSelectedAvatar] = useState(DEFAULT_AVATARS[0])
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(true)
-
-  // User data (in real app, this would come from API)
-  const [userStats, setUserStats] = useState({
-    totalProfit: 1247650,
-    totalTransactions: 342,
-    joinDate: '2024-01-15',
-    clanName: 'Elite Traders',
-    subscriptionStatus: 'active',
-    subscriptionPlan: 'yearly',
-    subscriptionExpiry: '2025-01-15',
-    badges: ['Early Adopter', 'Profit Master', 'Volume Trader'],
-    runescapeName: 'Pwntastic',
-    discordConnected: true,
-    mailchimpSubscribed: true,
-    otpEnabled: true
-  })
 
   // Goal tracker state
   const [weeklyGoals, setWeeklyGoals] = useState([
@@ -158,7 +143,7 @@ export default function Profile () {
   }
 
   const getSubscriptionBadgeColor = () => {
-    switch (userStats.subscriptionStatus) {
+    switch (settings?.subscriptionStatus) {
       case 'active': return 'green'
       case 'trial': return 'blue'
       case 'expired': return 'red'
@@ -166,23 +151,23 @@ export default function Profile () {
     }
   }
 
-  const daysSinceJoined = Math.floor((new Date() - new Date(userStats.joinDate)) / (1000 * 60 * 60 * 24))
+  const daysSinceJoined = user ? Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24)) : 0
 
   // Defensive fallback for selectedAvatar
   const avatarToShow = selectedAvatar || DEFAULT_AVATARS[0]
   // Defensive fallback for userStats fields
-  const runescapeName = userStats?.runescapeName || 'Player'
-  const badges = Array.isArray(userStats?.badges) ? userStats.badges : []
-  const subscriptionPlan = userStats?.subscriptionPlan || 'free'
-  const subscriptionStatus = userStats?.subscriptionStatus || 'inactive'
-  const subscriptionExpiry = userStats?.subscriptionExpiry || 'N/A'
-  const clanName = userStats?.clanName || 'No Clan'
-  const totalProfit = userStats?.totalProfit ?? 0
-  const totalTransactions = userStats?.totalTransactions ?? 0
-  const otpEnabled = !!userStats?.otpEnabled
-  const discordConnected = !!userStats?.discordConnected
-  const mailchimpSubscribed = !!userStats?.mailchimpSubscribed
-  const joinDate = userStats?.joinDate || '2024-01-01'
+  const runescapeName = user?.name || 'Player'
+  const badges = Array.isArray(user?.badges) ? user.badges : []
+  const subscriptionPlan = settings?.subscriptionPlan || 'free'
+  const subscriptionStatus = settings?.subscriptionStatus || 'inactive'
+  const subscriptionExpiry = settings?.subscriptionExpiry || 'N/A'
+  const clanName = user?.clanName || 'No Clan'
+  const totalProfit = user?.totalProfit ?? 0
+  const totalTransactions = user?.totalTransactions ?? 0
+  const otpEnabled = !!settings?.otpEnabled
+  const discordConnected = !!user?.discordConnected
+  const mailchimpSubscribed = !!settings?.emailNotifications
+  const joinDate = user?.createdAt || '2024-01-01'
 
   // Add transaction handler
   const handleAddTransaction = () => {
@@ -205,11 +190,14 @@ export default function Profile () {
       setTransactions(newTransactions)
 
       // Update userStats with new total profit and transaction count
-      setUserStats(prev => ({
-        ...prev,
-        totalProfit: prev.totalProfit + value,
-        totalTransactions: prev.totalTransactions + 1
-      }))
+      // This part of the logic needs to be updated to use the user object from useAuth
+      // For now, we'll just add to the transactions array and update the totalProfit/totalTransactions
+      // in the useAuth hook's state.
+      // setUserStats(prev => ({
+      //   ...prev,
+      //   totalProfit: prev.totalProfit + value,
+      //   totalTransactions: prev.totalTransactions + 1
+      // }))
 
       setTransactionInput('')
     }
