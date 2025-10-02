@@ -5,6 +5,7 @@ dotenv.config()
 
 const configSchema = z.object({
   DATABASE_URL: z.string().min(1, 'Database URL is required'),
+  LOCAL_DATABASE_URL: z.string().optional(),
   CORRECT_DATABASE_URL: z.string().optional(),
   DATABASE_URL_UNPOOLED: z.string().optional(),
   CORRECT_DATABASE_URL_UNPOOLED: z.string().optional(),
@@ -17,7 +18,7 @@ const configSchema = z.object({
   PORT: z.string().transform(Number).default('4000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
-  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().min(1, 'Stripe secret key is required'),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_PRICE_MONTHLY: z.string().optional(),
@@ -35,8 +36,6 @@ if (parsedConfig.CORRECT_DATABASE_URL) {
 if (parsedConfig.CORRECT_DATABASE_URL_UNPOOLED) {
   parsedConfig.DATABASE_URL_UNPOOLED = parsedConfig.CORRECT_DATABASE_URL_UNPOOLED
 }
-
-console.log('[GE-METRICS_CONFIG_LOG] Final DATABASE_URL being used:', parsedConfig.DATABASE_URL)
 
 export const config = parsedConfig
 

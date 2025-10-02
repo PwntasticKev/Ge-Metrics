@@ -14,6 +14,7 @@ import {
 import { IconCrown, IconCheck, IconAlertCircle, IconSettings } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc.jsx'
 import { useAuth } from '../../hooks/useAuth'
+import { Link, useSearchParams } from 'react-router-dom'
 
 const BillingPage = () => {
   const { user, isLoading: isUserLoading } = useAuth()
@@ -21,6 +22,8 @@ const BillingPage = () => {
   const createCheckoutSession = trpc.billing.createCheckoutSession.useMutation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [searchParams] = useSearchParams()
+  const isSuccess = searchParams.get('success') === 'true'
 
   const handleSubscribe = async () => {
     setIsLoading(true)
@@ -57,7 +60,7 @@ const BillingPage = () => {
   }
 
   if (isUserLoading || isSubscriptionLoading) {
-    return <Center style={{ height: '100vh' }}><Loader /></Center>
+    return <Center style={{ height: '100vh' }} data-testid="loading-spinner"><Loader /></Center>
   }
 
   const isSubscribed = subscription && subscription.status === 'active'
@@ -73,6 +76,15 @@ const BillingPage = () => {
       {error && (
         <Alert icon={<IconAlertCircle size={16} />} color="red" mb="lg">
           {error}
+        </Alert>
+      )}
+
+      {isSuccess && (
+      <Alert icon={<IconCheck size={16} />} color="green" title="Subscription successful!" mb="lg">
+          Welcome to Premium! You can now access all features.
+          <Button component={Link} to="/all-items" fullWidth mt="md">
+            Go to Dashboard
+          </Button>
         </Alert>
       )}
 

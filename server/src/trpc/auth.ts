@@ -24,6 +24,8 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { email, username, password, name } = input
 
+      console.log('[GE-METRICS_AUTH_DEBUG] Attempting to register user. DB URL:', config.DATABASE_URL);
+
       // Check if user already exists (by email or username)
       const existingUser = await db.select().from(users)
         .where(

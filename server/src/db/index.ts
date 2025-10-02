@@ -18,12 +18,17 @@ const prodOptions: Options<{}> = {
 
 const connectionOptions = config.NODE_ENV === 'production' ? prodOptions : baseOptions
 
+// Determine the correct database URL
+const databaseUrl = config.NODE_ENV === 'development' && config.LOCAL_DATABASE_URL
+  ? config.LOCAL_DATABASE_URL
+  : config.DATABASE_URL
+
 // Pooled connection for the serverless app
-export const connection = postgres(config.DATABASE_URL, connectionOptions)
+export const connection = postgres(databaseUrl, connectionOptions)
 export const db = drizzle(connection, { schema })
 
 // Unpooled connection for migrations
-const migrationConnectionUrl = config.DATABASE_URL_UNPOOLED || config.DATABASE_URL
+const migrationConnectionUrl = config.DATABASE_URL_UNPOOLED || databaseUrl
 console.log('[GE-METRICS_MIGRATE_LOG] Using migration connection URL:', migrationConnectionUrl)
 export const migrationConnection = postgres(migrationConnectionUrl, connectionOptions)
 export const migrationDb = drizzle(migrationConnection, { schema })

@@ -8,10 +8,15 @@ const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
-  const { data: me, refetch: refetchMe, isError } = trpc.auth.me.useQuery(
+  const { data: me, refetch: refetchMe } = trpc.auth.me.useQuery(
     undefined,
     { enabled: false, retry: false }
   )
+
+  const { data: subscription, isLoading: isSubscriptionLoading } = trpc.billing.getSubscription.useQuery(undefined, {
+    enabled: !!user, // Only run when user is set
+    retry: false
+  })
 
   const loginMutation = trpc.auth.login.useMutation()
   const otpLoginMutation = trpc.auth.verifyOtpAndLogin.useMutation()
@@ -39,6 +44,23 @@ const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkSession()
   }, [checkSession])
+
+  useEffect(() => {
+    // Don't redirect while auth or subscription status is loading
+    if (isLoading || (user && isSubscriptionLoading)) return
+
+    const { pathname } = window.location
+
+    // If user is authenticated but their subscription is not active, redirect to billing
+    if (user) {
+      const isSubscribed = subscription && ['active', 'trialing'].includes(subscription.status)
+      const isTrialExpired = subscription?.status === 'trialing' && new Date(subscription.currentPeriodEnd) < new Date()
+
+      if ((!isSubscribed || isTrialExpired) && pathname !== '/billing') {
+        navigate('/billing')
+      }
+    }
+  }, [user, subscription, isLoading, isSubscriptionLoading, navigate])
 
   const login = useCallback((credentials, callbacks) => {
     loginMutation.mutate(credentials, {
@@ -80,7 +102,7 @@ const AuthProvider = ({ children }) => {
     login,
     loginWithOtp,
     logout
-  }), [user, isLoading, loginMutation.isLoading, otpLoginMutation.isLoading, login, loginWithOtp, logout])
+  }), [user, isLoading, isSubscriptionLoading, loginMutation.isLoading, otpLoginMutation.isLoading, login, loginWithOtp, logout])
 
   return (
     <AuthContext.Provider value={value}>
