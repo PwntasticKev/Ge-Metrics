@@ -14,12 +14,14 @@ import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { itemRecipes } from '../../components/Table/data/item-set-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 export default function CombinationItems () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [itemSets, setItemSets] = useState([])
+  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   const favoriteItemIds = new Set(
@@ -107,13 +109,20 @@ export default function CombinationItems () {
           {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
             <ItemSetsTable
               data={itemSets}
+              items={items}
               favoriteItems={favoriteItemIds}
               onToggleFavorite={(itemId) => toggleFavorite(itemId, 'combination')}
+              setGraphInfo={(info) => setGraphInfo({ ...info, item: { ...info.item, items } })}
             />
           )}
 
         </Box>
       )}
+      <GraphModal
+        opened={graphInfo.open}
+        onClose={() => setGraphInfo({ open: false, item: null })}
+        item={graphInfo.item}
+      />
     </React.Fragment>
   )
 }

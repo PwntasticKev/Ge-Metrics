@@ -91,6 +91,9 @@ export const getItemsById = (itemIds, allItems) => {
 }
 
 export const getItemById = (itemId, allItems) => {
+  if (!Array.isArray(allItems)) {
+    return undefined // or null, depending on how you want to handle it
+  }
   return allItems.find(item => item.id === itemId)
 }
 

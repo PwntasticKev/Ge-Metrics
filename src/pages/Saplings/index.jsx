@@ -14,12 +14,14 @@ import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { saplingRecipes } from '../../components/Table/data/sapling-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 export default function Saplings () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [saplingSets, setSaplingSets] = useState([])
+  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   const favoriteItemIds = new Set(
@@ -89,12 +91,19 @@ export default function Saplings () {
           {priceStatus === 'success' && saplingSets && saplingSets.length > 0 && (
             <ItemSetsTable
               data={saplingSets}
+              items={items}
               favoriteItems={favoriteItemIds}
               onToggleFavorite={(itemId) => toggleFavorite(itemId, 'sapling')}
+              setGraphInfo={(info) => setGraphInfo({ ...info, item: { ...info.item, items } })}
             />
           )}
         </Box>
       )}
+      <GraphModal
+        opened={graphInfo.open}
+        onClose={() => setGraphInfo({ open: false, item: null })}
+        item={graphInfo.item}
+      />
     </React.Fragment>
   )
 }

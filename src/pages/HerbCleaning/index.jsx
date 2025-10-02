@@ -13,12 +13,14 @@ import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { herbCleaningRecipes } from '../../components/Table/data/herb-cleaning-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 export default function HerbCleaning () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [herbSets, setHerbSets] = useState([])
+  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   const favoriteItemIds = new Set(
@@ -87,12 +89,19 @@ export default function HerbCleaning () {
           {priceStatus === 'success' && herbSets && herbSets.length > 0 && (
             <ItemSetsTable
               data={herbSets}
+              items={items}
               favoriteItems={favoriteItemIds}
               onToggleFavorite={(itemId) => toggleFavorite(itemId, 'herb')}
+              setGraphInfo={(info) => setGraphInfo({ ...info, item: { ...info.item, items } })}
             />
           )}
         </Box>
       )}
+      <GraphModal
+        opened={graphInfo.open}
+        onClose={() => setGraphInfo({ open: false, item: null })}
+        item={graphInfo.item}
+      />
     </React.Fragment>
   )
 }

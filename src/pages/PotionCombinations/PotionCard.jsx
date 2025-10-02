@@ -2,12 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { Card, Image, Badge, Text, Group, Tooltip, ActionIcon, Stack, Loader } from '@mantine/core'
 import { Link } from 'react-router-dom'
 import { IconChartLine, IconHeart, IconHeartFilled } from '@tabler/icons-react'
-import { VolumeChartModal } from './components/VolumeChartModal'
-import { useFavorites } from '../../contexts/FavoritesContext'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
-export function PotionCard ({ recipe, filterMode = 'volume+profit', volumeData }) {
-  const [modalOpened, setModalOpened] = useState(false)
-  const { isFavorite, toggleFavorite } = useFavorites()
+export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profit', volumeData, isFavorite, onToggleFavorite }) {
+  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
 
   if (!recipe || !recipe.item4 || !recipe.combinations) {
     return null
@@ -66,16 +64,16 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit', volumeData }
 
       {/* Icons Row */}
       <Group spacing="xs" mb="sm">
-        <ActionIcon size="sm" variant="light" onClick={() => setModalOpened(true)}>
+        <ActionIcon size="sm" variant="light" onClick={() => setGraphInfo({ open: true, item: { id: item4.id, items: allItems } })}>
           <IconChartLine size={14} />
         </ActionIcon>
         <ActionIcon
           size="sm"
           variant="light"
-          color={isFavorite(name) ? 'red' : 'gray'}
-          onClick={() => toggleFavorite(name)}
+          color={isFavorite ? 'red' : 'gray'}
+          onClick={onToggleFavorite}
         >
-          {isFavorite(name) ? <IconHeartFilled size={14} /> : <IconHeart size={14} />}
+          {isFavorite ? <IconHeartFilled size={14} /> : <IconHeart size={14} />}
         </ActionIcon>
       </Group>
 
@@ -125,7 +123,11 @@ export function PotionCard ({ recipe, filterMode = 'volume+profit', volumeData }
         </Group>
       </Stack>
 
-      {modalOpened && <VolumeChartModal opened={modalOpened} onClose={() => setModalOpened(false)} recipe={recipe} />}
+      <GraphModal
+        opened={graphInfo.open}
+        onClose={() => setGraphInfo({ open: false, item: null })}
+        item={graphInfo.item}
+      />
     </Card>
   )
 }

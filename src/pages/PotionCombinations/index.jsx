@@ -4,7 +4,7 @@ import { IconSearch, IconFilter, IconHeart, IconList, IconPigMoney, IconGraph, I
 import { useDebouncedValue } from '@mantine/hooks'
 import { PotionCard } from './PotionCard'
 import { CalculationExplainer } from './CalculationExplainer'
-import { useFavorites } from '../../contexts/FavoritesContext'
+import { useFavorites } from '../../hooks/useFavorites.js'
 import { trpc } from '../../utils/trpc'
 import { processPotionData } from '../../utils/potion-calculation'
 import { getRelativeTime } from '../../utils/utils'
@@ -19,7 +19,7 @@ export default function PotionCombinations () {
   })
 
   // Client-side State
-  const { favorites } = useFavorites()
+  const { favorites, toggleFavorite, isLoadingFavorites } = useFavorites()
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState('dose3') // Default to Best (3) Dose
@@ -44,8 +44,9 @@ export default function PotionCombinations () {
     // ... (filtering and sorting logic remains the same)
     // ... This will now work because `recipes` is correctly populated.
     // Apply tab filter
-    if (activeTab === 'favorites') {
-      filtered = filtered.filter(recipe => favorites.includes(recipe.name))
+    if (activeTab === 'favorites' && favorites) {
+      const favoriteIds = new Set(favorites.filter(f => f.itemType === 'potion').map(f => f.item.id))
+      filtered = filtered.filter(recipe => favoriteIds.has(recipe.id))
     }
 
     // Apply search and data-driven filters
@@ -113,7 +114,7 @@ export default function PotionCombinations () {
     return filtered
   }, [recipes, debouncedSearch, sortOrder, activeTab, favorites, minProfit, minVolume, volumeData, minHourlyVolume])
 
-  const isLoading = isLoadingMapping || isLoadingAllItems || isLoadingVolumes || isLoadingLastUpdated
+  const isLoading = isLoadingMapping || isLoadingAllItems || isLoadingVolumes || isLoadingLastUpdated || isLoadingFavorites
   const error = errorMapping || errorItems || errorVolumes
 
   if (isLoading) {
@@ -146,7 +147,7 @@ export default function PotionCombinations () {
       <Tabs value={activeTab} onTabChange={setActiveTab} mb="lg">
         <Tabs.List>
           <Tabs.Tab value="all" icon={<IconList size={16} />}>All Potions</Tabs.Tab>
-          <Tabs.Tab value="favorites" icon={<IconHeart size={16} />}>Favorites ({favorites.length})</Tabs.Tab>
+          <Tabs.Tab value="favorites" icon={<IconHeart size={16} />}>Favorites ({favorites ? favorites.filter(f => f.itemType === 'potion').length : 0})</Tabs.Tab>
         </Tabs.List>
       </Tabs>
 
@@ -231,8 +232,12 @@ export default function PotionCombinations () {
           <PotionCard
             key={recipe.name}
             recipe={recipe}
+            item={recipe}
+            allItems={allItems}
             filterMode={sortOrder}
             volumeData={volumeData}
+            isFavorite={favorites && favorites.some(f => f.itemId === recipe.id && f.itemType === 'potion')}
+            onToggleFavorite={() => toggleFavorite(recipe.id, 'potion')}
           />
         ))}
       </SimpleGrid>

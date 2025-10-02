@@ -142,7 +142,7 @@ function sortData (data, payload) {
   )
 }
 
-export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraphInfo }) {
+export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraphInfo, items }) {
   const theme = useMantineTheme()
   const location = useLocation()
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -256,7 +256,7 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                     <ActionIcon
                       variant="light"
                       color="blue"
-                      onClick={() => setGraphInfo({ itemId: row.id, isSet: true, isOpen: true })}
+                      onClick={() => setGraphInfo({ open: true, item: { id: row.id, items } })}
                       size={isMobile ? 'sm' : 'md'}
                     >
                       <IconChartHistogram size={isMobile ? 14 : 16} />
