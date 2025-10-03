@@ -1,11 +1,11 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
 import { eq } from 'drizzle-orm'
-import { db, employees } from '../db/index.js'
+import { db, userSettings } from '../db/index.js'
 import * as AuthModule from '../utils/auth.js'
 
 // Context creation
-export const createContext = ({ req, res }: CreateExpressContextOptions) => {
+export const createContext = async ({ req, res }: CreateExpressContextOptions) => {
   const authHeader = req.headers.authorization
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
@@ -19,9 +19,15 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
       const decodedUser = utils.verifyAccessToken(token)
       // The decoded token has a 'userId' property which is a string.
       // We parse it to an integer and create an 'id' property for consistency in the context.
+      const userId = parseInt(decodedUser.userId, 10)
+      
+      // Get user settings from database
+      const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1)
+      
       const user = {
         ...decodedUser,
-        id: parseInt(decodedUser.userId, 10)
+        id: userId,
+        role: settings?.role || 'user'
       }
       return { req, res, user }
     } catch (error) {
@@ -62,9 +68,10 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 export const protectedProcedure = t.procedure.use(isAuthed)
 
 const isAdmin = isAuthed.unstable_pipe(async ({ ctx, next }) => {
-  const [employee] = await db.select().from(employees).where(eq(employees.userId, ctx.user.id)).limit(1)
+  // Get user settings from database to check admin role
+  const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, ctx.user.id)).limit(1)
 
-  if (!employee || employee.role !== 'admin') {
+  if (!settings || settings.role !== 'admin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to perform this action.' })
   }
 
@@ -72,7 +79,7 @@ const isAdmin = isAuthed.unstable_pipe(async ({ ctx, next }) => {
     ctx: {
       ...ctx,
       user: ctx.user,
-      employee
+      userSettings: settings
     }
   })
 })

@@ -110,18 +110,22 @@ async function testFinalSubscriptionSystem () {
     console.log(`  Monthly Revenue: $${stats.monthlyRevenue}`)
     console.log('  Plan Distribution:', stats.planDistribution)
 
-    console.log('\n📋 Step 6: Testing employee management...')
+    console.log('\n📋 Step 6: Testing user settings management...')
 
-    // Create an employee
-    const [employee] = await db.insert(schema.employees).values({
+    // Create user settings with admin role instead of employee
+    const [adminSettings] = await db.insert(schema.userSettings).values({
       userId: createdUsers[0].id,
       role: 'admin',
-      department: 'Management',
-      isActive: true,
-      permissions: { canManageUsers: true, canManageSubscriptions: true }
+      emailNotifications: true,
+      volumeAlerts: true,
+      priceDropAlerts: true,
+      cooldownPeriod: 5,
+      otpEnabled: false,
+      otpVerified: false,
+      permissions: { admin: ['full_access'], users: ['read', 'write', 'delete'] }
     }).returning()
 
-    console.log(`✅ Created employee: ${employee.role} (ID: ${employee.id})`)
+    console.log(`✅ Created admin user settings: ${adminSettings.role} (User ID: ${adminSettings.userId})`)
 
     console.log('\n📋 Step 7: Testing audit logging...')
 
@@ -142,12 +146,13 @@ async function testFinalSubscriptionSystem () {
     console.log('\n📊 Final Database State:')
     const finalUsers = await db.select().from(schema.users)
     const finalSubscriptions = await db.select().from(schema.subscriptions)
-    const finalEmployees = await db.select().from(schema.employees)
+    // Skip employee check - using user_settings instead
+    const finalUserSettings = await db.select().from(schema.userSettings)
     const finalAuditLogs = await db.select().from(schema.auditLog)
 
     console.log(`Users: ${finalUsers.length} (IDs: ${finalUsers.map(u => u.id).join(', ')})`)
     console.log(`Subscriptions: ${finalSubscriptions.length} (IDs: ${finalSubscriptions.map(s => s.id).join(', ')})`)
-    console.log(`Employees: ${finalEmployees.length} (IDs: ${finalEmployees.map(e => e.id).join(', ')})`)
+    console.log(`User Settings: ${finalUserSettings.length} (Users: ${finalUserSettings.map(s => s.userId).join(', ')})`)
     console.log(`Audit Logs: ${finalAuditLogs.length}`)
 
     console.log('\n📋 User Subscription Summary:')
@@ -161,7 +166,7 @@ async function testFinalSubscriptionSystem () {
     console.log('✅ All CRUD operations working')
     console.log('✅ Feature access control working')
     console.log('✅ Audit logging working')
-    console.log('✅ Employee management working')
+    console.log('✅ User settings management working')
     console.log('✅ Subscription statistics working')
     console.log('✅ Database migration completed successfully')
     console.log('✅ Frontend service created and ready for integration')

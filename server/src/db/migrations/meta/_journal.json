@@ -8,6 +8,13 @@
       "when": 1759296929370,
       "tag": "0000_amusing_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759469935707,
+      "tag": "0001_lovely_sprite",
+      "breakpoints": true
     }
   ]
 }

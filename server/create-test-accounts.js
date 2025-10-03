@@ -4,7 +4,7 @@
  */
 
 import { db } from './src/db/index.js'
-import { users, subscriptions, employees } from './src/db/schema.js'
+import { users, subscriptions, userSettings } from './src/db/schema.js'
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 
@@ -54,31 +54,34 @@ async function createTestAccounts () {
       adminUser = adminUser[0]
     }
 
-    // Create admin employee record
-    const existingAdminEmployee = await db.select()
-      .from(employees)
-      .where(eq(employees.userId, adminUser.id))
-      .limit(1)
-
-    if (existingAdminEmployee.length === 0) {
-      await db.insert(employees)
-        .values({
-          userId: adminUser.id,
-          role: 'admin',
-          department: 'Administration',
-          isActive: true,
-          permissions: {
-            'users:read': true,
-            'users:write': true,
-            'users:delete': true,
-            'billing:read': true,
-            'billing:write': true,
-            'system:read': true,
-            'system:write': true,
-            'admin:access': true
-          }
-        })
-    }
+    // Create admin user settings record instead of employee
+    await db.insert(userSettings).values({
+      userId: adminUser.id,
+      role: 'admin',
+      emailNotifications: true,
+      volumeAlerts: true,
+      priceDropAlerts: true,
+      cooldownPeriod: 5,
+      otpEnabled: false,
+      otpVerified: false,
+      permissions: {
+        admin: ['full_access'],
+        users: ['read', 'write', 'delete'],
+        billing: ['read', 'write'],
+        system: ['read', 'write']
+      }
+    }).onConflictDoUpdate({
+      target: userSettings.userId,
+      set: { 
+        role: 'admin',
+        permissions: {
+          admin: ['full_access'],
+          users: ['read', 'write', 'delete'], 
+          billing: ['read', 'write'],
+          system: ['read', 'write']
+        }
+      }
+    })
 
     // Create admin subscription (active premium)
     const existingAdminSub = await db.select()

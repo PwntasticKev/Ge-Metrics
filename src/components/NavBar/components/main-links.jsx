@@ -639,7 +639,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           onNavigate={onNavigate}
         />
 
-        {/* Admin Submenu - Only for employees with proper permissions */}
+        {/* Admin Submenu - Only for admin users */}
         {user && user.role === 'admin' && (
           <SubmenuLink
             icon={<IconShield size="1rem"/>}
@@ -651,10 +651,10 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             isMobile={isMobile}
           >
             <SubmenuItem
-              icon={<IconChartLine size="0.8rem"/>}
-              color="green"
-              label="Billing Dashboard"
-              link="/admin/billing"
+              icon={<IconDashboard size="0.8rem"/>}
+              color="red"
+              label="Admin Dashboard"
+              link="/admin"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
@@ -663,16 +663,25 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               icon={<IconUsers size="0.8rem"/>}
               color="blue"
               label="User Management"
-              link="/admin/users"
+              link="/admin/user-management"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
             />
             <SubmenuItem
-              icon={<IconShield size="0.8rem"/>}
-              color="gray"
-              label="System Settings"
-              link="/admin/settings"
+              icon={<IconUsers size="0.8rem"/>}
+              color="cyan"
+              label="Employee Management"
+              link="/admin/employee-management"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
+            <SubmenuItem
+              icon={<IconChartLine size="0.8rem"/>}
+              color="green"
+              label="Billing Dashboard"
+              link="/admin/billing-dashboard"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
@@ -681,7 +690,16 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               icon={<IconShield size="0.8rem"/>}
               color="orange"
               label="Security Logs"
-              link="/admin/security"
+              link="/admin/security-logs"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
+            <SubmenuItem
+              icon={<IconSettings size="0.8rem"/>}
+              color="gray"
+              label="System Settings"
+              link="/admin/system-settings"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
@@ -690,7 +708,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               icon={<IconCalculator size="0.8rem"/>}
               color="purple"
               label="Formula Documentation"
-              link="/admin/formulas"
+              link="/admin/formula-documentation"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}

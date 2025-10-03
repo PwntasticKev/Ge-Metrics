@@ -282,21 +282,7 @@ export const clanInvites = pgTable('clan_invites', {
   invitedEmailIdx: index('clan_invites_email_idx').on(table.invitedEmail)
 }))
 
-// Employees (for admin management)
-export const employees = pgTable('employees', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role').notNull().default('support'), // 'admin', 'support', 'moderator'
-  department: text('department'),
-  isActive: boolean('is_active').default(true),
-  permissions: jsonb('permissions'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
-}, (table) => ({
-  userIdIdx: index('employees_user_id_idx').on(table.userId),
-  roleIdx: index('employees_role_idx').on(table.role),
-  departmentIdx: index('employees_department_idx').on(table.department)
-}))
+// Employees table removed - using user_settings.role instead
 
 // Audit Log
 export const auditLog = pgTable('audit_log', {
@@ -336,8 +322,7 @@ export type ClanMember = typeof clanMembers.$inferSelect;
 export type NewClanMember = typeof clanMembers.$inferInsert;
 export type ClanInvite = typeof clanInvites.$inferSelect;
 export type NewClanInvite = typeof clanInvites.$inferInsert;
-export type Employee = typeof employees.$inferSelect;
-export type NewEmployee = typeof employees.$inferInsert;
+// Employee types removed - using UserSettings.role instead
 export type AuditLog = typeof auditLog.$inferSelect;
 export type NewAuditLog = typeof auditLog.$inferInsert;
 
@@ -386,6 +371,8 @@ export const userSettings = pgTable('user_settings', {
   otpEnabled: boolean('otp_enabled').default(false).notNull(),
   otpSecret: text('otp_secret'),
   otpVerified: boolean('otp_verified').default(false).notNull(),
+  role: text('role').notNull().default('user'), // 'user', 'admin', 'moderator'
+  permissions: jsonb('permissions'), // Store additional permissions as JSON
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 })
