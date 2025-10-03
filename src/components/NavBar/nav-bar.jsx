@@ -97,7 +97,6 @@ export default function NavMenu ({ user, isMobile }) {
         <MainLinks expanded={expanded} />
       </Navbar.Section>
       <Navbar.Section>
-        <UserButton expanded={expanded} />
         {!isMobile && (
           <UnstyledButton className={classes.expandButton} onClick={toggleNavbar}>
             <Group position="center">

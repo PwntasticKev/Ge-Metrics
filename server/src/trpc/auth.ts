@@ -617,7 +617,7 @@ export const authRouter = router({
   // Get current user (protected route)
   me: protectedProcedure
     .query(async ({ ctx }) => {
-      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.userId)).limit(1)
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1)
 
       if (!user) {
         throw new TRPCError({
@@ -631,6 +631,7 @@ export const authRouter = router({
         email: user.email,
         name: user.name,
         avatar: user.avatar,
+        role: ctx.user.role, // Include role from context
         createdAt: user.createdAt
       }
     })
