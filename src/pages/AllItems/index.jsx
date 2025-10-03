@@ -11,12 +11,12 @@ export default function AllItems () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
-  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
+  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
 
   const favoriteItemIds = new Set(
     favoriteItems
-      .filter(fav => fav.itemType === 'item')
-      .map(fav => fav.itemId)
+      ?.filter(fav => fav.itemType === 'item')
+      ?.map(fav => fav.itemId) || []
   )
 
   useEffect(() => {
@@ -51,7 +51,9 @@ export default function AllItems () {
     .filter(item => !item.name.includes('3rd age'))
     .sort((a, b) => b.profit - a.profit)
 
-  const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
+  // Don't let favorites loading block the entire page
+  const isLoading = mapStatus === 'loading' || priceStatus === 'loading'
+
 
   return (
         <>

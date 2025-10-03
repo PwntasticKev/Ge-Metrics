@@ -2,8 +2,12 @@ import { trpc } from '../utils/trpc.jsx'
 
 export function useFavorites (itemType) {
   const utils = trpc.useContext()
-  const { data: favoriteItems, isLoading: isLoadingFavorites } = trpc.favorites.getAll.useQuery({ itemType }, {
-    initialData: []
+  const { data: favoriteItems, isLoading: isLoadingFavorites, error } = trpc.favorites.getAll.useQuery({ itemType }, {
+    initialData: [],
+    retry: false,
+    onError: (error) => {
+      console.error('useFavorites error:', error)
+    }
   })
 
   const addFavorite = trpc.favorites.add.useMutation({

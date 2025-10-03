@@ -26,8 +26,13 @@ const ItemData = () => {
           getVolumeData()
         ])
 
-        const pricesById = pricingResponse.data.data
-        const volumesById = volumeResponse.data.data
+        // Check if API calls were successful
+        if (!pricingResponse.success || !volumeResponse.success) {
+          throw new Error('API calls failed')
+        }
+        
+        const pricesById = pricingResponse.data.data || {}
+        const volumesById = volumeResponse.data.data || {}
 
         const enrichedItems = mappingData.map(item => {
           const priceData = pricesById[item.id]

@@ -49,16 +49,42 @@ export default function LineChart ({ id, items }) {
   const item = useMemo(() => getItemById(id, items) || {}, [id, items])
 
   const fetchData = async () => {
-    if (!id) return
+    if (!id) {
+      console.warn('LineChart: No ID provided')
+      setHistoryStatus('error')
+      return
+    }
+    
+    console.log('LineChart: Fetching data for ID:', id, 'timeframe:', timeframe)
     setIsFetching(true)
     setHistoryStatus('loading')
+    
     try {
       const result = await getItemHistoryById(timeframe, id)
-      setHistoryData(result?.data?.data || [])
-      setHistoryStatus('success')
-      setLastUpdateTime(new Date())
+      console.log('LineChart: API result:', result)
+      
+      if (result && result.success && result.data) {
+        // Check if the data is an object with 'data' property or direct array
+        const histData = result.data.data || result.data
+        console.log('LineChart: Processed data:', histData)
+        
+        if (Array.isArray(histData) && histData.length > 0) {
+          setHistoryData(histData)
+          setHistoryStatus('success')
+          setLastUpdateTime(new Date())
+          console.log('LineChart: Data loaded successfully, count:', histData.length)
+        } else {
+          console.warn('LineChart: No valid data available. Data type:', typeof histData, 'Length:', histData?.length)
+          setHistoryData([])
+          setHistoryStatus('error')
+        }
+      } else {
+        console.warn('LineChart: Invalid API response structure:', result)
+        setHistoryData([])
+        setHistoryStatus('error')
+      }
     } catch (error) {
-      console.error('Error fetching history data:', error)
+      console.error('LineChart: Error fetching history data:', error)
       setHistoryStatus('error')
     } finally {
       setIsFetching(false)
@@ -67,6 +93,17 @@ export default function LineChart ({ id, items }) {
 
   useEffect(() => {
     fetchData()
+    
+    // Add timeout fallback to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (historyStatus === 'loading') {
+        console.warn('Chart data fetch timed out')
+        setHistoryStatus('error')
+        setIsFetching(false)
+      }
+    }, 10000) // 10 second timeout
+    
+    return () => clearTimeout(timeout)
   }, [id, timeframe])
 
   // Update current time every second to refresh relative time

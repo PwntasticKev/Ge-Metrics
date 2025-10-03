@@ -70,4 +70,7 @@ export const getItemHistoryById = async (timeframe, id) => {
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
-    console.error(`
+    console.error('Error fetching item History:', error)
+    return { success: false, error }
+  }
+}

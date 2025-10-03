@@ -1,49 +1,41 @@
-import { Box, Container, Modal, CloseButton } from '@mantine/core'
+import { Box, Container, Modal } from '@mantine/core'
 import LineChart from '../../shared/line-chart.jsx'
-import Draggable from 'react-draggable'
-import { useRef } from 'react'
 
-export default function GraphModal ({ opened, onClose, item }) {
-  const nodeRef = useRef(null)
+export default function GraphModal ({ opened, setOpened, onClose, item, id, items }) {
+  const handleClose = () => {
+    console.log('GraphModal: Attempting to close modal')
+    if (setOpened) {
+      setOpened(false)
+    } else if (onClose) {
+      onClose()
+    }
+  }
+
   return (
-    <Draggable handle=".draggable-handle" nodeRef={nodeRef}>
-      <div ref={nodeRef}>
-        <Modal
-          opened={opened}
-          onClose={onClose}
-          centered
-          size="95%"
-          withinPortal={true}
-          closeOnEscape={true}
-          trapFocus={false}
-          zIndex={1000}
-          withCloseButton={false}
-          overlayProps={{
-            blur: 3
-          }}
-          transitionProps={{
-            transition: 'pop',
-            duration: 200
-          }}
-          styles={{
-            header: { cursor: 'move', userSelect: 'none' },
-            body: { position: 'relative' }
-          }}
-          classNames={{
-            header: 'draggable-handle'
-          }}
-        >
-          <CloseButton
-            onClick={onClose}
-            style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1001 }}
-          />
-          <Box style={{ resize: 'both', overflow: 'auto', padding: '1rem', minHeight: '70vh' }}>
-            <Container px={0}>
-              <LineChart id={item?.id} items={item?.items} />
-            </Container>
-          </Box>
-        </Modal>
-      </div>
-    </Draggable>
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      centered
+      size="95%"
+      closeOnEscape={true}
+      closeOnClickOutside={true}
+      withCloseButton={true}
+      trapFocus={false}
+      lockScroll={false}
+      overlayProps={{
+        blur: 3
+      }}
+      transitionProps={{
+        transition: 'pop',
+        duration: 200
+      }}
+      title={`Price History: ${item?.name || 'Loading...'}`}
+    >
+      <Box style={{ padding: '1rem', minHeight: '70vh' }}>
+        <Container px={0}>
+          <LineChart id={id || item?.id} items={items || item?.items} />
+        </Container>
+      </Box>
+    </Modal>
   )
 }
