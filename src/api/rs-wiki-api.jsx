@@ -57,13 +57,17 @@ export const getItemHistoryById = async (timeframe, id) => {
   try {
     const url = `${TIMESERIES_URL}?timestep=${timeframe}&id=${id}`
     const response = await fetch(url)
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
+
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new TypeError("Oops, we haven't got JSON!")
+    }
+
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
-    console.error(`Failed to fetch history for item ${id}:`, error)
-    return { success: false, error }
-  }
-}
+    console.error(`

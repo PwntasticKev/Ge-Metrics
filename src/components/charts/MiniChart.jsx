@@ -52,7 +52,11 @@ const MiniChart = ({ itemId, width = 150, height = 40 }) => {
                 }
               ]
             })
+          } else {
+            setChartData(null)
           }
+        } else {
+          setChartData(null)
         }
       } catch (error) {
         console.error('Error fetching mini chart data:', error)

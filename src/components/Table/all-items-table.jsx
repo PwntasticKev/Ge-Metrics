@@ -37,6 +37,7 @@ import { Link, useLocation } from 'react-router-dom'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
+import LazyLoad from '../LazyLoad/index.jsx'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -358,7 +359,9 @@ export function AllItemsTable ({
           </Tooltip>
         </td>
         <td style={{ verticalAlign: 'middle', padding: '8px', textAlign: 'center' }}>
-          <MiniChart itemId={row.id} width={120} height={40} />
+          <LazyLoad>
+            <MiniChart itemId={row.id} width={120} height={40} />
+          </LazyLoad>
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
           <Flex gap="xs" justify="center" align="center">
