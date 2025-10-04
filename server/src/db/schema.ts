@@ -589,3 +589,79 @@ export type UserInvitation = typeof userInvitations.$inferSelect;
 export type NewUserInvitation = typeof userInvitations.$inferInsert;
 export type UserSession = typeof userSessions.$inferSelect;
 export type NewUserSession = typeof userSessions.$inferInsert;
+
+// Formula Documentation - For managing calculation formulas
+export const formulas = pgTable('formulas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  category: text('category').notNull(), // 'trading', 'skilling', 'investment', 'combat', 'general'
+  description: text('description').notNull(),
+  formula: text('formula').notNull(), // Mathematical formula as string
+  parameters: jsonb('parameters'), // Array of parameter definitions
+  examples: jsonb('examples'), // Array of examples with inputs/outputs
+  notes: text('notes'),
+  tags: jsonb('tags'), // Array of tags for searching
+  complexity: text('complexity').notNull().default('beginner'), // 'beginner', 'intermediate', 'advanced'
+  isActive: boolean('is_active').default(true),
+  createdBy: integer('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  categoryIdx: index('formulas_category_idx').on(table.category),
+  complexityIdx: index('formulas_complexity_idx').on(table.complexity),
+  isActiveIdx: index('formulas_is_active_idx').on(table.isActive),
+  createdByIdx: index('formulas_created_by_idx').on(table.createdBy)
+}))
+
+// Cron Jobs - For managing scheduled tasks
+export const cronJobs = pgTable('cron_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  schedule: text('schedule').notNull(), // Cron expression
+  scheduleDescription: text('schedule_description'), // Human readable schedule
+  command: text('command').notNull(),
+  category: text('category').notNull(), // 'data-sync', 'reporting', 'maintenance', 'backup', 'notifications'
+  enabled: boolean('enabled').default(true),
+  timeout: integer('timeout').default(300), // seconds
+  retries: integer('retries').default(3),
+  notifications: boolean('notifications').default(true),
+  lastRun: timestamp('last_run'),
+  nextRun: timestamp('next_run'),
+  status: text('status').default('idle'), // 'idle', 'running', 'success', 'failed'
+  createdBy: integer('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  categoryIdx: index('cron_jobs_category_idx').on(table.category),
+  enabledIdx: index('cron_jobs_enabled_idx').on(table.enabled),
+  statusIdx: index('cron_jobs_status_idx').on(table.status),
+  nextRunIdx: index('cron_jobs_next_run_idx').on(table.nextRun),
+  createdByIdx: index('cron_jobs_created_by_idx').on(table.createdBy)
+}))
+
+// System Settings - For application configuration
+export const systemSettings = pgTable('system_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  section: text('section').notNull(), // 'general', 'database', 'security', 'api', 'notifications'
+  key: text('key').notNull(),
+  value: jsonb('value').notNull(),
+  description: text('description'),
+  dataType: text('data_type').notNull(), // 'string', 'number', 'boolean', 'json'
+  isSecret: boolean('is_secret').default(false), // For sensitive values
+  updatedBy: integer('updated_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  sectionKeyIdx: index('system_settings_section_key_idx').on(table.section, table.key),
+  sectionIdx: index('system_settings_section_idx').on(table.section),
+  isSecretIdx: index('system_settings_is_secret_idx').on(table.isSecret)
+}))
+
+// Type exports for new tables
+export type Formula = typeof formulas.$inferSelect;
+export type NewFormula = typeof formulas.$inferInsert;
+export type CronJob = typeof cronJobs.$inferSelect;
+export type NewCronJob = typeof cronJobs.$inferInsert;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type NewSystemSetting = typeof systemSettings.$inferInsert;

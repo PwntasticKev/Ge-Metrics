@@ -6,6 +6,8 @@ import { adminUsersRouter } from './admin-users.js'
 import { adminBillingRouter } from './admin-billing.js'
 import { adminSecurityRouter } from './admin-security.js'
 import { adminCronJobsRouter } from './admin-cronjobs.js'
+import { adminFormulasRouter } from './admin-formulas.js'
+import { adminSystemSettingsRouter } from './admin-system-settings.js'
 import { adminInvitationsRouter } from './admin-invitations.js'
 import { adminSessionsRouter } from './admin-sessions.js'
 import { itemsRouter } from './items.js'
@@ -23,6 +25,8 @@ export const appRouter = router({
   adminBilling: adminBillingRouter,
   adminSecurity: adminSecurityRouter,
   adminCronJobs: adminCronJobsRouter,
+  adminFormulas: adminFormulasRouter,
+  adminSystemSettings: adminSystemSettingsRouter,
   adminInvitations: adminInvitationsRouter,
   adminSessions: adminSessionsRouter,
   items: itemsRouter,

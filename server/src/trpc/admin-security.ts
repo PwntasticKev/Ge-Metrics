@@ -4,7 +4,9 @@ import {
   db, 
   users, 
   auditLog,
-  userSettings
+  userSettings,
+  securityEvents,
+  apiUsageLogs
 } from '../db/index.js'
 import { adminProcedure, router } from './trpc.js'
 
@@ -37,44 +39,62 @@ export const adminSecurityRouter = router({
         .orderBy(desc(count()))
         .limit(10)
 
-      // Get recent critical events (mock for now - would be from security_events table)
-      const mockSecurityEvents = [
-        {
-          id: '1',
-          eventType: 'multiple_failed_logins',
-          severity: 'high',
-          description: 'Multiple failed login attempts detected',
-          ipAddress: '192.168.1.100',
-          count: 5,
-          createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-          resolved: false
-        },
-        {
-          id: '2',
-          eventType: 'suspicious_activity',
-          severity: 'medium',
-          description: 'Unusual API usage pattern detected',
-          ipAddress: '10.0.0.50',
-          count: 1,
-          createdAt: new Date(now.getTime() - 6 * 60 * 60 * 1000),
-          resolved: true
-        }
-      ]
+      // Get recent security events from database
+      const recentSecurityEvents = await db.select()
+        .from(securityEvents)
+        .where(gte(securityEvents.createdAt, last7Days))
+        .orderBy(desc(securityEvents.createdAt))
+        .limit(10)
 
-      // Mock API usage stats
-      const mockApiStats = {
-        totalRequests: 15420,
-        requestsToday: 1850,
-        requestsThisWeek: 12450,
-        averageResponseTime: 125,
-        errorRate: 2.1,
-        topEndpoints: [
-          { endpoint: '/trpc/auth.me', requests: 3420, avgResponseTime: 45, errorRate: 0.5 },
-          { endpoint: '/trpc/items.getAllItems', requests: 2890, avgResponseTime: 180, errorRate: 1.2 },
-          { endpoint: '/trpc/billing.getSubscription', requests: 1650, avgResponseTime: 95, errorRate: 0.8 },
-          { endpoint: '/trpc/favorites.getUserFavorites', requests: 1240, avgResponseTime: 65, errorRate: 0.3 },
-          { endpoint: '/trpc/settings.getUserSettings', requests: 980, avgResponseTime: 55, errorRate: 0.2 }
-        ]
+      // Get API usage statistics from database
+      const [totalApiRequests] = await db.select({ count: count() }).from(apiUsageLogs)
+      const [requestsToday] = await db.select({ count: count() })
+        .from(apiUsageLogs)
+        .where(gte(apiUsageLogs.createdAt, last24Hours))
+      const [requestsThisWeek] = await db.select({ count: count() })
+        .from(apiUsageLogs)
+        .where(gte(apiUsageLogs.createdAt, last7Days))
+
+      // Get average response time
+      const [avgResponseTime] = await db.select({ avg: avg(apiUsageLogs.responseTime) })
+        .from(apiUsageLogs)
+        .where(gte(apiUsageLogs.createdAt, last24Hours))
+
+      // Get error rate (4xx and 5xx status codes)
+      const [errorRequests] = await db.select({ count: count() })
+        .from(apiUsageLogs)
+        .where(and(
+          gte(apiUsageLogs.createdAt, last24Hours),
+          gte(apiUsageLogs.statusCode, 400)
+        ))
+
+      const errorRate = requestsToday.count > 0 ? (errorRequests.count / requestsToday.count) * 100 : 0
+
+      // Get top endpoints
+      const topEndpoints = await db.select({
+        endpoint: apiUsageLogs.endpoint,
+        requests: count(),
+        avgResponseTime: avg(apiUsageLogs.responseTime),
+        errorRate: sql<number>`(COUNT(CASE WHEN status_code >= 400 THEN 1 END) * 100.0 / COUNT(*))`.mapWith(Number)
+      })
+        .from(apiUsageLogs)
+        .where(gte(apiUsageLogs.createdAt, last7Days))
+        .groupBy(apiUsageLogs.endpoint)
+        .orderBy(desc(count()))
+        .limit(5)
+
+      const apiStats = {
+        totalRequests: totalApiRequests.count || 0,
+        requestsToday: requestsToday.count || 0,
+        requestsThisWeek: requestsThisWeek.count || 0,
+        averageResponseTime: Math.round(Number(avgResponseTime.avg) || 0),
+        errorRate: Math.round(errorRate * 10) / 10, // Round to 1 decimal
+        topEndpoints: topEndpoints.map(ep => ({
+          endpoint: ep.endpoint,
+          requests: ep.requests,
+          avgResponseTime: Math.round(Number(ep.avgResponseTime) || 0),
+          errorRate: Math.round(ep.errorRate * 10) / 10
+        }))
       }
 
       return {
@@ -84,8 +104,8 @@ export const adminSecurityRouter = router({
           thisWeek: auditEntriesWeek.count,
           actionDistribution
         },
-        securityEvents: mockSecurityEvents,
-        apiUsage: mockApiStats
+        securityEvents: recentSecurityEvents,
+        apiUsage: apiStats
       }
     }),
 

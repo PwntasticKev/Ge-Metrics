@@ -31,8 +31,8 @@ import {
 } from '@mantine/core'
 import {
   IconClock,
-  IconPlay,
-  IconPause,
+  IconPlayerPlay,
+  IconPlayerPause,
   IconRefresh,
   IconSettings,
   IconPlus,
@@ -78,7 +78,7 @@ const CronJobs = () => {
 
   // Real TRPC data queries
   const { data: jobsData, isLoading: jobsLoading, refetch: refetchJobs } = trpc.adminCronJobs.getAllJobs.useQuery()
-  
+
   const { data: executionData, isLoading: executionsLoading, refetch: refetchExecutions } = trpc.adminCronJobs.getExecutionHistory.useQuery({
     limit: 50,
     page: 1
@@ -212,7 +212,7 @@ const CronJobs = () => {
       case 'success': return <IconCheck size={16} />
       case 'running': return <IconActivity size={16} />
       case 'failed': return <IconX size={16} />
-      case 'disabled': return <IconPause size={16} />
+      case 'disabled': return <IconPlayerPause size={16} />
       default: return <IconClock size={16} />
     }
   }
@@ -305,7 +305,7 @@ const CronJobs = () => {
     })
 
     return last7Days.map(date => {
-      const dayExecutions = executions.filter(e => 
+      const dayExecutions = executions.filter(e =>
         e.startTime.startsWith(date)
       )
       return {
@@ -340,7 +340,7 @@ const CronJobs = () => {
                 <Text size="sm" color="dimmed">Active Jobs</Text>
                 <Text size="xl" weight={700}>{jobStats.activeJobs}</Text>
               </div>
-              <IconPlay size={24} color="green" />
+              <IconPlayerPlay size={24} color="green" />
             </Group>
           </Card>
         </Grid.Col>
@@ -380,11 +380,13 @@ const CronJobs = () => {
         </Card.Section>
         <Card.Section>
           <ScrollArea>
-            {jobsLoading ? (
+            {jobsLoading
+              ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
                 <Loader />
               </div>
-            ) : (
+                )
+              : (
               <Table striped highlightOnHover>
                 <thead>
                   <tr>
@@ -458,7 +460,7 @@ const CronJobs = () => {
                             onClick={() => handleToggleJob(job)}
                             loading={toggleJobMutation.isLoading}
                           >
-                            {job.enabled ? <IconPause size={16} /> : <IconPlay size={16} />}
+                            {job.enabled ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
                           </ActionIcon>
                         </Tooltip>
                         <Tooltip label="Run Now">
@@ -497,7 +499,7 @@ const CronJobs = () => {
                   ))}
                 </tbody>
               </Table>
-            )}
+                )}
           </ScrollArea>
         </Card.Section>
       </Card>
@@ -532,11 +534,13 @@ const CronJobs = () => {
           <Title order={4}>Recent Executions</Title>
         </Card.Section>
         <Card.Section>
-          {executionsLoading ? (
+          {executionsLoading
+            ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
               <Loader />
             </div>
-          ) : (
+              )
+            : (
             <Table striped highlightOnHover>
               <thead>
                 <tr>
@@ -578,7 +582,7 @@ const CronJobs = () => {
                 ))}
               </tbody>
             </Table>
-          )}
+              )}
         </Card.Section>
       </Card>
     </Stack>
@@ -687,8 +691,8 @@ const CronJobs = () => {
       <Group position="apart" mb="xl">
         <Title order={2}>Cron Jobs Management</Title>
         <Group>
-          <Button 
-            variant="light" 
+          <Button
+            variant="light"
             leftIcon={<IconRefresh size={16} />}
             onClick={() => {
               refetchJobs()
@@ -803,10 +807,10 @@ const CronJobs = () => {
             <div>
               <Text size="sm" weight={500} mb="xs">Output Log:</Text>
               <Paper p="md" withBorder style={{ backgroundColor: '#1a1b1e', color: '#c1c2c5' }}>
-                <Code 
-                  block 
-                  style={{ 
-                    backgroundColor: 'transparent', 
+                <Code
+                  block
+                  style={{
+                    backgroundColor: 'transparent',
                     color: 'inherit',
                     whiteSpace: 'pre-wrap',
                     fontFamily: 'monospace'

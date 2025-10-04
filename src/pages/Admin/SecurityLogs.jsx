@@ -25,9 +25,9 @@ import {
   Progress,
   SegmentedControl,
   NumberInput,
-  DatePicker,
   Divider
 } from '@mantine/core'
+import { DatePicker } from '@mantine/dates'
 import { 
   IconShield, 
   IconActivity, 

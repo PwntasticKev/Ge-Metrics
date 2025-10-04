@@ -3,209 +3,175 @@ import { eq, sql, and, gte, lte, desc, count, avg, sum, or, like } from 'drizzle
 import { 
   db, 
   users, 
-  auditLog
+  auditLog,
+  cronJobs,
+  cronJobLogs
 } from '../db/index.js'
 import { adminProcedure, router } from './trpc.js'
-
-// Mock cron jobs data structure - in production, you'd have a proper cronJobs table
-const mockCronJobs = [
-  {
-    id: 1,
-    name: 'Update Item Prices',
-    description: 'Fetches latest item prices from OSRS Wiki API and updates database',
-    schedule: '*/5 * * * *',
-    scheduleDescription: 'Every 5 minutes',
-    command: 'npm run update-prices',
-    category: 'data-sync',
-    enabled: true,
-    timeout: 300,
-    retries: 3,
-    notifications: true,
-    lastRun: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    nextRun: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-    status: 'success',
-    duration: 45,
-    successRate: 98.5,
-    totalRuns: 2880,
-    failedRuns: 43,
-    avgDuration: 42,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-20T14:30:00Z'
-  },
-  {
-    id: 2,
-    name: 'Generate Daily Reports',
-    description: 'Creates and emails daily performance reports to administrators',
-    schedule: '0 6 * * *',
-    scheduleDescription: 'Daily at 6:00 AM',
-    command: 'npm run generate-reports',
-    category: 'reporting',
-    enabled: true,
-    timeout: 600,
-    retries: 2,
-    notifications: true,
-    lastRun: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-    status: 'success',
-    duration: 120,
-    successRate: 100,
-    totalRuns: 25,
-    failedRuns: 0,
-    avgDuration: 115,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-15T09:00:00Z'
-  },
-  {
-    id: 3,
-    name: 'Clean Temp Files',
-    description: 'Removes temporary files and clears cache directories',
-    schedule: '0 2 * * 0',
-    scheduleDescription: 'Weekly on Sunday at 2:00 AM',
-    command: 'npm run cleanup',
-    category: 'maintenance',
-    enabled: true,
-    timeout: 1800,
-    retries: 1,
-    notifications: false,
-    lastRun: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    nextRun: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'success',
-    duration: 890,
-    successRate: 95.2,
-    totalRuns: 21,
-    failedRuns: 1,
-    avgDuration: 850,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-10T16:45:00Z'
-  },
-  {
-    id: 4,
-    name: 'Database Backup',
-    description: 'Creates encrypted backup of main database and uploads to cloud storage',
-    schedule: '0 3 * * *',
-    scheduleDescription: 'Daily at 3:00 AM',
-    command: 'npm run backup-db',
-    category: 'backup',
-    enabled: true,
-    timeout: 3600,
-    retries: 3,
-    notifications: true,
-    lastRun: new Date(Date.now() - 21 * 60 * 60 * 1000).toISOString(),
-    nextRun: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-    status: 'failed',
-    duration: 3600,
-    successRate: 92.0,
-    totalRuns: 25,
-    failedRuns: 2,
-    avgDuration: 1820,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-22T11:20:00Z'
-  }
-]
-
-const mockExecutions = [
-  {
-    id: 1,
-    jobId: 1,
-    jobName: 'Update Item Prices',
-    status: 'success',
-    startTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() - 4.25 * 60 * 1000).toISOString(),
-    duration: 45,
-    output: 'Successfully updated 15,234 item prices\nProcessed 8 new items\nUpdated 234 price changes\nExecution completed successfully',
-    errorMessage: null
-  },
-  {
-    id: 2,
-    jobId: 2,
-    jobName: 'Generate Daily Reports',
-    status: 'success',
-    startTime: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() - 18 * 60 * 60 * 1000 + 120 * 1000).toISOString(),
-    duration: 120,
-    output: 'Generated daily performance report\nSent reports to 3 administrators\nReport includes: user metrics, revenue data, system performance\nAll emails delivered successfully',
-    errorMessage: null
-  },
-  {
-    id: 3,
-    jobId: 4,
-    jobName: 'Database Backup',
-    status: 'failed',
-    startTime: new Date(Date.now() - 21 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-    duration: 3600,
-    output: 'Starting database backup...\nCreating dump of main database...\nCompressing backup file...\nUploading to cloud storage...',
-    errorMessage: 'Upload failed: Connection timeout after 3600 seconds. Cloud storage may be unreachable.'
-  }
-]
 
 export const adminCronJobsRouter = router({
   // Get all cron jobs
   getAllJobs: adminProcedure
     .query(async () => {
-      // In production, this would query a cronJobs table
-      // For now, return mock data with calculated next runs
-      const jobs = mockCronJobs.map(job => ({
-        ...job,
-        nextRun: job.enabled ? job.nextRun : null
-      }))
+      // Get all cron jobs from database
+      const jobs = await db.select().from(cronJobs).orderBy(desc(cronJobs.createdAt))
+
+      // Calculate stats for each job from execution logs
+      const jobsWithStats = await Promise.all(
+        jobs.map(async (job) => {
+          const [totalExecutions] = await db
+            .select({ count: count() })
+            .from(cronJobLogs)
+            .where(eq(cronJobLogs.jobName, job.name))
+
+          const [successfulExecutions] = await db
+            .select({ count: count() })
+            .from(cronJobLogs)
+            .where(and(
+              eq(cronJobLogs.jobName, job.name),
+              eq(cronJobLogs.status, 'completed')
+            ))
+
+          const [averageDuration] = await db
+            .select({ avg: avg(cronJobLogs.duration) })
+            .from(cronJobLogs)
+            .where(and(
+              eq(cronJobLogs.jobName, job.name),
+              eq(cronJobLogs.status, 'completed')
+            ))
+
+          const [lastExecution] = await db
+            .select()
+            .from(cronJobLogs)
+            .where(eq(cronJobLogs.jobName, job.name))
+            .orderBy(desc(cronJobLogs.startedAt))
+            .limit(1)
+
+          const totalRuns = totalExecutions.count || 0
+          const successRuns = successfulExecutions.count || 0
+          const failedRuns = totalRuns - successRuns
+          const successRate = totalRuns > 0 ? (successRuns / totalRuns) * 100 : 0
+          const avgDuration = Math.round(Number(averageDuration.avg) / 1000) || 0 // Convert to seconds
+
+          return {
+            ...job,
+            lastRun: lastExecution?.startedAt || null,
+            duration: lastExecution?.duration ? Math.round(lastExecution.duration / 1000) : 0,
+            successRate: Math.round(successRate * 10) / 10, // Round to 1 decimal
+            totalRuns,
+            failedRuns,
+            avgDuration
+          }
+        })
+      )
+
+      const stats = {
+        totalJobs: jobs.length,
+        activeJobs: jobs.filter(j => j.enabled).length,
+        runningJobs: jobs.filter(j => j.status === 'running').length,
+        failedJobs: jobs.filter(j => j.status === 'failed').length
+      }
 
       return {
-        jobs,
-        stats: {
-          totalJobs: jobs.length,
-          activeJobs: jobs.filter(j => j.enabled).length,
-          runningJobs: jobs.filter(j => j.status === 'running').length,
-          failedJobs: jobs.filter(j => j.status === 'failed').length
-        }
+        jobs: jobsWithStats,
+        stats
       }
     }),
 
   // Get job execution history
   getExecutionHistory: adminProcedure
     .input(z.object({
-      jobId: z.number().optional(),
+      jobId: z.string().optional(),
       limit: z.number().default(50),
       page: z.number().default(1)
     }))
     .query(async ({ input }) => {
       const { jobId, limit, page } = input
       
-      let executions = mockExecutions
+      let query = db.select().from(cronJobLogs)
+      
       if (jobId) {
-        executions = executions.filter(e => e.jobId === jobId)
+        // Find job name by ID for filtering
+        const [job] = await db.select().from(cronJobs).where(eq(cronJobs.id, jobId))
+        if (job) {
+          query = query.where(eq(cronJobLogs.jobName, job.name))
+        }
       }
 
-      // Generate execution trend data for the last 7 days
+      const executions = await query
+        .orderBy(desc(cronJobLogs.startedAt))
+        .limit(limit)
+        .offset((page - 1) * limit)
+
+      // Get execution trend data for the last 7 days
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date()
         date.setDate(date.getDate() - (6 - i))
         return date.toISOString().split('T')[0]
       })
 
-      const executionTrend = last7Days.map(date => {
-        const dayExecutions = executions.filter(e => 
-          e.startTime.startsWith(date)
-        )
-        return {
-          date,
-          total: dayExecutions.length + Math.floor(Math.random() * 10), // Mock data
-          success: dayExecutions.filter(e => e.status === 'success').length + Math.floor(Math.random() * 8),
-          failed: dayExecutions.filter(e => e.status === 'failed').length + Math.floor(Math.random() * 2)
-        }
-      })
+      const executionTrend = await Promise.all(
+        last7Days.map(async (date) => {
+          const startOfDay = new Date(date + 'T00:00:00Z')
+          const endOfDay = new Date(date + 'T23:59:59Z')
 
-      const offset = (page - 1) * limit
-      const paginatedExecutions = executions.slice(offset, offset + limit)
+          const [total] = await db
+            .select({ count: count() })
+            .from(cronJobLogs)
+            .where(and(
+              gte(cronJobLogs.startedAt, startOfDay),
+              lte(cronJobLogs.startedAt, endOfDay)
+            ))
+
+          const [successful] = await db
+            .select({ count: count() })
+            .from(cronJobLogs)
+            .where(and(
+              gte(cronJobLogs.startedAt, startOfDay),
+              lte(cronJobLogs.startedAt, endOfDay),
+              eq(cronJobLogs.status, 'completed')
+            ))
+
+          const [failed] = await db
+            .select({ count: count() })
+            .from(cronJobLogs)
+            .where(and(
+              gte(cronJobLogs.startedAt, startOfDay),
+              lte(cronJobLogs.startedAt, endOfDay),
+              eq(cronJobLogs.status, 'failed')
+            ))
+
+          return {
+            date,
+            total: total.count || 0,
+            success: successful.count || 0,
+            failed: failed.count || 0
+          }
+        })
+      )
+
+      // Get total count for pagination
+      const [totalCount] = await db
+        .select({ count: count() })
+        .from(cronJobLogs)
 
       return {
-        executions: paginatedExecutions,
+        executions: executions.map(exec => ({
+          id: exec.id,
+          jobName: exec.jobName,
+          status: exec.status,
+          startTime: exec.startedAt,
+          endTime: exec.completedAt,
+          duration: exec.duration ? Math.round(exec.duration / 1000) : 0, // Convert to seconds
+          output: exec.logs || 'No output available',
+          errorMessage: exec.errorMessage
+        })),
         executionTrend,
         pagination: {
           page,
           limit,
-          total: executions.length,
-          totalPages: Math.ceil(executions.length / limit)
+          total: totalCount.count || 0,
+          totalPages: Math.ceil((totalCount.count || 0) / limit)
         }
       }
     }),
@@ -224,30 +190,18 @@ export const adminCronJobsRouter = router({
       notifications: z.boolean().default(true)
     }))
     .mutation(async ({ input, ctx }) => {
-      // In production, this would insert into cronJobs table
-      const newJob = {
+      const [newJob] = await db.insert(cronJobs).values({
         ...input,
-        id: Math.max(...mockCronJobs.map(j => j.id)) + 1,
         status: input.enabled ? 'idle' : 'disabled',
-        lastRun: null,
-        nextRun: input.enabled ? new Date(Date.now() + 60000).toISOString() : null,
-        duration: 0,
-        successRate: 0,
-        totalRuns: 0,
-        failedRuns: 0,
-        avgDuration: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-
-      mockCronJobs.push(newJob)
+        createdBy: ctx.user.id
+      }).returning()
 
       // Log the admin action
       await db.insert(auditLog).values({
         userId: ctx.user.id,
         action: 'create_cron_job',
         resource: 'cron_job',
-        resourceId: newJob.id.toString(),
+        resourceId: newJob.id,
         details: {
           jobName: newJob.name,
           schedule: newJob.schedule,
@@ -263,7 +217,7 @@ export const adminCronJobsRouter = router({
   // Update cron job
   updateJob: adminProcedure
     .input(z.object({
-      jobId: z.number(),
+      jobId: z.string(),
       name: z.string().optional(),
       description: z.string().optional(),
       schedule: z.string().optional(),
@@ -277,26 +231,25 @@ export const adminCronJobsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { jobId, ...updateData } = input
       
-      // In production, this would update the cronJobs table
-      const jobIndex = mockCronJobs.findIndex(j => j.id === jobId)
-      if (jobIndex === -1) {
+      const [updatedJob] = await db
+        .update(cronJobs)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(cronJobs.id, jobId))
+        .returning()
+
+      if (!updatedJob) {
         throw new Error('Job not found')
       }
-
-      const updatedJob = {
-        ...mockCronJobs[jobIndex],
-        ...updateData,
-        updatedAt: new Date().toISOString()
-      }
-
-      mockCronJobs[jobIndex] = updatedJob
 
       // Log the admin action
       await db.insert(auditLog).values({
         userId: ctx.user.id,
         action: 'update_cron_job',
         resource: 'cron_job',
-        resourceId: jobId.toString(),
+        resourceId: jobId,
         details: {
           jobName: updatedJob.name,
           changes: updateData
@@ -311,39 +264,32 @@ export const adminCronJobsRouter = router({
   // Delete cron job
   deleteJob: adminProcedure
     .input(z.object({
-      jobId: z.number()
+      jobId: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
       const { jobId } = input
       
-      const jobIndex = mockCronJobs.findIndex(j => j.id === jobId)
-      if (jobIndex === -1) {
+      // Get job before deletion for logging
+      const [job] = await db.select().from(cronJobs).where(eq(cronJobs.id, jobId))
+      if (!job) {
         throw new Error('Job not found')
       }
 
-      const deletedJob = mockCronJobs[jobIndex]
-      mockCronJobs.splice(jobIndex, 1)
+      // Delete the job
+      await db.delete(cronJobs).where(eq(cronJobs.id, jobId))
 
-      // Also remove executions for this job
-      const executionIndices = []
-      mockExecutions.forEach((exec, index) => {
-        if (exec.jobId === jobId) {
-          executionIndices.push(index)
-        }
-      })
-      executionIndices.reverse().forEach(index => {
-        mockExecutions.splice(index, 1)
-      })
+      // Delete associated execution logs
+      await db.delete(cronJobLogs).where(eq(cronJobLogs.jobName, job.name))
 
       // Log the admin action
       await db.insert(auditLog).values({
         userId: ctx.user.id,
         action: 'delete_cron_job',
         resource: 'cron_job',
-        resourceId: jobId.toString(),
+        resourceId: jobId,
         details: {
-          deletedJobName: deletedJob.name,
-          schedule: deletedJob.schedule
+          deletedJobName: job.name,
+          schedule: job.schedule
         },
         ipAddress: ctx.req.ip,
         userAgent: ctx.req.headers['user-agent']
@@ -355,33 +301,35 @@ export const adminCronJobsRouter = router({
   // Toggle job enabled/disabled
   toggleJob: adminProcedure
     .input(z.object({
-      jobId: z.number()
+      jobId: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
       const { jobId } = input
       
-      const jobIndex = mockCronJobs.findIndex(j => j.id === jobId)
-      if (jobIndex === -1) {
+      // Get current job state
+      const [job] = await db.select().from(cronJobs).where(eq(cronJobs.id, jobId))
+      if (!job) {
         throw new Error('Job not found')
       }
 
-      const job = mockCronJobs[jobIndex]
       const newEnabledState = !job.enabled
       
-      mockCronJobs[jobIndex] = {
-        ...job,
-        enabled: newEnabledState,
-        status: newEnabledState ? 'idle' : 'disabled',
-        nextRun: newEnabledState ? new Date(Date.now() + 60000).toISOString() : null,
-        updatedAt: new Date().toISOString()
-      }
+      const [updatedJob] = await db
+        .update(cronJobs)
+        .set({
+          enabled: newEnabledState,
+          status: newEnabledState ? 'idle' : 'disabled',
+          updatedAt: new Date()
+        })
+        .where(eq(cronJobs.id, jobId))
+        .returning()
 
       // Log the admin action
       await db.insert(auditLog).values({
         userId: ctx.user.id,
         action: newEnabledState ? 'enable_cron_job' : 'disable_cron_job',
         resource: 'cron_job',
-        resourceId: jobId.toString(),
+        resourceId: jobId,
         details: {
           jobName: job.name,
           enabled: newEnabledState
@@ -390,18 +338,18 @@ export const adminCronJobsRouter = router({
         userAgent: ctx.req.headers['user-agent']
       })
 
-      return mockCronJobs[jobIndex]
+      return updatedJob
     }),
 
   // Manually run job
   runJob: adminProcedure
     .input(z.object({
-      jobId: z.number()
+      jobId: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
       const { jobId } = input
       
-      const job = mockCronJobs.find(j => j.id === jobId)
+      const [job] = await db.select().from(cronJobs).where(eq(cronJobs.id, jobId))
       if (!job) {
         throw new Error('Job not found')
       }
@@ -411,34 +359,29 @@ export const adminCronJobsRouter = router({
       }
 
       // Update job status to running
-      const jobIndex = mockCronJobs.findIndex(j => j.id === jobId)
-      mockCronJobs[jobIndex] = {
-        ...job,
-        status: 'running',
-        lastRun: new Date().toISOString()
-      }
+      await db
+        .update(cronJobs)
+        .set({
+          status: 'running',
+          lastRun: new Date()
+        })
+        .where(eq(cronJobs.id, jobId))
 
       // Create execution record
-      const execution = {
-        id: Math.max(...mockExecutions.map(e => e.id), 0) + 1,
-        jobId,
+      const [execution] = await db.insert(cronJobLogs).values({
         jobName: job.name,
+        jobType: job.category,
         status: 'running',
-        startTime: new Date().toISOString(),
-        endTime: null,
-        duration: 0,
-        output: 'Job started manually...',
-        errorMessage: null
-      }
-
-      mockExecutions.unshift(execution)
+        startedAt: new Date(),
+        logs: 'Job started manually...'
+      }).returning()
 
       // Log the admin action
       await db.insert(auditLog).values({
         userId: ctx.user.id,
         action: 'run_cron_job',
         resource: 'cron_job',
-        resourceId: jobId.toString(),
+        resourceId: jobId,
         details: {
           jobName: job.name,
           manualTrigger: true
@@ -448,38 +391,42 @@ export const adminCronJobsRouter = router({
       })
 
       // Simulate job completion after a delay (in a real system, this would be handled by the job runner)
-      setTimeout(() => {
+      setTimeout(async () => {
         const success = Math.random() > 0.1 // 90% success rate
-        const duration = Math.floor(Math.random() * 120) + 30 // 30-150 seconds
+        const duration = Math.floor(Math.random() * 120000) + 30000 // 30-150 seconds in ms
         
         // Update execution
-        const execIndex = mockExecutions.findIndex(e => e.id === execution.id)
-        if (execIndex !== -1) {
-          mockExecutions[execIndex] = {
-            ...execution,
-            status: success ? 'success' : 'failed',
-            endTime: new Date().toISOString(),
+        await db
+          .update(cronJobLogs)
+          .set({
+            status: success ? 'completed' : 'failed',
+            completedAt: new Date(),
             duration,
-            output: success 
-              ? `${execution.output}\nJob completed successfully after ${duration} seconds`
-              : `${execution.output}\nJob failed after ${duration} seconds`,
+            logs: success 
+              ? `Job started manually...\nJob completed successfully after ${Math.round(duration/1000)} seconds`
+              : `Job started manually...\nJob failed after ${Math.round(duration/1000)} seconds`,
             errorMessage: success ? null : 'Simulated random failure for testing'
-          }
-        }
+          })
+          .where(eq(cronJobLogs.id, execution.id))
 
         // Update job status
-        const currentJobIndex = mockCronJobs.findIndex(j => j.id === jobId)
-        if (currentJobIndex !== -1) {
-          mockCronJobs[currentJobIndex] = {
-            ...mockCronJobs[currentJobIndex],
-            status: success ? 'success' : 'failed',
-            duration,
-            totalRuns: mockCronJobs[currentJobIndex].totalRuns + 1,
-            failedRuns: success ? mockCronJobs[currentJobIndex].failedRuns : mockCronJobs[currentJobIndex].failedRuns + 1
-          }
-        }
+        await db
+          .update(cronJobs)
+          .set({
+            status: success ? 'success' : 'failed'
+          })
+          .where(eq(cronJobs.id, jobId))
       }, 5000) // Complete after 5 seconds
 
-      return execution
+      return {
+        id: execution.id,
+        jobName: job.name,
+        status: 'running',
+        startTime: execution.startedAt,
+        endTime: null,
+        duration: 0,
+        output: 'Job started manually...',
+        errorMessage: null
+      }
     })
 })

@@ -53,7 +53,6 @@ import {
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc'
 import { notifications } from '@mantine/notifications'
-import { modals } from '@mantine/modals'
 import { DatePickerInput } from '@mantine/dates'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 
@@ -333,6 +332,7 @@ export default function BillingDashboard() {
   const [selectedSubscription, setSelectedSubscription] = useState(null)
   const [refundModalOpen, setRefundModalOpen] = useState(false)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [reactivateModalOpen, setReactivateModalOpen] = useState(false)
 
   const { data: billingOverview, isLoading: overviewLoading } = trpc.adminBilling.getBillingOverview.useQuery()
   const { data: subscriptionsData, isLoading: subscriptionsLoading, refetch } = trpc.adminBilling.getAllSubscriptions.useQuery({
@@ -347,36 +347,33 @@ export default function BillingDashboard() {
   const reactivateMutation = trpc.adminBilling.reactivateSubscription.useMutation()
 
   const handleReactivateSubscription = async (subscription) => {
-    modals.openConfirmModal({
-      title: 'Reactivate Subscription',
-      children: (
-        <Text size="sm">
-          Are you sure you want to reactivate this subscription for {subscription.userEmail}?
-        </Text>
-      ),
-      labels: { confirm: 'Reactivate', cancel: 'Cancel' },
-      confirmProps: { color: 'green' },
-      onConfirm: async () => {
-        try {
-          await reactivateMutation.mutateAsync({
-            subscriptionId: subscription.id,
-            reason: 'Admin reactivation'
-          })
-          notifications.show({
-            title: 'Success',
-            message: 'Subscription reactivated successfully',
-            color: 'green'
-          })
-          refetch()
-        } catch (error) {
-          notifications.show({
-            title: 'Error',
-            message: error.message,
-            color: 'red'
-          })
-        }
-      }
-    })
+    setSelectedSubscription(subscription)
+    setReactivateModalOpen(true)
+  }
+
+  const confirmReactivation = async () => {
+    if (!selectedSubscription) return
+
+    try {
+      await reactivateMutation.mutateAsync({
+        subscriptionId: selectedSubscription.id,
+        reason: 'Admin reactivation'
+      })
+      notifications.show({
+        title: 'Success',
+        message: 'Subscription reactivated successfully',
+        color: 'green'
+      })
+      refetch()
+      setReactivateModalOpen(false)
+      setSelectedSubscription(null)
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: error.message,
+        color: 'red'
+      })
+    }
   }
 
   return (
@@ -657,6 +654,31 @@ export default function BillingDashboard() {
         subscription={selectedSubscription}
         onSuccess={refetch}
       />
+      
+      <Modal 
+        opened={reactivateModalOpen} 
+        onClose={() => setReactivateModalOpen(false)} 
+        title="Reactivate Subscription" 
+        size="md"
+      >
+        <Stack spacing="md">
+          <Text size="sm">
+            Are you sure you want to reactivate this subscription for {selectedSubscription?.userEmail}?
+          </Text>
+          <Group position="right">
+            <Button variant="outline" onClick={() => setReactivateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              color="green"
+              onClick={confirmReactivation}
+              loading={reactivateMutation.isLoading}
+            >
+              Reactivate
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Container>
   )
 }

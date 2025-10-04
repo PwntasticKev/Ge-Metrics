@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Container,
   Title,
@@ -31,73 +31,74 @@ import {
   IconShield,
   IconMail,
   IconBell,
-  IconSave,
   IconRefresh,
   IconEdit,
   IconAlertTriangle,
   IconCheck,
   IconApi,
   IconKey,
-  IconCloud
+  IconCloud,
+  IconDeviceFloppy
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { trpc } from '../../utils/trpc'
 
 const SystemSettings = () => {
   const [activeTab, setActiveTab] = useState('general')
-  const [settings, setSettings] = useState({
-    general: {
-      siteName: 'GE Metrics',
-      siteDescription: 'Live Market Data for Old School RuneScape',
-      maintenanceMode: false,
-      allowRegistration: true,
-      maxUsersPerDay: 100,
-      sessionTimeout: 30
-    },
-    database: {
-      connectionPoolSize: 20,
-      queryTimeout: 30000,
-      autoBackup: true,
-      backupInterval: 24,
-      retentionDays: 30
-    },
-    security: {
-      enforceHttps: true,
-      requireEmailVerification: true,
-      enableTwoFactor: true,
-      passwordMinLength: 8,
-      maxLoginAttempts: 5,
-      lockoutDuration: 15,
-      enableRateLimiting: true,
-      rateLimit: 100
-    },
-    email: {
-      provider: 'smtp',
-      smtpHost: 'smtp.gmail.com',
-      smtpPort: 587,
-      smtpSecure: true,
-      fromAddress: 'noreply@gemetrics.com',
-      fromName: 'GE Metrics'
-    },
-    api: {
-      enableApiKeys: true,
-      defaultRateLimit: 1000,
-      enableCors: true,
-      corsOrigins: 'http://localhost:3000,https://gemetrics.com',
-      enableCompression: true,
-      cacheTimeout: 300
-    },
-    notifications: {
-      enableEmailNotifications: true,
-      enablePushNotifications: false,
-      enableSlackIntegration: false,
-      slackWebhookUrl: '',
-      notifyOnErrors: true,
-      notifyOnHighUsage: true
-    }
-  })
-  
+  const [settings, setSettings] = useState({})
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [pendingChanges, setPendingChanges] = useState(false)
+
+  // TRPC queries
+  const { data: allSettings, isLoading, refetch } = trpc.adminSystemSettings.getAllSettings.useQuery()
+
+  // Mutations
+  const updateSectionMutation = trpc.adminSystemSettings.updateSectionSettings.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Settings Saved',
+        message: 'System settings have been updated successfully',
+        color: 'green',
+        icon: <IconCheck size={16} />
+      })
+      setPendingChanges(false)
+      setSaveModalOpen(false)
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to save settings',
+        color: 'red'
+      })
+    }
+  })
+
+  const resetSectionMutation = trpc.adminSystemSettings.resetSectionToDefaults.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Settings Reset',
+        message: 'Settings have been reset to defaults',
+        color: 'blue'
+      })
+      setPendingChanges(false)
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to reset settings',
+        color: 'red'
+      })
+    }
+  })
+
+  // Update local state when data loads
+  useEffect(() => {
+    if (allSettings) {
+      setSettings(allSettings)
+    }
+  }, [allSettings])
 
   const updateSetting = (section, key, value) => {
     setSettings(prev => ({
@@ -115,24 +116,16 @@ const SystemSettings = () => {
   }
 
   const confirmSaveSettings = () => {
-    // Mock save operation
-    notifications.show({
-      title: 'Settings Saved',
-      message: 'System settings have been updated successfully',
-      color: 'green',
-      icon: <IconCheck size={16} />
+    updateSectionMutation.mutate({
+      section: activeTab,
+      settings: settings[activeTab] || {}
     })
-    setPendingChanges(false)
-    setSaveModalOpen(false)
   }
 
   const handleResetSettings = () => {
-    notifications.show({
-      title: 'Settings Reset',
-      message: 'Settings have been reset to defaults',
-      color: 'blue'
+    resetSectionMutation.mutate({
+      section: activeTab
     })
-    setPendingChanges(false)
   }
 
   // General Settings Tab
@@ -145,14 +138,14 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <TextInput
                 label="Site Name"
-                value={settings.general.siteName}
+                value={settings.general?.siteName ?? ''}
                 onChange={(e) => updateSetting('general', 'siteName', e.target.value)}
               />
             </Grid.Col>
             <Grid.Col md={6}>
               <NumberInput
                 label="Session Timeout (minutes)"
-                value={settings.general.sessionTimeout}
+                value={settings.general?.sessionTimeout ?? 60}
                 onChange={(value) => updateSetting('general', 'sessionTimeout', value)}
                 min={5}
                 max={1440}
@@ -161,7 +154,7 @@ const SystemSettings = () => {
           </Grid>
           <Textarea
             label="Site Description"
-            value={settings.general.siteDescription}
+            value={settings.general?.siteDescription ?? ''}
             onChange={(e) => updateSetting('general', 'siteDescription', e.target.value)}
             minRows={2}
           />
@@ -174,18 +167,18 @@ const SystemSettings = () => {
           <Group>
             <Switch
               label="Allow New User Registration"
-              checked={settings.general.allowRegistration}
+              checked={settings.general?.allowRegistration ?? true}
               onChange={(e) => updateSetting('general', 'allowRegistration', e.currentTarget.checked)}
             />
             <Switch
               label="Maintenance Mode"
-              checked={settings.general.maintenanceMode}
+              checked={settings.general?.maintenanceMode ?? false}
               onChange={(e) => updateSetting('general', 'maintenanceMode', e.currentTarget.checked)}
             />
           </Group>
           <NumberInput
             label="Maximum New Users Per Day"
-            value={settings.general.maxUsersPerDay}
+            value={settings.general?.maxUsersPerDay ?? 100}
             onChange={(value) => updateSetting('general', 'maxUsersPerDay', value)}
             min={0}
             max={10000}
@@ -206,7 +199,7 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Connection Pool Size"
-                value={settings.database.connectionPoolSize}
+                value={settings.database?.connectionPoolSize ?? 10}
                 onChange={(value) => updateSetting('database', 'connectionPoolSize', value)}
                 min={1}
                 max={100}
@@ -215,7 +208,7 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Query Timeout (ms)"
-                value={settings.database.queryTimeout}
+                value={settings.database?.queryTimeout ?? 5000}
                 onChange={(value) => updateSetting('database', 'queryTimeout', value)}
                 min={1000}
                 max={300000}
@@ -231,7 +224,7 @@ const SystemSettings = () => {
           <Group>
             <Switch
               label="Enable Automatic Backups"
-              checked={settings.database.autoBackup}
+              checked={settings.database?.autoBackup ?? true}
               onChange={(e) => updateSetting('database', 'autoBackup', e.currentTarget.checked)}
             />
           </Group>
@@ -239,21 +232,21 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Backup Interval (hours)"
-                value={settings.database.backupInterval}
+                value={settings.database?.backupInterval ?? 24}
                 onChange={(value) => updateSetting('database', 'backupInterval', value)}
                 min={1}
                 max={168}
-                disabled={!settings.database.autoBackup}
+                disabled={!settings.database?.autoBackup}
               />
             </Grid.Col>
             <Grid.Col md={6}>
               <NumberInput
                 label="Retention Period (days)"
-                value={settings.database.retentionDays}
+                value={settings.database?.retentionDays ?? 7}
                 onChange={(value) => updateSetting('database', 'retentionDays', value)}
                 min={1}
                 max={365}
-                disabled={!settings.database.autoBackup}
+                disabled={!settings.database?.autoBackup}
               />
             </Grid.Col>
           </Grid>
@@ -271,17 +264,17 @@ const SystemSettings = () => {
           <Group>
             <Switch
               label="Enforce HTTPS"
-              checked={settings.security.enforceHttps}
+              checked={settings.security?.enforceHttps ?? true}
               onChange={(e) => updateSetting('security', 'enforceHttps', e.currentTarget.checked)}
             />
             <Switch
               label="Require Email Verification"
-              checked={settings.security.requireEmailVerification}
+              checked={settings.security?.requireEmailVerification ?? true}
               onChange={(e) => updateSetting('security', 'requireEmailVerification', e.currentTarget.checked)}
             />
             <Switch
               label="Enable Two-Factor Authentication"
-              checked={settings.security.enableTwoFactor}
+              checked={settings.security?.enableTwoFactor ?? false}
               onChange={(e) => updateSetting('security', 'enableTwoFactor', e.currentTarget.checked)}
             />
           </Group>
@@ -289,7 +282,7 @@ const SystemSettings = () => {
             <Grid.Col md={4}>
               <NumberInput
                 label="Minimum Password Length"
-                value={settings.security.passwordMinLength}
+                value={settings.security?.passwordMinLength ?? 8}
                 onChange={(value) => updateSetting('security', 'passwordMinLength', value)}
                 min={6}
                 max={128}
@@ -298,7 +291,7 @@ const SystemSettings = () => {
             <Grid.Col md={4}>
               <NumberInput
                 label="Max Login Attempts"
-                value={settings.security.maxLoginAttempts}
+                value={settings.security?.maxLoginAttempts ?? 5}
                 onChange={(value) => updateSetting('security', 'maxLoginAttempts', value)}
                 min={3}
                 max={20}
@@ -307,7 +300,7 @@ const SystemSettings = () => {
             <Grid.Col md={4}>
               <NumberInput
                 label="Lockout Duration (minutes)"
-                value={settings.security.lockoutDuration}
+                value={settings.security?.lockoutDuration ?? 15}
                 onChange={(value) => updateSetting('security', 'lockoutDuration', value)}
                 min={1}
                 max={1440}
@@ -323,17 +316,17 @@ const SystemSettings = () => {
           <Group>
             <Switch
               label="Enable Rate Limiting"
-              checked={settings.security.enableRateLimiting}
+              checked={settings.security?.enableRateLimiting ?? true}
               onChange={(e) => updateSetting('security', 'enableRateLimiting', e.currentTarget.checked)}
             />
           </Group>
           <NumberInput
             label="Requests per minute"
-            value={settings.security.rateLimit}
+            value={settings.security?.rateLimit ?? 100}
             onChange={(value) => updateSetting('security', 'rateLimit', value)}
             min={10}
             max={10000}
-            disabled={!settings.security.enableRateLimiting}
+            disabled={!settings.security?.enableRateLimiting}
             style={{ maxWidth: 300 }}
           />
         </Stack>
@@ -350,17 +343,17 @@ const SystemSettings = () => {
           <Group>
             <Switch
               label="Enable API Keys"
-              checked={settings.api.enableApiKeys}
+              checked={settings.api?.enableApiKeys ?? true}
               onChange={(e) => updateSetting('api', 'enableApiKeys', e.currentTarget.checked)}
             />
             <Switch
               label="Enable CORS"
-              checked={settings.api.enableCors}
+              checked={settings.api?.enableCors ?? false}
               onChange={(e) => updateSetting('api', 'enableCors', e.currentTarget.checked)}
             />
             <Switch
               label="Enable Compression"
-              checked={settings.api.enableCompression}
+              checked={settings.api?.enableCompression ?? true}
               onChange={(e) => updateSetting('api', 'enableCompression', e.currentTarget.checked)}
             />
           </Group>
@@ -368,7 +361,7 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Default Rate Limit (requests/hour)"
-                value={settings.api.defaultRateLimit}
+                value={settings.api?.defaultRateLimit ?? 1000}
                 onChange={(value) => updateSetting('api', 'defaultRateLimit', value)}
                 min={100}
                 max={100000}
@@ -377,7 +370,7 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Cache Timeout (seconds)"
-                value={settings.api.cacheTimeout}
+                value={settings.api?.cacheTimeout ?? 300}
                 onChange={(value) => updateSetting('api', 'cacheTimeout', value)}
                 min={60}
                 max={3600}
@@ -386,9 +379,9 @@ const SystemSettings = () => {
           </Grid>
           <TextInput
             label="CORS Origins (comma-separated)"
-            value={settings.api.corsOrigins}
+            value={settings.api?.corsOrigins ?? ''}
             onChange={(e) => updateSetting('api', 'corsOrigins', e.target.value)}
-            disabled={!settings.api.enableCors}
+            disabled={!settings.api?.enableCors}
             placeholder="https://example.com,https://app.example.com"
           />
         </Stack>
@@ -405,24 +398,24 @@ const SystemSettings = () => {
           <Group>
             <Switch
               label="Enable Email Notifications"
-              checked={settings.notifications.enableEmailNotifications}
+              checked={settings.notifications?.enableEmailNotifications ?? true}
               onChange={(e) => updateSetting('notifications', 'enableEmailNotifications', e.currentTarget.checked)}
             />
             <Switch
               label="Enable Push Notifications"
-              checked={settings.notifications.enablePushNotifications}
+              checked={settings.notifications?.enablePushNotifications ?? false}
               onChange={(e) => updateSetting('notifications', 'enablePushNotifications', e.currentTarget.checked)}
             />
           </Group>
           <Group>
             <Switch
               label="Notify on Errors"
-              checked={settings.notifications.notifyOnErrors}
+              checked={settings.notifications?.notifyOnErrors ?? true}
               onChange={(e) => updateSetting('notifications', 'notifyOnErrors', e.currentTarget.checked)}
             />
             <Switch
               label="Notify on High Usage"
-              checked={settings.notifications.notifyOnHighUsage}
+              checked={settings.notifications?.notifyOnHighUsage ?? false}
               onChange={(e) => updateSetting('notifications', 'notifyOnHighUsage', e.currentTarget.checked)}
             />
           </Group>
@@ -434,14 +427,14 @@ const SystemSettings = () => {
           <Text size="lg" weight={500}>Slack Integration</Text>
           <Switch
             label="Enable Slack Integration"
-            checked={settings.notifications.enableSlackIntegration}
+            checked={settings.notifications?.enableSlackIntegration ?? false}
             onChange={(e) => updateSetting('notifications', 'enableSlackIntegration', e.currentTarget.checked)}
           />
           <TextInput
             label="Slack Webhook URL"
-            value={settings.notifications.slackWebhookUrl}
+            value={settings.notifications?.slackWebhookUrl ?? ''}
             onChange={(e) => updateSetting('notifications', 'slackWebhookUrl', e.target.value)}
-            disabled={!settings.notifications.enableSlackIntegration}
+            disabled={!settings.notifications?.enableSlackIntegration}
             placeholder="https://hooks.slack.com/services/..."
           />
         </Stack>
@@ -457,10 +450,11 @@ const SystemSettings = () => {
           <Button variant="light" onClick={handleResetSettings} leftIcon={<IconRefresh size={16} />}>
             Reset to Defaults
           </Button>
-          <Button 
-            onClick={handleSaveSettings} 
-            leftIcon={<IconSave size={16} />}
+          <Button
+            onClick={handleSaveSettings}
+            leftIcon={<IconDeviceFloppy size={16} />}
             disabled={!pendingChanges}
+            loading={updateSectionMutation.isLoading}
           >
             Save Changes
           </Button>
@@ -531,7 +525,7 @@ const SystemSettings = () => {
             <Button variant="light" onClick={() => setSaveModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmSaveSettings}>
+            <Button onClick={confirmSaveSettings} loading={updateSectionMutation.isLoading}>
               Save Settings
             </Button>
           </Group>

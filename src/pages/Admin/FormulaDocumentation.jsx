@@ -42,8 +42,6 @@ import {
   IconChevronUp,
   IconAlertCircle,
   IconCalculator,
-  IconFormula,
-  IconBrandPython,
   IconMath,
   IconDatabase,
   IconApi,
@@ -54,6 +52,7 @@ import {
 } from '@tabler/icons-react'
 import { Prism } from '@mantine/prism'
 import { notifications } from '@mantine/notifications'
+import { trpc } from '../../utils/trpc'
 
 const FormulaDocumentation = () => {
   const [activeTab, setActiveTab] = useState('browse')
@@ -79,162 +78,91 @@ const FormulaDocumentation = () => {
     isActive: true
   })
 
-  // Mock data - in production this would come from backend
-  useEffect(() => {
-    const mockFormulas = [
-      {
-        id: 1,
-        name: 'Profit Margin Calculation',
-        category: 'trading',
-        description: 'Calculates the profit margin percentage for trading items between different prices.',
-        formula: '((selling_price - buying_price) / buying_price) * 100',
-        parameters: [
-          { name: 'selling_price', type: 'number', description: 'The price at which the item is sold', required: true },
-          { name: 'buying_price', type: 'number', description: 'The price at which the item was bought', required: true }
-        ],
-        examples: [
-          {
-            title: 'Basic Example',
-            input: { selling_price: 1000, buying_price: 800 },
-            output: 25,
-            explanation: 'Selling for 1000gp when bought for 800gp gives 25% profit margin'
-          }
-        ],
-        notes: 'This formula assumes no additional costs like GE tax. For more accurate calculations, subtract tax from selling price first.',
-        tags: ['profit', 'trading', 'margin', 'percentage'],
-        complexity: 'beginner',
-        isActive: true,
-        createdAt: '2024-01-15',
-        updatedAt: '2024-01-20'
-      },
-      {
-        id: 2,
-        name: 'ROI with Time Factor',
-        category: 'trading',
-        description: 'Calculates return on investment considering the time factor for flipping items.',
-        formula: '(((selling_price - buying_price) / buying_price) * 100) * (24 / hours_to_sell)',
-        parameters: [
-          { name: 'selling_price', type: 'number', description: 'Final selling price', required: true },
-          { name: 'buying_price', type: 'number', description: 'Initial buying price', required: true },
-          { name: 'hours_to_sell', type: 'number', description: 'Time taken to sell in hours', required: true }
-        ],
-        examples: [
-          {
-            title: 'Quick Flip',
-            input: { selling_price: 1200, buying_price: 1000, hours_to_sell: 2 },
-            output: 240,
-            explanation: '20% profit in 2 hours = 240% daily ROI rate'
-          }
-        ],
-        notes: 'This metric helps compare different flipping opportunities by normalizing profits to a daily rate.',
-        tags: ['roi', 'time', 'flipping', 'efficiency'],
-        complexity: 'intermediate',
-        isActive: true,
-        createdAt: '2024-01-10',
-        updatedAt: '2024-01-22'
-      },
-      {
-        id: 3,
-        name: 'Combat XP Per Hour',
-        category: 'skilling',
-        description: 'Calculates experience per hour for combat activities with varying kill times.',
-        formula: '(xp_per_kill * (3600 / (kill_time + bank_time))) * efficiency_factor',
-        parameters: [
-          { name: 'xp_per_kill', type: 'number', description: 'Experience gained per kill', required: true },
-          { name: 'kill_time', type: 'number', description: 'Average time per kill in seconds', required: true },
-          { name: 'bank_time', type: 'number', description: 'Time spent banking/resupplying in seconds', required: true },
-          { name: 'efficiency_factor', type: 'number', description: 'Efficiency factor (0.8-1.0)', required: true, default: 0.9 }
-        ],
-        examples: [
-          {
-            title: 'Dragon Slaying',
-            input: { xp_per_kill: 125, kill_time: 45, bank_time: 15, efficiency_factor: 0.9 },
-            output: 67500,
-            explanation: 'Killing dragons with these stats yields approximately 67.5k XP/hour'
-          }
-        ],
-        notes: 'Efficiency factor accounts for mistakes, breaks, and non-optimal play. Use 0.9 for average players.',
-        tags: ['combat', 'xp', 'efficiency', 'skilling'],
-        complexity: 'intermediate',
-        isActive: true,
-        createdAt: '2024-01-12',
-        updatedAt: '2024-01-18'
-      },
-      {
-        id: 4,
-        name: 'Compound Interest Investment',
-        category: 'investment',
-        description: 'Calculates the future value of investments with compound interest over time.',
-        formula: 'principal * Math.pow((1 + (annual_rate / 100)), years)',
-        parameters: [
-          { name: 'principal', type: 'number', description: 'Initial investment amount', required: true },
-          { name: 'annual_rate', type: 'number', description: 'Annual interest rate as percentage', required: true },
-          { name: 'years', type: 'number', description: 'Number of years to compound', required: true }
-        ],
-        examples: [
-          {
-            title: 'Long-term Investment',
-            input: { principal: 100000000, annual_rate: 5, years: 10 },
-            output: 162889462,
-            explanation: '100M GP invested at 5% annually becomes ~163M GP after 10 years'
-          }
-        ],
-        notes: 'This assumes perfect compound interest. Real OSRS investments may have different risk/return profiles.',
-        tags: ['investment', 'compound', 'interest', 'long-term'],
-        complexity: 'advanced',
-        isActive: true,
-        createdAt: '2024-01-08',
-        updatedAt: '2024-01-25'
-      },
-      {
-        id: 5,
-        name: 'Potion Brewing Efficiency',
-        category: 'skilling',
-        description: 'Optimizes potion brewing by calculating the most efficient combination of ingredients.',
-        formula: '((finished_potion_value - ingredient_cost) / brewing_time) * success_rate',
-        parameters: [
-          { name: 'finished_potion_value', type: 'number', description: 'Market value of completed potion', required: true },
-          { name: 'ingredient_cost', type: 'number', description: 'Total cost of all ingredients', required: true },
-          { name: 'brewing_time', type: 'number', description: 'Time to brew one potion in seconds', required: true },
-          { name: 'success_rate', type: 'number', description: 'Success rate as decimal (0-1)', required: true }
-        ],
-        examples: [
-          {
-            title: 'Prayer Potion Brewing',
-            input: { finished_potion_value: 8500, ingredient_cost: 7200, brewing_time: 18, success_rate: 0.95 },
-            output: 68.61,
-            explanation: 'Prayer potions yield ~69 GP profit per second with 95% success rate'
-          }
-        ],
-        notes: 'Consider secondary ingredient costs and current market prices. Success rate varies by Herblore level.',
-        tags: ['herblore', 'brewing', 'potions', 'efficiency'],
-        complexity: 'intermediate',
-        isActive: true,
-        createdAt: '2024-01-14',
-        updatedAt: '2024-01-21'
-      }
-    ]
-
-    const mockCategories = [
-      { value: 'trading', label: 'Trading & Flipping' },
-      { value: 'skilling', label: 'Skilling Calculations' },
-      { value: 'investment', label: 'Investment Analysis' },
-      { value: 'combat', label: 'Combat Efficiency' },
-      { value: 'general', label: 'General Formulas' }
-    ]
-
-    setFormulas(mockFormulas)
-    setCategories(mockCategories)
-  }, [])
-
-  // Filter formulas based on search and category
-  const filteredFormulas = formulas.filter(formula => {
-    const matchesSearch = formula.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         formula.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         formula.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesCategory = !selectedCategory || formula.category === selectedCategory
-    return matchesSearch && matchesCategory && formula.isActive
+  // Real TRPC data queries
+  const { data: formulasData, isLoading: formulasLoading, refetch: refetchFormulas } = trpc.adminFormulas.getAllFormulas.useQuery({
+    category: selectedCategory || undefined,
+    search: searchTerm || undefined
   })
+
+  const { data: categoriesData, isLoading: categoriesLoading } = trpc.adminFormulas.getCategories.useQuery()
+
+  // Mutations
+  const createFormulaMutation = trpc.adminFormulas.createFormula.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Formula created successfully',
+        color: 'green'
+      })
+      setCreateModalOpen(false)
+      resetFormData()
+      refetchFormulas()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message,
+        color: 'red'
+      })
+    }
+  })
+
+  const updateFormulaMutation = trpc.adminFormulas.updateFormula.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Formula updated successfully',
+        color: 'green'
+      })
+      setEditModalOpen(false)
+      resetFormData()
+      setSelectedFormula(null)
+      refetchFormulas()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message,
+        color: 'red'
+      })
+    }
+  })
+
+  const deleteFormulaMutation = trpc.adminFormulas.deleteFormula.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Formula deleted successfully',
+        color: 'green'
+      })
+      setDeleteModalOpen(false)
+      setSelectedFormula(null)
+      refetchFormulas()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message,
+        color: 'red'
+      })
+    }
+  })
+
+  // Update local state when data loads
+  useEffect(() => {
+    if (formulasData) {
+      setFormulas(formulasData)
+    }
+  }, [formulasData])
+
+  useEffect(() => {
+    if (categoriesData) {
+      setCategories(categoriesData)
+    }
+  }, [categoriesData])
+
+  // Use filtered formulas from TRPC query (filtering is done server-side)
+  const filteredFormulas = formulas || []
 
   const resetFormData = () => {
     setFormData({
@@ -270,41 +198,22 @@ const FormulaDocumentation = () => {
   const handleSave = () => {
     if (formData.id) {
       // Update existing formula
-      setFormulas(formulas.map(f => f.id === formData.id ? { ...formData, updatedAt: new Date().toISOString().split('T')[0] } : f))
-      setEditModalOpen(false)
-      notifications.show({
-        title: 'Success',
-        message: 'Formula updated successfully',
-        color: 'green'
+      updateFormulaMutation.mutate({
+        formulaId: formData.id,
+        ...formData
       })
     } else {
       // Create new formula
-      const newFormula = {
-        ...formData,
-        id: Math.max(...formulas.map(f => f.id)) + 1,
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0]
-      }
-      setFormulas([...formulas, newFormula])
-      setCreateModalOpen(false)
-      notifications.show({
-        title: 'Success',
-        message: 'Formula created successfully',
-        color: 'green'
-      })
+      createFormulaMutation.mutate(formData)
     }
-    resetFormData()
   }
 
   const handleDeleteConfirm = () => {
-    setFormulas(formulas.filter(f => f.id !== selectedFormula.id))
-    setDeleteModalOpen(false)
-    setSelectedFormula(null)
-    notifications.show({
-      title: 'Success',
-      message: 'Formula deleted successfully',
-      color: 'green'
-    })
+    if (selectedFormula) {
+      deleteFormulaMutation.mutate({
+        formulaId: selectedFormula.id
+      })
+    }
   }
 
   const copyToClipboard = (text) => {
@@ -331,7 +240,7 @@ const FormulaDocumentation = () => {
       case 'skilling': return <IconBulb size={16} />
       case 'investment': return <IconDatabase size={16} />
       case 'combat': return <IconMath size={16} />
-      default: return <IconFormula size={16} />
+      default: return <IconMath size={16} />
     }
   }
 
@@ -442,7 +351,7 @@ const FormulaDocumentation = () => {
             <div>
               <Text size="lg" weight={500}>No formulas found</Text>
               <Text size="sm" color="dimmed">
-                {searchTerm || selectedCategory 
+                {searchTerm || selectedCategory
                   ? 'Try adjusting your search criteria'
                   : 'Get started by creating your first formula'
                 }
@@ -473,7 +382,7 @@ const FormulaDocumentation = () => {
 
       try {
         setError('')
-        
+
         // Validate required inputs
         for (const param of selectedFormula.parameters) {
           if (param.required && (inputs[param.name] === undefined || inputs[param.name] === '')) {
@@ -484,22 +393,22 @@ const FormulaDocumentation = () => {
 
         // Create a safe evaluation context
         const context = { ...inputs }
-        
+
         // Add Math functions to context
         context.Math = Math
-        
+
         // Simple formula evaluation (in production, use a proper math parser)
         let formula = selectedFormula.formula
-        
+
         // Replace parameter names with values
         for (const [key, value] of Object.entries(inputs)) {
           const regex = new RegExp(`\\b${key}\\b`, 'g')
           formula = formula.replace(regex, value)
         }
-        
+
         // Basic evaluation (WARNING: In production, use a safe math parser!)
         const calculatedResult = Function(`"use strict"; return (${formula})`)()
-        
+
         setResult(calculatedResult)
       } catch (err) {
         setError('Error calculating result: ' + err.message)
