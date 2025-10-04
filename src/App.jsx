@@ -31,6 +31,7 @@ const HighVolumes = lazy(() => import('./pages/HighVolumes'))
 const Watchlist = lazy(() => import('./pages/Watchlist'))
 const Settings = lazy(() => import('./pages/Settings'))
 const AdminPanel = lazy(() => import('./pages/Admin'))
+const AdminDashboard = lazy(() => import('./pages/Admin/AdminDashboard'))
 const AccessDenied = lazy(() => import('./pages/AccessDenied'))
 const CombinationItems = lazy(() => import('./pages/CombinationItems'))
 const MoneyMaking = lazy(() => import('./pages/MoneyMaking'))
@@ -324,9 +325,10 @@ function AppContent () {
               <Route path="/market-watch/raids" element={<RaidsIndex />} />
               <Route path="/market-watch/herbs" element={<HerbsIndex />} />
               {/* Admin routes */}
-              <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/admin/billing" element={<AdminRoute><BillingDashboard /></AdminRoute>} />
-              <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+              <Route path="/admin/user-management" element={<AdminRoute><UserManagement /></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><SystemSettings /></AdminRoute>} />
               <Route path="/admin/security" element={<AdminRoute><SecurityLogs /></AdminRoute>} />
               <Route path="/admin/formulas" element={<AdminRoute><FormulaDocumentation /></AdminRoute>} />

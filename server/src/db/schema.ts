@@ -41,17 +41,24 @@ export const subscriptions = pgTable('subscriptions', {
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
   stripePriceId: text('stripe_price_id'),
-  status: text('status').notNull().default('inactive'), // active, inactive, canceled, past_due
+  status: text('status').notNull().default('inactive'), // active, inactive, canceled, past_due, trialing
   plan: text('plan').notNull().default('free'), // free, premium, pro
   currentPeriodStart: timestamp('current_period_start'),
   currentPeriodEnd: timestamp('current_period_end'),
   cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  // Trial fields
+  trialStart: timestamp('trial_start'),
+  trialEnd: timestamp('trial_end'),
+  trialDays: integer('trial_days').default(14),
+  isTrialing: boolean('is_trialing').default(false),
+  trialExtendedBy: integer('trial_extended_by'), // Track admin extensions
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
   userIdIdx: index('subscriptions_user_id_idx').on(table.userId),
   stripeCustomerIdx: index('subscriptions_stripe_customer_idx').on(table.stripeCustomerId),
-  stripeSubscriptionIdx: index('subscriptions_stripe_subscription_idx').on(table.stripeSubscriptionId)
+  stripeSubscriptionIdx: index('subscriptions_stripe_subscription_idx').on(table.stripeSubscriptionId),
+  trialEndIdx: index('subscriptions_trial_end_idx').on(table.trialEnd)
 }))
 
 export const userWatchlists = pgTable('user_watchlists', {
@@ -379,3 +386,206 @@ export const userSettings = pgTable('user_settings', {
 
 export type UserSettings = typeof userSettings.$inferSelect;
 export type NewUserSettings = typeof userSettings.$inferInsert;
+
+// --- COMPREHENSIVE ADMIN TRACKING TABLES ---
+
+// API Usage Logs - Track all API calls for detailed analytics
+export const apiUsageLogs = pgTable('api_usage_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').references(() => users.id),
+  endpoint: text('endpoint').notNull(),
+  method: text('method').notNull(), // GET, POST, PUT, DELETE
+  statusCode: integer('status_code').notNull(),
+  responseTime: integer('response_time'), // milliseconds
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  requestSize: integer('request_size'), // bytes
+  responseSize: integer('response_size'), // bytes
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('api_usage_logs_user_id_idx').on(table.userId),
+  endpointIdx: index('api_usage_logs_endpoint_idx').on(table.endpoint),
+  createdAtIdx: index('api_usage_logs_created_at_idx').on(table.createdAt),
+  statusCodeIdx: index('api_usage_logs_status_code_idx').on(table.statusCode)
+}))
+
+// Admin Actions Log - Track all admin actions for security audit
+export const adminActions = pgTable('admin_actions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  adminUserId: integer('admin_user_id').notNull().references(() => users.id),
+  actionType: text('action_type').notNull(), // 'refund', 'ban_user', 'extend_trial', etc.
+  targetUserId: integer('target_user_id').references(() => users.id),
+  targetResource: text('target_resource'), // 'subscription', 'user', 'billing', etc.
+  targetResourceId: text('target_resource_id'),
+  actionDetails: jsonb('action_details'), // Store specific details as JSON
+  previousState: jsonb('previous_state'), // Store previous state for rollback
+  newState: jsonb('new_state'), // Store new state
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  success: boolean('success').default(true).notNull(),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  adminUserIdx: index('admin_actions_admin_user_idx').on(table.adminUserId),
+  targetUserIdx: index('admin_actions_target_user_idx').on(table.targetUserId),
+  actionTypeIdx: index('admin_actions_action_type_idx').on(table.actionType),
+  createdAtIdx: index('admin_actions_created_at_idx').on(table.createdAt)
+}))
+
+// Security Events - Track security-related events
+export const securityEvents = pgTable('security_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').references(() => users.id),
+  eventType: text('event_type').notNull(), // 'failed_login', 'suspicious_activity', 'rate_limit_hit', etc.
+  severity: text('severity').notNull().default('low'), // 'low', 'medium', 'high', 'critical'
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  details: jsonb('details'),
+  resolved: boolean('resolved').default(false),
+  resolvedBy: integer('resolved_by').references(() => users.id),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('security_events_user_id_idx').on(table.userId),
+  eventTypeIdx: index('security_events_event_type_idx').on(table.eventType),
+  severityIdx: index('security_events_severity_idx').on(table.severity),
+  createdAtIdx: index('security_events_created_at_idx').on(table.createdAt)
+}))
+
+// System Metrics - Track system performance and health
+export const systemMetrics = pgTable('system_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  metricType: text('metric_type').notNull(), // 'api_response_time', 'database_connections', 'memory_usage', etc.
+  value: integer('value').notNull(),
+  unit: text('unit'), // 'ms', 'bytes', 'count', etc.
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  metricTypeIdx: index('system_metrics_metric_type_idx').on(table.metricType),
+  createdAtIdx: index('system_metrics_created_at_idx').on(table.createdAt)
+}))
+
+// Cron Job Logs - Track scheduled task execution
+export const cronJobLogs = pgTable('cron_job_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobName: text('job_name').notNull(),
+  jobType: text('job_type').notNull(), // 'data_scraping', 'email_notifications', 'cleanup', etc.
+  status: text('status').notNull(), // 'running', 'completed', 'failed', 'cancelled'
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  duration: integer('duration'), // milliseconds
+  recordsProcessed: integer('records_processed'),
+  errorsCount: integer('errors_count').default(0),
+  errorMessage: text('error_message'),
+  logs: text('logs'), // Store execution logs
+  metadata: jsonb('metadata')
+}, (table) => ({
+  jobNameIdx: index('cron_job_logs_job_name_idx').on(table.jobName),
+  statusIdx: index('cron_job_logs_status_idx').on(table.status),
+  startedAtIdx: index('cron_job_logs_started_at_idx').on(table.startedAt)
+}))
+
+// Stripe Events Log - Track all Stripe webhook events
+export const stripeEvents = pgTable('stripe_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  stripeEventId: text('stripe_event_id').notNull().unique(),
+  eventType: text('event_type').notNull(), // 'payment_intent.succeeded', 'subscription.updated', etc.
+  userId: integer('user_id').references(() => users.id),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  amount: integer('amount'), // in cents
+  currency: text('currency'),
+  status: text('status').notNull(), // 'processed', 'failed', 'duplicate'
+  processedAt: timestamp('processed_at'),
+  errorMessage: text('error_message'),
+  rawData: jsonb('raw_data'), // Store full Stripe event data
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  stripeEventIdIdx: index('stripe_events_stripe_event_id_idx').on(table.stripeEventId),
+  eventTypeIdx: index('stripe_events_event_type_idx').on(table.eventType),
+  userIdIdx: index('stripe_events_user_id_idx').on(table.userId),
+  createdAtIdx: index('stripe_events_created_at_idx').on(table.createdAt)
+}))
+
+// Revenue Analytics - Aggregated revenue data for quick dashboard access
+export const revenueAnalytics = pgTable('revenue_analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  date: timestamp('date').notNull(),
+  periodType: text('period_type').notNull(), // 'daily', 'weekly', 'monthly'
+  totalRevenue: integer('total_revenue').default(0), // in cents
+  newSubscriptions: integer('new_subscriptions').default(0),
+  canceledSubscriptions: integer('canceled_subscriptions').default(0),
+  trialConversions: integer('trial_conversions').default(0),
+  refundAmount: integer('refund_amount').default(0),
+  churnRate: integer('churn_rate').default(0), // percentage * 100
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  dateIdx: index('revenue_analytics_date_idx').on(table.date),
+  periodTypeIdx: index('revenue_analytics_period_type_idx').on(table.periodType)
+}))
+
+// User Invitations - For admin invitation system
+export const userInvitations = pgTable('user_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(),
+  invitedBy: integer('invited_by').notNull().references(() => users.id),
+  invitationToken: text('invitation_token').notNull().unique(),
+  trialDays: integer('trial_days').notNull().default(14),
+  role: text('role').notNull().default('user'), // user, admin, moderator
+  status: text('status').notNull().default('pending'), // pending, accepted, expired
+  emailSent: boolean('email_sent').default(false),
+  emailSentAt: timestamp('email_sent_at'),
+  acceptedAt: timestamp('accepted_at'),
+  expiresAt: timestamp('expires_at').notNull(),
+  metadata: jsonb('metadata'), // Store additional invitation data
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  emailIdx: index('user_invitations_email_idx').on(table.email),
+  tokenIdx: index('user_invitations_token_idx').on(table.invitationToken),
+  statusIdx: index('user_invitations_status_idx').on(table.status),
+  expiresAtIdx: index('user_invitations_expires_at_idx').on(table.expiresAt)
+}))
+
+// User Sessions - Enhanced session tracking
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionToken: text('session_token').notNull().unique(),
+  refreshToken: text('refresh_token').unique(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  deviceInfo: jsonb('device_info'), // parsed device/browser info
+  location: jsonb('location'), // city, country, timezone
+  isActive: boolean('is_active').default(true),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  loginMethod: text('login_method'), // 'email', 'google', 'otp'
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('user_sessions_user_id_idx').on(table.userId),
+  sessionTokenIdx: index('user_sessions_session_token_idx').on(table.sessionToken),
+  isActiveIdx: index('user_sessions_is_active_idx').on(table.isActive),
+  lastActivityIdx: index('user_sessions_last_activity_idx').on(table.lastActivity)
+}))
+
+// Type exports for new admin tables
+export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;
+export type NewApiUsageLog = typeof apiUsageLogs.$inferInsert;
+export type AdminAction = typeof adminActions.$inferSelect;
+export type NewAdminAction = typeof adminActions.$inferInsert;
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type NewSecurityEvent = typeof securityEvents.$inferInsert;
+export type SystemMetric = typeof systemMetrics.$inferSelect;
+export type NewSystemMetric = typeof systemMetrics.$inferInsert;
+export type CronJobLog = typeof cronJobLogs.$inferSelect;
+export type NewCronJobLog = typeof cronJobLogs.$inferInsert;
+export type StripeEvent = typeof stripeEvents.$inferSelect;
+export type NewStripeEvent = typeof stripeEvents.$inferInsert;
+export type RevenueAnalytic = typeof revenueAnalytics.$inferSelect;
+export type NewRevenueAnalytic = typeof revenueAnalytics.$inferInsert;
+export type UserInvitation = typeof userInvitations.$inferSelect;
+export type NewUserInvitation = typeof userInvitations.$inferInsert;
+export type UserSession = typeof userSessions.$inferSelect;
+export type NewUserSession = typeof userSessions.$inferInsert;

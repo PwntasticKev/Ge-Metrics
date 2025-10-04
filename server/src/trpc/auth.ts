@@ -145,7 +145,8 @@ export const authRouter = router({
   login: publicProcedure
     .input(z.object({
       email: z.string(), // Can be email or username
-      password: z.string()
+      password: z.string(),
+      otpCode: z.string().optional()
     }))
     .mutation(async ({ input }) => {
       const { email, password } = input
@@ -169,28 +170,55 @@ export const authRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
       }
 
-      // Check subscription status
-      const subscription = await db.query.subscriptions.findFirst({
-        where: eq(subscriptions.userId, user.id)
-      })
-
-      const isTrialExpired = subscription && subscription.status === 'trialing' && subscription.currentPeriodEnd < new Date()
-      const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
-
-      if (isTrialExpired || isSubscriptionInactive) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Your subscription is inactive. Please subscribe to continue.'
-        })
-      }
-
-      // Check for 2FA
+      // Check user settings and role
       const settings = await db.query.userSettings.findFirst({
         where: eq(userSettings.userId, user.id)
       })
 
-      if (settings?.otpEnabled) {
-        return { twoFactorRequired: true }
+      // Admins and moderators bypass subscription requirements
+      const userRole = settings?.role || 'user'
+      const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator'
+
+      if (!isAdminOrModerator) {
+        // Check subscription status for regular users
+        const subscription = await db.query.subscriptions.findFirst({
+          where: eq(subscriptions.userId, user.id)
+        })
+
+        const isTrialExpired = subscription?.status === 'trialing' && subscription?.currentPeriodEnd && subscription.currentPeriodEnd < new Date()
+        const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
+
+        if (isTrialExpired || isSubscriptionInactive) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Your subscription is inactive. Please subscribe to continue.'
+          })
+        }
+      }
+
+      // Check for 2FA (settings already fetched above)
+      if (!settings) {
+        // Create default settings for user if they don't exist
+        await db.insert(userSettings).values({
+          userId: user.id,
+          role: userRole
+        })
+      }
+
+      // Check for 2FA
+      if (settings?.otpEnabled && settings?.otpVerified) {
+        if (!input.otpCode) {
+          return { twoFactorRequired: true }
+        }
+        
+        const isValidOtp = authenticator.verify({
+          token: input.otpCode,
+          secret: settings.otpSecret
+        })
+        
+        if (!isValidOtp) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP code' })
+        }
       }
 
       // If 2FA is not enabled, proceed with login

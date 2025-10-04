@@ -28,7 +28,9 @@ export const connection = postgres(databaseUrl, connectionOptions)
 export const db = drizzle(connection, { schema })
 
 // Unpooled connection for migrations
-const migrationConnectionUrl = config.DATABASE_URL_UNPOOLED || databaseUrl
+const migrationConnectionUrl = config.NODE_ENV === 'development' 
+  ? (config.LOCAL_DATABASE_URL || config.DATABASE_URL)
+  : (config.DATABASE_URL_UNPOOLED || databaseUrl)
 console.log('[GE-METRICS_MIGRATE_LOG] Using migration connection URL:', migrationConnectionUrl)
 export const migrationConnection = postgres(migrationConnectionUrl, connectionOptions)
 export const migrationDb = drizzle(migrationConnection, { schema })

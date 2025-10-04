@@ -45,6 +45,7 @@ import {
 import { Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
+import '../../../styles/scrollbar.css'
 
 const useStyles = createStyles((theme) => ({
   control: {
@@ -321,12 +322,45 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
   const [adminOpen, setAdminOpen] = useState(false)
   const { user, logout } = useAuth()
 
+  // Check if user has access (admin/moderator bypass subscription requirement)
+  const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator'
+  const hasActiveSubscription = user?.subscriptionStatus === 'active' || user?.subscriptionStatus === 'trialing'
+  const hasAccess = isAdminOrModerator || hasActiveSubscription
+
+  // If user doesn't have access, show limited menu
+  if (!hasAccess) {
+    return (
+      <ScrollArea
+        className="navbar-scrollarea"
+        style={{
+          height: isMobile ? 'calc(100vh - 80px)' : 'calc(100vh - 120px)',
+          padding: isMobile ? '8px' : (expanded ? '8px' : '4px')
+        }}
+      >
+        <Stack spacing="md" style={{ textAlign: 'center', padding: '20px' }}>
+          <Text size="sm" color="dimmed">
+            Subscribe to access all features
+          </Text>
+          <Button 
+            variant="gradient" 
+            gradient={{ from: 'blue', to: 'cyan' }}
+            size="sm"
+            onClick={() => window.location.href = '/pricing'}
+          >
+            Upgrade Now
+          </Button>
+        </Stack>
+      </ScrollArea>
+    )
+  }
+
   const handleLogout = () => {
     logout()
   }
 
   return (
     <ScrollArea
+      className="navbar-scrollarea"
       style={{
         height: isMobile ? 'calc(100vh - 80px)' : 'calc(100vh - 120px)',
         padding: isMobile ? '8px' : (expanded ? '8px' : '4px')
@@ -669,19 +703,10 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               onNavigate={onNavigate}
             />
             <SubmenuItem
-              icon={<IconUsers size="0.8rem"/>}
-              color="cyan"
-              label="Employee Management"
-              link="/admin/employee-management"
-              expanded={expanded}
-              isMobile={isMobile}
-              onNavigate={onNavigate}
-            />
-            <SubmenuItem
               icon={<IconChartLine size="0.8rem"/>}
               color="green"
               label="Billing Dashboard"
-              link="/admin/billing-dashboard"
+              link="/admin/billing"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
@@ -690,7 +715,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               icon={<IconShield size="0.8rem"/>}
               color="orange"
               label="Security Logs"
-              link="/admin/security-logs"
+              link="/admin/security"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
@@ -699,7 +724,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               icon={<IconSettings size="0.8rem"/>}
               color="gray"
               label="System Settings"
-              link="/admin/system-settings"
+              link="/admin/settings"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
@@ -708,7 +733,7 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               icon={<IconCalculator size="0.8rem"/>}
               color="purple"
               label="Formula Documentation"
-              link="/admin/formula-documentation"
+              link="/admin/formulas"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}
