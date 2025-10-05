@@ -3,7 +3,7 @@ import { config } from '../config/index.js'
 
 // Initialize Stripe
 const stripe = new Stripe(config.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-09-30.acacia'
+  apiVersion: '2024-06-20'
 })
 
 export { stripe }
@@ -11,12 +11,12 @@ export { stripe }
 // Stripe utility functions
 export class StripeService {
   // Get or create customer
-  static async getOrCreateCustomer(userId: number, email: string, name?: string) {
+  static async getOrCreateCustomer (userId: number, email: string, name?: string) {
     try {
       // First, try to find existing customer by metadata
       const customers = await stripe.customers.list({
         limit: 1,
-        email: email
+        email
       })
 
       if (customers.data.length > 0) {
@@ -33,14 +33,14 @@ export class StripeService {
       })
 
       return customer
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error creating/retrieving customer:', error)
       throw new Error(`Stripe customer error: ${error.message}`)
     }
   }
 
   // Update customer subscription
-  static async updateSubscription(subscriptionId: string, updates: {
+  static async updateSubscription (subscriptionId: string, updates: {
     priceId?: string
     trialEnd?: number // Unix timestamp
     cancelAtPeriodEnd?: boolean
@@ -70,14 +70,14 @@ export class StripeService {
 
       const subscription = await stripe.subscriptions.update(subscriptionId, updateData)
       return subscription
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error updating subscription:', error)
       throw new Error(`Stripe subscription update error: ${error.message}`)
     }
   }
 
   // Create subscription
-  static async createSubscription(customerId: string, priceId: string, options?: {
+  static async createSubscription (customerId: string, priceId: string, options?: {
     trialDays?: number
     trialEnd?: number
     metadata?: Record<string, string>
@@ -97,14 +97,14 @@ export class StripeService {
 
       const subscription = await stripe.subscriptions.create(subscriptionData)
       return subscription
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error creating subscription:', error)
       throw new Error(`Stripe subscription creation error: ${error.message}`)
     }
   }
 
   // Cancel subscription
-  static async cancelSubscription(subscriptionId: string, immediately = false) {
+  static async cancelSubscription (subscriptionId: string, immediately = false) {
     try {
       if (immediately) {
         const subscription = await stripe.subscriptions.cancel(subscriptionId)
@@ -115,73 +115,73 @@ export class StripeService {
         })
         return subscription
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error canceling subscription:', error)
       throw new Error(`Stripe subscription cancellation error: ${error.message}`)
     }
   }
 
   // Reactivate subscription
-  static async reactivateSubscription(subscriptionId: string) {
+  static async reactivateSubscription (subscriptionId: string) {
     try {
       const subscription = await stripe.subscriptions.update(subscriptionId, {
         cancel_at_period_end: false
       })
       return subscription
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error reactivating subscription:', error)
       throw new Error(`Stripe subscription reactivation error: ${error.message}`)
     }
   }
 
   // Get subscription details
-  static async getSubscription(subscriptionId: string) {
+  static async getSubscription (subscriptionId: string) {
     try {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
         expand: ['customer', 'latest_invoice']
       })
       return subscription
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error retrieving subscription:', error)
       throw new Error(`Stripe subscription retrieval error: ${error.message}`)
     }
   }
 
   // Extend trial
-  static async extendTrial(subscriptionId: string, trialEndDate: Date) {
+  static async extendTrial (subscriptionId: string, trialEndDate: Date) {
     try {
       const trialEnd = Math.floor(trialEndDate.getTime() / 1000) // Convert to Unix timestamp
-      
+
       const subscription = await stripe.subscriptions.update(subscriptionId, {
         trial_end: trialEnd,
         metadata: {
           trial_extended_at: new Date().toISOString()
         }
       })
-      
+
       return subscription
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error extending trial:', error)
       throw new Error(`Stripe trial extension error: ${error.message}`)
     }
   }
 
   // Create billing portal session
-  static async createBillingPortalSession(customerId: string, returnUrl: string) {
+  static async createBillingPortalSession (customerId: string, returnUrl: string) {
     try {
       const session = await stripe.billingPortal.sessions.create({
         customer: customerId,
         return_url: returnUrl
       })
       return session
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error creating billing portal session:', error)
       throw new Error(`Stripe billing portal error: ${error.message}`)
     }
   }
 
   // Get customer invoices
-  static async getCustomerInvoices(customerId: string, limit = 10) {
+  static async getCustomerInvoices (customerId: string, limit = 10) {
     try {
       const invoices = await stripe.invoices.list({
         customer: customerId,
@@ -189,14 +189,14 @@ export class StripeService {
         expand: ['data.subscription']
       })
       return invoices.data
-    } catch (error) {
+    } catch (error: any) {
       console.error('[STRIPE] Error retrieving invoices:', error)
       throw new Error(`Stripe invoices retrieval error: ${error.message}`)
     }
   }
 
   // Helper to sync Stripe subscription to database format
-  static formatSubscriptionForDB(stripeSubscription: Stripe.Subscription) {
+  static formatSubscriptionForDB (stripeSubscription: Stripe.Subscription) {
     return {
       stripeSubscriptionId: stripeSubscription.id,
       stripeCustomerId: stripeSubscription.customer as string,

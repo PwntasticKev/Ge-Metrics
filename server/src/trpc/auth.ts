@@ -24,7 +24,7 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { email, username, password, name } = input
 
-      console.log('[GE-METRICS_AUTH_DEBUG] Attempting to register user. DB URL:', config.DATABASE_URL);
+      console.log('[GE-METRICS_AUTH_DEBUG] Attempting to register user. DB URL:', config.DATABASE_URL)
 
       // Check if user already exists (by email or username)
       const existingUser = await db.select().from(users)
@@ -210,12 +210,16 @@ export const authRouter = router({
         if (!input.otpCode) {
           return { twoFactorRequired: true }
         }
-        
+
+        if (!settings.otpSecret) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'OTP secret is not set for this user.' })
+        }
+
         const isValidOtp = authenticator.verify({
           token: input.otpCode,
           secret: settings.otpSecret
         })
-        
+
         if (!isValidOtp) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP code' })
         }

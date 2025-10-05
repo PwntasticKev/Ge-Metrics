@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { eq, sql, and, gte, lte, desc, count, avg, sum, like, or } from 'drizzle-orm'
-import { 
-  db, 
-  users, 
+import {
+  db,
+  users,
   subscriptions,
   userSettings,
   refreshTokens,
@@ -32,7 +32,7 @@ export const adminUsersRouter = router({
 
       // Build where conditions
       const conditions = []
-      
+
       if (search) {
         conditions.push(
           or(
@@ -498,13 +498,13 @@ export const adminUsersRouter = router({
       const [totalUsers] = await db.select({ count: count() }).from(users)
       const [activeUsers] = await db.select({ count: count() })
         .from(users)
-        .where(eq(users.isActive, true))
-      
+        .where(eq(users.access, true))
+
       const [premiumUsers] = await db.select({ count: count() })
         .from(users)
         .leftJoin(subscriptions, eq(users.id, subscriptions.userId))
         .where(eq(subscriptions.status, 'active'))
-      
+
       const [newUsersThisMonth] = await db.select({ count: count() })
         .from(users)
         .where(gte(users.createdAt, thisMonth))
@@ -563,24 +563,24 @@ export const adminUsersRouter = router({
         }
 
         const subscriptionUpdates: any = {}
-        let stripeUpdates: any = {}
-        
+        const stripeUpdates: any = {}
+
         if (subscriptionStatus) {
           subscriptionUpdates.status = subscriptionStatus
         }
-        
+
         if (trialEnd) {
           const trialEndDate = new Date(trialEnd)
           subscriptionUpdates.trialEnd = trialEndDate
           subscriptionUpdates.currentPeriodEnd = trialEndDate
           subscriptionUpdates.isTrialing = subscriptionStatus === 'trialing'
-          
+
           // Prepare Stripe update for trial extension
           if (currentSubscription.stripeSubscriptionId) {
             stripeUpdates.trialEnd = Math.floor(trialEndDate.getTime() / 1000)
           }
         }
-        
+
         // Update Stripe subscription if exists
         if (currentSubscription.stripeSubscriptionId && Object.keys(stripeUpdates).length > 0) {
           try {
@@ -588,11 +588,11 @@ export const adminUsersRouter = router({
               currentSubscription.stripeSubscriptionId,
               stripeUpdates
             )
-            
+
             // Sync Stripe data back to database
             const stripeData = StripeService.formatSubscriptionForDB(updatedStripeSubscription)
             Object.assign(subscriptionUpdates, stripeData)
-          } catch (stripeError) {
+          } catch (stripeError: any) {
             console.error('[ADMIN] Stripe update failed:', stripeError)
             // Log but don't fail the operation - update local DB only
             await db.insert(auditLog).values({
@@ -609,7 +609,7 @@ export const adminUsersRouter = router({
             })
           }
         }
-        
+
         // Update local database
         if (Object.keys(subscriptionUpdates).length > 0) {
           await db
@@ -629,7 +629,7 @@ export const adminUsersRouter = router({
         resource: 'user',
         resourceId: userId.toString(),
         details: {
-          updatedFields: Object.keys(input).filter(key => input[key] !== undefined),
+          updatedFields: Object.keys(input).filter(key => (input as any)[key] !== undefined),
           changes: input
         },
         ipAddress: ctx.req.ip,
@@ -662,7 +662,7 @@ export const adminUsersRouter = router({
       await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId))
       await db.delete(userSettings).where(eq(userSettings.userId, userId))
       await db.delete(subscriptions).where(eq(subscriptions.userId, userId))
-      
+
       // Finally delete the user
       await db.delete(users).where(eq(users.id, userId))
 
@@ -714,7 +714,7 @@ export const adminUsersRouter = router({
       if (currentSubscription.stripeSubscriptionId) {
         try {
           await StripeService.extendTrial(currentSubscription.stripeSubscriptionId, newEndDate)
-        } catch (stripeError) {
+        } catch (stripeError: any) {
           console.error('[ADMIN] Stripe trial extension failed:', stripeError)
           // Log error but continue with local update
           await db.insert(auditLog).values({
@@ -817,7 +817,7 @@ export const adminUsersRouter = router({
           url: session.url,
           sessionId: session.id
         }
-      } catch (error) {
+      } catch (error: any) {
         throw new Error(`Failed to create billing portal session: ${error.message}`)
       }
     }),
@@ -847,7 +847,7 @@ export const adminUsersRouter = router({
       try {
         // Get fresh data from Stripe
         const stripeSubscription = await StripeService.getSubscription(subscription.stripeSubscriptionId)
-        const stripeInvoices = subscription.stripeCustomerId 
+        const stripeInvoices = subscription.stripeCustomerId
           ? await StripeService.getCustomerInvoices(subscription.stripeCustomerId, 5)
           : []
 
@@ -857,7 +857,7 @@ export const adminUsersRouter = router({
           stripeSubscription,
           recentInvoices: stripeInvoices
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[ADMIN] Failed to fetch Stripe details:', error)
         return {
           hasStripeSubscription: true,
