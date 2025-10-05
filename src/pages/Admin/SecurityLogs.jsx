@@ -200,7 +200,7 @@ const SecurityLogs = () => {
               <Group position="apart">
                 <div>
                   <Text size="sm" color="dimmed">Error Rate</Text>
-                  <Text size="xl" weight={700}>{apiUsage.errorRate}%</Text>
+                  <Text size="xl" weight={700}>{apiUsage.errorRate?.toFixed(1) ?? '0.0'}%</Text>
                 </div>
                 <IconBug size={24} color="red" />
               </Group>
@@ -283,7 +283,7 @@ const SecurityLogs = () => {
                   <div style={{ flex: 1 }}>
                     <Text size="sm" weight={500}>{endpoint.endpoint}</Text>
                     <Text size="xs" color="dimmed">
-                      {endpoint.requests} requests • {endpoint.avgResponseTime}ms avg • {endpoint.errorRate}% errors
+                      {endpoint.requests} requests • {endpoint.avgResponseTime ?? 0}ms avg • {(endpoint.errorRate ?? 0).toFixed(1)}% errors
                     </Text>
                   </div>
                   <Progress 
@@ -661,11 +661,11 @@ const SecurityLogs = () => {
                       <Text size="sm" weight={500}>{endpoint.requests.toLocaleString()}</Text>
                     </td>
                     <td>
-                      <Text size="sm">{endpoint.avgResponseTime}ms</Text>
+                      <Text size="sm">{endpoint.avgResponseTime ?? 0}ms</Text>
                     </td>
                     <td>
-                      <Text size="sm" color={endpoint.errorRate > 1 ? 'red' : 'green'}>
-                        {endpoint.errorRate}%
+                      <Text size="sm" color={(endpoint.errorRate ?? 0) > 1 ? 'red' : 'green'}>
+                        {(endpoint.errorRate ?? 0).toFixed(1)}%
                       </Text>
                     </td>
                     <td>
@@ -693,7 +693,7 @@ const SecurityLogs = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ code, percentage }) => `${code} (${percentage}%)`}
+                      label={({ code, percentage }) => `${code} (${(percentage ?? 0).toFixed(1)}%)`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="count"
@@ -721,7 +721,7 @@ const SecurityLogs = () => {
                         <Text size="sm" weight={500}>{user.email}</Text>
                         <Text size="xs" color="dimmed">{user.requests} requests</Text>
                       </div>
-                      <Text size="sm" color="dimmed">{user.avgResponseTime}ms avg</Text>
+                      <Text size="sm" color="dimmed">{user.avgResponseTime ?? 0}ms avg</Text>
                     </Group>
                   ))}
                 </Stack>

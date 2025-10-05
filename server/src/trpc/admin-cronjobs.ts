@@ -88,17 +88,22 @@ export const adminCronJobsRouter = router({
     .query(async ({ input }) => {
       const { jobId, limit, page } = input
       
-      let query = db.select().from(cronJobLogs)
+      let jobName: string | undefined
       
       if (jobId) {
         // Find job name by ID for filtering
         const [job] = await db.select().from(cronJobs).where(eq(cronJobs.id, jobId))
         if (job) {
-          query = query.where(eq(cronJobLogs.jobName, job.name))
+          jobName = job.name
         }
       }
 
-      const executions = await query
+      const query = db.select().from(cronJobLogs)
+      const executions = await (
+        jobName ? 
+          query.where(eq(cronJobLogs.jobName, jobName)) :
+          query
+      )
         .orderBy(desc(cronJobLogs.startedAt))
         .limit(limit)
         .offset((page - 1) * limit)

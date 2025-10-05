@@ -3,7 +3,7 @@ import { config } from '../config/index.js'
 
 // Initialize Stripe
 const stripe = new Stripe(config.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-06-20'
+  apiVersion: '2023-10-16'
 })
 
 export { stripe }

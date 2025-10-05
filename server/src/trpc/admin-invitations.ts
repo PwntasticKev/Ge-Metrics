@@ -225,7 +225,7 @@ export const adminInvitationsRouter = router({
           resourceId: invitation.id,
           details: {
             email,
-            error: emailError.message,
+            error: emailError instanceof Error ? emailError.message : String(emailError),
             emailSent: false
           },
           ipAddress: ctx.req.ip,
@@ -267,16 +267,17 @@ export const adminInvitationsRouter = router({
         })
         .from(userInvitations)
         .leftJoin(users, eq(userInvitations.invitedBy, users.id))
-        .where(eq(userInvitations.status, 'pending'))
-
-      if (search) {
-        query = query.where(
-          or(
-            like(userInvitations.email, `%${search}%`),
-            like(users.name, `%${search}%`)
-          )
+        .where(
+          search ? 
+            and(
+              eq(userInvitations.status, 'pending'),
+              or(
+                like(userInvitations.email, `%${search}%`),
+                like(users.name, `%${search}%`)
+              )
+            )
+            : eq(userInvitations.status, 'pending')
         )
-      }
 
       const invitations = await query
         .orderBy(desc(userInvitations.createdAt))
@@ -367,7 +368,7 @@ export const adminInvitationsRouter = router({
 
         return { success: true, message: 'Invitation resent successfully' }
       } catch (error) {
-        throw new Error(`Failed to resend invitation: ${error.message}`)
+        throw new Error(`Failed to resend invitation: ${error instanceof Error ? error.message : String(error)}`)
       }
     }),
 

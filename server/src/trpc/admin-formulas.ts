@@ -20,8 +20,6 @@ export const adminFormulasRouter = router({
     .query(async ({ input }) => {
       const { category, search, complexity, isActive } = input
       
-      let query = db.select().from(formulas)
-      
       const conditions = []
       
       if (category) {
@@ -45,11 +43,12 @@ export const adminFormulasRouter = router({
         conditions.push(eq(formulas.isActive, isActive))
       }
       
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions))
-      }
-      
-      const allFormulas = await query.orderBy(desc(formulas.updatedAt))
+      const query = db.select().from(formulas)
+      const allFormulas = await (
+        conditions.length > 0 ?
+          query.where(and(...conditions)) :
+          query
+      ).orderBy(desc(formulas.updatedAt))
       
       return allFormulas
     }),

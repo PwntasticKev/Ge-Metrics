@@ -298,7 +298,7 @@ export const adminUsersRouter = router({
         apiUsage,
         apiStats: {
           totalRequests: apiStats?.totalRequests || 0,
-          avgResponseTime: Math.round(apiStats?.avgResponseTime || 0)
+          avgResponseTime: Math.round(Number(apiStats?.avgResponseTime) || 0)
         },
         securityEvents: securityEvents_
       }
@@ -490,7 +490,7 @@ export const adminUsersRouter = router({
     }),
 
   // Get user statistics for dashboard
-  getUserStats: adminProcedure
+  getDashboardStats: adminProcedure
     .query(async () => {
       const now = new Date()
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -498,7 +498,7 @@ export const adminUsersRouter = router({
       const [totalUsers] = await db.select({ count: count() }).from(users)
       const [activeUsers] = await db.select({ count: count() })
         .from(users)
-        .where(eq(users.access, true))
+        .where(eq(users.emailVerified, true))
 
       const [premiumUsers] = await db.select({ count: count() })
         .from(users)

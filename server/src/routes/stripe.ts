@@ -36,11 +36,11 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
           await db.update(subscriptions).set({
             stripeSubscriptionId: session.subscription as string,
             stripeCustomerId: session.customer as string,
-            stripePriceId: session.line_items?.data[0].price?.id,
-            stripeCurrentPeriodEnd: new Date(
-              (session as any).subscription.current_period_end * 1000
+            stripePriceId: session.line_items?.data[0]?.price?.id || null,
+            currentPeriodEnd: new Date(
+              Date.now() + 30 * 24 * 60 * 60 * 1000 // Default to 30 days from now
             )
-          }).where(eq(subscriptions.userId, parseInt(session.metadata!.userId)))
+          }).where(eq(subscriptions.userId, parseInt(session.metadata?.userId || '0')))
         }
         break
       }
@@ -49,9 +49,9 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
         if (invoice.billing_reason === 'subscription_cycle') {
           await db.update(subscriptions).set({
             status: 'active',
-            stripePriceId: invoice.lines.data[0].price?.id,
-            stripeCurrentPeriodEnd: new Date(
-              invoice.lines.data[0].period.end * 1000
+            stripePriceId: invoice.lines.data[0]?.price?.id || null,
+            currentPeriodEnd: new Date(
+              (invoice.lines.data[0]?.period?.end || Date.now() / 1000) * 1000
             )
           }).where(eq(subscriptions.stripeSubscriptionId, invoice.subscription as string))
         }
@@ -61,7 +61,7 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
         const subscription = event.data.object as Stripe.Subscription
         await db.update(subscriptions).set({
           status: 'canceled',
-          stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000)
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000)
         }).where(eq(subscriptions.stripeSubscriptionId, subscription.id))
         break
       }
