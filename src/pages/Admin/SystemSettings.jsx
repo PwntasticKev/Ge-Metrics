@@ -145,8 +145,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Session Timeout (minutes)"
-                value={settings.general?.sessionTimeout ?? 60}
-                onChange={(value) => updateSetting('general', 'sessionTimeout', value)}
+                value={parseFloat(settings.general?.sessionTimeout ?? 0)}
+                onChange={(value) => updateSetting('general', 'sessionTimeout', parseFloat(value ?? 0))}
                 min={5}
                 max={1440}
               />
@@ -178,8 +178,8 @@ const SystemSettings = () => {
           </Group>
           <NumberInput
             label="Maximum New Users Per Day"
-            value={settings.general?.maxUsersPerDay ?? 100}
-            onChange={(value) => updateSetting('general', 'maxUsersPerDay', value)}
+            value={parseFloat(settings.general?.maxUsersPerDay ?? 0)}
+            onChange={(value) => updateSetting('general', 'maxUsersPerDay', parseFloat(value ?? 0))}
             min={0}
             max={10000}
             style={{ maxWidth: 300 }}
@@ -199,8 +199,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Connection Pool Size"
-                value={settings.database?.connectionPoolSize ?? 10}
-                onChange={(value) => updateSetting('database', 'connectionPoolSize', value)}
+                value={parseFloat(settings.database?.connectionPoolSize ?? 0)}
+                onChange={(value) => updateSetting('database', 'connectionPoolSize', parseFloat(value ?? 0))}
                 min={1}
                 max={100}
               />
@@ -208,8 +208,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Query Timeout (ms)"
-                value={settings.database?.queryTimeout ?? 5000}
-                onChange={(value) => updateSetting('database', 'queryTimeout', value)}
+                value={parseFloat(settings.database?.queryTimeout ?? 0)}
+                onChange={(value) => updateSetting('database', 'queryTimeout', parseFloat(value ?? 0))}
                 min={1000}
                 max={300000}
               />
@@ -232,8 +232,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Backup Interval (hours)"
-                value={settings.database?.backupInterval ?? 24}
-                onChange={(value) => updateSetting('database', 'backupInterval', value)}
+                value={parseFloat(settings.database?.backupInterval ?? 0)}
+                onChange={(value) => updateSetting('database', 'backupInterval', parseFloat(value ?? 0))}
                 min={1}
                 max={168}
                 disabled={!settings.database?.autoBackup}
@@ -242,8 +242,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Retention Period (days)"
-                value={settings.database?.retentionDays ?? 7}
-                onChange={(value) => updateSetting('database', 'retentionDays', value)}
+                value={parseFloat(settings.database?.retentionDays ?? 0)}
+                onChange={(value) => updateSetting('database', 'retentionDays', parseFloat(value ?? 0))}
                 min={1}
                 max={365}
                 disabled={!settings.database?.autoBackup}
@@ -282,8 +282,8 @@ const SystemSettings = () => {
             <Grid.Col md={4}>
               <NumberInput
                 label="Minimum Password Length"
-                value={settings.security?.passwordMinLength ?? 8}
-                onChange={(value) => updateSetting('security', 'passwordMinLength', value)}
+                value={parseFloat(settings.security?.passwordMinLength ?? 0)}
+                onChange={(value) => updateSetting('security', 'passwordMinLength', parseFloat(value ?? 0))}
                 min={6}
                 max={128}
               />
@@ -291,8 +291,8 @@ const SystemSettings = () => {
             <Grid.Col md={4}>
               <NumberInput
                 label="Max Login Attempts"
-                value={settings.security?.maxLoginAttempts ?? 5}
-                onChange={(value) => updateSetting('security', 'maxLoginAttempts', value)}
+                value={parseFloat(settings.security?.maxLoginAttempts ?? 0)}
+                onChange={(value) => updateSetting('security', 'maxLoginAttempts', parseFloat(value ?? 0))}
                 min={3}
                 max={20}
               />
@@ -300,8 +300,8 @@ const SystemSettings = () => {
             <Grid.Col md={4}>
               <NumberInput
                 label="Lockout Duration (minutes)"
-                value={settings.security?.lockoutDuration ?? 15}
-                onChange={(value) => updateSetting('security', 'lockoutDuration', value)}
+                value={parseFloat(settings.security?.lockoutDuration ?? 0)}
+                onChange={(value) => updateSetting('security', 'lockoutDuration', parseFloat(value ?? 0))}
                 min={1}
                 max={1440}
               />
@@ -322,8 +322,8 @@ const SystemSettings = () => {
           </Group>
           <NumberInput
             label="Requests per minute"
-            value={settings.security?.rateLimit ?? 100}
-            onChange={(value) => updateSetting('security', 'rateLimit', value)}
+            value={parseFloat(settings.security?.rateLimit ?? 0)}
+            onChange={(value) => updateSetting('security', 'rateLimit', parseFloat(value ?? 0))}
             min={10}
             max={10000}
             disabled={!settings.security?.enableRateLimiting}
@@ -361,8 +361,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Default Rate Limit (requests/hour)"
-                value={settings.api?.defaultRateLimit ?? 1000}
-                onChange={(value) => updateSetting('api', 'defaultRateLimit', value)}
+                value={parseFloat(settings.api?.defaultRateLimit ?? 0)}
+                onChange={(value) => updateSetting('api', 'defaultRateLimit', parseFloat(value ?? 0))}
                 min={100}
                 max={100000}
               />
@@ -370,8 +370,8 @@ const SystemSettings = () => {
             <Grid.Col md={6}>
               <NumberInput
                 label="Cache Timeout (seconds)"
-                value={settings.api?.cacheTimeout ?? 300}
-                onChange={(value) => updateSetting('api', 'cacheTimeout', value)}
+                value={parseFloat(settings.api?.cacheTimeout ?? 0)}
+                onChange={(value) => updateSetting('api', 'cacheTimeout', parseFloat(value ?? 0))}
                 min={60}
                 max={3600}
               />

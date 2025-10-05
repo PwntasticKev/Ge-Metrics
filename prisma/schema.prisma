@@ -205,3 +205,20 @@ model master_access_logs {
   @@index([target_user_id])
   @@index([created_at])
 }
+
+model systemSettings {
+  id          Int      @id @default(autoincrement())
+  section     String   @db.VarChar(50)
+  key         String   @db.VarChar(50)
+  value       Json
+  description String?  @db.Text
+  dataType    String   @db.VarChar(20) // 'string', 'number', 'boolean', 'json'
+  isSecret    Boolean  @default(false)
+  updatedBy   Int?     // User ID of the last user who updated this setting
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([section, key])
+  @@index([section])
+  @@index([isSecret])
+}

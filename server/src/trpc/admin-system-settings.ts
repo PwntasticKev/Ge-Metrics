@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { eq, sql, and, gte, lte, desc, count, avg, sum, or, like } from 'drizzle-orm'
-import { 
-  db, 
-  users, 
+import {
+  db,
+  users,
   auditLog,
   systemSettings
 } from '../db/index.js'
@@ -13,16 +13,40 @@ export const adminSystemSettingsRouter = router({
   getAllSettings: adminProcedure
     .query(async () => {
       const allSettings = await db.select().from(systemSettings).orderBy(systemSettings.section, systemSettings.key)
-      
-      // Group settings by section
-      const settingsBySection = allSettings.reduce((acc, setting) => {
-        if (!acc[setting.section]) {
-          acc[setting.section] = {}
+
+      const predefinedSections = ['general', 'database', 'security', 'api', 'notifications']
+      const settingsBySection: Record<string, Record<string, any>> = {}
+
+      // 1. Initialize all sections with their default values
+      for (const section of predefinedSections) {
+        const defaultSettings = getDefaultSettingsForSection(section)
+        const sectionSettings: Record<string, any> = {}
+
+        for (const [key, config] of Object.entries(defaultSettings)) {
+          sectionSettings[key] = config.value
         }
-        acc[setting.section][setting.key] = setting.value
-        return acc
-      }, {} as Record<string, Record<string, any>>)
-      
+
+        settingsBySection[section] = sectionSettings
+      }
+
+      // 2. Override defaults with values from the database, handling nulls for numbers
+      for (const setting of allSettings) {
+        if (settingsBySection[setting.section]) {
+          const defaultConfig = getDefaultSettingsForSection(setting.section)[setting.key]
+
+          if (defaultConfig?.dataType === 'number') {
+            // For numbers, only override if the db value is not null.
+            // If it's null, we keep the default.
+            if (setting.value !== null && typeof setting.value === 'number') {
+              settingsBySection[setting.section][setting.key] = setting.value
+            }
+          } else {
+            // For other types (string, boolean, json), we can accept null from the db.
+            settingsBySection[setting.section][setting.key] = setting.value
+          }
+        }
+      }
+
       return settingsBySection
     }),
 
@@ -33,17 +57,17 @@ export const adminSystemSettingsRouter = router({
     }))
     .query(async ({ input }) => {
       const { section } = input
-      
+
       const sectionSettings = await db.select()
         .from(systemSettings)
         .where(eq(systemSettings.section, section))
         .orderBy(systemSettings.key)
-      
+
       const settingsObj = sectionSettings.reduce((acc, setting) => {
         acc[setting.key] = setting.value
         return acc
       }, {} as Record<string, any>)
-      
+
       return settingsObj
     }),
 
@@ -55,9 +79,9 @@ export const adminSystemSettingsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { section, settings } = input
-      
+
       const updatedSettings = []
-      
+
       // Update each setting in the section
       for (const [key, value] of Object.entries(settings)) {
         // Check if setting exists
@@ -68,7 +92,7 @@ export const adminSystemSettingsRouter = router({
             eq(systemSettings.key, key)
           ))
           .limit(1)
-        
+
         if (existingSetting) {
           // Update existing setting
           const [updated] = await db
@@ -83,7 +107,7 @@ export const adminSystemSettingsRouter = router({
               eq(systemSettings.key, key)
             ))
             .returning()
-          
+
           updatedSettings.push(updated)
         } else {
           // Create new setting
@@ -94,7 +118,7 @@ export const adminSystemSettingsRouter = router({
             dataType: typeof value === 'object' ? 'json' : typeof value,
             updatedBy: ctx.user.id
           }).returning()
-          
+
           updatedSettings.push(created)
         }
       }
@@ -127,7 +151,7 @@ export const adminSystemSettingsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { section, key, value, description } = input
-      
+
       // Check if setting exists
       const [existingSetting] = await db.select()
         .from(systemSettings)
@@ -136,9 +160,9 @@ export const adminSystemSettingsRouter = router({
           eq(systemSettings.key, key)
         ))
         .limit(1)
-      
+
       let updatedSetting
-      
+
       if (existingSetting) {
         // Update existing setting
         const [updated] = await db
@@ -154,7 +178,7 @@ export const adminSystemSettingsRouter = router({
             eq(systemSettings.key, key)
           ))
           .returning()
-        
+
         updatedSetting = updated
       } else {
         // Create new setting
@@ -166,7 +190,7 @@ export const adminSystemSettingsRouter = router({
           dataType: typeof value === 'object' ? 'json' : typeof value,
           updatedBy: ctx.user.id
         }).returning()
-        
+
         updatedSetting = created
       }
 
@@ -197,7 +221,7 @@ export const adminSystemSettingsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { section, key } = input
-      
+
       // Get setting before deletion for logging
       const [setting] = await db.select()
         .from(systemSettings)
@@ -205,7 +229,7 @@ export const adminSystemSettingsRouter = router({
           eq(systemSettings.section, section),
           eq(systemSettings.key, key)
         ))
-      
+
       if (!setting) {
         throw new Error('Setting not found')
       }
@@ -242,10 +266,10 @@ export const adminSystemSettingsRouter = router({
         .selectDistinct({ section: systemSettings.section })
         .from(systemSettings)
         .orderBy(systemSettings.section)
-      
+
       const predefinedSections = ['general', 'database', 'security', 'api', 'notifications']
       const allSections = [...new Set([...predefinedSections, ...sections.map(s => s.section)])]
-      
+
       return allSections
     }),
 
@@ -256,20 +280,20 @@ export const adminSystemSettingsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { section } = input
-      
+
       // Get current settings for logging
       const currentSettings = await db.select()
         .from(systemSettings)
         .where(eq(systemSettings.section, section))
-      
+
       // Delete all settings in the section
       await db.delete(systemSettings)
         .where(eq(systemSettings.section, section))
-      
+
       // Insert default settings based on section
       const defaultSettings = getDefaultSettingsForSection(section)
       const insertedSettings = []
-      
+
       for (const [key, config] of Object.entries(defaultSettings)) {
         const [inserted] = await db.insert(systemSettings).values({
           section,
@@ -280,7 +304,7 @@ export const adminSystemSettingsRouter = router({
           isSecret: config.isSecret || false,
           updatedBy: ctx.user.id
         }).returning()
-        
+
         insertedSettings.push(inserted)
       }
 
@@ -304,7 +328,7 @@ export const adminSystemSettingsRouter = router({
 })
 
 // Helper function to get default settings for each section
-function getDefaultSettingsForSection(section: string): Record<string, any> {
+function getDefaultSettingsForSection (section: string): Record<string, any> {
   const defaults: Record<string, Record<string, any>> = {
     general: {
       siteName: { value: 'GE Metrics', description: 'Site name', dataType: 'string' },
@@ -348,6 +372,6 @@ function getDefaultSettingsForSection(section: string): Record<string, any> {
       notifyOnHighUsage: { value: true, description: 'Notify on high usage', dataType: 'boolean' }
     }
   }
-  
+
   return defaults[section] || {}
 }
