@@ -149,99 +149,130 @@ export const authRouter = router({
       otpCode: z.string().optional()
     }))
     .mutation(async ({ input }) => {
-      const { email, password } = input
+      try {
+        const { email, password } = input
+        console.log(`[AUTH] Login attempt for: ${email}`)
 
-      // Find user by email or username
-      const [user] = await db.select().from(users)
-        .where(or(eq(users.email, email), eq(users.username, email)))
-        .limit(1)
+        // Find user by email or username
+        const [user] = await db.select().from(users)
+          .where(or(eq(users.email, email), eq(users.username, email)))
+          .limit(1)
 
-      if (!user || !user.passwordHash) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
-      }
+        if (!user || !user.passwordHash) {
+          console.log(`[AUTH] User not found or no password hash for: ${email}`)
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+        }
+        console.log(`[AUTH] User found: ${user.id}`)
 
-      // Verify password
-      const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
-      if (!isPasswordValid) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
-      }
+        // Verify password
+        const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
+        if (!isPasswordValid) {
+          console.log(`[AUTH] Invalid password for user: ${user.id}`)
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+        }
+        console.log(`[AUTH] Password verified for user: ${user.id}`)
 
-      if (!user.emailVerified) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
-      }
+        if (!user.emailVerified) {
+          console.log(`[AUTH] Email not verified for user: ${user.id}`)
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
+        }
 
-      // Check user settings and role
-      const settings = await db.query.userSettings.findFirst({
-        where: eq(userSettings.userId, user.id)
-      })
-
-      // Admins and moderators bypass subscription requirements
-      const userRole = settings?.role || 'user'
-      const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator'
-
-      if (!isAdminOrModerator) {
-        // Check subscription status for regular users
-        const subscription = await db.query.subscriptions.findFirst({
-          where: eq(subscriptions.userId, user.id)
+        // Check user settings and role
+        console.log(`[AUTH] Fetching settings for user: ${user.id}`)
+        const settings = await db.query.userSettings.findFirst({
+          where: eq(userSettings.userId, user.id)
         })
+        console.log(`[AUTH] Settings fetched for user: ${user.id}`, settings)
 
-        const isTrialExpired = subscription?.status === 'trialing' && subscription?.currentPeriodEnd && subscription.currentPeriodEnd < new Date()
-        const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
+        // Admins and moderators bypass subscription requirements
+        const userRole = settings?.role || 'user'
+        const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator'
+        console.log(`[AUTH] User role: ${userRole}, Is admin/mod: ${isAdminOrModerator}`)
 
-        if (isTrialExpired || isSubscriptionInactive) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Your subscription is inactive. Please subscribe to continue.'
+        if (!isAdminOrModerator) {
+          // Check subscription status for regular users
+          console.log(`[AUTH] Checking subscription for user: ${user.id}`)
+          const subscription = await db.query.subscriptions.findFirst({
+            where: eq(subscriptions.userId, user.id)
+          })
+          console.log(`[AUTH] Subscription fetched for user: ${user.id}`, subscription)
+
+          const isTrialExpired = subscription?.status === 'trialing' && subscription?.currentPeriodEnd && subscription.currentPeriodEnd < new Date()
+          const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
+
+          if (isTrialExpired || isSubscriptionInactive) {
+            console.log(`[AUTH] Subscription inactive for user: ${user.id}`)
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'Your subscription is inactive. Please subscribe to continue.'
+            })
+          }
+        }
+
+        // Check for 2FA (settings already fetched above)
+        if (!settings) {
+          console.log(`[AUTH] No settings found, creating default for user: ${user.id}`)
+          // Create default settings for user if they don't exist
+          await db.insert(userSettings).values({
+            userId: user.id,
+            role: userRole
           })
         }
-      }
 
-      // Check for 2FA (settings already fetched above)
-      if (!settings) {
-        // Create default settings for user if they don't exist
-        await db.insert(userSettings).values({
+        // Check for 2FA
+        if (settings?.otpEnabled && settings?.otpVerified) {
+          console.log(`[AUTH] 2FA is enabled for user: ${user.id}`)
+          if (!input.otpCode) {
+            console.log(`[AUTH] OTP code not provided for user: ${user.id}`)
+            return { twoFactorRequired: true }
+          }
+
+          if (!settings.otpSecret) {
+            console.error(`[AUTH] OTP secret is missing for user: ${user.id}`)
+            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'OTP secret is not set for this user.' })
+          }
+
+          const isValidOtp = authenticator.verify({
+            token: input.otpCode,
+            secret: settings.otpSecret
+          })
+
+          if (!isValidOtp) {
+            console.log(`[AUTH] Invalid OTP for user: ${user.id}`)
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP code' })
+          }
+          console.log(`[AUTH] OTP verified for user: ${user.id}`)
+        }
+
+        // If 2FA is not enabled, proceed with login
+        console.log(`[AUTH] Generating tokens for user: ${user.id}`)
+        const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+        const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
+
+        await db.insert(refreshTokens).values({
           userId: user.id,
-          role: userRole
+          token: refreshToken,
+          expiresAt: authUtils.getRefreshTokenExpiration()
+        }).onConflictDoUpdate({
+          target: refreshTokens.userId,
+          set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
         })
-      }
+        console.log(`[AUTH] Tokens generated and stored for user: ${user.id}`)
 
-      // Check for 2FA
-      if (settings?.otpEnabled && settings?.otpVerified) {
-        if (!input.otpCode) {
-          return { twoFactorRequired: true }
+        return {
+          user: { id: user.id, email: user.email, username: user.username, name: user.name, avatar: user.avatar },
+          accessToken,
+          refreshToken
         }
-
-        if (!settings.otpSecret) {
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'OTP secret is not set for this user.' })
+      } catch (error) {
+        console.error('[AUTH] Login procedure failed:', error)
+        if (error instanceof TRPCError) {
+          throw error
         }
-
-        const isValidOtp = authenticator.verify({
-          token: input.otpCode,
-          secret: settings.otpSecret
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An unexpected error occurred during login.'
         })
-
-        if (!isValidOtp) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP code' })
-        }
-      }
-
-      // If 2FA is not enabled, proceed with login
-      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
-      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
-
-      await db.insert(refreshTokens).values({
-        userId: user.id,
-        token: refreshToken,
-        expiresAt: authUtils.getRefreshTokenExpiration()
-      }).onConflictDoUpdate({
-        target: refreshTokens.userId,
-        set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
-      })
-
-      return {
-        user: { id: user.id, email: user.email, username: user.username, name: user.name, avatar: user.avatar },
-        accessToken,
-        refreshToken
       }
     }),
 

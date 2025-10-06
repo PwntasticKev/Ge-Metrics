@@ -1,10 +1,13 @@
 import { trpc } from '../utils/trpc.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
 export function useFavorites (itemType) {
+  const { user } = useAuth()
   const utils = trpc.useContext()
   const { data: favoriteItems, isLoading: isLoadingFavorites, error } = trpc.favorites.getAll.useQuery({ itemType }, {
     initialData: [],
     retry: false,
+    enabled: !!user,
     onError: (error) => {
       console.error('useFavorites error:', error)
     }
