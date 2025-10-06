@@ -1,9 +1,10 @@
 import { trpc } from '../utils/trpc'
 
-export const useFavorites = (itemType) => {
+export const useFavorites = (itemType, options = {}) => {
   return trpc.favorites.getAll.useQuery({ itemType }, {
     staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 30 // 30 minutes
+    cacheTime: 1000 * 60 * 30, // 30 minutes
+    ...options // Spread additional options like { enabled: isAuthenticated }
   })
 }
 
