@@ -6,9 +6,12 @@ import { eq } from 'drizzle-orm'
 import Stripe from 'stripe'
 
 export default async function stripeRoutes (fastify: FastifyInstance) {
+  fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, function (req, body, done) {
+    done(null, body)
+  })
+
   fastify.post('/stripe', {
     config: {
-      // Stripe requires the raw body to verify signatures.
       rawBody: true
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -22,7 +25,7 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
     let event: Stripe.Event
 
     try {
-      event = stripe.webhooks.constructEvent((request as any).rawBody as Buffer, signature, webhookSecret)
+      event = stripe.webhooks.constructEvent(request.body as Buffer, signature, webhookSecret)
     } catch (err) {
       const error = err as Error
       fastify.log.error(`Webhook signature verification failed: ${error.message}`)
