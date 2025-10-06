@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { stripe } from '../services/stripe'
 import { db } from '../db'
 import { subscriptions } from '../db/schema'
@@ -11,7 +11,7 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
       // Stripe requires the raw body to verify signatures.
       rawBody: true
     }
-  }, async (request, reply) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const signature = request.headers['stripe-signature'] as string
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
@@ -22,10 +22,11 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
     let event: Stripe.Event
 
     try {
-      event = stripe.webhooks.constructEvent(request.rawBody as Buffer, signature, webhookSecret)
-    } catch (err: any) {
-      fastify.log.error(`Webhook signature verification failed: ${err.message}`)
-      return reply.status(400).send(`Webhook Error: ${err.message}`)
+      event = stripe.webhooks.constructEvent((request as any).rawBody as Buffer, signature, webhookSecret)
+    } catch (err) {
+      const error = err as Error
+      fastify.log.error(`Webhook signature verification failed: ${error.message}`)
+      return reply.status(400).send(`Webhook Error: ${error.message}`)
     }
 
     // Handle the event
