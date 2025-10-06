@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { stripe } from '../services/stripe'
+import { stripe } from '../services/stripe.js'
 import { db } from '../db'
 import { subscriptions } from '../db/schema'
 import { eq } from 'drizzle-orm'
