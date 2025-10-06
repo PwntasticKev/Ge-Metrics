@@ -14,7 +14,7 @@ import { itemsRouter } from './items.js'
 import { favoritesRouter } from './favorites.js'
 import { settingsRouter } from './settings.js'
 import { otpRouter } from './otp.js'
-import billingRouter from './billing'
+import billingRouter from './billing.js'
 
 export const appRouter = router({
   auth: authRouter,
