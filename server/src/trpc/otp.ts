@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { protectedProcedure, router } from './trpc'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { users, userSettings } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { authenticator } from 'otplib'
