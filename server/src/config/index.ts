@@ -36,6 +36,10 @@ if (parsedConfig.CORRECT_DATABASE_URL) {
 if (parsedConfig.CORRECT_DATABASE_URL_UNPOOLED) {
   parsedConfig.DATABASE_URL_UNPOOLED = parsedConfig.CORRECT_DATABASE_URL_UNPOOLED
 }
+// Do the same for the frontend URL
+if (process.env.FRONTEND_URL) {
+  parsedConfig.FRONTEND_URL = process.env.FRONTEND_URL
+}
 
 export const config = parsedConfig
 
