@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { protectedProcedure, router } from './trpc.js'
 import { db } from '../db/index.js'
-import { userSettings } from '../db/schema'
+import { userSettings } from '../db/schema.js'
 import { eq } from 'drizzle-orm'
 
 export const settingsRouter = router({

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { protectedProcedure, router } from './trpc'
 import { db } from '../db/index.js'
-import { subscriptions } from '../db/schema'
+import { subscriptions } from '../db/schema.js'
 import { eq } from 'drizzle-orm'
 import { stripe } from '../services/stripe'
 import { absoluteUrl } from '../utils/utils'
