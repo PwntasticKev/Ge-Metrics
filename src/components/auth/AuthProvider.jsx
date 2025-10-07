@@ -14,7 +14,7 @@ const AuthProvider = ({ children }) => {
   )
 
   const { data: subscription, isLoading: isSubscriptionLoading } = trpc.billing.getSubscription.useQuery(undefined, {
-    enabled: !!user, // Only run when user is set
+    enabled: !!user, // Only run when user is set.
     retry: false
   })
 
