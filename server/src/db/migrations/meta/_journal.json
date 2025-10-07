@@ -15,6 +15,13 @@
       "when": 1759469935707,
       "tag": "0001_lovely_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759865180066,
+      "tag": "0002_polite_ezekiel",
+      "breakpoints": true
     }
   ]
 }
