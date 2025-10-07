@@ -9,6 +9,7 @@ export default async function stripeRoutes (fastify: FastifyInstance) {
   fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, function (req, body, done) {
     done(null, body)
   })
+  // .
 
   fastify.post('/stripe', {
     config: {
