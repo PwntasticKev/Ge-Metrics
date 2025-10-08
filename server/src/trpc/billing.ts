@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { protectedProcedure, router } from './trpc'
+import { protectedProcedure, router } from './trpc.js'
 import { db } from '../db/index.js'
 import { subscriptions } from '../db/schema.js'
 import { eq } from 'drizzle-orm'
-import { stripe } from '../services/stripe'
-import { absoluteUrl } from '../utils/utils'
+import { stripe } from '../services/stripe.js'
+import { absoluteUrl } from '../utils/utils.js'
 
 const billingRouter = router({
   getSubscription: protectedProcedure
