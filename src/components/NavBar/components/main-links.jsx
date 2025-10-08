@@ -42,7 +42,7 @@ import {
   IconWash,
   IconTool
 } from '@tabler/icons-react'
-import { Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
+import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import '../../../styles/scrollbar.css'
