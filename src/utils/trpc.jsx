@@ -22,7 +22,9 @@ export function TRPCProvider ({ children }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: '/trpc', // Corrected from '/api/trpc'
+          url: import.meta.env.PROD 
+            ? 'https://www.ge-metrics.com/trpc' 
+            : '/trpc',
           async headers () {
             const token = localStorage.getItem('accessToken')
             return {

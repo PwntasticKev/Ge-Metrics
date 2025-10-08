@@ -19,6 +19,7 @@ const AuthProvider = ({ children }) => {
   })
 
   const loginMutation = trpc.auth.login.useMutation()
+  const registerMutation = trpc.auth.register.useMutation()
   const otpLoginMutation = trpc.auth.verifyOtpAndLogin.useMutation()
 
   const checkSession = useCallback(async () => {
@@ -88,6 +89,17 @@ const AuthProvider = ({ children }) => {
     }
   }, [otpLoginMutation, checkSession])
 
+  const register = useCallback((credentials, callbacks) => {
+    registerMutation.mutate(credentials, {
+      onSuccess: (data) => {
+        callbacks?.onSuccess?.(data)
+      },
+      onError: (error) => {
+        callbacks?.onError?.(error)
+      }
+    })
+  }, [registerMutation])
+
   const logout = useCallback(() => {
     setUser(null)
     localStorage.removeItem('accessToken')
@@ -99,10 +111,12 @@ const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isLoading,
     isLoggingIn: loginMutation.isLoading || otpLoginMutation.isLoading,
+    isRegistering: registerMutation.isLoading,
     login,
+    register,
     loginWithOtp,
     logout
-  }), [user, isLoading, isSubscriptionLoading, loginMutation.isLoading, otpLoginMutation.isLoading, login, loginWithOtp, logout])
+  }), [user, isLoading, isSubscriptionLoading, loginMutation.isLoading, registerMutation.isLoading, otpLoginMutation.isLoading, login, register, loginWithOtp, logout])
 
   return (
     <AuthContext.Provider value={value}>
