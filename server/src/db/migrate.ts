@@ -18,7 +18,7 @@ export async function runMigrations () {
     console.log('✅ Migrations checked successfully.')
   } catch (error) {
     console.error('❌ Migration check failed:', error)
-    console.error('Error details:', error.message)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
     // In production, we'll log the error but not crash the server
     if (process.env.NODE_ENV === 'production') {
       console.log('Production mode: continuing despite migration failure')
