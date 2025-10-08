@@ -18,11 +18,20 @@ export async function runMigrations () {
     console.log('✅ Migrations checked successfully.')
   } catch (error) {
     console.error('❌ Migration check failed:', error)
-    // We do not exit the process here, to allow the server to continue running if desired.
-    // The error will be logged in the Vercel Function Logs.
+    console.error('Error details:', error.message)
+    // In production, we'll log the error but not crash the server
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Production mode: continuing despite migration failure')
+      return
+    }
+    // In development, we still throw to help debug issues
     throw error
   } finally {
     // It's crucial to end the migration connection, as it's not serverless.
-    await migrationConnection.end()
+    try {
+      await migrationConnection.end()
+    } catch (endError) {
+      console.error('Error closing migration connection:', endError)
+    }
   }
 }

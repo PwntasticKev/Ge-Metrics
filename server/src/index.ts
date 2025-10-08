@@ -20,8 +20,9 @@ const app = express()
 // Run migrations on startup
 runMigrations().catch((error) => {
   console.error('Migration failed on startup:', error)
-  // In a real production app, you might want to prevent the app from starting.
-  // For Vercel, we will log the error and let it continue, so we can see the logs.
+  // In production, we'll log the error but continue starting the server
+  // This prevents the entire app from crashing due to migration issues
+  console.log('Server will continue starting despite migration failure...')
 })
 
 // CORS configuration
