@@ -18,9 +18,6 @@ const AuthProvider = ({ children }) => {
     retry: false
   })
 
-  console.log('[DEBUG] trpc object:', trpc)
-  console.log('[DEBUG] trpc.auth exists:', !!trpc.auth)
-  console.log('[DEBUG] trpc.auth.register exists:', !!trpc.auth?.register)
   
   const loginMutation = trpc.auth.login.useMutation()
   const registerMutation = trpc.auth.register.useMutation()
@@ -94,25 +91,14 @@ const AuthProvider = ({ children }) => {
   }, [otpLoginMutation, checkSession])
 
   const register = useCallback((credentials, callbacks) => {
-    console.log('[DEBUG] Register function called with:', credentials)
-    console.log('[DEBUG] registerMutation exists:', !!registerMutation)
-    console.log('[DEBUG] registerMutation.mutate type:', typeof registerMutation.mutate)
-    
-    try {
-      registerMutation.mutate(credentials, {
-        onSuccess: (data) => {
-          console.log('[DEBUG] Registration successful:', data)
-          callbacks?.onSuccess?.(data)
-        },
-        onError: (error) => {
-          console.log('[DEBUG] Registration error:', error)
-          callbacks?.onError?.(error)
-        }
-      })
-    } catch (error) {
-      console.log('[DEBUG] Caught error calling registerMutation.mutate:', error)
-      callbacks?.onError?.(error)
-    }
+    registerMutation.mutate(credentials, {
+      onSuccess: (data) => {
+        callbacks?.onSuccess?.(data)
+      },
+      onError: (error) => {
+        callbacks?.onError?.(error)
+      }
+    })
   }, [registerMutation])
 
   const logout = useCallback(() => {
