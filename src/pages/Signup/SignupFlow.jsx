@@ -120,8 +120,7 @@ const SignupFlow = () => {
       email,
       password,
       name,
-      username: runescapeName, // Use 'username' to match the backend
-      marketingEmails
+      username: runescapeName // Use 'username' to match the backend
     }, {
       onSuccess: (data) => {
         // Here you can add a success notification if you have a notification system
