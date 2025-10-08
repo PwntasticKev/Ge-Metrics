@@ -47,22 +47,7 @@ const AuthProvider = ({ children }) => {
     checkSession()
   }, [checkSession])
 
-  useEffect(() => {
-    // Don't redirect while auth or subscription status is loading
-    if (isLoading || (user && isSubscriptionLoading)) return
-
-    const { pathname } = window.location
-
-    // If user is authenticated but their subscription is not active, redirect to billing
-    if (user) {
-      const isSubscribed = subscription && ['active', 'trialing'].includes(subscription.status)
-      const isTrialExpired = subscription?.status === 'trialing' && new Date(subscription.currentPeriodEnd) < new Date()
-
-      if ((!isSubscribed || isTrialExpired) && pathname !== '/billing') {
-        navigate('/billing')
-      }
-    }
-  }, [user, subscription, isLoading, isSubscriptionLoading, navigate])
+  // Remove auto-redirect - let users access free pages
 
   const login = useCallback((credentials, callbacks) => {
     loginMutation.mutate(credentials, {
@@ -109,7 +94,9 @@ const AuthProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     user,
+    subscription,
     isAuthenticated: !!user,
+    isSubscribed: subscription && ['active', 'trialing'].includes(subscription.status) && !(subscription?.status === 'trialing' && new Date(subscription.currentPeriodEnd) < new Date()),
     isLoading,
     isLoggingIn: loginMutation.isLoading || otpLoginMutation.isLoading,
     isRegistering: registerMutation.isLoading,
@@ -117,7 +104,7 @@ const AuthProvider = ({ children }) => {
     register,
     loginWithOtp,
     logout
-  }), [user, isLoading, isSubscriptionLoading, loginMutation.isLoading, registerMutation.isLoading, otpLoginMutation.isLoading, login, register, loginWithOtp, logout])
+  }), [user, subscription, isLoading, isSubscriptionLoading, loginMutation.isLoading, registerMutation.isLoading, otpLoginMutation.isLoading, login, register, loginWithOtp, logout])
 
   return (
     <AuthContext.Provider value={value}>

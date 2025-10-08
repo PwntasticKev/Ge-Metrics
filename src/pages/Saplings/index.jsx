@@ -15,6 +15,7 @@ import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { saplingRecipes } from '../../components/Table/data/sapling-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
+import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 export default function Saplings () {
   const { items, mapStatus, priceStatus } = ItemData()
@@ -52,6 +53,7 @@ export default function Saplings () {
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
 
   return (
+    <PremiumPageWrapper>
     <React.Fragment>
       {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
       {
@@ -105,5 +107,6 @@ export default function Saplings () {
         item={graphInfo.item}
       />
     </React.Fragment>
+    </PremiumPageWrapper>
   )
 }

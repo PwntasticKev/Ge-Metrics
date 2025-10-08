@@ -15,6 +15,7 @@ import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { itemRecipes } from '../../components/Table/data/item-set-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
+import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 export default function CombinationItems () {
   const { items, mapStatus, priceStatus } = ItemData()
@@ -52,24 +53,25 @@ export default function CombinationItems () {
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
 
   return (
-    <React.Fragment>
-      {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
-      {
-        isLoading &&
-        <Center maw={400} h={300} mx="auto">
-          <Loader/>
-        </Center>
-      }
-      {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
-        <Box sx={{ py: 4 }}>
-          <Group position="apart" mb="md">
-            <div>
-              <Text size="xl" weight={700} color="white">Arbitrage Tracker</Text>
-              <Text size="sm" color="rgba(255, 255, 255, 0.7)">
-                Monitor arbitrage opportunities between individual items and their combination sets. Setup alerts and execute trades.
-              </Text>
-            </div>
-            <Group spacing="md">
+    <PremiumPageWrapper>
+      <React.Fragment>
+        {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
+        {
+          isLoading &&
+          <Center maw={400} h={300} mx="auto">
+            <Loader/>
+          </Center>
+        }
+        {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
+          <Box sx={{ py: 4 }}>
+            <Group position="apart" mb="md">
+              <div>
+                <Text size="xl" weight={700} color="white">Arbitrage Tracker</Text>
+                <Text size="sm" color="rgba(255, 255, 255, 0.7)">
+                  Monitor arbitrage opportunities between individual items and their combination sets. Setup alerts and execute trades.
+                </Text>
+              </div>
+              <Group spacing="md">
               <Badge
                 color="blue"
                 size="lg"
@@ -123,6 +125,7 @@ export default function CombinationItems () {
         onClose={() => setGraphInfo({ open: false, item: null })}
         item={graphInfo.item}
       />
-    </React.Fragment>
+      </React.Fragment>
+    </PremiumPageWrapper>
   )
 }

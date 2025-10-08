@@ -14,6 +14,7 @@ import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
 import { herbCleaningRecipes } from '../../components/Table/data/herb-cleaning-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
+import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 export default function HerbCleaning () {
   const { items, mapStatus, priceStatus } = ItemData()
@@ -50,6 +51,7 @@ export default function HerbCleaning () {
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
 
   return (
+    <PremiumPageWrapper>
     <React.Fragment>
       {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
       {
@@ -103,5 +105,6 @@ export default function HerbCleaning () {
         item={graphInfo.item}
       />
     </React.Fragment>
+    </PremiumPageWrapper>
   )
 }

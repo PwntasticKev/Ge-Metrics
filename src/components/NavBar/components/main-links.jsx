@@ -40,7 +40,8 @@ import {
   IconCalendar,
   IconPlant2,
   IconWash,
-  IconTool
+  IconTool,
+  IconLock
 } from '@tabler/icons-react'
 import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
@@ -120,7 +121,7 @@ const useStyles = createStyles((theme) => ({
   }
 }))
 
-function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isMobile, onNavigate }) {
+function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
   const { classes } = useStyles()
 
   const handleClick = (e) => {
@@ -143,11 +144,16 @@ function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isM
         display: 'block',
         padding: isMobile ? '12px 16px' : (expanded ? '8px 12px' : '8px 8px'),
         borderRadius: theme.radius.sm,
-        color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+        color: isPremium && !hasAccess 
+          ? theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[5]
+          : theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
         width: '100%',
+        opacity: isPremium && !hasAccess ? 0.6 : 1,
 
         '&:hover': {
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+          backgroundColor: isPremium && !hasAccess 
+            ? 'transparent' 
+            : theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
         }
       })}
     >
@@ -163,19 +169,26 @@ function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isM
           {icon}
         </ThemeIcon>
         {(expanded || isMobile) && (
-          <Text
-            size={isMobile ? 'md' : 'sm'}
-            weight={500}
-            style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              flexGrow: 1,
-              minWidth: 0
-            }}
-          >
-            {label}
-          </Text>
+          <>
+            <Text
+              size={isMobile ? 'md' : 'sm'}
+              weight={500}
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                flexGrow: 1,
+                minWidth: 0
+              }}
+            >
+              {label}
+            </Text>
+            {isPremium && !hasAccess && (
+              <ThemeIcon size="xs" color="gray" variant="light">
+                <IconLock size={12} />
+              </ThemeIcon>
+            )}
+          </>
         )}
       </Group>
     </UnstyledButton>
@@ -265,7 +278,7 @@ function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, ex
   )
 }
 
-function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate }) {
+function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
   const { classes } = useStyles()
 
   const handleClick = (e) => {
@@ -286,13 +299,20 @@ function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate
         width: '100%',
         padding: isMobile ? '10px 24px' : '6px 8px',
         borderRadius: theme.radius.sm,
-        color: theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6],
+        color: isPremium && !hasAccess 
+          ? theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[5]
+          : theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6],
         fontSize: isMobile ? theme.fontSizes.sm : theme.fontSizes.sm,
         minHeight: isMobile ? 44 : 'auto',
+        opacity: isPremium && !hasAccess ? 0.6 : 1,
 
         '&:hover': {
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
-          color: theme.colorScheme === 'dark' ? theme.white : theme.black
+          backgroundColor: isPremium && !hasAccess 
+            ? 'transparent' 
+            : theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+          color: isPremium && !hasAccess 
+            ? theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[5]
+            : theme.colorScheme === 'dark' ? theme.white : theme.black
         }
       })}
     >
@@ -301,6 +321,11 @@ function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate
           {icon}
         </ThemeIcon>
         <Text size={isMobile ? 'sm' : 'sm'}>{label}</Text>
+        {isPremium && !hasAccess && (
+          <ThemeIcon size="xs" color="gray" variant="light">
+            <IconLock size={10} />
+          </ThemeIcon>
+        )}
       </Group>
     </UnstyledButton>
   )
@@ -320,12 +345,11 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
   const [marketWatchOpen, setMarketWatchOpen] = useState(false)
   const [moneyMakingOpen, setMoneyMakingOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, isSubscribed, logout } = useAuth()
 
   // Check if user has access (admin/moderator bypass subscription requirement)
   const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator'
-  const hasActiveSubscription = user?.subscriptionStatus === 'active' || user?.subscriptionStatus === 'trialing'
-  const hasAccess = isAdminOrModerator || hasActiveSubscription
+  const hasAccess = isAdminOrModerator || isSubscribed
 
   // If user doesn't have access, show limited menu
   if (!hasAccess) {
@@ -386,6 +410,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
         />
 
         <MainLink
@@ -396,6 +422,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
         />
 
         <MainLink
@@ -406,6 +434,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
         />
 
         <MainLink
@@ -416,6 +446,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
         />
 
         {/* Market Watch Submenu - Keep this one */}
@@ -436,6 +468,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconFlask size="0.8rem"/>}
@@ -445,6 +479,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconLeaf size="0.8rem"/>}
@@ -454,6 +490,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconWand size="0.8rem"/>}
@@ -463,6 +501,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconHammer size="0.8rem"/>}
@@ -472,6 +512,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconFlame size="0.8rem"/>}
@@ -481,6 +523,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconSword size="0.8rem"/>}
@@ -490,6 +534,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconSkull size="0.8rem"/>}
@@ -499,6 +545,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
         </SubmenuLink>
 
@@ -510,6 +558,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
         />
 
         <MainLink
@@ -601,6 +651,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconSkull size="0.8rem"/>}
@@ -610,6 +662,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
           <SubmenuItem
             icon={<IconSword size="0.8rem"/>}
@@ -619,6 +673,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
             expanded={expanded}
             isMobile={isMobile}
             onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
           />
         </SubmenuLink>
 

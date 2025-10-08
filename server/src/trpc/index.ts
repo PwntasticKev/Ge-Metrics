@@ -15,6 +15,7 @@ import { favoritesRouter } from './favorites.js'
 import { settingsRouter } from './settings.js'
 import { otpRouter } from './otp.js'
 import billingRouter from './billing.js'
+import { transactionsRouter } from './transactions.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -32,7 +33,8 @@ export const appRouter = router({
   items: itemsRouter,
   settings: settingsRouter,
   otp: otpRouter,
-  billing: billingRouter
+  billing: billingRouter,
+  transactions: transactionsRouter
 })
 
 export type AppRouter = typeof appRouter

@@ -36,6 +36,7 @@ import {
   logsFilter,
   oresAndBarsFilter
 } from '../../utils/market-watch-filters.js'
+import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 ChartJS.register(
   CategoryScale,
@@ -249,7 +250,8 @@ export default function MarketWatchIndex ({ indexType }) {
   }
 
   return (
-    <Box sx={{ py: 4 }}>
+    <PremiumPageWrapper>
+      <Box sx={{ py: 4 }}>
       {/* Header */}
       <Group position="apart" mb="xl">
         <div>
@@ -441,6 +443,7 @@ export default function MarketWatchIndex ({ indexType }) {
           })}
         </Stack>
       </Card>
-    </Box>
+      </Box>
+    </PremiumPageWrapper>
   )
 }
