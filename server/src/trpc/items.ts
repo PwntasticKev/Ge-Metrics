@@ -28,12 +28,24 @@ export const itemsRouter = router({
   // Get all item mappings
   getItemMapping: publicProcedure
     .query(async () => {
-      const mappings = await db.select().from(itemMapping)
-      const mappingObject: Record<number, typeof mappings[number]> = {}
-      mappings.forEach(item => {
-        mappingObject[item.id] = item
-      })
-      return mappingObject
+      try {
+        console.log('[getItemMapping] Fetching item mappings from database...')
+        const mappings = await db.select().from(itemMapping)
+        console.log(`[getItemMapping] Successfully fetched ${mappings.length} item mappings`)
+        
+        const mappingObject: Record<number, typeof mappings[number]> = {}
+        mappings.forEach(item => {
+          mappingObject[item.id] = item
+        })
+        return mappingObject
+      } catch (error) {
+        console.error('[getItemMapping] Error fetching item mappings:', error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch item mappings from database',
+          cause: error
+        })
+      }
     }),
 
   // This endpoint is effectively replaced by getItemMapping and client-side logic
@@ -41,16 +53,32 @@ export const itemsRouter = router({
   getAllItems: publicProcedure
     .query(async () => {
       try {
-        const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest')
+        console.log('[getAllItems] Fetching from OSRS Wiki API...')
+        const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest', {
+          headers: {
+            'User-Agent': 'GE-Metrics/1.0 (https://ge-metrics.com)'
+          },
+          timeout: 10000 // 10 second timeout
+        })
+        
         if (!response.ok) {
-          console.error('Failed to fetch latest prices from OSRS Wiki API')
-          return {}
+          console.error(`[getAllItems] Failed to fetch latest prices from OSRS Wiki API: ${response.status} ${response.statusText}`)
+          throw new TRPCError({
+            code: 'EXTERNAL_SERVICE_ERROR',
+            message: `OSRS Wiki API returned ${response.status}: ${response.statusText}`
+          })
         }
+        
         const data = await response.json()
-        return data.data // The actual item data is in the 'data' property
+        console.log(`[getAllItems] Successfully fetched ${Object.keys(data.data || {}).length} items`)
+        return data.data || {} // The actual item data is in the 'data' property
       } catch (error) {
-        console.error('Error fetching or parsing latest prices:', error)
-        return {}
+        console.error('[getAllItems] Error fetching or parsing latest prices:', error)
+        throw new TRPCError({
+          code: 'EXTERNAL_SERVICE_ERROR',
+          message: 'Failed to fetch price data from OSRS Wiki API',
+          cause: error
+        })
       }
     }),
 

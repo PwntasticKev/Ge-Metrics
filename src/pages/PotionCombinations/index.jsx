@@ -122,11 +122,29 @@ export default function PotionCombinations () {
   }
 
   if (!itemMapping || !allItems) {
+    console.error('Potion Combinations - Missing essential data:', {
+      itemMapping: !!itemMapping,
+      allItems: !!allItems,
+      errorMapping,
+      errorItems,
+      errorVolumes
+    })
+    
     return (
       <Container>
         <Title order={2} align="center" mt="lg" color="red">
           Error loading essential item data.
         </Title>
+        {error && (
+          <Alert color="red" mt="md">
+            <Text size="sm">
+              Debug info: {error.message || 'Unknown error'}
+            </Text>
+          </Alert>
+        )}
+        <Text align="center" mt="md" color="dimmed">
+          Missing: {!itemMapping && 'Item Mapping'} {!itemMapping && !allItems && ', '} {!allItems && 'Price Data'}
+        </Text>
       </Container>
     )
   }
