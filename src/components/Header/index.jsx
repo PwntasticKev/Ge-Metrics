@@ -12,16 +12,19 @@ import {
   ActionIcon
 } from '@mantine/core'
 import React, { useEffect, useState } from 'react'
-import { IconCoins, IconBrandDiscord, IconCrown } from '@tabler/icons-react'
+import { IconCoins, IconBrandDiscord, IconCrown, IconCreditCard } from '@tabler/icons-react'
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
 import { Link } from 'react-router-dom'
+import { trpc } from '../../utils/trpc.jsx'
 
 export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const theme = useMantineTheme()
   const [checked, setChecked] = useState(false)
   const [subscriptionModalOpened, setSubscriptionModalOpened] = useState(false)
-  const { isSubscribed, plan } = useSubscription()
+  const { data: subscription } = trpc.billing.getSubscription.useQuery()
+  const isSubscribed = subscription && subscription.status === 'active'
+  const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
 
   useEffect(() => {
     const gameMode = localStorage.getItem('gameMode')
@@ -105,7 +108,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
         {/* Right Section */}
         <Group spacing="sm" noWrap>
           {/* Premium/Subscription Button */}
-          {!isSubscribed
+          {!isPremiumUser
             ? (
             <>
               {/* Desktop Button */}
@@ -153,6 +156,17 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
             </>
               )}
 
+          {/* Billing Icon */}
+          <ActionIcon
+            component={Link}
+            to="/billing"
+            variant="subtle"
+            color="gray"
+            size={36}
+          >
+            <IconCreditCard size={18} />
+          </ActionIcon>
+
           {/* Avatar Menu */}
           <AvatarMenu user={user} onLogout={onLogout} size={36}/>
 
@@ -176,7 +190,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
       <SubscriptionModal
         opened={subscriptionModalOpened}
         onClose={() => setSubscriptionModalOpened(false)}
-        currentPlan={plan}
+        currentPlan={subscription?.stripePriceId || 'free'}
       />
     </Header>
   )

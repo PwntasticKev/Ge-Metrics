@@ -23,7 +23,9 @@ import {
   Alert,
   Center,
   Loader,
-  ThemeIcon
+  ThemeIcon,
+  Autocomplete,
+  Image
 } from '@mantine/core'
 import {
   ResponsiveContainer,
@@ -56,53 +58,97 @@ import {
   IconBrandDiscord,
   IconEdit,
   IconBell,
-  IconStar
+  IconStar,
+  IconInfoCircle
 } from '@tabler/icons-react'
 import { useAuth } from '../../hooks/useAuth'
 import { trpc } from '../../utils/trpc.jsx'
 import { getRelativeTime } from '../../utils/utils'
 import { useNavigate } from 'react-router-dom'
+import ItemData from '../../utils/item-data.jsx'
+import { forwardRef, useEffect } from 'react'
 
 export default function ProfileModern() {
   const { user, isSubscribed, logout } = useAuth()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
-  const [addTransactionOpen, setAddTransactionOpen] = useState(false)
+  const [addFlipOpen, setAddFlipOpen] = useState(false)
+  const [editFlipOpen, setEditFlipOpen] = useState(false)
+  const [editingFlip, setEditingFlip] = useState(null)
+  
+  // Get item data for autocomplete
+  const { items } = ItemData()
   
   // Transaction form state
-  const [transactionForm, setTransactionForm] = useState({
+  const [flipForm, setFlipForm] = useState({
+    itemId: '',
     itemName: '',
-    transactionType: 'buy',
     quantity: 1,
     price: 0,
     profit: 0,
     notes: ''
   })
+  
+  // Hotkey handler for form submission
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        if (addFlipOpen && flipForm.itemName && flipForm.price > 0) {
+          event.preventDefault()
+          handleAddFlip()
+        }
+      }
+    }
+    
+    if (addFlipOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [addFlipOpen, flipForm.itemName, flipForm.price])
+
+  // TRPC utils for invalidating queries
+  const utils = trpc.useUtils()
 
   // Queries
-  const { data: stats, isLoading: statsLoading } = trpc.transactions.getStats.useQuery()
-  const { data: recentTransactions } = trpc.transactions.getRecentTransactions.useQuery({ limit: 5 })
-  const { data: profitOverTime } = trpc.transactions.getProfitOverTime.useQuery({ days: 30 })
+  const { data: stats, isLoading: statsLoading } = trpc.flips.getFlipStats.useQuery()
+  const { data: recentFlips } = trpc.flips.getRecentFlips.useQuery({ limit: 5 })
+  const { data: profitOverTime } = trpc.flips.getProfitOverTime.useQuery({ days: 30 })
   const { data: settings } = trpc.settings.get.useQuery()
 
   // Mutations
-  const addTransactionMutation = trpc.transactions.addTransaction.useMutation()
+  const addFlipMutation = trpc.flips.addFlip.useMutation({
+    onSuccess: () => {
+      // Invalidate and refetch all flip-related queries for real-time updates
+      utils.flips.getFlipStats.invalidate()
+      utils.flips.getRecentFlips.invalidate()
+      utils.flips.getProfitOverTime.invalidate()
+    }
+  })
 
-  const handleAddTransaction = async () => {
+  const updateFlipMutation = trpc.flips.updateFlip.useMutation({
+    onSuccess: () => {
+      // Invalidate and refetch all flip-related queries for real-time updates
+      utils.flips.getFlipStats.invalidate()
+      utils.flips.getRecentFlips.invalidate()
+      utils.flips.getProfitOverTime.invalidate()
+    }
+  })
+
+  const handleAddFlip = async () => {
     try {
-      await addTransactionMutation.mutateAsync({
-        itemId: transactionForm.itemName.toLowerCase().replace(/\s+/g, '_'),
-        itemName: transactionForm.itemName,
-        transactionType: transactionForm.transactionType,
-        quantity: transactionForm.quantity,
-        price: transactionForm.price,
-        profit: transactionForm.profit,
-        notes: transactionForm.notes
+      await addFlipMutation.mutateAsync({
+        itemId: flipForm.itemId || flipForm.itemName.toLowerCase().replace(/\s+/g, '_'),
+        itemName: flipForm.itemName,
+        flipType: 'buy', // Default to buy since we're tracking profit
+        quantity: flipForm.quantity,
+        price: flipForm.price,
+        profit: flipForm.profit,
+        notes: flipForm.notes
       })
-      setAddTransactionOpen(false)
-      setTransactionForm({
+      setAddFlipOpen(false)
+      setFlipForm({
+        itemId: '',
         itemName: '',
-        transactionType: 'buy',
         quantity: 1,
         price: 0,
         profit: 0,
@@ -113,8 +159,80 @@ export default function ProfileModern() {
     }
   }
 
+  const handleEditFlip = (flip) => {
+    setEditingFlip(flip)
+    setFlipForm({
+      itemId: flip.itemId,
+      itemName: flip.itemName,
+      quantity: flip.quantity,
+      price: flip.price,
+      profit: flip.profit,
+      notes: flip.notes || ''
+    })
+    setEditFlipOpen(true)
+  }
+
+  const handleUpdateFlip = async () => {
+    try {
+      await updateFlipMutation.mutateAsync({
+        id: editingFlip.id,
+        itemId: flipForm.itemName.toLowerCase().replace(/\s+/g, '_'),
+        itemName: flipForm.itemName,
+        flipType: flipForm.flipType,
+        quantity: flipForm.quantity,
+        price: flipForm.price,
+        profit: flipForm.profit,
+        notes: flipForm.notes
+      })
+      setEditFlipOpen(false)
+      setEditingFlip(null)
+      setFlipForm({
+        itemName: '',
+        flipType: 'buy',
+        quantity: 1,
+        price: 0,
+        profit: 0,
+        notes: ''
+      })
+    } catch (error) {
+      console.error('Failed to update flip:', error)
+    }
+  }
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US').format(value || 0)
+  }
+  
+  // Autocomplete item component with forwardRef
+  const AutocompleteItem = forwardRef(({ value, image, ...others }, ref) => (
+    <div ref={ref} {...others}>
+      <Group spacing="sm">
+        <Image
+          src={image}
+          alt={value}
+          width={24}
+          height={24}
+          fit="contain"
+        />
+        <Text>{value}</Text>
+      </Group>
+    </div>
+  ))
+
+  // Filter items for autocomplete
+  const getFilteredItems = (query) => {
+    if (!query || query.length < 2 || !items.length) return []
+    
+    return items
+      .filter(item => 
+        item.name.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 10) // Limit to 10 suggestions
+      .map(item => ({
+        value: item.name,
+        image: item.img,
+        id: item.id
+      }))
   }
 
   const getMembershipInfo = () => {
@@ -122,8 +240,8 @@ export default function ProfileModern() {
       return {
         icon: <IconShield size={16} />,
         label: 'ADMIN',
-        color: 'red',
-        gradient: { from: 'red', to: 'pink' }
+        color: 'violet',
+        gradient: { from: 'violet', to: 'purple' }
       }
     }
     if (isSubscribed) {
@@ -179,19 +297,21 @@ export default function ProfileModern() {
                 <Title order={2} color="white">
                   {user?.username || 'Player'}
                 </Title>
-                <Badge
-                  variant="gradient"
-                  gradient={membershipInfo.gradient}
-                  leftIcon={membershipInfo.icon}
-                  size="lg"
-                  style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {membershipInfo.label}
-                </Badge>
+                <Group spacing={4}>
+                  {membershipInfo.icon}
+                  <Badge
+                    variant="gradient"
+                    gradient={membershipInfo.gradient}
+                    size="lg"
+                    style={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {membershipInfo.label}
+                  </Badge>
+                </Group>
               </Group>
               
               <Text size="sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }} mb="xs">
@@ -202,7 +322,7 @@ export default function ProfileModern() {
                 <Badge variant="light" color="white" style={{ color: '#333' }}>
                   Trader
                 </Badge>
-                {stats?.totalTransactions > 50 && (
+                {stats?.totalFlips > 50 && (
                   <Badge variant="light" color="white" style={{ color: '#333' }}>
                     Active Trader
                   </Badge>
@@ -242,10 +362,10 @@ export default function ProfileModern() {
             <IconActivity size={16} color="blue" />
           </Group>
           <Text size="xl" weight={700}>
-            {stats?.totalTransactions || 0}
+            {stats?.totalFlips || 0}
           </Text>
           <Text size="xs" color="dimmed">
-            All time transactions
+            All time flips
           </Text>
         </Card>
 
@@ -267,15 +387,15 @@ export default function ProfileModern() {
         <Card withBorder radius="md" p="md">
           <Group position="apart" mb="xs">
             <Text size="xs" color="dimmed" transform="uppercase" weight={700}>
-              Best Trade
+              Best Profit
             </Text>
             <IconTrendingUp size={16} color="green" />
           </Group>
           <Text size="xl" weight={700} color="green">
-            {formatCurrency(stats?.bestTrade || 0)} GP
+            {formatCurrency(stats?.bestFlip || 0)} GP
           </Text>
           <Text size="xs" color="dimmed">
-            Highest profit
+            Single transaction
           </Text>
         </Card>
 
@@ -350,9 +470,9 @@ export default function ProfileModern() {
                     <Button 
                       size="sm" 
                       variant="light"
-                      onClick={() => setAddTransactionOpen(true)}
+                      onClick={() => setAddFlipOpen(true)}
                     >
-                      Add your first transaction
+                      Add your first flip
                     </Button>
                   </Stack>
                 </Center>
@@ -368,16 +488,16 @@ export default function ProfileModern() {
                   leftIcon={<IconPlus size={16} />}
                   variant="light"
                   fullWidth
-                  onClick={() => setAddTransactionOpen(true)}
+                  onClick={() => setAddFlipOpen(true)}
                 >
-                  Add Transaction
+                  Add Flip
                 </Button>
                 
                 <Button
                   leftIcon={<IconHistory size={16} />}
                   variant="outline"
                   fullWidth
-                  onClick={() => navigate('/transaction-history')}
+                  onClick={() => navigate('/flip-history')}
                 >
                   View Transaction History
                 </Button>
@@ -415,53 +535,86 @@ export default function ProfileModern() {
         <Tabs.Panel value="activity" pt="lg">
           <Card withBorder radius="md" p="lg">
             <Group position="apart" mb="lg">
-              <Title order={3}>Recent Transactions</Title>
+              <Title order={3}>Recent Flips</Title>
               <Button 
                 variant="light" 
                 size="sm"
                 rightIcon={<IconExternalLink size={14} />}
-                onClick={() => navigate('/transaction-history')}
+                onClick={() => navigate('/flip-history')}
               >
                 View All
               </Button>
             </Group>
             
-            {recentTransactions && recentTransactions.length > 0 ? (
+            {recentFlips && recentFlips.length > 0 ? (
               <Stack spacing="md">
-                {recentTransactions.map((transaction) => (
-                  <Group key={transaction.id} position="apart" p="md" style={{ 
+                {recentFlips.map((flip) => (
+                  <Group key={flip.id} position="apart" p="md" style={{ 
                     backgroundColor: 'rgba(0, 0, 0, 0.02)', 
                     borderRadius: '8px',
                     border: '1px solid rgba(0, 0, 0, 0.05)'
                   }}>
                     <Group spacing="md">
-                      <ThemeIcon 
-                        color={transaction.transactionType === 'buy' ? 'blue' : 'green'}
-                        variant="light"
-                      >
-                        {transaction.transactionType === 'buy' ? 
-                          <IconTrendingDown size={16} /> : 
-                          <IconTrendingUp size={16} />
-                        }
-                      </ThemeIcon>
+                      <div style={{ position: 'relative' }}>
+                        <ThemeIcon 
+                          color={flip.transactionType === 'buy' ? 'blue' : 'green'}
+                          variant="light"
+                          size={36}
+                        >
+                          {flip.transactionType === 'buy' ? 
+                            <IconTrendingDown size={16} /> : 
+                            <IconTrendingUp size={16} />
+                          }
+                        </ThemeIcon>
+                        {/* Tiny item image overlay */}
+                        {(() => {
+                          const item = items.find(item => item.name.toLowerCase() === flip.itemName.toLowerCase())
+                          return item ? (
+                            <Image
+                              src={item.img}
+                              alt={flip.itemName}
+                              width={16}
+                              height={16}
+                              fit="contain"
+                              style={{
+                                position: 'absolute',
+                                top: '-2px',
+                                right: '-2px',
+                                border: '1px solid white',
+                                borderRadius: '2px',
+                                backgroundColor: 'white'
+                              }}
+                            />
+                          ) : null
+                        })()}
+                      </div>
                       <div>
-                        <Text weight={500}>{transaction.itemName}</Text>
+                        <Text weight={500}>{flip.itemName}</Text>
                         <Text size="sm" color="dimmed">
-                          {transaction.transactionType.toUpperCase()} • {formatCurrency(transaction.quantity)} @ {formatCurrency(transaction.price)} GP
+                          {flip.transactionType.toUpperCase()} • {formatCurrency(flip.quantity)} @ {formatCurrency(flip.price)} GP
                         </Text>
                       </div>
                     </Group>
-                    <div style={{ textAlign: 'right' }}>
-                      <Text 
-                        weight={500}
-                        color={transaction.profit >= 0 ? 'green' : 'red'}
+                    <Group spacing="xs">
+                      <div style={{ textAlign: 'right' }}>
+                        <Text 
+                          weight={500}
+                          color={flip.profit >= 0 ? 'green' : 'red'}
+                        >
+                          {flip.profit >= 0 ? '+' : ''}{formatCurrency(flip.profit)} GP
+                        </Text>
+                        <Text size="xs" color="dimmed">
+                          {getRelativeTime(flip.createdAt)}
+                        </Text>
+                      </div>
+                      <ActionIcon 
+                        variant="light" 
+                        size="sm"
+                        onClick={() => handleEditFlip(flip)}
                       >
-                        {transaction.profit >= 0 ? '+' : ''}{formatCurrency(transaction.profit)} GP
-                      </Text>
-                      <Text size="xs" color="dimmed">
-                        {getRelativeTime(transaction.createdAt)}
-                      </Text>
-                    </div>
+                        <IconEdit size={14} />
+                      </ActionIcon>
+                    </Group>
                   </Group>
                 ))}
               </Stack>
@@ -469,12 +622,12 @@ export default function ProfileModern() {
               <Center p="xl">
                 <Stack align="center">
                   <IconActivity size={48} color="gray" />
-                  <Text color="dimmed">No transactions yet</Text>
+                  <Text color="dimmed">No flips yet</Text>
                   <Button 
                     variant="light"
-                    onClick={() => setAddTransactionOpen(true)}
+                    onClick={() => setAddFlipOpen(true)}
                   >
-                    Add your first transaction
+                    Add your first flip
                   </Button>
                 </Stack>
               </Center>
@@ -529,13 +682,15 @@ export default function ProfileModern() {
               <Stack spacing="md">
                 <Group position="apart">
                   <Text size="sm">Current Plan</Text>
-                  <Badge 
-                    color={membershipInfo.color} 
-                    variant="filled"
-                    leftIcon={membershipInfo.icon}
-                  >
-                    {membershipInfo.label}
-                  </Badge>
+                  <Group spacing={4}>
+                    {membershipInfo.icon}
+                    <Badge 
+                      color={membershipInfo.color} 
+                      variant="filled"
+                    >
+                      {membershipInfo.label}
+                    </Badge>
+                  </Group>
                 </Group>
                 
                 {isSubscribed && (
@@ -584,37 +739,41 @@ export default function ProfileModern() {
         </Tabs.Panel>
       </Tabs>
 
-      {/* Add Transaction Modal */}
+      {/* Add Flip Modal */}
       <Modal
-        opened={addTransactionOpen}
-        onClose={() => setAddTransactionOpen(false)}
-        title="Add Transaction"
+        opened={addFlipOpen}
+        onClose={() => setAddFlipOpen(false)}
+        title="Add Flip"
         size="md"
       >
         <Stack spacing="md">
-          <TextInput
+          <Autocomplete
             label="Item Name"
-            placeholder="Enter item name..."
-            value={transactionForm.itemName}
-            onChange={(e) => setTransactionForm({ ...transactionForm, itemName: e.target.value })}
+            placeholder="Start typing to search items..."
+            value={flipForm.itemName}
+            onChange={(value) => {
+              setFlipForm({ ...flipForm, itemName: value })
+              // Auto-select item if it's an exact match
+              const exactMatch = items.find(item => item.name.toLowerCase() === value.toLowerCase())
+              if (exactMatch) {
+                setFlipForm(prev => ({ ...prev, itemId: exactMatch.id.toString() }))
+              }
+            }}
+            data={getFilteredItems(flipForm.itemName)}
+            itemComponent={AutocompleteItem}
+            filter={() => true}
             required
           />
           
-          <Select
-            label="Transaction Type"
-            data={[
-              { value: 'buy', label: 'Buy' },
-              { value: 'sell', label: 'Sell' }
-            ]}
-            value={transactionForm.transactionType}
-            onChange={(value) => setTransactionForm({ ...transactionForm, transactionType: value })}
-          />
+          <Alert color="blue" icon={<IconInfoCircle size={16} />}>
+            <Text size="sm">Track your flipping profits by entering buy and sell transactions separately.</Text>
+          </Alert>
           
           <NumberInput
             label="Quantity"
             placeholder="Enter quantity..."
-            value={transactionForm.quantity}
-            onChange={(value) => setTransactionForm({ ...transactionForm, quantity: value || 1 })}
+            value={flipForm.quantity}
+            onChange={(value) => setFlipForm({ ...flipForm, quantity: value || 1 })}
             min={1}
             required
           />
@@ -622,8 +781,8 @@ export default function ProfileModern() {
           <NumberInput
             label="Price (GP)"
             placeholder="Enter price per item..."
-            value={transactionForm.price}
-            onChange={(value) => setTransactionForm({ ...transactionForm, price: value || 0 })}
+            value={flipForm.price}
+            onChange={(value) => setFlipForm({ ...flipForm, price: value || 0 })}
             min={0}
             required
           />
@@ -631,28 +790,116 @@ export default function ProfileModern() {
           <NumberInput
             label="Profit/Loss (GP)"
             placeholder="Enter profit or loss..."
-            value={transactionForm.profit}
-            onChange={(value) => setTransactionForm({ ...transactionForm, profit: value || 0 })}
+            value={flipForm.profit}
+            onChange={(value) => setFlipForm({ ...flipForm, profit: value || 0 })}
           />
           
           <Textarea
             label="Notes (Optional)"
-            placeholder="Add any notes about this transaction..."
-            value={transactionForm.notes}
-            onChange={(e) => setTransactionForm({ ...transactionForm, notes: e.target.value })}
+            placeholder="Add any notes about this flip..."
+            value={flipForm.notes}
+            onChange={(e) => setFlipForm({ ...flipForm, notes: e.target.value })}
             minRows={2}
           />
           
           <Group position="right" mt="md">
-            <Button variant="subtle" onClick={() => setAddTransactionOpen(false)}>
+            <Button variant="subtle" onClick={() => setAddFlipOpen(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={handleAddTransaction}
-              loading={addTransactionMutation.isLoading}
-              disabled={!transactionForm.itemName || transactionForm.price <= 0}
+              onClick={handleAddFlip}
+              loading={addFlipMutation.isLoading}
+              disabled={!flipForm.itemName || flipForm.price <= 0}
             >
-              Add Transaction
+              <Group spacing="xs">
+                <Text>Add Flip</Text>
+                <Text size="xs" color="dimmed">
+                  (⌘⏎)
+                </Text>
+              </Group>
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Edit Flip Modal */}
+      <Modal
+        opened={editFlipOpen}
+        onClose={() => {
+          setEditFlipOpen(false)
+          setEditingFlip(null)
+        }}
+        title="Edit Flip"
+        size="md"
+      >
+        <Stack spacing="md">
+          <Autocomplete
+            label="Item Name"
+            placeholder="Start typing to search items..."
+            value={flipForm.itemName}
+            onChange={(value) => setFlipForm({ ...flipForm, itemName: value })}
+            data={getFilteredItems(flipForm.itemName)}
+            itemComponent={AutocompleteItem}
+            filter={() => true} // Disable default filtering since we handle it
+            required
+          />
+          
+          <Select
+            label="Flip Type"
+            data={[
+              { value: 'buy', label: 'Buy' },
+              { value: 'sell', label: 'Sell' }
+            ]}
+            value={flipForm.flipType}
+            onChange={(value) => setFlipForm({ ...flipForm, flipType: value })}
+          />
+          
+          <NumberInput
+            label="Quantity"
+            placeholder="Enter quantity..."
+            value={flipForm.quantity}
+            onChange={(value) => setFlipForm({ ...flipForm, quantity: value || 1 })}
+            min={1}
+            required
+          />
+          
+          <NumberInput
+            label="Price (GP)"
+            placeholder="Enter price per item..."
+            value={flipForm.price}
+            onChange={(value) => setFlipForm({ ...flipForm, price: value || 0 })}
+            min={0}
+            required
+          />
+          
+          <NumberInput
+            label="Profit/Loss (GP)"
+            placeholder="Enter profit or loss..."
+            value={flipForm.profit}
+            onChange={(value) => setFlipForm({ ...flipForm, profit: value || 0 })}
+          />
+          
+          <Textarea
+            label="Notes (Optional)"
+            placeholder="Add any notes about this flip..."
+            value={flipForm.notes}
+            onChange={(e) => setFlipForm({ ...flipForm, notes: e.target.value })}
+            minRows={2}
+          />
+          
+          <Group position="right" mt="md">
+            <Button variant="subtle" onClick={() => {
+              setEditFlipOpen(false)
+              setEditingFlip(null)
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateFlip}
+              loading={updateFlipMutation.isLoading}
+              disabled={!flipForm.itemName || flipForm.price <= 0}
+            >
+              Update Flip
             </Button>
           </Group>
         </Stack>

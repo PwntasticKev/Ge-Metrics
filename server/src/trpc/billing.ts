@@ -18,6 +18,72 @@ const billingRouter = router({
       return subscription
     }),
 
+  getInvoices: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.user.id
+
+      const subscription = await db.query.subscriptions.findFirst({
+        where: eq(subscriptions.userId, userId)
+      })
+
+      if (!subscription || !subscription.stripeCustomerId) {
+        return []
+      }
+
+      try {
+        const invoices = await stripe.invoices.list({
+          customer: subscription.stripeCustomerId,
+          limit: 10
+        })
+
+        return invoices.data.map(invoice => ({
+          id: invoice.id,
+          number: invoice.number,
+          amount: invoice.amount_paid,
+          currency: invoice.currency,
+          status: invoice.status,
+          date: new Date(invoice.created * 1000).toISOString(),
+          description: invoice.lines.data[0]?.description || 'Premium Plan',
+          invoiceUrl: invoice.invoice_pdf,
+          hostedUrl: invoice.hosted_invoice_url
+        }))
+      } catch (error) {
+        console.error('Error fetching invoices:', error)
+        return []
+      }
+    }),
+
+  downloadInvoice: protectedProcedure
+    .input(z.object({
+      invoiceId: z.string()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user.id
+
+      const subscription = await db.query.subscriptions.findFirst({
+        where: eq(subscriptions.userId, userId)
+      })
+
+      if (!subscription || !subscription.stripeCustomerId) {
+        throw new Error('No subscription found')
+      }
+
+      try {
+        const invoice = await stripe.invoices.retrieve(input.invoiceId)
+        
+        if (invoice.customer !== subscription.stripeCustomerId) {
+          throw new Error('Access denied')
+        }
+
+        return {
+          url: invoice.invoice_pdf || invoice.hosted_invoice_url
+        }
+      } catch (error) {
+        console.error('Error downloading invoice:', error)
+        throw new Error('Failed to download invoice')
+      }
+    }),
+
   createCheckoutSession: protectedProcedure
     .input(z.object({
       priceId: z.string().optional()

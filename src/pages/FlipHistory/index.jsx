@@ -34,7 +34,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { trpc } from '../../utils/trpc.jsx'
 import { getRelativeTime } from '../../utils/utils'
 
-export default function TransactionHistory() {
+export default function FlipHistory() {
   const { user } = useAuth()
   const [page, setPage] = useState(1)
   const [limit] = useState(25)
@@ -42,11 +42,11 @@ export default function TransactionHistory() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [addModalOpen, setAddModalOpen] = useState(false)
   
-  // Form state for adding transactions
+  // Form state for adding flips
   const [formData, setFormData] = useState({
     itemName: '',
     itemId: '',
-    transactionType: 'buy',
+    flipType: 'buy',
     quantity: 1,
     price: 0,
     profit: 0,
@@ -54,22 +54,22 @@ export default function TransactionHistory() {
   })
 
   // Queries
-  const { data: transactions, isLoading, refetch } = trpc.transactions.getTransactions.useQuery({
+  const { data: flips, isLoading, refetch } = trpc.flips.getFlips.useQuery({
     limit,
     offset: (page - 1) * limit
   })
 
-  const { data: stats } = trpc.transactions.getStats.useQuery()
+  const { data: stats } = trpc.flips.getFlipStats.useQuery()
 
   // Mutations
-  const addTransactionMutation = trpc.transactions.addTransaction.useMutation({
+  const addFlipMutation = trpc.flips.addFlip.useMutation({
     onSuccess: () => {
       refetch()
       setAddModalOpen(false)
       setFormData({
         itemName: '',
         itemId: '',
-        transactionType: 'buy',
+        flipType: 'buy',
         quantity: 1,
         price: 0,
         profit: 0,
@@ -78,17 +78,17 @@ export default function TransactionHistory() {
     }
   })
 
-  const deleteTransactionMutation = trpc.transactions.deleteTransaction.useMutation({
+  const deleteFlipMutation = trpc.flips.deleteFlip.useMutation({
     onSuccess: () => {
       refetch()
     }
   })
 
-  const handleAddTransaction = () => {
-    addTransactionMutation.mutate({
+  const handleAddFlip = () => {
+    addFlipMutation.mutate({
       itemId: formData.itemId || formData.itemName.toLowerCase().replace(/\s+/g, '_'),
       itemName: formData.itemName,
-      transactionType: formData.transactionType,
+      flipType: formData.flipType,
       quantity: formData.quantity,
       price: formData.price,
       profit: formData.profit,
@@ -96,20 +96,20 @@ export default function TransactionHistory() {
     })
   }
 
-  const handleDeleteTransaction = (id) => {
-    deleteTransactionMutation.mutate({ id })
+  const handleDeleteFlip = (id) => {
+    deleteFlipMutation.mutate({ id })
   }
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US').format(value || 0)
   }
 
-  const filteredTransactions = transactions?.filter(transaction => {
+  const filteredFlips = flips?.filter(flip => {
     const matchesSearch = !searchTerm || 
-      transaction.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      flip.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      flip.notes?.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesType = typeFilter === 'all' || transaction.transactionType === typeFilter
+    const matchesType = typeFilter === 'all' || flip.transactionType === typeFilter
     
     return matchesSearch && matchesType
   }) || []
@@ -128,16 +128,16 @@ export default function TransactionHistory() {
       <Card withBorder radius="md" mb="lg" p="xl">
         <Group position="apart" mb="md">
           <div>
-            <Title order={2}>Transaction History</Title>
+            <Title order={2}>Flip History</Title>
             <Text size="sm" color="dimmed">
-              Track your trading performance and analyze profit trends
+              Track your flipping performance and analyze profit trends
             </Text>
           </div>
           <Button 
             leftIcon={<IconPlus size={16} />}
             onClick={() => setAddModalOpen(true)}
           >
-            Add Transaction
+            Add Flip
           </Button>
         </Group>
 
@@ -153,15 +153,15 @@ export default function TransactionHistory() {
           </div>
           <div>
             <Text size="xs" color="dimmed" transform="uppercase" weight={700}>
-              Total Trades
+              Total Flips
             </Text>
             <Text size="xl" weight={700}>
-              {stats?.totalTransactions}
+              {stats?.totalFlips}
             </Text>
           </div>
           <div>
             <Text size="xs" color="dimmed" transform="uppercase" weight={700}>
-              Avg Profit/Trade
+              Avg Profit/Flip
             </Text>
             <Text size="xl" weight={700} color={stats?.avgProfit >= 0 ? 'green' : 'red'}>
               {formatCurrency(Math.round(stats?.avgProfit || 0))} GP
@@ -182,7 +182,7 @@ export default function TransactionHistory() {
       <Card withBorder radius="md" mb="md" p="md">
         <Group spacing="md">
           <TextInput
-            placeholder="Search transactions..."
+            placeholder="Search flips..."
             leftIcon={<IconSearch size={16} />}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -201,19 +201,19 @@ export default function TransactionHistory() {
         </Group>
       </Card>
 
-      {/* Transactions Table */}
+      {/* Flips Table */}
       <Card withBorder radius="md">
-        {filteredTransactions.length === 0 ? (
+        {filteredFlips.length === 0 ? (
           <Center p="xl">
             <Stack align="center">
               <IconActivity size={48} color="gray" />
-              <Text color="dimmed">No transactions found</Text>
+              <Text color="dimmed">No flips found</Text>
               <Button 
                 variant="light" 
                 leftIcon={<IconPlus size={16} />}
                 onClick={() => setAddModalOpen(true)}
               >
-                Add your first transaction
+                Add your first flip
               </Button>
             </Stack>
           </Center>
@@ -232,46 +232,46 @@ export default function TransactionHistory() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id}>
+                {filteredFlips.map((flip) => (
+                  <tr key={flip.id}>
                     <td>
-                      <Text weight={500}>{transaction.itemName}</Text>
-                      {transaction.notes && (
-                        <Text size="xs" color="dimmed">{transaction.notes}</Text>
+                      <Text weight={500}>{flip.itemName}</Text>
+                      {flip.notes && (
+                        <Text size="xs" color="dimmed">{flip.notes}</Text>
                       )}
                     </td>
                     <td>
                       <Badge 
-                        color={transaction.transactionType === 'buy' ? 'blue' : 'green'}
+                        color={flip.transactionType === 'buy' ? 'blue' : 'green'}
                         variant="light"
-                        leftIcon={transaction.transactionType === 'buy' ? 
+                        leftIcon={flip.transactionType === 'buy' ? 
                           <IconTrendingDown size={12} /> : 
                           <IconTrendingUp size={12} />
                         }
                       >
-                        {transaction.transactionType.toUpperCase()}
+                        {flip.transactionType.toUpperCase()}
                       </Badge>
                     </td>
-                    <td>{formatCurrency(transaction.quantity)}</td>
-                    <td>{formatCurrency(transaction.price)} GP</td>
+                    <td>{formatCurrency(flip.quantity)}</td>
+                    <td>{formatCurrency(flip.price)} GP</td>
                     <td>
                       <Text 
-                        color={transaction.profit >= 0 ? 'green' : 'red'}
+                        color={flip.profit >= 0 ? 'green' : 'red'}
                         weight={500}
                       >
-                        {transaction.profit >= 0 ? '+' : ''}{formatCurrency(transaction.profit)} GP
+                        {flip.profit >= 0 ? '+' : ''}{formatCurrency(flip.profit)} GP
                       </Text>
                     </td>
                     <td>
                       <Text size="sm" color="dimmed">
-                        {getRelativeTime(transaction.createdAt)}
+                        {getRelativeTime(flip.createdAt)}
                       </Text>
                     </td>
                     <td>
                       <ActionIcon 
                         color="red" 
                         variant="subtle"
-                        onClick={() => handleDeleteTransaction(transaction.id)}
+                        onClick={() => handleDeleteFlip(flip.id)}
                       >
                         <IconTrash size={16} />
                       </ActionIcon>
@@ -282,12 +282,12 @@ export default function TransactionHistory() {
             </Table>
 
             {/* Pagination */}
-            {transactions && transactions.length === limit && (
+            {flips && flips.length === limit && (
               <Group position="center" mt="md">
                 <Pagination 
                   value={page} 
                   onChange={setPage}
-                  total={Math.ceil((stats?.totalTransactions || 0) / limit)}
+                  total={Math.ceil((stats?.totalFlips || 0) / limit)}
                 />
               </Group>
             )}
@@ -295,11 +295,11 @@ export default function TransactionHistory() {
         )}
       </Card>
 
-      {/* Add Transaction Modal */}
+      {/* Add Flip Modal */}
       <Modal
         opened={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title="Add Transaction"
+        title="Add Flip"
         size="md"
       >
         <Stack spacing="md">
@@ -312,13 +312,13 @@ export default function TransactionHistory() {
           />
           
           <Select
-            label="Transaction Type"
+            label="Flip Type"
             data={[
               { value: 'buy', label: 'Buy' },
               { value: 'sell', label: 'Sell' }
             ]}
-            value={formData.transactionType}
-            onChange={(value) => setFormData({ ...formData, transactionType: value })}
+            value={formData.flipType}
+            onChange={(value) => setFormData({ ...formData, flipType: value })}
           />
           
           <NumberInput
@@ -348,7 +348,7 @@ export default function TransactionHistory() {
           
           <Textarea
             label="Notes (Optional)"
-            placeholder="Add any notes about this transaction..."
+            placeholder="Add any notes about this flip..."
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             minRows={2}
@@ -359,11 +359,11 @@ export default function TransactionHistory() {
               Cancel
             </Button>
             <Button 
-              onClick={handleAddTransaction}
-              loading={addTransactionMutation.isLoading}
+              onClick={handleAddFlip}
+              loading={addFlipMutation.isLoading}
               disabled={!formData.itemName || formData.price <= 0}
             >
-              Add Transaction
+              Add Flip
             </Button>
           </Group>
         </Stack>

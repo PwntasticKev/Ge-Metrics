@@ -4,9 +4,9 @@ import { db } from '../db/index.js'
 import { userTransactions } from '../db/schema.js'
 import { eq, desc, sql, and, gte } from 'drizzle-orm'
 
-export const transactionsRouter = router({
-  // Get user's transactions with pagination
-  getTransactions: protectedProcedure
+export const flipsRouter = router({
+  // Get user's flips with pagination
+  getFlips: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
       offset: z.number().min(0).default(0)
@@ -14,7 +14,7 @@ export const transactionsRouter = router({
     .query(async ({ ctx, input }) => {
       const userId = ctx.user.userId
       
-      const transactions = await db
+      const flips = await db
         .select()
         .from(userTransactions)
         .where(eq(userTransactions.userId, userId))
@@ -22,33 +22,33 @@ export const transactionsRouter = router({
         .limit(input.limit)
         .offset(input.offset)
 
-      return transactions
+      return flips
     }),
 
-  // Get user's trading stats
-  getStats: protectedProcedure
+  // Get user's flipping stats
+  getFlipStats: protectedProcedure
     .query(async ({ ctx }) => {
       const userId = ctx.user.userId
       
       const stats = await db
         .select({
           totalProfit: sql<number>`COALESCE(SUM(${userTransactions.profit}), 0)`,
-          totalTransactions: sql<number>`COUNT(*)`,
+          totalFlips: sql<number>`COUNT(*)`,
           totalVolume: sql<number>`COALESCE(SUM(${userTransactions.quantity} * ${userTransactions.price}), 0)`,
           avgProfit: sql<number>`COALESCE(AVG(${userTransactions.profit}), 0)`,
-          bestTrade: sql<number>`COALESCE(MAX(${userTransactions.profit}), 0)`,
-          worstTrade: sql<number>`COALESCE(MIN(${userTransactions.profit}), 0)`
+          bestFlip: sql<number>`COALESCE(MAX(${userTransactions.profit}), 0)`,
+          worstFlip: sql<number>`COALESCE(MIN(${userTransactions.profit}), 0)`
         })
         .from(userTransactions)
         .where(eq(userTransactions.userId, userId))
 
       return stats[0] || {
         totalProfit: 0,
-        totalTransactions: 0,
+        totalFlips: 0,
         totalVolume: 0,
         avgProfit: 0,
-        bestTrade: 0,
-        worstTrade: 0
+        bestFlip: 0,
+        worstFlip: 0
       }
     }),
 
@@ -79,12 +79,12 @@ export const transactionsRouter = router({
       return profitData
     }),
 
-  // Add a new transaction
-  addTransaction: protectedProcedure
+  // Add a new flip
+  addFlip: protectedProcedure
     .input(z.object({
       itemId: z.string(),
       itemName: z.string(),
-      transactionType: z.enum(['buy', 'sell']),
+      flipType: z.enum(['buy', 'sell']).optional().default('buy'),
       quantity: z.number().int().positive(),
       price: z.number().int().positive(),
       profit: z.number().int().optional(),
@@ -93,13 +93,13 @@ export const transactionsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user.userId
       
-      const transaction = await db
+      const flip = await db
         .insert(userTransactions)
         .values({
           userId,
           itemId: input.itemId,
           itemName: input.itemName,
-          transactionType: input.transactionType,
+          transactionType: input.flipType,
           quantity: input.quantity,
           price: input.price,
           profit: input.profit || 0,
@@ -107,11 +107,46 @@ export const transactionsRouter = router({
         })
         .returning()
 
-      return transaction[0]
+      return flip[0]
     }),
 
-  // Delete a transaction
-  deleteTransaction: protectedProcedure
+  // Update a flip
+  updateFlip: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      itemId: z.string().optional(),
+      itemName: z.string().optional(),
+      flipType: z.enum(['buy', 'sell']).optional(),
+      quantity: z.number().int().positive().optional(),
+      price: z.number().int().positive().optional(),
+      profit: z.number().int().optional(),
+      notes: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user.userId
+      const { id, ...updateData } = input
+      
+      // Convert flipType to transactionType for database
+      const dbUpdateData = { ...updateData }
+      if (updateData.flipType) {
+        dbUpdateData.transactionType = updateData.flipType
+        delete dbUpdateData.flipType
+      }
+      
+      const flip = await db
+        .update(userTransactions)
+        .set(dbUpdateData)
+        .where(and(
+          eq(userTransactions.id, id),
+          eq(userTransactions.userId, userId)
+        ))
+        .returning()
+
+      return flip[0]
+    }),
+
+  // Delete a flip
+  deleteFlip: protectedProcedure
     .input(z.object({
       id: z.string()
     }))
@@ -128,21 +163,21 @@ export const transactionsRouter = router({
       return { success: true }
     }),
 
-  // Get recent transactions for dashboard
-  getRecentTransactions: protectedProcedure
+  // Get recent flips for dashboard
+  getRecentFlips: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(20).default(5)
     }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.user.userId
       
-      const transactions = await db
+      const flips = await db
         .select()
         .from(userTransactions)
         .where(eq(userTransactions.userId, userId))
         .orderBy(desc(userTransactions.createdAt))
         .limit(input.limit)
 
-      return transactions
+      return flips
     })
 })

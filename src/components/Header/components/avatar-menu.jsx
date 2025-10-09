@@ -9,8 +9,12 @@ import {
 } from '@tabler/icons-react'
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { trpc } from '../../../utils/trpc.jsx'
 
 export default function AvatarMenu ({ user, onLogout, size = 30 }) {
+  const { data: subscription } = trpc.billing.getSubscription.useQuery()
+  const isSubscribed = subscription && subscription.status === 'active'
+  const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
   return (
     <Menu shadow="lg" width={280} position="bottom-end">
       <Menu.Target>
@@ -39,16 +43,18 @@ export default function AvatarMenu ({ user, onLogout, size = 30 }) {
           </Group>
         </Menu.Label>
 
-        <Menu.Item
-          icon={<IconVip size={14} />}
-          component={Link}
-          to="/billing"
-        >
-          <Group position="apart">
-            <Text>Upgrade to Premium</Text>
-            <Text size="xs" color="gold" weight={500}>PRO</Text>
-          </Group>
-        </Menu.Item>
+        {!isPremiumUser && (
+          <Menu.Item
+            icon={<IconVip size={14} />}
+            component={Link}
+            to="/billing"
+          >
+            <Group position="apart">
+              <Text>Upgrade to Premium</Text>
+              <Text size="xs" color="gold" weight={500}>PRO</Text>
+            </Group>
+          </Menu.Item>
+        )}
 
         <Menu.Item
           icon={<IconSettings size={14} />}
@@ -69,9 +75,9 @@ export default function AvatarMenu ({ user, onLogout, size = 30 }) {
         <Menu.Item
           icon={<IconReceipt size={14} />}
           component={Link}
-          to="/transaction-history"
+          to="/flip-history"
         >
-          Transaction History
+          Flip History
         </Menu.Item>
 
         <Menu.Divider />
