@@ -127,7 +127,7 @@ export const flipsRouter = router({
       const { id, ...updateData } = input
       
       // Convert flipType to transactionType for database
-      const dbUpdateData = { ...updateData }
+      const dbUpdateData: any = { ...updateData }
       if (updateData.flipType) {
         dbUpdateData.transactionType = updateData.flipType
         delete dbUpdateData.flipType

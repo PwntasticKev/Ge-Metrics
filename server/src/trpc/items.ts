@@ -57,14 +57,13 @@ export const itemsRouter = router({
         const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest', {
           headers: {
             'User-Agent': 'GE-Metrics/1.0 (https://ge-metrics.com)'
-          },
-          timeout: 10000 // 10 second timeout
+          }
         })
         
         if (!response.ok) {
           console.error(`[getAllItems] Failed to fetch latest prices from OSRS Wiki API: ${response.status} ${response.statusText}`)
           throw new TRPCError({
-            code: 'EXTERNAL_SERVICE_ERROR',
+            code: 'INTERNAL_SERVER_ERROR',
             message: `OSRS Wiki API returned ${response.status}: ${response.statusText}`
           })
         }
@@ -75,7 +74,7 @@ export const itemsRouter = router({
       } catch (error) {
         console.error('[getAllItems] Error fetching or parsing latest prices:', error)
         throw new TRPCError({
-          code: 'EXTERNAL_SERVICE_ERROR',
+          code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch price data from OSRS Wiki API',
           cause: error
         })
