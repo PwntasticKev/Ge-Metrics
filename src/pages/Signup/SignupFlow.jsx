@@ -16,6 +16,7 @@ import {
 import { useForm } from '@mantine/form'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
+import EmailVerificationNotice from '../../components/auth/EmailVerificationNotice'
 import securityService from '../../services/securityService'
 import { IconX, IconCheck } from '@tabler/icons-react'
 import bg from '../../assets/gehd.png'
@@ -57,6 +58,8 @@ const SignupFlow = () => {
   const { register } = useContext(AuthContext)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [showVerificationNotice, setShowVerificationNotice] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
 
   const form = useForm({
     initialValues: {
@@ -123,15 +126,20 @@ const SignupFlow = () => {
       username: runescapeName // Use 'username' to match the backend
     }, {
       onSuccess: (data) => {
-        // Here you can add a success notification if you have a notification system
         console.log(data.message) // "Registration successful..."
-        navigate('/login')
+        setRegisteredEmail(email)
+        setShowVerificationNotice(true)
+        setLoading(false)
       },
       onError: (err) => {
         setError(err.message || 'An unexpected error occurred. Please try again.')
         setLoading(false)
       }
     })
+  }
+
+  if (showVerificationNotice) {
+    return <EmailVerificationNotice email={registeredEmail} />
   }
 
   return (
