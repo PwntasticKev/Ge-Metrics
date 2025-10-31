@@ -16,7 +16,6 @@ import {
 import { useForm } from '@mantine/form'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
-import EmailVerificationNotice from '../../components/auth/EmailVerificationNotice'
 import securityService from '../../services/securityService'
 import { IconX, IconCheck } from '@tabler/icons-react'
 import bg from '../../assets/gehd.png'
@@ -58,8 +57,6 @@ const SignupFlow = () => {
   const { register } = useContext(AuthContext)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [showVerificationNotice, setShowVerificationNotice] = useState(false)
-  const [registeredEmail, setRegisteredEmail] = useState('')
 
   const form = useForm({
     initialValues: {
@@ -127,19 +124,15 @@ const SignupFlow = () => {
     }, {
       onSuccess: (data) => {
         console.log(data.message) // "Registration successful..."
-        setRegisteredEmail(email)
-        setShowVerificationNotice(true)
         setLoading(false)
+        // Redirect to login page with email parameter to show verification notice
+        navigate(`/login?email=${encodeURIComponent(email)}`)
       },
       onError: (err) => {
         setError(err.message || 'An unexpected error occurred. Please try again.')
         setLoading(false)
       }
     })
-  }
-
-  if (showVerificationNotice) {
-    return <EmailVerificationNotice email={registeredEmail} />
   }
 
   return (
@@ -181,7 +174,7 @@ const SignupFlow = () => {
             <TextInput
               mt="md"
               label="Email"
-              placeholder="you@mantine.dev"
+              placeholder="your.email@example.com"
               required
               {...form.getInputProps('email')}
             />

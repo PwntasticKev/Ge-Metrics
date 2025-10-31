@@ -9,20 +9,32 @@ export const itemsRouter = router({
   // Get all cached item volumes
   getAllVolumes: publicProcedure
     .query(async () => {
-      const allVolumes = await db.select().from(itemVolumes)
-      // Convert array to an object for JSON-friendly transfer
-      const volumeMap: Record<number, Omit<NewItemVolume, 'id'>> = {}
-      allVolumes.forEach(item => {
-        volumeMap[item.itemId] = {
-          itemId: item.itemId,
-          highPriceVolume: item.highPriceVolume,
-          lowPriceVolume: item.lowPriceVolume,
-          hourlyHighPriceVolume: item.hourlyHighPriceVolume,
-          hourlyLowPriceVolume: item.hourlyLowPriceVolume,
-          lastUpdatedAt: item.lastUpdatedAt
-        }
-      })
-      return volumeMap
+      try {
+        console.log('[getAllVolumes] Fetching item volumes from database...')
+        const allVolumes = await db.select().from(itemVolumes)
+        console.log(`[getAllVolumes] Successfully fetched ${allVolumes.length} item volumes`)
+        
+        // Convert array to an object for JSON-friendly transfer
+        const volumeMap: Record<number, Omit<NewItemVolume, 'id'>> = {}
+        allVolumes.forEach(item => {
+          volumeMap[item.itemId] = {
+            itemId: item.itemId,
+            highPriceVolume: item.highPriceVolume,
+            lowPriceVolume: item.lowPriceVolume,
+            hourlyHighPriceVolume: item.hourlyHighPriceVolume,
+            hourlyLowPriceVolume: item.hourlyLowPriceVolume,
+            lastUpdatedAt: item.lastUpdatedAt
+          }
+        })
+        return volumeMap
+      } catch (error) {
+        console.error('[getAllVolumes] Error fetching item volumes:', error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch item volumes from database',
+          cause: error
+        })
+      }
     }),
 
   // Get all item mappings
@@ -83,12 +95,18 @@ export const itemsRouter = router({
 
   getVolumesLastUpdated: publicProcedure
     .query(async () => {
-      const latestUpdate = await db.select({ lastUpdatedAt: itemVolumes.lastUpdatedAt })
-        .from(itemVolumes)
-        .orderBy(desc(itemVolumes.lastUpdatedAt))
-        .limit(1)
+      try {
+        const latestUpdate = await db.select({ lastUpdatedAt: itemVolumes.lastUpdatedAt })
+          .from(itemVolumes)
+          .orderBy(desc(itemVolumes.lastUpdatedAt))
+          .limit(1)
 
-      return latestUpdate[0] ?? null
+        return latestUpdate[0] ?? null
+      } catch (error) {
+        console.error('[getVolumesLastUpdated] Error fetching last updated timestamp:', error)
+        // Return null instead of throwing to prevent breaking the UI
+        return null
+      }
     }),
 
   // Get potion families (client-side processing will handle this for now)

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
   TextInput,
@@ -36,15 +36,19 @@ import { trpc } from '../../utils/trpc'
 const Login = () => {
   const navigate = useNavigate()
   const theme = useMantineTheme()
+  const [searchParams] = useSearchParams()
   const [error, setError] = useState('')
   const [recoveryModalOpened, setRecoveryModalOpened] = useState(false)
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [otp, setOtp] = useState('')
+  const [showVerificationAlert, setShowVerificationAlert] = useState(false)
   const { isLoadingUser, userError, login, loginWithOtp, isLoggingIn } = useAuth()
+  
+  const verificationEmail = searchParams.get('email')
 
   const form = useForm({
     initialValues: {
-      identifier: '',
+      identifier: verificationEmail || '',
       password: '',
       rememberMe: false
     },
@@ -53,6 +57,12 @@ const Login = () => {
       password: (value) => (!value ? 'Password is required' : null)
     }
   })
+  
+  useEffect(() => {
+    if (verificationEmail) {
+      setShowVerificationAlert(true)
+    }
+  }, [verificationEmail])
 
   if (isLoadingUser) {
     return <Center style={{ minHeight: '100vh' }}><Loader size="lg" /></Center>
@@ -159,6 +169,19 @@ const Login = () => {
               : 'Welcome back to GE-Metrics'}
           </Text>
 
+          {showVerificationAlert && verificationEmail && (
+            <Alert icon={<IconMail size={16} />} color="blue" mb="md" variant="filled"
+              onClose={() => setShowVerificationAlert(false)}
+              withCloseButton
+            >
+              <Text size="sm" weight={500}>Email verification required</Text>
+              <Text size="xs">
+                We've sent a verification link to <strong>{verificationEmail}</strong>. 
+                Please check your email and click the link to verify your account before logging in.
+              </Text>
+            </Alert>
+          )}
+          
           {error && (
             <Alert icon={<IconAlertCircle size={16} />} color="red" mb="md" variant="filled">
               {error}
