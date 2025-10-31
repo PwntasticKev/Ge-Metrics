@@ -29,7 +29,6 @@ import {
   IconHelp,
   IconActivity,
   IconQuestionMark,
-  IconCheck,
   IconHeart,
   IconHome,
   IconTarget,
@@ -714,16 +713,6 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           color="blue"
           label="FAQ"
           link="/faq"
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-
-        <MainLink
-          icon={<IconCheck size="1rem"/>}
-          color="green"
-          label="API Status"
-          link="/status"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}

@@ -116,8 +116,10 @@ export default function LineChart ({ id, items }) {
     return () => clearInterval(timer)
   }, [])
 
-  const options = {
+  // Memoize options to prevent zoom reset on re-renders
+  const options = useMemo(() => ({
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
@@ -133,16 +135,32 @@ export default function LineChart ({ id, items }) {
       zoom: {
         pan: {
           enabled: true,
-          mode: 'x'
+          mode: 'x',
+          modifierKey: null // Allow panning without modifier key
         },
         zoom: {
           wheel: {
-            enabled: true
+            enabled: true,
+            speed: 0.1 // Slower zoom for better control
           },
           pinch: {
             enabled: true
           },
-          mode: 'x'
+          drag: {
+            enabled: true,
+            modifierKey: null
+          },
+          mode: 'x',
+          limits: {
+            x: {
+              min: 'original', // Prevent zooming out past original data range
+              max: 'original'
+            },
+            y: {
+              min: 'original',
+              max: 'original'
+            }
+          }
         }
       },
       annotation: {
@@ -186,7 +204,7 @@ export default function LineChart ({ id, items }) {
         }
       }
     }
-  }
+  }), [item?.name, timeframe, isFetching])
 
   if (historyStatus === 'loading' || historyStatus === 'idle') {
     return (
@@ -300,7 +318,14 @@ export default function LineChart ({ id, items }) {
       {historyData && historyData.length > 0
         ? (
           <div style={{ height: '400px' }}>
-              <Chart ref={chartRef} type="line" options={options} data={chartData} />
+              <Chart 
+                ref={chartRef} 
+                type="line" 
+                options={options} 
+                data={chartData}
+                key={`${id}-${timeframe}`}
+                redraw={false}
+              />
           </div>
           )
         : (
