@@ -14,7 +14,7 @@ import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import stripeRoutes from './routes/stripe.js'
 // import { scheduleVolumeUpdates } from './tasks/updateVolumes.js' - This is no longer needed
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
-import { db, itemMapping } from './db/index.js'
+import { db, itemMapping, itemVolumes } from './db/index.js'
 
 const app = express()
 
@@ -35,8 +35,20 @@ setTimeout(async () => {
     } else {
       console.log(`[Startup] Item mapping table has ${count.length} items`)
     }
+    
+    // Also check and populate item_volumes if empty
+    const volumeCount = await db.select().from(itemVolumes)
+    if (volumeCount.length === 0) {
+      console.log('[Startup] Item volumes table is empty, triggering initial population...')
+      // Trigger volume update in background (don't await - let it run async)
+      updateAllItemVolumes().catch((error) => {
+        console.error('[Startup] Failed to populate item volumes:', error)
+      })
+    } else {
+      console.log(`[Startup] Item volumes table has ${volumeCount.length} items`)
+    }
   } catch (error) {
-    console.error('[Startup] Error checking item mapping:', error)
+    console.error('[Startup] Error checking tables:', error)
   }
 }, 2000) // Wait 2 seconds for migrations to complete
 

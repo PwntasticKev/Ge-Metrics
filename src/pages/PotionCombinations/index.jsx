@@ -18,17 +18,30 @@ export default function PotionCombinations () {
     refetchInterval: 30000 // Refetch every 30 seconds to keep the timer current
   })
 
-  // Manual population mutation
-  const populateMutation = trpc.items.populateItemMapping.useMutation({
+  // Manual population mutations
+  const populateMappingMutation = trpc.items.populateItemMapping.useMutation({
     onSuccess: (data) => {
-      console.log('[PotionCombinations] Population successful:', data)
+      console.log('[PotionCombinations] Item mapping population successful:', data)
       // Refetch item mapping after successful population
       setTimeout(() => {
         refetchItemMapping()
       }, 1000)
     },
     onError: (error) => {
-      console.error('[PotionCombinations] Population failed:', error)
+      console.error('[PotionCombinations] Item mapping population failed:', error)
+    }
+  })
+
+  const populateVolumesMutation = trpc.items.populateItemVolumes.useMutation({
+    onSuccess: (data) => {
+      console.log('[PotionCombinations] Volume population successful:', data)
+      // Refetch volumes after successful population
+      setTimeout(() => {
+        window.location.reload() // Reload to get fresh data
+      }, 2000)
+    },
+    onError: (error) => {
+      console.error('[PotionCombinations] Volume population failed:', error)
     }
   })
 
@@ -186,21 +199,49 @@ export default function PotionCombinations () {
             <Center>
               <Button
                 leftIcon={<IconRefresh size={16} />}
-                onClick={() => populateMutation.mutate()}
-                loading={populateMutation.isLoading}
+                onClick={() => populateMappingMutation.mutate()}
+                loading={populateMappingMutation.isLoading}
                 color="blue"
               >
-                {populateMutation.isLoading ? 'Populating...' : 'Populate Item Mapping'}
+                {populateMappingMutation.isLoading ? 'Populating...' : 'Populate Item Mapping'}
               </Button>
             </Center>
-            {populateMutation.isError && (
+            {populateMappingMutation.isError && (
               <Text size="sm" color="red" mt="sm">
-                Error: {populateMutation.error?.message || 'Failed to populate'}
+                Error: {populateMappingMutation.error?.message || 'Failed to populate'}
               </Text>
             )}
-            {populateMutation.isSuccess && (
+            {populateMappingMutation.isSuccess && (
               <Text size="sm" color="green" mt="sm">
-                {populateMutation.data?.message || 'Successfully populated!'}
+                {populateMappingMutation.data?.message || 'Successfully populated!'}
+              </Text>
+            )}
+          </Alert>
+        )}
+        
+        {(!volumeData || Object.keys(volumeData).length === 0) && itemMapping && Object.keys(itemMapping).length > 0 && (
+          <Alert color="yellow" mt="md" icon={<IconInfoCircle size={16} />}>
+            <Text size="sm" mb="md">
+              Item Volumes cache is empty. This contains trading volume data for potions. Click below to populate it.
+            </Text>
+            <Center>
+              <Button
+                leftIcon={<IconRefresh size={16} />}
+                onClick={() => populateVolumesMutation.mutate()}
+                loading={populateVolumesMutation.isLoading}
+                color="blue"
+              >
+                {populateVolumesMutation.isLoading ? 'Populating Volumes...' : 'Populate Volume Cache'}
+              </Button>
+            </Center>
+            {populateVolumesMutation.isError && (
+              <Text size="sm" color="red" mt="sm">
+                Error: {populateVolumesMutation.error?.message || 'Failed to populate volumes'}
+              </Text>
+            )}
+            {populateVolumesMutation.isSuccess && (
+              <Text size="sm" color="green" mt="sm">
+                {populateVolumesMutation.data?.message || 'Successfully populated volumes!'}
               </Text>
             )}
           </Alert>
