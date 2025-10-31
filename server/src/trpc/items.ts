@@ -207,18 +207,48 @@ export const itemsRouter = router({
       try {
         console.log('[populateItemMapping] Starting manual population...')
         
-        // First, check if table exists and get count
+        // First, check if table exists using information_schema
+        const tableCheck = await connection`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'item_mapping'
+          ) as exists
+        `
+        const tableExists = tableCheck[0]?.exists ?? false
+        
         let existingCount: any[] = []
-        try {
-          existingCount = await db.select().from(itemMapping)
-          console.log(`[populateItemMapping] Table exists with ${existingCount.length} items`)
-        } catch (tableError) {
-          console.error('[populateItemMapping] Error checking table:', tableError)
-          // Table might not exist - try to create it via raw SQL
-          console.log('[populateItemMapping] Attempting to create table if it doesn\'t exist...')
+        
+        if (!tableExists) {
+          console.log('[populateItemMapping] Table does not exist, creating it...')
+          await connection`
+            CREATE TABLE "item_mapping" (
+              "id" integer PRIMARY KEY NOT NULL,
+              "name" text NOT NULL,
+              "examine" text,
+              "members" boolean DEFAULT false,
+              "lowalch" integer,
+              "highalch" integer,
+              "limit" integer,
+              "value" integer,
+              "icon" text,
+              "wiki_url" text,
+              "created_at" timestamp DEFAULT now() NOT NULL,
+              "updated_at" timestamp DEFAULT now() NOT NULL
+            )
+          `
+          console.log('[populateItemMapping] Table created successfully')
+        } else {
+          // Table exists, try to query it
           try {
+            existingCount = await db.select().from(itemMapping)
+            console.log(`[populateItemMapping] Table exists with ${existingCount.length} items`)
+          } catch (queryError) {
+            // Table exists but has wrong schema - drop and recreate
+            console.error('[populateItemMapping] Table exists but query failed (wrong schema?), recreating...', queryError)
+            await connection`DROP TABLE IF EXISTS "item_mapping" CASCADE`
             await connection`
-              CREATE TABLE IF NOT EXISTS "item_mapping" (
+              CREATE TABLE "item_mapping" (
                 "id" integer PRIMARY KEY NOT NULL,
                 "name" text NOT NULL,
                 "examine" text,
@@ -233,12 +263,8 @@ export const itemsRouter = router({
                 "updated_at" timestamp DEFAULT now() NOT NULL
               )
             `
-            console.log('[populateItemMapping] Table created successfully')
-            // Try to select again
-            existingCount = await db.select().from(itemMapping)
-          } catch (createError) {
-            console.error('[populateItemMapping] Failed to create table:', createError)
-            throw new Error(`Table does not exist and could not be created: ${createError instanceof Error ? createError.message : String(createError)}`)
+            console.log('[populateItemMapping] Table recreated successfully')
+            existingCount = []
           }
         }
         
