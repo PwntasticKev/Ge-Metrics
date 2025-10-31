@@ -53,11 +53,29 @@ export function useFavorites (itemType) {
       return
     }
     
-    const isFavorite = favoriteItems?.some(fav => fav.itemId === itemId && fav.itemType === itemType)
-    console.log('[useFavorites] Toggling favorite:', { itemId, itemType, isFavorite, currentFavorites: favoriteItems?.length })
+    // Validate inputs
+    if (itemId === undefined || itemId === null) {
+      console.error('[useFavorites] Cannot toggle favorite: itemId is undefined or null', { itemId, itemType })
+      return
+    }
+    
+    if (!itemType) {
+      console.error('[useFavorites] Cannot toggle favorite: itemType is undefined or null', { itemId, itemType })
+      return
+    }
+    
+    // Ensure itemId is a number
+    const numericItemId = typeof itemId === 'string' ? parseInt(itemId, 10) : itemId
+    if (isNaN(numericItemId)) {
+      console.error('[useFavorites] Cannot toggle favorite: itemId is not a valid number', { itemId, itemType, numericItemId })
+      return
+    }
+    
+    const isFavorite = favoriteItems?.some(fav => fav.itemId === numericItemId && fav.itemType === itemType)
+    console.log('[useFavorites] Toggling favorite:', { itemId: numericItemId, itemType, isFavorite, currentFavorites: favoriteItems?.length })
     
     if (isFavorite) {
-      removeFavorite.mutate({ itemId, itemType }, {
+      removeFavorite.mutate({ itemId: numericItemId, itemType }, {
         onError: (error) => {
           console.error('[useFavorites] Failed to remove favorite:', error)
         },
@@ -66,7 +84,7 @@ export function useFavorites (itemType) {
         }
       })
     } else {
-      addFavorite.mutate({ itemId, itemType }, {
+      addFavorite.mutate({ itemId: numericItemId, itemType }, {
         onError: (error) => {
           console.error('[useFavorites] Failed to add favorite:', error)
         },

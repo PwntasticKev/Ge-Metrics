@@ -132,7 +132,7 @@ export default function PotionCombinations () {
     // Apply tab filter
     if (activeTab === 'favorites' && favoriteItems) {
       const favoriteIds = new Set(favoriteItems.filter(f => f.itemType === 'potion').map(f => f.itemId))
-      filtered = filtered.filter(recipe => favoriteIds.has(recipe.id))
+      filtered = filtered.filter(recipe => favoriteIds.has(recipe.item4?.id))
     }
 
     // Apply search and data-driven filters
@@ -421,8 +421,15 @@ export default function PotionCombinations () {
             allItems={allItems}
             filterMode={sortOrder}
             volumeData={volumeData}
-            isFavorite={favoriteItems && favoriteItems.some(f => f.itemId === recipe.id && f.itemType === 'potion')}
-            onToggleFavorite={() => toggleFavorite(recipe.id, 'potion')}
+            isFavorite={favoriteItems && recipe.item4?.id && favoriteItems.some(f => f.itemId === recipe.item4.id && f.itemType === 'potion')}
+            onToggleFavorite={() => {
+              const itemId = recipe.item4?.id
+              if (itemId) {
+                toggleFavorite(itemId, 'potion')
+              } else {
+                console.error('[PotionCard] Cannot favorite: recipe.item4.id is undefined', recipe)
+              }
+            }}
           />
         ))}
       </SimpleGrid>

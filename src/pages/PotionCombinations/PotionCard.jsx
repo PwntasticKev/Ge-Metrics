@@ -71,7 +71,13 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
           size="sm"
           variant="light"
           color={isFavorite ? 'red' : 'gray'}
-          onClick={onToggleFavorite}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (onToggleFavorite) {
+              onToggleFavorite()
+            }
+          }}
         >
           {isFavorite ? <IconHeartFilled size={14} /> : <IconHeart size={14} />}
         </ActionIcon>
