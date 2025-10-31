@@ -82,7 +82,13 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
         {recipe.combinations && [...recipe.combinations].sort((a, b) => parseInt(a.dose) - parseInt(b.dose)).map((combo) => {
           const isBest = bestMethod && combo.dose === bestMethod.dose
           const volumeInfo = volumeData ? volumeData[combo.itemId] : null
-          const totalVolume = volumeInfo ? (volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume).toLocaleString() : <Loader size="xs" />
+          // Show 0 if no volume data found, or show loader only if volumes are still loading
+          const totalVolume = volumeInfo 
+            ? (volumeInfo.highPriceVolume || 0) + (volumeInfo.lowPriceVolume || 0)
+            : volumeData === undefined 
+              ? <Loader size="xs" /> 
+              : '0'
+          const totalVolumeDisplay = typeof totalVolume === 'number' ? totalVolume.toLocaleString() : totalVolume
 
           return (
             <div
@@ -100,7 +106,7 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
                     ({combo.dose}): {combo.cost !== null ? Math.round(combo.cost).toLocaleString() : 'N/A'}
                   </Text>
                   <Text size="xs" color="dimmed">
-                    Vol 24h: {totalVolume}
+                    Vol 24h: {totalVolumeDisplay}
                   </Text>
                 </Stack>
                 <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>

@@ -13,9 +13,9 @@ export default function PotionCombinations () {
   // TRPC Data Fetching.
   const { data: itemMapping, isLoading: isLoadingMapping, error: errorMapping, refetch: refetchItemMapping } = trpc.items.getItemMapping.useQuery()
   const { data: allItems, isLoading: isLoadingAllItems, error: errorItems } = trpc.items.getAllItems.useQuery()
-  const { data: volumeData, isLoading: isLoadingVolumes, error: errorVolumes } = trpc.items.getAllVolumes.useQuery()
+  const { data: volumeData, isLoading: isLoadingVolumes, error: errorVolumes, refetch: refetchVolumes } = trpc.items.getAllVolumes.useQuery()
   const { data: lastUpdatedData, isLoading: isLoadingLastUpdated } = trpc.items.getVolumesLastUpdated.useQuery(undefined, {
-    refetchInterval: 30000 // Refetch every 30 seconds to keep the timer current
+    refetchInterval: 30000 // Check every 30 seconds if volumes need updating
   })
 
   // Manual population mutations
@@ -35,15 +35,43 @@ export default function PotionCombinations () {
   const populateVolumesMutation = trpc.items.populateItemVolumes.useMutation({
     onSuccess: (data) => {
       console.log('[PotionCombinations] Volume population successful:', data)
-      // Refetch volumes after successful population
+      // Refetch volumes after successful population instead of full reload
       setTimeout(() => {
-        window.location.reload() // Reload to get fresh data
+        refetchVolumes()
       }, 2000)
     },
     onError: (error) => {
       console.error('[PotionCombinations] Volume population failed:', error)
     }
   })
+
+  // Auto-update volumes if stale (older than 5 minutes) - runs after mutations are defined
+  useEffect(() => {
+    // Only check once volumes have loaded
+    if (isLoadingLastUpdated) return
+    
+    // Don't trigger if mutation is already in progress
+    if (populateVolumesMutation.isLoading) return
+    
+    if (lastUpdatedData?.lastUpdatedAt) {
+      const lastUpdated = new Date(lastUpdatedData.lastUpdatedAt)
+      const now = new Date()
+      const minutesSinceUpdate = (now - lastUpdated) / (1000 * 60)
+      
+      // If volumes are older than 5 minutes, trigger update
+      if (minutesSinceUpdate > 5) {
+        console.log(`[PotionCombinations] Volumes are stale (${Math.round(minutesSinceUpdate)} minutes old), triggering update...`)
+        populateVolumesMutation.mutate()
+      } else {
+        console.log(`[PotionCombinations] Volumes are fresh (${Math.round(minutesSinceUpdate)} minutes old)`)
+      }
+    } else if (!lastUpdatedData && volumeData && Object.keys(volumeData).length === 0) {
+      // No volume data at all - trigger initial population
+      console.log('[PotionCombinations] No volume data found, triggering initial population...')
+      populateVolumesMutation.mutate()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastUpdatedData, isLoadingLastUpdated]) // Only depend on lastUpdatedData, not mutation
 
   // Client-side State
   const { favorites, toggleFavorite, isLoadingFavorites } = useFavorites()
@@ -62,6 +90,22 @@ export default function PotionCombinations () {
     const hasItemMapping = itemMapping && Object.keys(itemMapping).length > 0
     const hasAllItems = allItems && Object.keys(allItems).length > 0
     const hasVolumeData = volumeData !== undefined // volumeData can be empty object, that's OK
+    
+    // Debug volume data for potion items
+    if (volumeData && Object.keys(volumeData).length > 0 && itemMapping) {
+      const potionItemIds = Object.values(itemMapping)
+        .filter(item => item.name && item.name.toLowerCase().includes('potion'))
+        .map(item => item.id)
+      
+      const potionVolumesFound = potionItemIds.filter(id => volumeData[id])
+      console.log('[PotionCombinations] Volume data check:', {
+        totalVolumes: Object.keys(volumeData).length,
+        potionItems: potionItemIds.length,
+        potionVolumesFound: potionVolumesFound.length,
+        samplePotionIds: potionItemIds.slice(0, 5),
+        sampleVolumeKeys: Object.keys(volumeData).slice(0, 5).map(Number)
+      })
+    }
     
     console.log('[PotionCombinations] Data check:', {
       hasItemMapping,
