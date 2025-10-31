@@ -57,12 +57,25 @@ export async function sendEmail (options: EmailOptions): Promise<{ success: bool
   try {
     const transporter = createTransporter()
     
-    // Default from email with "ge-metrics" as the name
+    // Use FROM_EMAIL if configured, otherwise fall back to SMTP_USER
+    // Note: Using a different FROM_EMAIL than SMTP_USER may cause deliverability issues
+    // Some email providers will reject or mark as spam emails where From != authenticated user
     const fromEmail = options.from || config.FROM_EMAIL || config.SMTP_USER || 'noreply@ge-metrics.com'
     const fromName = 'ge-metrics'
     
+    // Warn if FROM_EMAIL is different from SMTP_USER (deliverability risk)
+    if (config.FROM_EMAIL && config.SMTP_USER && config.FROM_EMAIL !== config.SMTP_USER) {
+      const fromDomain = fromEmail.split('@')[1]
+      const authDomain = config.SMTP_USER.split('@')[1]
+      if (fromDomain !== authDomain) {
+        console.warn(`[EmailService] WARNING: Sending from ${fromEmail} using credentials from ${config.SMTP_USER}`)
+        console.warn(`[EmailService] This may cause deliverability issues. Consider using a transactional email service (Resend, SendGrid, Mailgun) for better deliverability.`)
+      }
+    }
+    
     const mailOptions = {
       from: `"${fromName}" <${fromEmail}>`,
+      replyTo: config.SMTP_USER || fromEmail, // Set reply-to to the authenticated email
       to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
       subject: options.subject,
       text: options.text || stripHtml(options.html || ''),

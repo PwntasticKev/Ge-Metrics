@@ -83,44 +83,56 @@ export const authRouter = router({
       const verificationUrl = `${config.FRONTEND_URL}/verify-email?token=${verificationToken}`
       const { sendEmail } = await import('../services/emailService.js')
       
-      await sendEmail({
-        to: email,
-        subject: 'Verify your Ge-Metrics account',
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { text-align: center; background: #1a1b1e; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
-                .content { background: white; padding: 30px; border: 1px solid #ddd; border-top: none; }
-                .button { display: inline-block; background: #228be6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>🎮 Ge-Metrics</h1>
-                </div>
-                <div class="content">
-                  <h2>Welcome to Ge-Metrics!</h2>
-                  <p>Hi ${name},</p>
-                  <p>Thank you for registering! Please verify your email address to complete your account setup.</p>
-                  <div style="text-align: center;">
-                    <a href="${verificationUrl}" class="button">Verify Email Address</a>
+      try {
+        const emailResult = await sendEmail({
+          to: email,
+          subject: 'Verify your Ge-Metrics account',
+          html: `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="utf-8">
+                <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { text-align: center; background: #1a1b1e; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+                  .content { background: white; padding: 30px; border: 1px solid #ddd; border-top: none; }
+                  .button { display: inline-block; background: #228be6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>🎮 Ge-Metrics</h1>
                   </div>
-                  <p>Or copy and paste this link into your browser:</p>
-                  <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
-                  <p><small>This verification link will expire in 24 hours.</small></p>
+                  <div class="content">
+                    <h2>Welcome to Ge-Metrics!</h2>
+                    <p>Hi ${name},</p>
+                    <p>Thank you for registering! Please verify your email address to complete your account setup.</p>
+                    <div style="text-align: center;">
+                      <a href="${verificationUrl}" class="button">Verify Email Address</a>
+                    </div>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+                    <p><small>This verification link will expire in 24 hours.</small></p>
+                  </div>
                 </div>
-              </div>
-            </body>
-          </html>
-        `,
-        text: `Welcome to Ge-Metrics!\n\nHi ${name},\n\nThank you for registering! Please verify your email address by visiting:\n${verificationUrl}\n\nThis link will expire in 24 hours.`
-      })
+              </body>
+            </html>
+          `,
+          text: `Welcome to Ge-Metrics!\n\nHi ${name},\n\nThank you for registering! Please verify your email address by visiting:\n${verificationUrl}\n\nThis link will expire in 24 hours.`
+        })
+
+        if (!emailResult.success) {
+          console.error(`❌ Failed to send verification email to ${email}:`, emailResult.error)
+          // Continue anyway - user can request a new verification email
+        } else {
+          console.log(`✅ Verification email sent to ${email} (messageId: ${emailResult.messageId})`)
+        }
+      } catch (emailError) {
+        console.error(`❌ Error sending verification email to ${email}:`, emailError)
+        // Continue anyway - user can request a new verification email
+      }
 
       console.log(`✅ New user registered: ${createdUser.email}`)
 

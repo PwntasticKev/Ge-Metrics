@@ -169,6 +169,7 @@ const SignupFlow = () => {
               label="Full Name"
               placeholder="Your full name"
               required
+              autoComplete="name"
               {...form.getInputProps('name')}
             />
             <TextInput
@@ -176,6 +177,7 @@ const SignupFlow = () => {
               label="Email"
               placeholder="your.email@example.com"
               required
+              autoComplete="email"
               {...form.getInputProps('email')}
             />
             <TextInput
@@ -183,6 +185,7 @@ const SignupFlow = () => {
               label="RuneScape Username"
               placeholder="Your RuneScape username"
               required
+              autoComplete="off"
               {...form.getInputProps('runescapeName')}
             />
             <PasswordInput
@@ -190,6 +193,7 @@ const SignupFlow = () => {
               label="Password"
               placeholder="Your password"
               required
+              autoComplete="new-password"
               {...form.getInputProps('password')}
             />
 
