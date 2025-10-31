@@ -142,7 +142,7 @@ function sortData (data, payload) {
   )
 }
 
-export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraphInfo, items }) {
+export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraphInfo, items, sellPriceLabel = 'Sell Price' }) {
   const theme = useMantineTheme()
   const location = useLocation()
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -294,7 +294,7 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                             reversed={reverseSortDirection}
                             onSort={() => setSorting('sellPrice')}
                         >
-                            Sell Price
+                            {sellPriceLabel}
                         </Th>
                         <Th
                             sorted={sortBy === 'profit'}

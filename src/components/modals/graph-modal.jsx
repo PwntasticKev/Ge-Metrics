@@ -5,16 +5,24 @@ import { useRef } from 'react'
 
 export default function GraphModal ({ opened, setOpened, id, items }) {
   const nodeRef = useRef(null)
+  
+  const handleClose = () => {
+    if (setOpened) {
+      setOpened(false)
+    }
+  }
+  
   return (
     <Draggable handle=".draggable-handle" nodeRef={nodeRef}>
       <div ref={nodeRef}>
         <Modal
           opened={opened}
-          onClose={() => setOpened(false)}
+          onClose={handleClose}
           centered
           size="95%"
           withinPortal={true}
           closeOnEscape={true}
+          closeOnClickOutside={true}
           trapFocus={false}
           zIndex={1000}
           withCloseButton={false}
@@ -34,7 +42,7 @@ export default function GraphModal ({ opened, setOpened, id, items }) {
           }}
         >
           <CloseButton
-            onClick={() => setOpened(false)}
+            onClick={handleClose}
             style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1001 }}
           />
           <Box style={{ resize: 'both', overflow: 'auto', padding: '1rem', minHeight: '70vh' }}>

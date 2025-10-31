@@ -658,10 +658,27 @@ export const systemSettings = pgTable('system_settings', {
   isSecretIdx: index('system_settings_is_secret_idx').on(table.isSecret)
 }))
 
-// Type exports for new tables
-export type Formula = typeof formulas.$inferSelect;
-export type NewFormula = typeof formulas.$inferInsert;
-export type CronJob = typeof cronJobs.$inferSelect;
-export type NewCronJob = typeof cronJobs.$inferInsert;
-export type SystemSetting = typeof systemSettings.$inferSelect;
-export type NewSystemSetting = typeof systemSettings.$inferInsert;
+// Developer Blogs - For tracking game updates and developer blogs
+export const blogs = pgTable('blogs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  date: timestamp('date').notNull(),
+  url: text('url').notNull(),
+  category: text('category'), // 'Game updates', 'Rewards', 'Polls', 'Community updates', etc.
+  content: text('content'), // Full content or summary
+  year: integer('year'), // Year extracted from date for easier filtering
+  month: integer('month'), // Month extracted from date
+  day: integer('day'), // Day extracted from date
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  dateIdx: index('blogs_date_idx').on(table.date),
+  yearIdx: index('blogs_year_idx').on(table.year),
+  categoryIdx: index('blogs_category_idx').on(table.category),
+  urlIdx: index('blogs_url_idx').on(table.url),
+  dateUrlIdx: uniqueIndex('blogs_date_url_idx').on(table.date, table.url) // Prevent duplicates
+}))
+
+// Type exports for blogs table
+export type Blog = typeof blogs.$inferSelect;
+export type NewBlog = typeof blogs.$inferInsert;

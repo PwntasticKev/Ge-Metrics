@@ -40,7 +40,9 @@ import {
   IconPlant2,
   IconWash,
   IconTool,
-  IconLock
+  IconLock,
+  IconSparkles,
+  IconShieldCheck
 } from '@tabler/icons-react'
 import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link } from 'react-router-dom'
@@ -344,6 +346,8 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
   const [marketWatchOpen, setMarketWatchOpen] = useState(false)
   const [moneyMakingOpen, setMoneyMakingOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
+  const [herbloreOpen, setHerbloreOpen] = useState(false)
+  const [magicOpen, setMagicOpen] = useState(false)
   const { user, isSubscribed, logout } = useAuth()
 
   // Check if user has access (admin/moderator bypass subscription requirement)
@@ -413,17 +417,61 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           hasAccess={hasAccess}
         />
 
-        <MainLink
+        {/* Herblore Submenu */}
+        <SubmenuLink
           icon={<IconFlask size="1rem"/>}
           color="teal"
-          label="Potion Combinations"
-          link="/potion-combinations"
+          label="Herblore"
+          isOpen={herbloreOpen}
+          onToggle={() => setHerbloreOpen(!herbloreOpen)}
           expanded={expanded}
           isMobile={isMobile}
-          onNavigate={onNavigate}
-          isPremium={true}
-          hasAccess={hasAccess}
-        />
+        >
+          <SubmenuItem
+            icon={<IconWash size="0.8rem"/>}
+            color="cyan"
+            label="Clean Herbs"
+            link="/herb-cleaning"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+          <SubmenuItem
+            icon={<IconFlask size="0.8rem"/>}
+            color="blue"
+            label="Potions"
+            link="/potion-combinations"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+          <SubmenuItem
+            icon={<IconTool size="0.8rem"/>}
+            color="green"
+            label="Make Potions"
+            link="/make-potions"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+          <SubmenuItem
+            icon={<IconDroplet size="0.8rem"/>}
+            color="violet"
+            label="Unfinished Potions"
+            link="/unfinished-potions"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+        </SubmenuLink>
 
         <MainLink
           icon={<IconPlant2 size="1rem"/>}
@@ -438,10 +486,79 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         />
 
         <MainLink
-          icon={<IconWash size="1rem"/>}
-          color="cyan"
-          label="Herb Cleaning"
-          link="/herb-cleaning"
+          icon={<IconHammer size="1rem"/>}
+          color="orange"
+          label="Plank Make"
+          link="/plank-make"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+
+        <MainLink
+          icon={<IconDiamond size="1rem"/>}
+          color="yellow"
+          label="High Alchemy"
+          link="/high-alchemy"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+
+        {/* Magic Submenu */}
+        <SubmenuLink
+          icon={<IconWand size="1rem"/>}
+          color="violet"
+          label="Magic"
+          isOpen={magicOpen}
+          onToggle={() => setMagicOpen(!magicOpen)}
+          expanded={expanded}
+          isMobile={isMobile}
+        >
+          <SubmenuItem
+            icon={<IconSparkles size="0.8rem"/>}
+            color="purple"
+            label="Magic Tablets"
+            link="/magic-tablets"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+          <SubmenuItem
+            icon={<IconTarget size="0.8rem"/>}
+            color="blue"
+            label="Enchant Bolts"
+            link="/enchanting-bolts"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+          <SubmenuItem
+            icon={<IconDroplet size="0.8rem"/>}
+            color="cyan"
+            label="Enchant Jewelry"
+            link="/enchanting-jewelry"
+            expanded={expanded}
+            isMobile={isMobile}
+            onNavigate={onNavigate}
+            isPremium={true}
+            hasAccess={hasAccess}
+          />
+        </SubmenuLink>
+
+        <MainLink
+          icon={<IconShieldCheck size="1rem"/>}
+          color="grape"
+          label="Barrows Repair"
+          link="/barrows-repair"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}

@@ -6,7 +6,8 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
     console.log('GraphModal: Attempting to close modal')
     if (setOpened) {
       setOpened(false)
-    } else if (onClose) {
+    }
+    if (onClose) {
       onClose()
     }
   }

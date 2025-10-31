@@ -67,6 +67,12 @@ const Saplings = lazy(() => import('./pages/Saplings/index.jsx'))
 const ComingSoon = lazy(() => import('./pages/ComingSoon/index.jsx'))
 const BillingPage = lazy(() => import('./pages/Billing/index.jsx'))
 const FlipHistory = lazy(() => import('./pages/FlipHistory/index.jsx'))
+const PlankMake = lazy(() => import('./pages/PlankMake/index.jsx'))
+const HighAlchemy = lazy(() => import('./pages/HighAlchemy/index.jsx'))
+const MagicTablets = lazy(() => import('./pages/MagicTablets/index.jsx'))
+const EnchantingBolts = lazy(() => import('./pages/EnchantingBolts/index.jsx'))
+const EnchantingJewelry = lazy(() => import('./pages/EnchantingJewelry/index.jsx'))
+const BarrowsRepair = lazy(() => import('./pages/BarrowsRepair/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -314,6 +320,14 @@ function AppContent () {
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/saplings" element={<Saplings />} />
               <Route path="/herb-cleaning" element={<HerbCleaning />} />
+              <Route path="/plank-make" element={<PlankMake />} />
+              <Route path="/high-alchemy" element={<HighAlchemy />} />
+              <Route path="/make-potions" element={<ComingSoon />} />
+              <Route path="/unfinished-potions" element={<ComingSoon />} />
+              <Route path="/magic-tablets" element={<MagicTablets />} />
+              <Route path="/enchanting-bolts" element={<EnchantingBolts />} />
+              <Route path="/enchanting-jewelry" element={<EnchantingJewelry />} />
+              <Route path="/barrows-repair" element={<BarrowsRepair />} />
               <Route path="/flip-history" element={<FlipHistory />} />
               <Route path="/billing" element={<BillingPage />} />
               {/* Market Watch Submenu Routes */}

@@ -102,7 +102,8 @@ export const getItemSetProfit = (
     itemSet,
     itemsToCreateSet,
     conversionCost = 0,
-    qty = { id: null, qty: 0 }
+    qty = { id: null, qty: 0 },
+    itemQuantities = {} // Object mapping itemId to quantity
   },
   allItems
 ) => {
@@ -111,7 +112,8 @@ export const getItemSetProfit = (
     itemsToCreateSet,
     conversionCost,
     qty,
-    allItems
+    allItems,
+    itemQuantities
   )
   if (qty && qty.qty) {
     const item = getItemById(qty.id, allItems)
@@ -122,13 +124,13 @@ export const getItemSetProfit = (
 
   const originalItem = allItems.find(item => item.id === itemSet)
   //
-  const itemAsSet = getModifiedItem(originalItem, totalPrice, itemsToCreateSet, allItems)
+  const itemAsSet = getModifiedItem(originalItem, totalPrice, itemsToCreateSet, allItems, itemQuantities)
   //
 
   return itemAsSet
 }
 
-export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) => {
+export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems, itemQuantities = {}) => {
   const highPrice = safeParseFloat(item?.high, 0)
   const formatter = new Intl.NumberFormat()
   const convertedItems = itemsToCreateSet.map(itemId => {
@@ -136,7 +138,8 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) =>
     if (foundItem) {
       return {
         ...foundItem,
-        img: `https://oldschool.runescape.wiki/images/${foundItem.icon}`.replace(/ /g, '_')
+        img: `https://oldschool.runescape.wiki/images/${foundItem.icon}`.replace(/ /g, '_'),
+        qty: itemQuantities[itemId] || undefined // Add quantity if specified
       }
     }
     return null
@@ -160,7 +163,7 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems) =>
   return undefined
 }
 
-export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qty = null, allItems) => {
+export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qty = null, allItems, itemQuantities = {}) => {
   let total = 0
   const itemForQty = qty && getItemById(qty.id, allItems)
   const qtyItemLow = safeParseFloat(itemForQty?.low, 0)
@@ -170,7 +173,8 @@ export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qt
   itemIdsToCreate.forEach(itemId => {
     const item = getItemById(itemId, allItems)
     const lowPrice = safeParseFloat(item?.low, 0)
-    total += lowPrice
+    const quantity = itemQuantities[itemId] || 1 // Use quantity from map, default to 1
+    total += lowPrice * quantity
   })
   return total + qtyCost + conversionCost
 }

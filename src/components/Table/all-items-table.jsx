@@ -118,17 +118,25 @@ function filterData (data, filters) {
       if (!matchesSearch) return false
     }
 
-    // Third Age filter
+    // Third Age filter logic
+    const thirdAgeKeywords = [
+      '3rd age',
+      'third-age',
+      '3rd-age'
+    ]
+    const isThirdAge = thirdAgeKeywords.some(keyword =>
+      item.name.toLowerCase().includes(keyword)
+    )
+
     if (thirdAge) {
-      const thirdAgeKeywords = [
-        '3rd age',
-        'third-age',
-        '3rd-age'
-      ]
-      const isThirdAge = thirdAgeKeywords.some(keyword =>
-        item.name.toLowerCase().includes(keyword)
-      )
+      // When filter is ON: show ONLY third age items
       if (!isThirdAge) return false
+    } else {
+      // When filter is OFF: exclude third age items by default
+      // (unless user is searching for them specifically - then allow them)
+      if (isThirdAge && !search) {
+        return false
+      }
     }
 
     // Volume filter (based on buy limit as proxy for volume)

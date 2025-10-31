@@ -48,8 +48,9 @@ export default function AllItems () {
         img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_')
       }
     })
-    .filter(item => !item.name.includes('3rd age'))
     .sort((a, b) => b.profit - a.profit)
+    // Don't limit here - let pagination handle display
+    // Keep ALL items available for filtering/searching
 
   // Don't let favorites loading block the entire page
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading'
