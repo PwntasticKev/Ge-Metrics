@@ -55,14 +55,21 @@ export const itemsRouter = router({
             })
             
             if (!response.ok) {
+              const errorText = await response.text()
+              console.error(`[getItemMapping] API error: ${response.status} ${response.statusText}`, errorText)
               throw new Error(`OSRS Wiki API returned ${response.status}: ${response.statusText}`)
             }
             
             const apiData: any[] = await response.json()
             console.log(`[getItemMapping] Fetched ${apiData.length} items from API, inserting into database...`)
             
+            if (!apiData || apiData.length === 0) {
+              throw new Error('API returned empty array')
+            }
+            
             // Insert in chunks to avoid overwhelming the database
             const chunkSize = 500
+            let insertedCount = 0
             for (let i = 0; i < apiData.length; i += chunkSize) {
               const chunk = apiData.slice(i, i + chunkSize).map((item: any) => ({
                 id: item.id,
@@ -77,21 +84,32 @@ export const itemsRouter = router({
                 wikiUrl: `https://oldschool.runescape.wiki/w/${encodeURIComponent(item.name.replace(/\s+/g, '_'))}`
               }))
               
-              await db.insert(itemMapping)
-                .values(chunk)
-                .onConflictDoUpdate({
-                  target: itemMapping.id,
-                  set: {
-                    updatedAt: new Date()
-                  }
-                })
-              
-              console.log(`[getItemMapping] Inserted chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(apiData.length / chunkSize)}`)
+              try {
+                await db.insert(itemMapping)
+                  .values(chunk)
+                  .onConflictDoUpdate({
+                    target: itemMapping.id,
+                    set: {
+                      updatedAt: new Date()
+                    }
+                  })
+                insertedCount += chunk.length
+                console.log(`[getItemMapping] Inserted chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(apiData.length / chunkSize)} (${insertedCount} items inserted so far)`)
+              } catch (insertError) {
+                console.error(`[getItemMapping] Error inserting chunk ${Math.floor(i / chunkSize) + 1}:`, insertError)
+                // Continue with other chunks even if one fails
+              }
             }
+            
+            console.log(`[getItemMapping] Finished inserting. Total inserted: ${insertedCount}`)
             
             // Re-fetch from database after population
             const repopulatedMappings = await db.select().from(itemMapping)
             console.log(`[getItemMapping] Successfully populated and fetched ${repopulatedMappings.length} item mappings`)
+            
+            if (repopulatedMappings.length === 0) {
+              throw new Error('Failed to populate item mapping - table still empty after insertion')
+            }
             
             const mappingObject: Record<number, typeof repopulatedMappings[number]> = {}
             repopulatedMappings.forEach(item => {
@@ -100,8 +118,13 @@ export const itemsRouter = router({
             return mappingObject
           } catch (populateError) {
             console.error('[getItemMapping] Failed to populate from API:', populateError)
-            // Return empty object instead of throwing - allows UI to still load
-            return {}
+            console.error('[getItemMapping] Error details:', populateError instanceof Error ? populateError.stack : String(populateError))
+            // Throw error instead of returning empty - this will show up in logs and help debug
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: `Failed to populate item mapping: ${populateError instanceof Error ? populateError.message : 'Unknown error'}`,
+              cause: populateError
+            })
           }
         }
         
@@ -112,9 +135,12 @@ export const itemsRouter = router({
         return mappingObject
       } catch (error) {
         console.error('[getItemMapping] Error fetching item mappings:', error)
-        // Return empty object instead of throwing to prevent complete UI failure
-        // The error is logged for debugging
-        return {}
+        console.error('[getItemMapping] Error details:', error instanceof Error ? error.stack : String(error))
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch item mappings from database',
+          cause: error
+        })
       }
     }),
 

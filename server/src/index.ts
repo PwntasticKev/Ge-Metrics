@@ -14,6 +14,7 @@ import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import stripeRoutes from './routes/stripe.js'
 // import { scheduleVolumeUpdates } from './tasks/updateVolumes.js' - This is no longer needed
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
+import { db, itemMapping } from './db/index.js'
 
 const app = express()
 
@@ -24,6 +25,20 @@ runMigrations().catch((error) => {
   // This prevents the entire app from crashing due to migration issues
   console.log('Server will continue starting despite migration failure...')
 })
+
+// Populate item mapping if empty (after migrations)
+setTimeout(async () => {
+  try {
+    const count = await db.select().from(itemMapping)
+    if (count.length === 0) {
+      console.log('[Startup] Item mapping table is empty, will populate on first request')
+    } else {
+      console.log(`[Startup] Item mapping table has ${count.length} items`)
+    }
+  } catch (error) {
+    console.error('[Startup] Error checking item mapping:', error)
+  }
+}, 2000) // Wait 2 seconds for migrations to complete
 
 // CORS configuration
 const allowedOrigins = [config.FRONTEND_URL]
