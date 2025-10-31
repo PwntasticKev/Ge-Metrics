@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Group, TextInput, Select, Stack, Tabs, NumberInput, Badge, Grid, Accordion, Button } from '@mantine/core'
+import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Group, TextInput, Select, Stack, Tabs, NumberInput, Badge, Grid, Accordion, Button, Card } from '@mantine/core'
 import { IconSearch, IconFilter, IconHeart, IconList, IconPigMoney, IconGraph, IconClock, IconInfoCircle, IconRefresh } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { PotionCard } from './PotionCard'
@@ -12,11 +12,26 @@ import { getRelativeTime } from '../../utils/utils'
 export default function PotionCombinations () {
   // TRPC Data Fetching.
   const { data: itemMapping, isLoading: isLoadingMapping, error: errorMapping, refetch: refetchItemMapping } = trpc.items.getItemMapping.useQuery()
-  const { data: allItems, isLoading: isLoadingAllItems, error: errorItems } = trpc.items.getAllItems.useQuery()
+  // Fetch live price data every 60 seconds (same as All Items page)
+  const { data: allItems, isLoading: isLoadingAllItems, error: errorItems, refetch: refetchAllItems } = trpc.items.getAllItems.useQuery(undefined, {
+    refetchInterval: 60000, // Refetch every 60 seconds for live data
+    staleTime: 0, // Always consider data stale to force fresh fetches
+    cacheTime: 30000 // Keep in cache for 30 seconds only
+  })
   const { data: volumeData, isLoading: isLoadingVolumes, error: errorVolumes, refetch: refetchVolumes } = trpc.items.getAllVolumes.useQuery()
   const { data: lastUpdatedData, isLoading: isLoadingLastUpdated } = trpc.items.getVolumesLastUpdated.useQuery(undefined, {
     refetchInterval: 30000 // Check every 30 seconds if volumes need updating
   })
+
+  // Track when prices were last fetched for live data indicator
+  const [lastPriceFetchTime, setLastPriceFetchTime] = useState(new Date())
+  
+  // Update last fetch time when allItems data changes
+  useEffect(() => {
+    if (allItems && Object.keys(allItems).length > 0 && !isLoadingAllItems) {
+      setLastPriceFetchTime(new Date())
+    }
+  }, [allItems, isLoadingAllItems])
 
   // Manual population mutations
   const populateMappingMutation = trpc.items.populateItemMapping.useMutation({
@@ -296,15 +311,42 @@ export default function PotionCombinations () {
 
   return (
     <Container size="xl">
-       <Group position="apart" mb="md">
+      {/* Status Card - Similar to All Items page */}
+      <Card withBorder radius="md" mb="md" sx={(theme) => ({
+        backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[1]
+      })}>
+        <Group position="apart">
+          <Group>
+            <IconClock size={16} />
+            <Text size="sm">
+              Potion Prices - {getRelativeTime(lastPriceFetchTime)}
+            </Text>
+            <Text size="sm" color="dimmed">
+              ({allItems ? Object.keys(allItems).length : 0} items loaded)
+            </Text>
+          </Group>
+          <Group>
+            <Button 
+              variant="light" 
+              size="xs" 
+              onClick={() => refetchAllItems()} 
+              disabled={isLoadingAllItems}
+              leftIcon={<IconRefresh size={14} />}
+            >
+              Refresh Prices
+            </Button>
+            <Badge color="green" variant="light">Live Data</Badge>
+          </Group>
+        </Group>
+        {lastUpdatedData?.lastUpdatedAt && (
+          <Text size="xs" color="dimmed" mt="xs">
+            Volume data updated {getRelativeTime(new Date(lastUpdatedData.lastUpdatedAt))}
+          </Text>
+        )}
+      </Card>
+
+      <Group position="apart" mb="md">
         <Text size="xl" weight={700}>Potion Combination Profits</Text>
-        <Badge
-          color={isLoadingLastUpdated ? 'gray' : 'teal'}
-          variant="light"
-          leftSection={<IconClock size={14} />}
-        >
-          {lastUpdatedData?.lastUpdatedAt ? `Live Data: Updated ${getRelativeTime(new Date(lastUpdatedData.lastUpdatedAt))}` : 'Updating cache...'}
-        </Badge>
       </Group>
 
       <Tabs value={activeTab} onTabChange={setActiveTab} mb="lg">
