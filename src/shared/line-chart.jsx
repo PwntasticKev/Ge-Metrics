@@ -7,6 +7,7 @@ import {
   LineElement,
   PointElement,
   BarElement,
+  BarController,
   Title,
   Tooltip,
   TimeScale,
@@ -15,7 +16,7 @@ import {
 import 'chartjs-adapter-date-fns'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import zoomPlugin from 'chartjs-plugin-zoom'
-import { Line } from 'react-chartjs-2'
+import { Chart } from 'react-chartjs-2'
 import { getItemHistoryById } from '../api/rs-wiki-api.jsx'
 import { getItemById, getRelativeTime } from '../utils/utils.jsx'
 import { Badge, Group, Text, Loader, Center, Button } from '@mantine/core'
@@ -27,6 +28,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   BarElement,
+  BarController,
   Title,
   Tooltip,
   Legend,
@@ -298,7 +300,7 @@ export default function LineChart ({ id, items }) {
       {historyData && historyData.length > 0
         ? (
           <div style={{ height: '400px' }}>
-              <Line ref={chartRef} options={options} data={chartData} />
+              <Chart ref={chartRef} type="line" options={options} data={chartData} />
           </div>
           )
         : (
