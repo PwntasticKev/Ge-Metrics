@@ -4,17 +4,39 @@
 const POTION_DOSES = ['(1)', '(2)', '(3)', '(4)']
 
 export function processPotionData (itemMapping, allItems, itemVolumes) {
-  if (!itemMapping || !allItems || !itemVolumes) {
+  // Check if we have actual data (not just empty objects)
+  if (!itemMapping || Object.keys(itemMapping).length === 0) {
+    console.warn('[processPotionData] itemMapping is empty or missing')
     return []
   }
+  
+  if (!allItems || Object.keys(allItems).length === 0) {
+    console.warn('[processPotionData] allItems is empty or missing')
+    return []
+  }
+  
+  // itemVolumes can be empty object, that's OK - we'll use defaults
+  if (!itemVolumes) {
+    itemVolumes = {}
+  }
+
+  console.log('[processPotionData] Starting processing:', {
+    itemMappingCount: Object.keys(itemMapping).length,
+    allItemsCount: Object.keys(allItems).length,
+    itemVolumesCount: Object.keys(itemVolumes).length
+  })
 
   const potionFamilies = {}
+  let potionCount = 0
+  let potionsWithDose = 0
 
   // First, group all potions by their base name
   Object.values(itemMapping).forEach(item => {
-    if (item.name.includes('potion')) {
+    if (item.name && item.name.toLowerCase().includes('potion')) {
+      potionCount++
       const doseMatch = item.name.match(/\((\d)\)/)
       if (doseMatch) {
+        potionsWithDose++
         const dose = doseMatch[1]
         const baseName = item.name.replace(`(${dose})`, '').trim()
 
@@ -42,6 +64,13 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
         }
       }
     }
+  })
+
+  console.log('[processPotionData] Found potions:', {
+    totalPotionsFound: potionCount,
+    potionsWithDoseFormat: potionsWithDose,
+    uniquePotionFamilies: Object.keys(potionFamilies).length,
+    families: Object.keys(potionFamilies).slice(0, 10) // First 10 for debugging
   })
 
   // Then, calculate profits for each family
@@ -110,6 +139,11 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
       }
     })
     .filter(family => family.combinations.length > 0)
+
+  console.log('[processPotionData] After profit calculation:', {
+    familiesWithStats: familiesWithStats.length,
+    familiesWithoutValidCombinations: Object.keys(potionFamilies).length - familiesWithStats.length
+  })
 
   // Finally, calculate the normalized scores based on the results
   const maxProfit = Math.max(...familiesWithStats.map(f => f.bestProfitPerPotion), 0)

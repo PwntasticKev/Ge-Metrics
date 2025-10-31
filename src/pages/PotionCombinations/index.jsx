@@ -31,8 +31,23 @@ export default function PotionCombinations () {
 
   // Memoized Potion Processing
   const recipes = useMemo(() => {
-    if (itemMapping && allItems && volumeData) {
-      const recipes = processPotionData(itemMapping, allItems, volumeData)
+    // Check if we have actual data (not just empty objects)
+    const hasItemMapping = itemMapping && Object.keys(itemMapping).length > 0
+    const hasAllItems = allItems && Object.keys(allItems).length > 0
+    const hasVolumeData = volumeData !== undefined // volumeData can be empty object, that's OK
+    
+    console.log('[PotionCombinations] Data check:', {
+      hasItemMapping,
+      hasAllItems,
+      hasVolumeData,
+      itemMappingCount: itemMapping ? Object.keys(itemMapping).length : 0,
+      allItemsCount: allItems ? Object.keys(allItems).length : 0,
+      volumeDataCount: volumeData ? Object.keys(volumeData).length : 0
+    })
+    
+    if (hasItemMapping && hasAllItems) {
+      const recipes = processPotionData(itemMapping, allItems, volumeData || {})
+      console.log('[PotionCombinations] Processed recipes:', recipes.length)
       return recipes
     }
     return []
@@ -121,10 +136,14 @@ export default function PotionCombinations () {
     return <Center style={{ height: '80vh' }}><Loader size="xl" /></Center>
   }
 
-  if (!itemMapping || !allItems) {
+  if (!itemMapping || Object.keys(itemMapping).length === 0 || !allItems || Object.keys(allItems).length === 0) {
     console.error('Potion Combinations - Missing essential data:', {
       itemMapping: !!itemMapping,
+      itemMappingCount: itemMapping ? Object.keys(itemMapping).length : 0,
       allItems: !!allItems,
+      allItemsCount: allItems ? Object.keys(allItems).length : 0,
+      volumeData: !!volumeData,
+      volumeDataCount: volumeData ? Object.keys(volumeData).length : 0,
       errorMapping,
       errorItems,
       errorVolumes
@@ -143,7 +162,10 @@ export default function PotionCombinations () {
           </Alert>
         )}
         <Text align="center" mt="md" color="dimmed">
-          Missing: {!itemMapping && 'Item Mapping'} {!itemMapping && !allItems && ', '} {!allItems && 'Price Data'}
+          Missing: {(!itemMapping || Object.keys(itemMapping).length === 0) && 'Item Mapping'} {(!itemMapping || Object.keys(itemMapping).length === 0) && (!allItems || Object.keys(allItems).length === 0) && ', '} {(!allItems || Object.keys(allItems).length === 0) && 'Price Data'}
+        </Text>
+        <Text align="center" mt="sm" color="dimmed" size="sm">
+          {itemMapping && Object.keys(itemMapping).length === 0 && 'Item Mapping table is empty. Auto-population may be in progress...'}
         </Text>
       </Container>
     )
@@ -236,6 +258,28 @@ export default function PotionCombinations () {
         expanded={formulaExpanded}
         onToggle={() => setFormulaExpanded(!formulaExpanded)}
       />
+
+      {filteredRecipes.length === 0 && recipes.length === 0 && (
+        <Alert color="yellow" mt="md" icon={<IconInfoCircle size={16} />}>
+          <Text size="sm">
+            No potion combinations found. This could mean:
+            <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+              <li>Item mapping data is still being populated (check server logs)</li>
+              <li>No potions have valid price data yet</li>
+              <li>All potions were filtered out by your search/filter criteria</li>
+            </ul>
+            Check the browser console for detailed data counts.
+          </Text>
+        </Alert>
+      )}
+
+      {filteredRecipes.length === 0 && recipes.length > 0 && (
+        <Alert color="blue" mt="md">
+          <Text size="sm">
+            No potions match your current filter criteria. Try adjusting your search or filters.
+          </Text>
+        </Alert>
+      )}
 
       <SimpleGrid
         cols={4}
