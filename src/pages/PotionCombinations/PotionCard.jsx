@@ -117,7 +117,7 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
               <Group position="apart">
                 <Stack spacing={0}>
                   <Text size="xs" weight={isBest ? 700 : 400}>
-                    ({combo.dose}): {combo.cost !== null ? Math.round(combo.cost).toLocaleString() : 'N/A'}
+                    ({combo.dose}): {combo.low !== null && combo.low !== undefined ? Number(combo.low.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
                   </Text>
                   <Text size="xs" color="dimmed">
                     Vol 24h: {totalVolumeDisplay}
@@ -134,11 +134,11 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
         {/* Divider line */}
         <div style={{ borderTop: '1px solid #dee2e6', margin: '6px 0' }} />
 
-        {/* (4) dose sell price */}
+        {/* (4) dose sell price - show actual high price to match All Items page */}
         <Group position="apart" py={4}>
           <Text size="xs" weight={500}>Sell (4):</Text>
           <Text size="xs" weight={500} color="green">
-            {item4.high ? Math.round(parseFloat(item4.high.toString().replace(/,/g, '')) * 0.98).toLocaleString() : 'N/A'}
+            {item4.high ? Number(item4.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
           </Text>
         </Group>
       </Stack>

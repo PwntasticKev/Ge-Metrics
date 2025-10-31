@@ -96,7 +96,15 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
         const cost = parseFloat(item3.low.toString().replace(/,/g, '')) * (4 / 3)
         const profitPerPotion = sellPrice - cost
         if (!isNaN(profitPerPotion)) {
-          combinations.push({ dose: '3', cost, profitPerPotion, itemId: item3.id })
+          combinations.push({ 
+            dose: '3', 
+            cost, 
+            profitPerPotion, 
+            itemId: item3.id,
+            // Include actual API prices to match All Items page
+            low: item3.low,
+            high: item3.high
+          })
           if (profitPerPotion > bestProfitPerPotion) {
             bestProfitPerPotion = profitPerPotion
             bestMethodDose = '3'
@@ -109,7 +117,15 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
         const cost = parseFloat(item2.low.toString().replace(/,/g, '')) * 2
         const profitPerPotion = sellPrice - cost
         if (!isNaN(profitPerPotion)) {
-          combinations.push({ dose: '2', cost, profitPerPotion, itemId: item2.id })
+          combinations.push({ 
+            dose: '2', 
+            cost, 
+            profitPerPotion, 
+            itemId: item2.id,
+            // Include actual API prices to match All Items page
+            low: item2.low,
+            high: item2.high
+          })
           if (profitPerPotion > bestProfitPerPotion) {
             bestProfitPerPotion = profitPerPotion
             bestMethodDose = '2'
@@ -122,7 +138,15 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
         const cost = parseFloat(item1.low.toString().replace(/,/g, '')) * 4
         const profitPerPotion = sellPrice - cost
         if (!isNaN(profitPerPotion)) {
-          combinations.push({ dose: '1', cost, profitPerPotion, itemId: item1.id })
+          combinations.push({ 
+            dose: '1', 
+            cost, 
+            profitPerPotion, 
+            itemId: item1.id,
+            // Include actual API prices to match All Items page
+            low: item1.low,
+            high: item1.high
+          })
           if (profitPerPotion > bestProfitPerPotion) {
             bestProfitPerPotion = profitPerPotion
             bestMethodDose = '1'
