@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Group, TextInput, Select, Stack, Tabs, NumberInput, Badge, Grid, Accordion } from '@mantine/core'
-import { IconSearch, IconFilter, IconHeart, IconList, IconPigMoney, IconGraph, IconClock, IconInfoCircle } from '@tabler/icons-react'
+import { Container, Title, SimpleGrid, Loader, Center, Alert, Text, Group, TextInput, Select, Stack, Tabs, NumberInput, Badge, Grid, Accordion, Button } from '@mantine/core'
+import { IconSearch, IconFilter, IconHeart, IconList, IconPigMoney, IconGraph, IconClock, IconInfoCircle, IconRefresh } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { PotionCard } from './PotionCard'
 import { CalculationExplainer } from './CalculationExplainer'
@@ -11,11 +11,25 @@ import { getRelativeTime } from '../../utils/utils'
 
 export default function PotionCombinations () {
   // TRPC Data Fetching.
-  const { data: itemMapping, isLoading: isLoadingMapping, error: errorMapping } = trpc.items.getItemMapping.useQuery()
+  const { data: itemMapping, isLoading: isLoadingMapping, error: errorMapping, refetch: refetchItemMapping } = trpc.items.getItemMapping.useQuery()
   const { data: allItems, isLoading: isLoadingAllItems, error: errorItems } = trpc.items.getAllItems.useQuery()
   const { data: volumeData, isLoading: isLoadingVolumes, error: errorVolumes } = trpc.items.getAllVolumes.useQuery()
   const { data: lastUpdatedData, isLoading: isLoadingLastUpdated } = trpc.items.getVolumesLastUpdated.useQuery(undefined, {
     refetchInterval: 30000 // Refetch every 30 seconds to keep the timer current
+  })
+
+  // Manual population mutation
+  const populateMutation = trpc.items.populateItemMapping.useMutation({
+    onSuccess: (data) => {
+      console.log('[PotionCombinations] Population successful:', data)
+      // Refetch item mapping after successful population
+      setTimeout(() => {
+        refetchItemMapping()
+      }, 1000)
+    },
+    onError: (error) => {
+      console.error('[PotionCombinations] Population failed:', error)
+    }
   })
 
   // Client-side State
@@ -164,9 +178,33 @@ export default function PotionCombinations () {
         <Text align="center" mt="md" color="dimmed">
           Missing: {(!itemMapping || Object.keys(itemMapping).length === 0) && 'Item Mapping'} {(!itemMapping || Object.keys(itemMapping).length === 0) && (!allItems || Object.keys(allItems).length === 0) && ', '} {(!allItems || Object.keys(allItems).length === 0) && 'Price Data'}
         </Text>
-        <Text align="center" mt="sm" color="dimmed" size="sm">
-          {itemMapping && Object.keys(itemMapping).length === 0 && 'Item Mapping table is empty. Auto-population may be in progress...'}
-        </Text>
+        {(!itemMapping || Object.keys(itemMapping).length === 0) && (
+          <Alert color="yellow" mt="md" icon={<IconInfoCircle size={16} />}>
+            <Text size="sm" mb="md">
+              Item Mapping table is empty. This usually happens after database migrations.
+            </Text>
+            <Center>
+              <Button
+                leftIcon={<IconRefresh size={16} />}
+                onClick={() => populateMutation.mutate()}
+                loading={populateMutation.isLoading}
+                color="blue"
+              >
+                {populateMutation.isLoading ? 'Populating...' : 'Populate Item Mapping'}
+              </Button>
+            </Center>
+            {populateMutation.isError && (
+              <Text size="sm" color="red" mt="sm">
+                Error: {populateMutation.error?.message || 'Failed to populate'}
+              </Text>
+            )}
+            {populateMutation.isSuccess && (
+              <Text size="sm" color="green" mt="sm">
+                {populateMutation.data?.message || 'Successfully populated!'}
+              </Text>
+            )}
+          </Alert>
+        )}
       </Container>
     )
   }

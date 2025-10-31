@@ -201,6 +201,91 @@ export const itemsRouter = router({
       return []
     }),
 
+  // Manually populate item mapping (useful for admin or when auto-population fails)
+  populateItemMapping: publicProcedure
+    .mutation(async () => {
+      try {
+        console.log('[populateItemMapping] Starting manual population...')
+        const existingCount = await db.select().from(itemMapping)
+        
+        if (existingCount.length > 100) {
+          console.log(`[populateItemMapping] Table already has ${existingCount.length} items, skipping population`)
+          return { success: true, message: `Table already populated with ${existingCount.length} items`, count: existingCount.length }
+        }
+        
+        const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/mapping', {
+          headers: {
+            'User-Agent': 'GE-Metrics/1.0 (https://ge-metrics.com)'
+          }
+        })
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`OSRS Wiki API returned ${response.status}: ${response.statusText} - ${errorText}`)
+        }
+        
+        const apiData: any[] = await response.json()
+        console.log(`[populateItemMapping] Fetched ${apiData.length} items from API`)
+        
+        if (!apiData || apiData.length === 0) {
+          throw new Error('API returned empty array')
+        }
+        
+        const chunkSize = 500
+        let insertedCount = 0
+        let errorCount = 0
+        
+        for (let i = 0; i < apiData.length; i += chunkSize) {
+          const chunk = apiData.slice(i, i + chunkSize).map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            examine: item.examine || null,
+            members: item.members || false,
+            lowalch: item.lowalch || null,
+            highalch: item.highalch || null,
+            limit: item.limit || null,
+            value: item.value || null,
+            icon: item.icon || null,
+            wikiUrl: `https://oldschool.runescape.wiki/w/${encodeURIComponent(item.name.replace(/\s+/g, '_'))}`
+          }))
+          
+          try {
+            await db.insert(itemMapping)
+              .values(chunk)
+              .onConflictDoUpdate({
+                target: itemMapping.id,
+                set: {
+                  updatedAt: new Date()
+                }
+              })
+            insertedCount += chunk.length
+            console.log(`[populateItemMapping] Inserted chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(apiData.length / chunkSize)}`)
+          } catch (insertError) {
+            errorCount++
+            console.error(`[populateItemMapping] Error inserting chunk ${Math.floor(i / chunkSize) + 1}:`, insertError)
+            // Continue with other chunks
+          }
+        }
+        
+        const finalCount = await db.select().from(itemMapping)
+        
+        return {
+          success: true,
+          message: `Inserted ${insertedCount} items. Table now has ${finalCount.length} items.`,
+          inserted: insertedCount,
+          finalCount: finalCount.length,
+          errors: errorCount
+        }
+      } catch (error) {
+        console.error('[populateItemMapping] Error:', error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to populate item mapping: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          cause: error
+        })
+      }
+    }),
+
   getItemHistory: publicProcedure
     .input(z.object({
       timestep: z.string(),
