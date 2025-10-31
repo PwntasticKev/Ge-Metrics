@@ -48,11 +48,32 @@ export function useFavorites (itemType) {
   })
 
   const toggleFavorite = (itemId, itemType) => {
+    if (!user) {
+      console.warn('[useFavorites] Cannot toggle favorite - user not logged in')
+      return
+    }
+    
     const isFavorite = favoriteItems?.some(fav => fav.itemId === itemId && fav.itemType === itemType)
+    console.log('[useFavorites] Toggling favorite:', { itemId, itemType, isFavorite, currentFavorites: favoriteItems?.length })
+    
     if (isFavorite) {
-      removeFavorite.mutate({ itemId, itemType })
+      removeFavorite.mutate({ itemId, itemType }, {
+        onError: (error) => {
+          console.error('[useFavorites] Failed to remove favorite:', error)
+        },
+        onSuccess: () => {
+          console.log('[useFavorites] Successfully removed favorite')
+        }
+      })
     } else {
-      addFavorite.mutate({ itemId, itemType })
+      addFavorite.mutate({ itemId, itemType }, {
+        onError: (error) => {
+          console.error('[useFavorites] Failed to add favorite:', error)
+        },
+        onSuccess: () => {
+          console.log('[useFavorites] Successfully added favorite')
+        }
+      })
     }
   }
 

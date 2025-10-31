@@ -25,7 +25,7 @@ export default function HerbCleaning () {
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   const favoriteItemIds = new Set(
-    favoriteItems
+    (favoriteItems || [])
       .filter(fav => fav.itemType === 'herb')
       .map(fav => fav.itemId)
   )

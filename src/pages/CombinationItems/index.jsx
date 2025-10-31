@@ -26,7 +26,7 @@ export default function CombinationItems () {
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   const favoriteItemIds = new Set(
-    favoriteItems
+    (favoriteItems || [])
       .filter(fav => fav.itemType === 'combination')
       .map(fav => fav.itemId)
   )

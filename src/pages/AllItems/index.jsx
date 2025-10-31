@@ -14,9 +14,9 @@ export default function AllItems () {
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
 
   const favoriteItemIds = new Set(
-    favoriteItems
-      ?.filter(fav => fav.itemType === 'item')
-      ?.map(fav => fav.itemId) || []
+    (favoriteItems || [])
+      .filter(fav => fav.itemType === 'item')
+      .map(fav => fav.itemId)
   )
 
   useEffect(() => {

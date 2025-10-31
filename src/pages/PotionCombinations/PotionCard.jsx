@@ -82,12 +82,20 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
         {recipe.combinations && [...recipe.combinations].sort((a, b) => parseInt(a.dose) - parseInt(b.dose)).map((combo) => {
           const isBest = bestMethod && combo.dose === bestMethod.dose
           const volumeInfo = volumeData ? volumeData[combo.itemId] : null
-          // Show 0 if no volume data found, or show loader only if volumes are still loading
-          const totalVolume = volumeInfo 
-            ? (volumeInfo.highPriceVolume || 0) + (volumeInfo.lowPriceVolume || 0)
-            : volumeData === undefined 
-              ? <Loader size="xs" /> 
-              : '0'
+          // Calculate total volume - handle null/undefined values properly
+          let totalVolume
+          if (volumeData === undefined) {
+            // Still loading
+            totalVolume = <Loader size="xs" />
+          } else if (volumeInfo && (volumeInfo.highPriceVolume != null || volumeInfo.lowPriceVolume != null)) {
+            // We have volume data - sum it up (treat null as 0)
+            const high = volumeInfo.highPriceVolume ?? 0
+            const low = volumeInfo.lowPriceVolume ?? 0
+            totalVolume = high + low
+          } else {
+            // No volume data for this item
+            totalVolume = 0
+          }
           const totalVolumeDisplay = typeof totalVolume === 'number' ? totalVolume.toLocaleString() : totalVolume
 
           return (

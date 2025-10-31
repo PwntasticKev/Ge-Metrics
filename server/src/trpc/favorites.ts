@@ -38,14 +38,39 @@ export const favoritesRouter = router({
       const userId = ctx.user.id
       const { itemId, itemType } = input
 
-      // Use onConflictDoNothing to prevent duplicates
-      await db.insert(favorites).values({
-        userId,
-        itemId,
-        itemType
-      }).onConflictDoNothing()
+      console.log('[favorites.add] Adding favorite:', { userId, itemId, itemType })
 
-      return { success: true, message: 'Favorite added.' }
+      // Check if favorite already exists first
+      const existing = await db.select()
+        .from(favorites)
+        .where(and(
+          eq(favorites.userId, userId),
+          eq(favorites.itemId, itemId),
+          eq(favorites.itemType, itemType)
+        ))
+        .limit(1)
+
+      if (existing.length > 0) {
+        console.log('[favorites.add] Favorite already exists, skipping insert')
+        return { success: true, message: 'Favorite already exists.' }
+      }
+
+      try {
+        await db.insert(favorites).values({
+          userId,
+          itemId,
+          itemType
+        })
+        console.log('[favorites.add] Successfully added favorite')
+        return { success: true, message: 'Favorite added.' }
+      } catch (error) {
+        console.error('[favorites.add] Error adding favorite:', error)
+        // If it's a duplicate key error, that's OK - return success
+        if (error instanceof Error && error.message.includes('duplicate')) {
+          return { success: true, message: 'Favorite already exists.' }
+        }
+        throw error
+      }
     }),
 
   // Remove a favorite
@@ -58,9 +83,17 @@ export const favoritesRouter = router({
       const userId = ctx.user.id
       const { itemId, itemType } = input
 
-      await db.delete(favorites)
-        .where(and(eq(favorites.userId, userId), eq(favorites.itemId, itemId), eq(favorites.itemType, itemType)))
+      console.log('[favorites.remove] Removing favorite:', { userId, itemId, itemType })
 
-      return { success: true, message: 'Favorite removed.' }
+      try {
+        const result = await db.delete(favorites)
+          .where(and(eq(favorites.userId, userId), eq(favorites.itemId, itemId), eq(favorites.itemType, itemType)))
+        
+        console.log('[favorites.remove] Successfully removed favorite')
+        return { success: true, message: 'Favorite removed.' }
+      } catch (error) {
+        console.error('[favorites.remove] Error removing favorite:', error)
+        throw error
+      }
     })
 })

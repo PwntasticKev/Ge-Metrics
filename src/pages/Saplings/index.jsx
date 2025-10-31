@@ -26,7 +26,7 @@ export default function Saplings () {
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
   const favoriteItemIds = new Set(
-    favoriteItems
+    (favoriteItems || [])
       .filter(fav => fav.itemType === 'sapling')
       .map(fav => fav.itemId)
   )
