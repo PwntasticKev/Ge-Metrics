@@ -26,7 +26,7 @@ runMigrations().catch((error) => {
   console.log('Server will continue starting despite migration failure...')
 })
 
-// Populate item mapping if empty (after migrations)
+// Populate item mapping if empty (after migrations) and verify email connection
 setTimeout(async () => {
   try {
     const count = await db.select().from(itemMapping)
@@ -47,8 +47,12 @@ setTimeout(async () => {
     } else {
       console.log(`[Startup] Item volumes table has ${volumeCount.length} items`)
     }
+
+    // Verify email connection
+    const { verifyEmailConnection } = await import('./services/emailService.js')
+    await verifyEmailConnection()
   } catch (error) {
-    console.error('[Startup] Error checking tables:', error)
+    console.error('[Startup] Error checking tables or email connection:', error)
   }
 }, 2000) // Wait 2 seconds for migrations to complete
 

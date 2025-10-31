@@ -68,7 +68,60 @@ export const authRouter = router({
         currentPeriodEnd: trialEndDate
       })
 
-      // In a real app, you would send an email here. For now, we'll log the link.
+      // Generate email verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex')
+      const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+      await db.update(users)
+        .set({
+          emailVerificationToken: verificationToken,
+          emailVerificationTokenExpiresAt: verificationExpiresAt
+        })
+        .where(eq(users.id, createdUser.id))
+
+      // Send verification email
+      const verificationUrl = `${config.FRONTEND_URL}/verify-email?token=${verificationToken}`
+      const { sendEmail } = await import('../services/emailService.js')
+      
+      await sendEmail({
+        to: email,
+        subject: 'Verify your Ge-Metrics account',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { text-align: center; background: #1a1b1e; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; border-top: none; }
+                .button { display: inline-block; background: #228be6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🎮 Ge-Metrics</h1>
+                </div>
+                <div class="content">
+                  <h2>Welcome to Ge-Metrics!</h2>
+                  <p>Hi ${name},</p>
+                  <p>Thank you for registering! Please verify your email address to complete your account setup.</p>
+                  <div style="text-align: center;">
+                    <a href="${verificationUrl}" class="button">Verify Email Address</a>
+                  </div>
+                  <p>Or copy and paste this link into your browser:</p>
+                  <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+                  <p><small>This verification link will expire in 24 hours.</small></p>
+                </div>
+              </div>
+            </body>
+          </html>
+        `,
+        text: `Welcome to Ge-Metrics!\n\nHi ${name},\n\nThank you for registering! Please verify your email address by visiting:\n${verificationUrl}\n\nThis link will expire in 24 hours.`
+      })
+
       console.log(`✅ New user registered: ${createdUser.email}`)
 
       return {
@@ -604,8 +657,45 @@ export const authRouter = router({
         })
         .where(eq(users.id, user.id))
 
-      // In a real app, send the OTP via email. For now, we'll log it.
-      console.log(`🔑 OTP for ${email}: ${otpCode}`)
+      // Send OTP via email
+      const { sendEmail } = await import('../services/emailService.js')
+      
+      await sendEmail({
+        to: email,
+        subject: 'Your Ge-Metrics Password Reset Code',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { text-align: center; background: #1a1b1e; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; border-top: none; }
+                .otp-code { font-size: 32px; font-weight: bold; text-align: center; letter-spacing: 8px; color: #228be6; padding: 20px; background: #f0f0f0; border-radius: 8px; margin: 20px 0; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🔐 Ge-Metrics</h1>
+                </div>
+                <div class="content">
+                  <h2>Password Reset Request</h2>
+                  <p>You requested to reset your password. Use the code below to complete the process:</p>
+                  <div class="otp-code">${otpCode}</div>
+                  <p>This code will expire in 10 minutes.</p>
+                  <p><small>If you didn't request this password reset, please ignore this email or contact support.</small></p>
+                </div>
+              </div>
+            </body>
+          </html>
+        `,
+        text: `Password Reset Request\n\nYou requested to reset your password. Use this code:\n\n${otpCode}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.`
+      })
+
+      console.log(`🔑 Password reset OTP sent to: ${email}`)
 
       const response: {
         success: boolean;

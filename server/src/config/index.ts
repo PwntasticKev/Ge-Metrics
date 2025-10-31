@@ -23,7 +23,13 @@ const configSchema = z.object({
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_PRICE_MONTHLY: z.string().optional(),
   STRIPE_PRICE_YEARLY: z.string().optional(),
-  STRIPE_PRODUCT_PREMIUM: z.string().optional()
+  STRIPE_PRODUCT_PREMIUM: z.string().optional(),
+  // SMTP Email Configuration
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().transform(val => val ? Number(val) : 587).optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  FROM_EMAIL: z.string().email().optional()
 })
 
 const parsedConfig = configSchema.parse(process.env)

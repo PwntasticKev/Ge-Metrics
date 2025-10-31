@@ -74,7 +74,7 @@ export default function PotionCombinations () {
   }, [lastUpdatedData, isLoadingLastUpdated]) // Only depend on lastUpdatedData, not mutation
 
   // Client-side State
-  const { favorites, toggleFavorite, isLoadingFavorites } = useFavorites()
+  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState('dose3') // Default to Best (3) Dose
@@ -130,8 +130,8 @@ export default function PotionCombinations () {
     // ... (filtering and sorting logic remains the same)
     // ... This will now work because `recipes` is correctly populated.
     // Apply tab filter
-    if (activeTab === 'favorites' && favorites) {
-      const favoriteIds = new Set(favorites.filter(f => f.itemType === 'potion').map(f => f.item.id))
+    if (activeTab === 'favorites' && favoriteItems) {
+      const favoriteIds = new Set(favoriteItems.filter(f => f.itemType === 'potion').map(f => f.itemId))
       filtered = filtered.filter(recipe => favoriteIds.has(recipe.id))
     }
 
@@ -198,7 +198,7 @@ export default function PotionCombinations () {
     // --- END DEBUG LOGS ---
 
     return filtered
-  }, [recipes, debouncedSearch, sortOrder, activeTab, favorites, minProfit, minVolume, volumeData, minHourlyVolume])
+  }, [recipes, debouncedSearch, sortOrder, activeTab, favoriteItems, minProfit, minVolume, volumeData, minHourlyVolume])
 
   const isLoading = isLoadingMapping || isLoadingAllItems || isLoadingVolumes || isLoadingLastUpdated || isLoadingFavorites
   const error = errorMapping || errorItems || errorVolumes
@@ -310,7 +310,7 @@ export default function PotionCombinations () {
       <Tabs value={activeTab} onTabChange={setActiveTab} mb="lg">
         <Tabs.List>
           <Tabs.Tab value="all" icon={<IconList size={16} />}>All Potions</Tabs.Tab>
-          <Tabs.Tab value="favorites" icon={<IconHeart size={16} />}>Favorites ({favorites ? favorites.filter(f => f.itemType === 'potion').length : 0})</Tabs.Tab>
+          <Tabs.Tab value="favorites" icon={<IconHeart size={16} />}>Favorites ({favoriteItems ? favoriteItems.filter(f => f.itemType === 'potion').length : 0})</Tabs.Tab>
         </Tabs.List>
       </Tabs>
 
@@ -421,7 +421,7 @@ export default function PotionCombinations () {
             allItems={allItems}
             filterMode={sortOrder}
             volumeData={volumeData}
-            isFavorite={favorites && favorites.some(f => f.itemId === recipe.id && f.itemType === 'potion')}
+            isFavorite={favoriteItems && favoriteItems.some(f => f.itemId === recipe.id && f.itemType === 'potion')}
             onToggleFavorite={() => toggleFavorite(recipe.id, 'potion')}
           />
         ))}

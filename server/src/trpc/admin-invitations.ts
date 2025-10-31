@@ -12,8 +12,10 @@ import {
 import { adminProcedure, router } from './trpc.js'
 
 // Simple email template for invitations
+import { config } from '../config/index.js'
+
 const createInvitationEmailTemplate = (inviterName: string, invitationToken: string, trialDays: number) => {
-  const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signup?invite=${invitationToken}`
+  const inviteUrl = `${config.FRONTEND_URL}/signup?invite=${invitationToken}`
   
   return {
     subject: `You're invited to join Ge-Metrics!`,
@@ -94,36 +96,19 @@ This invitation will expire in 24 hours.
   }
 }
 
-// Mailchimp email sending function
+// Send invitation email using SMTP
 async function sendInvitationEmail(email: string, inviterName: string, invitationToken: string, trialDays: number) {
-  // Get Mailchimp API key from user settings (admin who is sending the invite)
   const emailTemplate = createInvitationEmailTemplate(inviterName, invitationToken, trialDays)
+  const { sendEmail } = await import('../services/emailService.js')
   
-  // TODO: Replace with actual Mailchimp API call
-  // For now, we'll simulate the email sending
-  console.log('[INVITATION] Email would be sent to:', email)
-  console.log('[INVITATION] Subject:', emailTemplate.subject)
-  console.log('[INVITATION] Invite URL:', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signup?invite=${invitationToken}`)
+  const result = await sendEmail({
+    to: email,
+    subject: emailTemplate.subject,
+    html: emailTemplate.html,
+    text: emailTemplate.text
+  })
   
-  // Simulate Mailchimp API call
-  // const mailchimp = require('@mailchimp/mailchimp_marketing')
-  // mailchimp.setConfig({
-  //   apiKey: mailchimpApiKey,
-  //   server: 'us1' // replace with your server prefix
-  // })
-  
-  // const response = await mailchimp.messages.send({
-  //   message: {
-  //     subject: emailTemplate.subject,
-  //     html: emailTemplate.html,
-  //     text: emailTemplate.text,
-  //     to: [{ email, type: 'to' }],
-  //     from_email: 'noreply@ge-metrics.com',
-  //     from_name: 'Ge-Metrics Team'
-  //   }
-  // })
-  
-  return { success: true, messageId: 'simulated-' + Date.now() }
+  return result
 }
 
 export const adminInvitationsRouter = router({
