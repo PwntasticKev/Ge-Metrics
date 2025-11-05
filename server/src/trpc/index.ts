@@ -17,6 +17,7 @@ import { otpRouter } from './otp.js'
 import billingRouter from './billing.js'
 import { blogsRouter } from './blogs.js'
 import { flipsRouter } from './flips.js'
+import { runeliteTradesRouter } from './runelite-trades.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -36,7 +37,8 @@ export const appRouter = router({
   otp: otpRouter,
   billing: billingRouter,
   flips: flipsRouter,
-  blogs: blogsRouter
+  blogs: blogsRouter,
+  runelite: runeliteTradesRouter
 })
 
 export type AppRouter = typeof appRouter

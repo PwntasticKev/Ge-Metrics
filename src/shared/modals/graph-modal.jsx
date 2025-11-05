@@ -30,7 +30,7 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
         transition: 'pop',
         duration: 200
       }}
-      title={`Price History: ${item?.name || 'Loading...'}`}
+      title={item?.name ? `Price History: ${item.name}` : 'Price History'}
     >
       <Box style={{ padding: '1rem', minHeight: '70vh' }}>
         <Container px={0}>

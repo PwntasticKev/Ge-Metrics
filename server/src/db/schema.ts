@@ -682,3 +682,118 @@ export const blogs = pgTable('blogs', {
 // Type exports for blogs table
 export type Blog = typeof blogs.$inferSelect;
 export type NewBlog = typeof blogs.$inferInsert;
+
+// --- RUNELITE PLUGIN TRADE TRACKING TABLES ---
+
+// OSRS Accounts - Links RuneLite clients to web accounts
+export const osrsAccounts = pgTable('osrs_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  osrsUsername: text('osrs_username'), // Detected from RuneLite client
+  runeliteClientId: text('runelite_client_id').notNull().unique(), // UUID generated on first plugin startup
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('osrs_accounts_user_id_idx').on(table.userId),
+  runeliteClientIdIdx: index('osrs_accounts_runelite_client_id_idx').on(table.runeliteClientId),
+  uniqueUserClient: uniqueIndex('osrs_accounts_user_client_unique').on(table.userId, table.runeliteClientId) // One client = one OSRS account per user
+}))
+
+// Trade Events - Individual trade events (buy/sell)
+export const tradeEvents = pgTable('trade_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  osrsAccountId: uuid('osrs_account_id').notNull().references(() => osrsAccounts.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }), // Denormalized for admin queries
+  itemId: integer('item_id').notNull(),
+  itemName: text('item_name').notNull(), // Denormalized for queries
+  offerType: text('offer_type').notNull(), // 'buy' or 'sell'
+  price: integer('price').notNull(),
+  quantity: integer('quantity').notNull(), // Total quantity in offer
+  filledQuantity: integer('filled_quantity').default(0).notNull(), // How much was filled
+  remainingQuantity: integer('remaining_quantity').default(0).notNull(), // How much remains
+  status: text('status').notNull().default('pending'), // 'pending', 'completed', 'canceled'
+  runeliteEventId: text('runelite_event_id').notNull().unique(), // Unique ID from RuneLite to prevent duplicates
+  timestamp: timestamp('timestamp').notNull(), // When trade occurred (from RuneLite)
+  archivedAt: timestamp('archived_at'), // When this trade was archived
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdItemTimestampIdx: index('trade_events_user_item_timestamp_idx').on(table.userId, table.itemId, table.timestamp),
+  osrsAccountItemStatusIdx: index('trade_events_osrs_account_item_status_idx').on(table.osrsAccountId, table.itemId, table.status),
+  userIdTimestampIdx: index('trade_events_user_timestamp_idx').on(table.userId, table.timestamp),
+  osrsAccountTimestampIdx: index('trade_events_osrs_account_timestamp_idx').on(table.osrsAccountId, table.timestamp),
+  runeliteEventIdIdx: uniqueIndex('trade_events_runelite_event_id_idx').on(table.runeliteEventId), // Deduplication
+  statusIdx: index('trade_events_status_idx').on(table.status),
+  archivedAtIdx: index('trade_events_archived_at_idx').on(table.archivedAt)
+}))
+
+// Trade Matches - Matched buy/sell pairs (FIFO matching results)
+export const tradeMatches = pgTable('trade_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  osrsAccountId: uuid('osrs_account_id').notNull().references(() => osrsAccounts.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id').notNull(),
+  buyEventId: uuid('buy_event_id').notNull().references(() => tradeEvents.id, { onDelete: 'cascade' }),
+  sellEventId: uuid('sell_event_id').notNull().references(() => tradeEvents.id, { onDelete: 'cascade' }),
+  buyPrice: integer('buy_price').notNull(),
+  sellPrice: integer('sell_price').notNull(),
+  quantity: integer('quantity').notNull(), // Matched quantity
+  profit: integer('profit').notNull(), // Calculated profit (before tax)
+  profitAfterTax: integer('profit_after_tax').notNull(), // Profit after 2% GE tax
+  roiPercentage: integer('roi_percentage'), // ROI as percentage * 100 (e.g., 500 = 5%)
+  matchedAt: timestamp('matched_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdItemMatchedAtIdx: index('trade_matches_user_item_matched_at_idx').on(table.userId, table.itemId, table.matchedAt),
+  osrsAccountMatchedAtIdx: index('trade_matches_osrs_account_matched_at_idx').on(table.osrsAccountId, table.matchedAt),
+  itemIdIdx: index('trade_matches_item_id_idx').on(table.itemId)
+}))
+
+// Open Positions - Unmatched buy orders (pending sells)
+export const openPositions = pgTable('open_positions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  osrsAccountId: uuid('osrs_account_id').notNull().references(() => osrsAccounts.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id').notNull(),
+  buyEventId: uuid('buy_event_id').notNull().references(() => tradeEvents.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull(), // Remaining unmatched quantity
+  averageBuyPrice: integer('average_buy_price').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdItemIdx: index('open_positions_user_item_idx').on(table.userId, table.itemId),
+  osrsAccountIdx: index('open_positions_osrs_account_idx').on(table.osrsAccountId),
+  itemIdIdx: index('open_positions_item_id_idx').on(table.itemId)
+}))
+
+// All Trades Admin - Admin-only global trade table (for analytics)
+export const allTradesAdmin = pgTable('all_trades_admin', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  osrsAccountId: uuid('osrs_account_id').references(() => osrsAccounts.id, { onDelete: 'set null' }),
+  itemId: integer('item_id').notNull(),
+  itemName: text('item_name').notNull(),
+  offerType: text('offer_type').notNull(),
+  price: integer('price').notNull(),
+  quantity: integer('quantity').notNull(),
+  filledQuantity: integer('filled_quantity').default(0).notNull(),
+  status: text('status').notNull(),
+  timestamp: timestamp('timestamp').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  itemIdTimestampIdx: index('all_trades_admin_item_timestamp_idx').on(table.itemId, table.timestamp),
+  userIdTimestampIdx: index('all_trades_admin_user_timestamp_idx').on(table.userId, table.timestamp),
+  itemIdIdx: index('all_trades_admin_item_id_idx').on(table.itemId)
+}))
+
+// Type exports for trade tracking tables
+export type OsrsAccount = typeof osrsAccounts.$inferSelect;
+export type NewOsrsAccount = typeof osrsAccounts.$inferInsert;
+export type TradeEvent = typeof tradeEvents.$inferSelect;
+export type NewTradeEvent = typeof tradeEvents.$inferInsert;
+export type TradeMatch = typeof tradeMatches.$inferSelect;
+export type NewTradeMatch = typeof tradeMatches.$inferInsert;
+export type OpenPosition = typeof openPositions.$inferSelect;
+export type NewOpenPosition = typeof openPositions.$inferInsert;
+export type AllTradesAdmin = typeof allTradesAdmin.$inferSelect;
+export type NewAllTradesAdmin = typeof allTradesAdmin.$inferInsert;

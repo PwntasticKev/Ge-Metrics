@@ -29,6 +29,13 @@
       "when": 1761890476256,
       "tag": "0003_tough_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1761978357385,
+      "tag": "0004_round_loners",
+      "breakpoints": true
     }
   ]
 }

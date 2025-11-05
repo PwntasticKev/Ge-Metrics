@@ -53,9 +53,10 @@ export const getVolumeData = async () => {
 }
 
 // Fetches historical data for a specific item
-export const getItemHistoryById = async (timeframe, id) => {
+export const getItemHistoryById = async (timeframe, id, startUnix) => {
   try {
-    const url = `${TIMESERIES_URL}?timestep=${timeframe}&id=${id}`
+    const startParam = typeof startUnix === 'number' ? `&start=${startUnix}` : ''
+    const url = `${TIMESERIES_URL}?timestep=${timeframe}&id=${id}${startParam}`
     const response = await fetch(url)
 
     if (!response.ok) {
