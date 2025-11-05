@@ -1,4 +1,4 @@
-import { Box, Container, Modal } from '@mantine/core'
+import { Box, Container, Modal, Group, Avatar, Title } from '@mantine/core'
 import LineChart from '../../shared/line-chart.jsx'
 
 export default function GraphModal ({ opened, setOpened, onClose, item, id, items }) {
@@ -12,6 +12,9 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
     }
   }
 
+  const imageUrl = item?.icon ? `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_') : undefined
+  const titleText = item?.name || 'Price History'
+
   return (
     <Modal
       opened={opened}
@@ -19,9 +22,10 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
       centered
       size="95%"
       closeOnEscape={true}
-      closeOnClickOutside={true}
+      closeOnClickOutside={false}
       withCloseButton={true}
-      trapFocus={false}
+      trapFocus={true}
+      keepMounted
       lockScroll={false}
       overlayProps={{
         blur: 3
@@ -30,9 +34,13 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
         transition: 'pop',
         duration: 200
       }}
-      title={item?.name ? `Price History: ${item.name}` : 'Price History'}
+      title={null}
     >
       <Box style={{ padding: '1rem', minHeight: '70vh' }}>
+        <Group mb="md" spacing="sm">
+          {imageUrl && <Avatar src={imageUrl} alt={titleText} radius="sm" size={36} />}
+          <Title order={2}>{titleText}</Title>
+        </Group>
         <Container px={0}>
           <LineChart id={id || item?.id} items={items || item?.items} />
         </Container>

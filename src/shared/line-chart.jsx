@@ -13,7 +13,6 @@ export default function LineChart ({ id, items }) {
   const [historyStatus, setHistoryStatus] = useState('idle')
   const [isFetching, setIsFetching] = useState(false)
   const [lastUpdateTime, setLastUpdateTime] = useState(null)
-  const [currentTime, setCurrentTime] = useState(new Date())
   const [zoomLevel, setZoomLevel] = useState({ xaxis: { min: undefined, max: undefined } })
   const chartRef = useRef(null)
   
@@ -38,10 +37,32 @@ export default function LineChart ({ id, items }) {
       ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
       : new Date()
   }, {
-    enabled: historyStatus === 'success' && !!historyData && historyData.length > 0
+    enabled: historyStatus === 'success' && !!historyData && historyData.length > 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    retry: false
   })
   
   const blogs = blogsQuery.data?.data || []
+  const [blogAnnotations, setBlogAnnotations] = useState([])
+
+  useEffect(() => {
+    if (!blogs || blogs.length === 0 || historyStatus !== 'success') return
+    // Build annotations once per blogs change
+    const ann = blogs.map(blog => ({
+      x: new Date(blog.date).getTime(),
+      borderColor: '#9aa0a6',
+      strokeDashArray: 4,
+      borderWidth: 2,
+      opacity: 0.6,
+      label: { borderColor: '#9aa0a6', style: { color: '#111', background: '#9aa0a6', fontSize: '10px' }, text: 'Update', orientation: 'vertical', offsetY: 0, offsetX: 0 }
+    }))
+    setBlogAnnotations(ann)
+  }, [blogs, historyStatus])
+
+  // Freeze option recompute while hovering to avoid resets
+  const [isHovering, setIsHovering] = useState(false)
 
   const fetchData = async () => {
     if (!id) {
@@ -113,24 +134,17 @@ export default function LineChart ({ id, items }) {
     return () => clearTimeout(timeout)
   }, [id, timeframe])
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
   const chartOptions = useMemo(() => {
     if (!historyData || historyData.length === 0) return null
 
-    // Last-N-points window per resolution to guarantee visible data
+    // Last-N-points window per resolution (range length)
     const pointsPerResolution = {
-      '5m': 288,   // ~24h of 5m points
-      '1h': 168,   // ~7 days
-      '6h': 120,   // ~30 days
-      '24h': 365   // ~1 year
+      '5m': 144,   // last 12 hours @5m
+      '1h': 24,    // last 24 hours @1h
+      '6h': 56,    // last ~14 days @6h
+      '24h': 90    // last ~90 days @24h
     }
-    const points = pointsPerResolution[timeframe] ?? 288
+    const points = pointsPerResolution[timeframe] ?? 144
     const windowed = historyData.slice(-points)
 
     const timestamps = windowed.map(d => d.timestamp * 1000)
@@ -144,7 +158,6 @@ export default function LineChart ({ id, items }) {
       const sorted = [...allVolumes].sort((a, b) => a - b)
       const idx = Math.max(0, Math.floor(sorted.length * 0.95) - 1)
       volumeMax = Math.max(sorted[idx], sorted[sorted.length - 1] || 0)
-      // Guard: ensure max isn't zero
       if (volumeMax === 0) volumeMax = undefined
     }
 
@@ -181,57 +194,17 @@ export default function LineChart ({ id, items }) {
             png: { filename: `${item?.name || 'chart'}-${timeframe}` }
           }
         },
+        events: {
+          zoomed: (ctx, { xaxis }) => setZoomLevel({ xaxis }),
+          scrolled: (ctx, { xaxis }) => setZoomLevel({ xaxis }),
+          selection: (ctx, { xaxis }) => setZoomLevel({ xaxis })
+        },
         animations: { enabled: false },
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
       },
       dataLabels: { enabled: false },
-      stroke: {
-        curve: 'smooth',
-        width: (() => {
-          const widths = []
-          if (seriesVisibility.highPrice) widths.push(6)
-          if (seriesVisibility.lowPrice) widths.push(5) // Slightly thinner so both lines are visible
-          widths.push(0) // Buy Volume
-          widths.push(0) // Sell Volume
-          return widths
-        })(),
-        dashArray: (() => {
-          const dashes = []
-          if (seriesVisibility.highPrice) dashes.push(0) // solid high price
-          if (seriesVisibility.lowPrice) dashes.push(6) // dashed low price for separation
-          dashes.push(0)
-          dashes.push(0)
-          return dashes
-        })()
-      },
-      // Dynamic colors and opacity based on visibility
-      colors: (() => {
-        const colors = []
-        if (seriesVisibility.highPrice) colors.push('#22d3ee') // High Price - brighter teal
-        if (seriesVisibility.lowPrice) colors.push('#ff6b6b') // Low Price - brighter red for contrast
-        colors.push('#f59e0b')
-        colors.push('#22c55e')
-        return colors
-      })(),
-      fill: {
-        opacity: (() => {
-          const opacity = []
-          if (seriesVisibility.highPrice) opacity.push(0.95)
-          if (seriesVisibility.lowPrice) opacity.push(0.95)
-          opacity.push(seriesVisibility.buyVolume ? 0.9 : 0.25)
-          opacity.push(seriesVisibility.sellVolume ? 0.9 : 0.25)
-          return opacity
-        })(),
-        type: (() => {
-          const types = []
-          if (seriesVisibility.highPrice) types.push('gradient')
-          if (seriesVisibility.lowPrice) types.push('gradient')
-          types.push('solid')
-          types.push('solid')
-          return types
-        })(),
-        gradient: { shadeIntensity: 1, opacityFrom: 0.95, opacityTo: 0.6, stops: [0, 100] }
-      },
+      // Use a single width for lines; per-series dashes/colors handled in updated options using chartSeries
+      stroke: { curve: 'smooth', width: 4 },
       markers: { size: 0, hover: { size: 5 } },
       grid: {
         borderColor: '#50545a',
@@ -241,8 +214,8 @@ export default function LineChart ({ id, items }) {
       },
       xaxis: {
         type: 'datetime',
-        min: minTime,
-        max: maxTime,
+        min: zoomLevel?.xaxis?.min ?? minTime,
+        max: zoomLevel?.xaxis?.max ?? maxTime,
         labels: { style: { colors: '#E6E7E9', fontSize: '12px' }, format: 'MMM dd HH:mm' },
         axisBorder: { color: '#3d4147' },
         axisTicks: { color: '#3d4147' }
@@ -270,6 +243,8 @@ export default function LineChart ({ id, items }) {
         x: { format: 'MMM dd, yyyy HH:mm' },
         y: { formatter: (v) => new Intl.NumberFormat().format(Math.round(v)) },
         marker: { show: true },
+        followCursor: true,
+        fixed: { enabled: true, position: 'topLeft', offsetX: 16, offsetY: 16 },
         custom: function({ series, seriesIndex, dataPointIndex, w }) {
           const dataPoint = w.globals.series[0] && w.globals.series[0][dataPointIndex]
           if (!dataPoint || dataPoint.length < 1) return ''
@@ -281,7 +256,11 @@ export default function LineChart ({ id, items }) {
             const value = s[dataPointIndex]
             if (value !== null && value !== undefined) {
               const seriesName = w.globals.seriesNames[i]
-              html += `<div><strong>${seriesName}:</strong> ${new Intl.NumberFormat().format(Math.round(value))}</div>`
+              const color = (w.globals.colors && w.globals.colors[i]) || '#ccc'
+              html += `<div style="display:flex;align-items:center;gap:8px;">`
+              html += `<span style="display:inline-block;width:10px;height:10px;border-radius:10px;background:${color}"></span>`
+              html += `<span><strong>${seriesName}:</strong> ${new Intl.NumberFormat().format(Math.round(value))}</span>`
+              html += `</div>`
             }
           })
           html += '</div>'
@@ -304,20 +283,13 @@ export default function LineChart ({ id, items }) {
         }
       },
       annotations: {
-        xaxis: filteredBlogs.map(blog => ({
-          x: new Date(blog.date).getTime(),
-          borderColor: '#9aa0a6',
-          strokeDashArray: 4,
-          borderWidth: 2,
-          opacity: 0.6,
-          label: { borderColor: '#9aa0a6', style: { color: '#111', background: '#9aa0a6', fontSize: '10px' }, text: 'Update', orientation: 'vertical', offsetY: 0, offsetX: 0 }
-        }))
+        xaxis: blogAnnotations
       },
-      legend: { position: 'top', horizontalAlign: 'right', floating: false, fontSize: '12px', fontFamily: 'Inter, system-ui', fontWeight: 500, offsetX: 0, offsetY: 0, labels: { colors: '#E6E7E9', useSeriesColors: false }, markers: { width: 12, height: 12, strokeWidth: 0, radius: 12 } },
+      legend: { position: 'top', horizontalAlign: 'left', floating: false, fontSize: '12px', fontFamily: 'Inter, system-ui', fontWeight: 500, offsetX: 0, offsetY: 0, labels: { colors: '#E6E7E9', useSeriesColors: false }, markers: { width: 10, height: 10, strokeWidth: 0, radius: 10 } },
       title: { text: `${item?.name || 'Loading...'}: ${timeframe}`, align: 'left', style: { fontSize: '16px', fontWeight: 600, color: '#E6E7E9', fontFamily: 'Inter, system-ui' } },
       subtitle: { text: isFetching ? 'Updating...' : '', align: 'left', style: { fontSize: '12px', color: '#B0B4BA' } }
     }
-  }, [id, timeframe, item?.name, historyData, isFetching, blogs, seriesVisibility])
+  }, [id, timeframe, item?.name, historyData, isFetching, blogs, zoomLevel, blogAnnotations])
 
   const chartSeries = useMemo(() => {
     if (!historyData || historyData.length === 0) return []
@@ -373,15 +345,51 @@ export default function LineChart ({ id, items }) {
   const updatedChartOptions = useMemo(() => {
     if (!chartOptions) return null
     
+    // Build colors/dash arrays that match the actual series order for clarity
+    const colorsMap = {
+      'High Price': '#22d3ee',
+      'Low Price': '#ff6b6b',
+      'SMA(20)': '#60a5fa',
+      'EMA(20)': '#a78bfa',
+      'Buy Volume': '#f59e0b',
+      'Sell Volume': '#22c55e'
+    }
+    const dashesMap = {
+      'High Price': 0,
+      'Low Price': 6,
+      'SMA(20)': 4,
+      'EMA(20)': 0,
+      'Buy Volume': 0,
+      'Sell Volume': 0
+    }
+    const widthsMap = {
+      'High Price': 5,
+      'Low Price': 4,
+      'SMA(20)': 3,
+      'EMA(20)': 3,
+      'Buy Volume': 0,
+      'Sell Volume': 0
+    }
+
+    const colors = chartSeries.map(s => colorsMap[s.name] || '#cccccc')
+    const dashArray = chartSeries.map(s => dashesMap[s.name] || 0)
+    const widths = chartSeries.map(s => widthsMap[s.name] || 4)
+
     return {
       ...chartOptions,
       chart: {
         ...chartOptions.chart,
-        type: 'line' // Base type, but series can override with their own types
+        type: 'line'
       },
+      stroke: {
+        curve: 'smooth',
+        dashArray,
+        width: widths
+      },
+      colors,
       plotOptions: {
         bar: {
-          columnWidth: '100%', // Even thicker bars
+          columnWidth: '100%',
           borderRadius: 4,
           dataLabels: { position: 'top', enabled: false },
           horizontal: false,
@@ -391,7 +399,7 @@ export default function LineChart ({ id, items }) {
         }
       }
     }
-  }, [chartOptions])
+  }, [chartOptions, chartSeries])
 
   if (historyStatus === 'loading' || historyStatus === 'idle') {
     return (
@@ -545,45 +553,45 @@ export default function LineChart ({ id, items }) {
         </div>
         
         {/* Series visibility toggles */}
-        <div style={{ display: 'flex', gap: '16px', marginLeft: 'auto', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '16px', marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
           <Text size="xs" color="dimmed" style={{ marginRight: '8px' }}>Show:</Text>
           <Checkbox
-            label="High Price"
+            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#22d3ee',marginRight:6}}></span>High Price</span>}
             checked={seriesVisibility.highPrice}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, highPrice: e.currentTarget.checked })}
             size="xs"
             styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
           />
           <Checkbox
-            label="Low Price"
+            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#ff6b6b',marginRight:6}}></span>Low Price</span>}
             checked={seriesVisibility.lowPrice}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, lowPrice: e.currentTarget.checked })}
             size="xs"
             styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
           />
           <Checkbox
-            label="SMA(20)"
+            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#60a5fa',marginRight:6}}></span>SMA(20)</span>}
             checked={seriesVisibility.sma20}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, sma20: e.currentTarget.checked })}
             size="xs"
             styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
           />
           <Checkbox
-            label="EMA(20)"
+            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#a78bfa',marginRight:6}}></span>EMA(20)</span>}
             checked={seriesVisibility.ema20}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, ema20: e.currentTarget.checked })}
             size="xs"
             styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
           />
           <Checkbox
-            label="Buy Volume"
+            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#f59e0b',marginRight:6}}></span>Buy Volume</span>}
             checked={seriesVisibility.buyVolume}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, buyVolume: e.currentTarget.checked })}
             size="xs"
             styles={{ label: { color: '#C1C2C5', fontSize: '12px', opacity: seriesVisibility.buyVolume ? 1 : 0.5 } }}
           />
           <Checkbox
-            label="Sell Volume"
+            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#22c55e',marginRight:6}}></span>Sell Volume</span>}
             checked={seriesVisibility.sellVolume}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, sellVolume: e.currentTarget.checked })}
             size="xs"
@@ -594,13 +602,15 @@ export default function LineChart ({ id, items }) {
 
       {updatedChartOptions && chartSeries.length > 0 && (
         <>
-          <Chart
-            ref={chartRef}
-            options={updatedChartOptions}
-            series={chartSeries}
-            type="line"
-            height={400}
-          />
+          <div onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
+            <Chart
+              ref={chartRef}
+              options={updatedChartOptions}
+              series={chartSeries}
+              type="line"
+              height={440}
+            />
+          </div>
           {/* Brush (range) chart */}
           <div style={{ marginTop: 12 }}>
             <Chart
@@ -608,7 +618,6 @@ export default function LineChart ({ id, items }) {
                 chart: {
                   id: `brush-${id}-${timeframe}`,
                   brush: { enabled: true, target: `chart-${id}-${timeframe}` },
-                  selection: { enabled: true, xaxis: { min: chartOptions?.xaxis?.min, max: chartOptions?.xaxis?.max } },
                   animations: { enabled: false }
                 },
                 xaxis: { type: 'datetime' },
