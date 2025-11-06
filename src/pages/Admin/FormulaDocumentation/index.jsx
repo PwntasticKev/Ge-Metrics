@@ -83,7 +83,7 @@ export const FormulaCard = ({ title, description, formula, variables, example, l
 }
 
 const FormulaDocumentation = () => {
-  const [activeTab, setActiveTab] = useState('ai-predictions')
+  const [activeTab, setActiveTab] = useState('profit-calculations')
 
   return (
     <Container size="xl" py="md">
@@ -104,12 +104,21 @@ const FormulaDocumentation = () => {
         </Group>
       </Group>
 
+      <Alert icon={<IconInfoCircle size={16} />} color="blue" mb="xl">
+        <Text weight={500}>Global Assumptions</Text>
+        <List size="sm" mt={4}>
+          <List.Item>GE Tax = 2% applied to the sell price (net sell = sell × 0.98)</List.Item>
+          <List.Item>Default price convention: Buy = Low, Sell = High (unless otherwise noted)</List.Item>
+          <List.Item>Volumes: short windows per chart (5m=12h, 1h=24h, 6h≈14d, 24h≈90d) unless stated</List.Item>
+        </List>
+      </Alert>
+
       <Alert icon={<IconAlertCircle size={16} />} color="red" mb="xl">
         <Text weight={500}>📝 IMPORTANT REMINDER:</Text>
         <Text>This documentation MUST be updated every time we make changes to formulas, algorithms, or calculations on any page. Keep this as your single source of truth!</Text>
       </Alert>
 
-      <Tabs value={activeTab} onTabChange={(value) => setActiveTab(value ?? 'ai-predictions')}>
+      <Tabs value={activeTab} onTabChange={(value) => setActiveTab(value ?? 'profit-calculations')}>
         <Tabs.List>
           <Tabs.Tab value="ai-predictions" icon={<IconBrain size={16} />}>AI Predictions</Tabs.Tab>
           <Tabs.Tab value="profit-calculations" icon={<IconCoins size={16} />}>Profit Calculations</Tabs.Tab>
@@ -241,15 +250,14 @@ const FormulaDocumentation = () => {
               title="Basic Profit Calculation"
               icon={IconCoins}
               description="The simple formula for calculating profit on any trade. This is used everywhere in the app."
-              formula="Profit = (Sell Price - Buy Price - Tax) × Quantity"
+              formula="Profit = (Sell Price × 0.98 − Buy Price) × Quantity"
               variables={[
-                'Sell Price: What you sell the item for',
-                'Buy Price: What you bought it for',
-                'Tax: Grand Exchange tax (usually 1% on sales)',
-                "Quantity: How many items you're trading"
+                'Sell Price: market sell price (2% GE tax applied)',
+                'Buy Price: market buy price',
+                'Quantity: trade quantity'
               ]}
-              example="Buy 100 Dragon Bones at 2,500 GP each, sell at 2,800 GP each: (2,800 - 2,500 - 28) × 100 = 27,200 GP profit"
-              lastUpdated="Dec 2024"
+              example="Buy 100 Dragon Bones at 2,500 GP each, sell at 2,800 GP each: ((2,800×0.98 − 2,500) × 100) = 23,600 GP profit"
+              lastUpdated="2025-11-06"
               complexity="Simple"
             />
 
@@ -257,27 +265,120 @@ const FormulaDocumentation = () => {
               title="Profit Margin Percentage"
               icon={IconCalculator}
               description="Shows what percentage profit you're making. Higher percentages = better deals!"
-              formula="Profit Margin % = ((Sell Price - Buy Price - Tax) / Buy Price) × 100"
-              variables={[
-                'Uses same variables as basic profit calculation',
-                'Result is a percentage (like 15% profit margin)'
-              ]}
-              example="Buy at 2,500 GP, sell at 2,800 GP with 28 GP tax: ((2,800 - 2,500 - 28) / 2,500) × 100 = 10.88% profit margin"
-              lastUpdated="Dec 2024"
+              formula="Profit Margin % = ((Sell × 0.98 − Buy) / Buy) × 100"
+              variables={['Sell: sell price', 'Buy: buy price']}
+              example="Buy at 2,500 GP, sell at 2,800 GP: ((2,800×0.98 − 2,500)/2,500) × 100 ≈ 3.2%"
+              lastUpdated="2025-11-06"
               complexity="Simple"
             />
 
             <FormulaCard
-              title="ROI (Return on Investment)"
-              icon={IconTrendingUp}
-              description="How much money you make compared to how much you invested. Similar to profit margin but includes all costs."
-              formula="ROI % = (Total Profit / Total Investment) × 100"
-              variables={[
-                'Total Profit: All money made minus all costs',
-                'Total Investment: All money you put in (including taxes, fees, etc.)'
-              ]}
-              example="Invest 250,000 GP total, make 35,000 GP profit: (35,000 / 250,000) × 100 = 14% ROI"
-              lastUpdated="Dec 2024"
+              title="Herb Cleaning Profit"
+              icon={IconCalculator}
+              description="Profit from cleaning a grimy herb."
+              formula="Profit = (CleanHerb_Sell × 0.98) − GrimyHerb_Buy"
+              variables={["CleanHerb_Sell: sell price of clean herb", "GrimyHerb_Buy: buy price of grimy herb"]}
+              example="(2,100 × 0.98) − 1,900 = 158 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Unfinished Potion Profit"
+              icon={IconCalculator}
+              description="Profit from making an unfinished potion (clean herb + vial of water)."
+              formula="Profit = (Unf_Sell × 0.98) − (CleanHerb_Buy + Vial_Buy)"
+              variables={["Unf_Sell: sell price of unfinished potion", "CleanHerb_Buy", "Vial_Buy"]}
+              example="(4,000×0.98) − (2,100 + 8) = 812 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Finished Potion (3-dose) Profit"
+              icon={IconCalculator}
+              description="Crafted 3-dose potion from an unfinished potion and secondary ingredient."
+              formula="Profit = (Pot3_Sell × 0.98) − (Unf_Buy + Secondary_Buy)"
+              variables={["Pot3_Sell: sell price of 3-dose potion", "Unf_Buy", "Secondary_Buy"]}
+              example="(6,500×0.98) − (4,000 + 1,800) = 570 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Plank Make Profit"
+              icon={IconCalculator}
+              description="Spell cost: 1 Nature rune, 2 Astral runes, coins per plank."
+              formula="Profit = (Plank_Sell × 0.98) − (Log_Buy + Nature + 2×Astral + CoinCost)"
+              variables={["Plank_Sell", "Log_Buy", "Nature", "Astral", "CoinCost per plank (Regular 70, Oak 175, Teak 350, Mahogany 1050)"]}
+              example="Mahogany: (2,800×0.98) − (1,250 + 250 + 2×120 + 1,050) = −10 GP (example)"
+              lastUpdated="2025-11-06"
+              complexity="Medium"
+            />
+
+            <FormulaCard
+              title="High Alchemy Profit"
+              icon={IconCalculator}
+              description="Nature rune only; fire cost ignored (staff)."
+              formula="Profit = HighAlch_Value − (Item_Buy + NatureRune_Buy)"
+              variables={["HighAlch_Value: fixed alchemy value", "Item_Buy", "NatureRune_Buy"]}
+              example="(9,900) − (8,500 + 200) = 1,200 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Magic Tablet Profit"
+              icon={IconCalculator}
+              description="Tradable tablets only."
+              formula="Profit = (Tablet_Sell × 0.98) − (SoftClay_Buy + Runes_Buy)"
+              variables={["Tablet_Sell", "SoftClay_Buy", "Runes_Buy"]}
+              example="(1,250×0.98) − (150 + 300) = 775 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Enchant Jewelry Profit"
+              icon={IconCalculator}
+              description="Unenchanted → enchanted result using required runes."
+              formula="Profit = (Enchanted_Sell × 0.98) − (Unenchanted_Buy + Runes_Buy)"
+              variables={["Enchanted_Sell", "Unenchanted_Buy", "Runes_Buy"]}
+              example="Fury: (2,700,000×0.98) − (2,550,000 + 5,000) = 101,000 GP"
+              lastUpdated="2025-11-06"
+              complexity="Medium"
+            />
+
+            <FormulaCard
+              title="Enchant Bolts Profit"
+              icon={IconCalculator}
+              description="Crossbow bolts enchantment cost and sale."
+              formula="Profit = (Enchanted_Sell × 0.98) − (Unenchanted_Buy + Runes_Buy)"
+              variables={["Enchanted_Sell", "Unenchanted_Buy", "Runes_Buy"]}
+              example="(250×0.98) − (180 + 10) = 55 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Barrows Repair Profit"
+              icon={IconCalculator}
+              description="Repair degraded Barrows gear and sell repaired item."
+              formula="Profit = (Repaired_Sell × 0.98) − (Degraded_Buy + RepairCost)"
+              variables={["Repaired_Sell", "Degraded_Buy", "RepairCost (NPC or POH)"]}
+              example="(1,600,000×0.98) − (1,450,000 + 60,000) = 48,000 GP"
+              lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Sapling Profit"
+              icon={IconCalculator}
+              description="Seed + pot cost; optional payments not modeled by default."
+              formula="Profit = (Sapling_Sell × 0.98) − (Seed_Buy + WateredPot_Buy)"
+              variables={["Sapling_Sell", "Seed_Buy", "WateredPot_Buy"]}
+              example="(2,400×0.98) − (1,900 + 10) = 446 GP"
+              lastUpdated="2025-11-06"
               complexity="Simple"
             />
           </Stack>
@@ -338,35 +439,54 @@ const FormulaDocumentation = () => {
         <Tabs.Panel value="risk-assessment" pt="md">
           <Stack spacing="md">
             <FormulaCard
-              title="Risk Score Calculation"
+              title="Risk Score (Composite)"
               icon={IconShield}
-              description="Measures how risky a trade is. Lower risk = safer but less profit, higher risk = more dangerous but potentially more profit."
-              formula="Risk Score = (Price Volatility × 0.4) + (Volume Risk × 0.3) + (Market Risk × 0.3)"
+              description="Composite 0–100 score combining Liquidity, Volatility, Spike/Anomaly and Gap/Data risks. Uses robust, item‑relative stats so thresholds scale per item."
+              formula={"RiskScore = 100 × clamp01( 0.30×Liquidity + 0.35×Volatility + 0.20×Spikes + 0.15×Gaps )"}
               variables={[
-                'Price Volatility: How much the price jumps around',
-                'Volume Risk: Risk from low trading volume',
-                'Market Risk: General market conditions and trends',
-                'Score 0-100: Lower = safer, Higher = riskier'
+                'Liquidity: 0.7×(1 − Vsum/Scale) + 0.3×ZeroBar%',
+                'Volatility: 0.6×norm(σ(log returns)) + 0.4×norm(median intrabar spread)',
+                'Spikes: norm(count of zVol≥3 with |return|≥3% in last window)',
+                'Gaps: 0.5×norm(max consecutive gap) + 0.5×MissingBars% ',
+                'Scale: timeframe-specific volume scale; all norms are clamped 0..1'
               ]}
-              example="Stable price (20), good volume (15), stable market (25) = (20×0.4) + (15×0.3) + (25×0.3) = 19.5 risk score (low risk)"
-              lastUpdated="Dec 2024"
+              example="Example (1h window): Liquidity=0.42, Volatility=0.30, Spikes=0.10, Gaps=0.08 → Score01 = 0.30×0.42 + 0.35×0.30 + 0.20×0.10 + 0.15×0.08 = 0.275 → RiskScore=27.5"
+              lastUpdated="2025-11-06"
               complexity="Medium"
             />
 
             <FormulaCard
-              title="Loss Prevention Algorithm"
-              icon={IconX}
-              description="Tries to prevent you from making bad trades by warning about high-risk situations."
-              formula="Warning Trigger = Risk Score > 70 OR Price Drop > 15% OR Volume Drop > 50%"
+              title="Manipulation Detection (Rule‑based Floor)"
+              icon={IconAlertCircle}
+              description="Hard overrides that prevent mislabeling. If triggered, an item cannot be marked Safe; floor ≥ Risky and a ‘Suspicious activity’ tag is shown with reasons."
+              formula={"ManipulationScore = any( StepNoVol, Gap≥5–8%, zVol≥3 with |ret|≥3%, SpreadExplosion, Reversion>60% within 6–12 bars, VolConcentration≥60% in 3 bars, Buy/Sell Imbalance≥0.8 & |ret|≥3%, ZeroLiquidityLifts )"}
               variables={[
-                'Risk Score: From risk calculation above',
-                'Price Drop: How much price fell recently',
-                'Volume Drop: How much trading volume decreased',
-                'Any condition = warning shown'
+                'StepNoVol: |Δprice|≥15–25% with zVol<1.5',
+                'Gap: consecutive-bar price gap ≥5–8%',
+                'SpreadExplosion: median(High−Low)/Mid ≥4–8%',
+                'VolConcentration: top 3 bars ≥60–80% of 24h volume',
+                'Reversion: after |ret|≥5%, mean reversion ≥60% within 6–12 bars',
+                'Buy/Sell Imbalance: |(buy−sell)/total|≥0.8 with |ret|≥3%',
+                'ZeroLiquidityLifts: ≥2 zero‑sell bars while price rises ≥5%'
               ]}
-              example="If risk score is 75 OR price dropped 20% OR volume dropped 60% = Show warning to user"
-              lastUpdated="Dec 2024"
-              complexity="Simple"
+              example="If (Gap 11% + zVol 3.6 with +5% return) within 6h → ManipulationScore=1 → Label floor Risky and tag ‘Suspicious activity’."
+              lastUpdated="2025-11-06"
+              complexity="High"
+            />
+
+            <FormulaCard
+              title="Anomaly & Trend Tags"
+              icon={IconChartLine}
+              description="Tags surfaced alongside the risk label. Each is item‑relative (median/MAD) and symmetric up/down. We show up to 3 by priority (Suspicious > Anomaly > Trend > Volatility > Liquidity > Data)."
+              formula={"Tags: Volume Surge ↑/↓ (zVol≥3 & |ret|≥3%), Breakout ↑/↓ (zPrice/MAD≥3), Gap ↑/↓ (gap≥5–8%), Trending ↑/↓ (EMA20 slope ≥ ±0.5%), Thinly Traded (V24h<20th pct or ZeroBar%≥10%), Missing Bars (>10%)."}
+              variables={[
+                'Colors: Surge (amber/orange), Breakout (rose/pink), Gap (red/pink), Trend Up (cyan)/Down (purple), Thinly Traded (teal), Missing (slate) ',
+                'Event Nearby: blog <24h & |6h return|≥3% (violet); escalates to ≥Volatile',
+                'SMA/EMA used only for visualization and Trend slope; risk is computed from returns & spreads',
+              ]}
+              example="Recent 1h window: Gap↓ 7%, Thinly Traded, Trend↓ → tags: [Gap Down, Thinly Traded, Trending Down]."
+              lastUpdated="2025-11-06"
+              complexity="Medium"
             />
           </Stack>
         </Tabs.Panel>

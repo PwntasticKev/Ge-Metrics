@@ -27,7 +27,8 @@ import {
   MultiSelect,
   Collapse,
   Box,
-  Anchor
+  Anchor,
+  List
 } from '@mantine/core'
 import {
   IconBook,
@@ -48,14 +49,15 @@ import {
   IconBulb,
   IconEye,
   IconDownload,
-  IconUpload
+  IconUpload,
+  IconInfoCircle
 } from '@tabler/icons-react'
 import { Prism } from '@mantine/prism'
 import { notifications } from '@mantine/notifications'
 import { trpc } from '../../utils/trpc'
 
 const FormulaDocumentation = () => {
-  const [activeTab, setActiveTab] = useState('browse')
+  const [activeTab, setActiveTab] = useState('reference')
   const [formulas, setFormulas] = useState([])
   const [categories, setCategories] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -564,6 +566,146 @@ const FormulaDocumentation = () => {
     )
   }
 
+  // Reference Tab (static documentation)
+  const FormulaCard = ({ title, description, formula, variables, example, lastUpdated = '2025-11-06', complexity = 'Simple' }) => (
+    <Card withBorder p="md" mb="md">
+      <Group justify="space-between" mb="sm">
+        <div>
+          <Text weight={600} size="lg">{title}</Text>
+          <Text size="xs" color="dimmed">Last updated: {lastUpdated}</Text>
+        </div>
+        <Badge color={complexity === 'Simple' ? 'green' : complexity === 'Medium' ? 'yellow' : 'red'} variant="light">
+          {complexity}
+        </Badge>
+      </Group>
+      <Text mb="md">{description}</Text>
+      {formula && (
+        <Paper withBorder p="sm" mb="md">
+          <Text size="sm" weight={500} mb="xs">Formula:</Text>
+          <Code block>{formula}</Code>
+        </Paper>
+      )}
+      {variables && variables.length > 0 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Text size="sm" weight={500} mb="xs">Variables:</Text>
+          <List size="sm">
+            {variables.map((v, i) => (<List.Item key={i}>{v}</List.Item>))}
+          </List>
+        </div>
+      )}
+      {example && (
+        <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
+          <Text size="sm" weight={500}>Example:</Text>
+          <Text size="sm">{example}</Text>
+        </Alert>
+      )}
+    </Card>
+  )
+
+  const ReferenceTab = () => (
+    <Stack spacing="md">
+      <Alert icon={<IconInfoCircle size={16} />} color="blue">
+        <Text weight={500}>Global Assumptions</Text>
+        <List size="sm" mt={4}>
+          <List.Item>GE Tax = 2% applied to the sell price (net sell = sell × 0.98)</List.Item>
+          <List.Item>Default price convention: Buy = Low, Sell = High (unless otherwise noted)</List.Item>
+        </List>
+      </Alert>
+
+      <Title order={4}>Profit & Trading</Title>
+      <FormulaCard
+        title="Basic Profit"
+        description="Profit for any trade."
+        formula="Profit = (Sell × 0.98 − Buy) × Quantity"
+        variables={["Sell: market sell price", "Buy: market buy price", "Quantity"]}
+        example="((2,800 × 0.98 − 2,500) × 100) = 23,600 GP"
+      />
+      <FormulaCard
+        title="Profit Margin %"
+        description="Percentage margin relative to buy price."
+        formula="Margin% = ((Sell × 0.98 − Buy) / Buy) × 100"
+        variables={["Sell", "Buy"]}
+        example="((2,800×0.98 − 2,500)/2,500) × 100 ≈ 3.2%"
+      />
+
+      <Title order={4}>Herblore</Title>
+      <FormulaCard
+        title="Herb Cleaning"
+        description="Clean grimy herb and sell."
+        formula="Profit = (CleanHerb_Sell × 0.98) − GrimyHerb_Buy"
+        variables={["CleanHerb_Sell", "GrimyHerb_Buy"]}
+      />
+      <FormulaCard
+        title="Unfinished Potions"
+        description="Clean herb + vial of water."
+        formula="Profit = (Unf_Sell × 0.98) − (CleanHerb_Buy + Vial_Buy)"
+        variables={["Unf_Sell", "CleanHerb_Buy", "Vial_Buy"]}
+      />
+      <FormulaCard
+        title="Finished Potions (3-dose)"
+        description="Unf + secondary → 3-dose potion."
+        formula="Profit = (Pot3_Sell × 0.98) − (Unf_Buy + Secondary_Buy)"
+        variables={["Pot3_Sell", "Unf_Buy", "Secondary_Buy"]}
+      />
+
+      <Title order={4}>Magic</Title>
+      <FormulaCard
+        title="Plank Make"
+        description="1 Nature + 2 Astral + coins per plank."
+        formula="Profit = (Plank_Sell × 0.98) − (Log_Buy + Nature + 2×Astral + CoinCost)"
+        variables={["CoinCost per plank: Regular 70, Oak 175, Teak 350, Mahogany 1050"]}
+      />
+      <FormulaCard
+        title="High Alchemy"
+        description="Alchemy value minus costs; fire runes ignored (staff)."
+        formula="Profit = HighAlch_Value − (Item_Buy + NatureRune_Buy)"
+        variables={["HighAlch_Value", "Item_Buy", "NatureRune_Buy"]}
+      />
+      <FormulaCard
+        title="Magic Tablets"
+        description="Tradable tablets only."
+        formula="Profit = (Tablet_Sell × 0.98) − (SoftClay_Buy + Runes_Buy)"
+        variables={["Tablet_Sell", "SoftClay_Buy", "Runes_Buy"]}
+      />
+      <FormulaCard
+        title="Enchant Jewelry"
+        description="Unenchanted → enchanted using required runes."
+        formula="Profit = (Enchanted_Sell × 0.98) − (Unenchanted_Buy + Runes_Buy)"
+      />
+      <FormulaCard
+        title="Enchant Bolts"
+        description="Crossbow bolts enchantment."
+        formula="Profit = (Enchanted_Sell × 0.98) − (Unenchanted_Buy + Runes_Buy)"
+      />
+
+      <Title order={4}>Other</Title>
+      <FormulaCard
+        title="Barrows Repair"
+        description="Repair degraded Barrows gear, then sell."
+        formula="Profit = (Repaired_Sell × 0.98) − (Degraded_Buy + RepairCost)"
+      />
+      <FormulaCard
+        title="Saplings"
+        description="Seed + watered pot; payments excluded by default."
+        formula="Profit = (Sapling_Sell × 0.98) − (Seed_Buy + WateredPot_Buy)"
+      />
+
+      <Title order={4}>Risk & Manipulation</Title>
+      <FormulaCard
+        title="Risk Score (Composite)"
+        complexity="Medium"
+        description="0–100 score combining Liquidity, Volatility, Spikes, Gaps using robust, item‑relative stats."
+        formula={"RiskScore = 100 × clamp01(0.30×Liquidity + 0.35×Volatility + 0.20×Spikes + 0.15×Gaps)"}
+      />
+      <FormulaCard
+        title="Manipulation Floor"
+        complexity="High"
+        description="If any rule triggers (e.g., gap ≥5–8%, spike w/ low volume), label floor ≥ Risky and show ‘Suspicious’."
+        formula={"Manipulation = any(StepNoVol, Gap≥5–8%, zVol spikes w/ |ret|≥3%, SpreadExplosion, Reversion, VolConcentration, Imbalance, ZeroLiquidityLifts)"}
+      />
+    </Stack>
+  )
+
   // Form Modal Content
   const FormModalContent = () => (
     <Stack spacing="md">
@@ -673,13 +815,14 @@ const FormulaDocumentation = () => {
 
       <Tabs value={activeTab} onTabChange={setActiveTab}>
         <Tabs.List>
-          <Tabs.Tab value="browse" icon={<IconBook size={16} />}>
-            Browse Formulas
-          </Tabs.Tab>
-          <Tabs.Tab value="calculator" icon={<IconCalculator size={16} />}>
-            Calculator
-          </Tabs.Tab>
+          <Tabs.Tab value="reference" icon={<IconBook size={16} />}>Reference</Tabs.Tab>
+          <Tabs.Tab value="browse" icon={<IconBook size={16} />}>Browse Formulas</Tabs.Tab>
+          <Tabs.Tab value="calculator" icon={<IconCalculator size={16} />}>Calculator</Tabs.Tab>
         </Tabs.List>
+
+        <Tabs.Panel value="reference" pt="md">
+          <ReferenceTab />
+        </Tabs.Panel>
 
         <Tabs.Panel value="browse" pt="md">
           <BrowseTab />

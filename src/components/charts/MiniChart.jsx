@@ -28,7 +28,7 @@ const MiniChart = ({ itemId, width = 150, height = 40 }) => {
 
             setChartData({
               series: [{
-                name: 'Price',
+                name: '',
                 data: seriesData
               }],
               options: {
@@ -48,61 +48,40 @@ const MiniChart = ({ itemId, width = 150, height = 40 }) => {
                 },
                 stroke: {
                   curve: 'smooth',
-                  width: 2,
-                  colors: ['#e879f9']
+                  width: 1.6,
+                  colors: ['#a78bfa']
                 },
                 fill: {
                   type: 'gradient',
                   gradient: {
                     shadeIntensity: 1,
-                    opacityFrom: 0.7,
-                    opacityTo: 0.1,
+                    opacityFrom: 0.35,
+                    opacityTo: 0.05,
                     stops: [0, 100],
                     colorStops: [
-                      {
-                        offset: 0,
-                        color: '#e879f9',
-                        opacity: 0.3
-                      },
-                      {
-                        offset: 100,
-                        color: '#e879f9',
-                        opacity: 0.1
-                      }
+                      { offset: 0, color: '#a78bfa', opacity: 0.2 },
+                      { offset: 100, color: '#a78bfa', opacity: 0.05 }
                     ]
                   }
                 },
                 tooltip: {
                   theme: 'dark',
-                  x: {
-                    format: 'MMM dd HH:mm'
-                  },
+                  style: { fontSize: '11px' },
+                  marker: { show: false },
                   y: {
-                    formatter: (value) => {
-                      return new Intl.NumberFormat().format(Math.round(value))
-                    }
-                  }
+                    title: { formatter: () => '' },
+                    formatter: (value) => new Intl.NumberFormat().format(Math.round(value))
+                  },
+                  x: { format: 'MMM dd HH:mm' }
                 },
-                grid: {
-                  show: false
-                },
+                grid: { show: false },
                 xaxis: {
                   type: 'datetime',
-                  labels: {
-                    show: false
-                  },
-                  axisBorder: {
-                    show: false
-                  },
-                  axisTicks: {
-                    show: false
-                  }
+                  labels: { show: false },
+                  axisBorder: { show: false },
+                  axisTicks: { show: false }
                 },
-                yaxis: {
-                  labels: {
-                    show: false
-                  }
-                }
+                yaxis: { labels: { show: false } }
               }
             })
           } else {

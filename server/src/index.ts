@@ -19,6 +19,9 @@ import { db, itemMapping, itemVolumes } from './db/index.js'
 
 const app = express()
 
+// Mount Stripe webhook BEFORE JSON body parser to preserve raw body
+app.use('/api/stripe', stripeRoutes)
+
 // Run migrations on startup
 runMigrations().catch((error) => {
   console.error('Migration failed on startup:', error)
@@ -82,7 +85,6 @@ app.get('/health', (req, res) => {
 })
 
 // API routes
-app.use('/api/stripe', stripeRoutes)
 app.use('/api/cron/blogs', blogCronRoutes)
 
 // tRPC middleware

@@ -15,7 +15,8 @@ import {
   Divider,
   ActionIcon,
   Table,
-  Box
+  Box,
+  SegmentedControl
 } from '@mantine/core'
 import { 
   IconCrown, 
@@ -45,19 +46,24 @@ const BillingPage = () => {
   const isSuccess = searchParams.get('success') === 'true'
   const [activeTab, setActiveTab] = useState('overview')
 
+  // Pricing IDs
+  const MONTHLY = import.meta.env.VITE_STRIPE_PRICE_ID || import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY
+  const YEARLY = import.meta.env.VITE_STRIPE_PRICE_ID_YEARLY
+  const hasYearly = Boolean(YEARLY)
+  const [plan, setPlan] = useState('monthly')
+
+  const selectedPriceId = plan === 'yearly' && hasYearly ? YEARLY : MONTHLY
+
   const handleSubscribe = async () => {
     setIsLoading(true)
     setError('')
-    const priceId = import.meta.env.VITE_STRIPE_PRICE_ID
-    if (!priceId) {
+    if (!selectedPriceId) {
       setError('Stripe is not configured correctly. Please contact support.')
       setIsLoading(false)
       return
     }
     try {
-      const { url } = await createCheckoutSession.mutateAsync({
-        priceId
-      })
+      const { url } = await createCheckoutSession.mutateAsync({ priceId: selectedPriceId })
       window.location.href = url
     } catch (err) {
       setError(err.message || 'Failed to create checkout session. Please try again.')
@@ -68,19 +74,20 @@ const BillingPage = () => {
 
   const handleManageSubscription = async () => {
     setIsLoading(true)
-    setError('')
     try {
       const { url } = await createCheckoutSession.mutateAsync({})
       window.location.href = url
     } catch (err) {
-      setError(err.message || 'Failed to create portal session. Please try again.')
+      setError(err.message || 'Failed to open billing portal. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
   if (isUserLoading || isSubscriptionLoading) {
-    return <Center style={{ height: '100vh' }} data-testid="loading-spinner"><Loader /></Center>
+    return (
+      <Center h={300}><Loader /></Center>
+    )
   }
 
   const isSubscribed = subscription && subscription.status === 'active'

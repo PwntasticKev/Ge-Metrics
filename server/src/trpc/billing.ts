@@ -70,14 +70,10 @@ const billingRouter = router({
 
       try {
         const invoice = await stripe.invoices.retrieve(input.invoiceId)
-        
         if (invoice.customer !== subscription.stripeCustomerId) {
           throw new Error('Access denied')
         }
-
-        return {
-          url: invoice.invoice_pdf || invoice.hosted_invoice_url
-        }
+        return { url: invoice.invoice_pdf || invoice.hosted_invoice_url }
       } catch (error) {
         console.error('Error downloading invoice:', error)
         throw new Error('Failed to download invoice')
@@ -85,31 +81,39 @@ const billingRouter = router({
     }),
 
   createCheckoutSession: protectedProcedure
-    .input(z.object({
-      priceId: z.string().optional()
-    }))
+    .input(z.object({ priceId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user.id
       const userEmail = ctx.user.email
 
       const billingUrl = absoluteUrl('/billing')
 
-      const subscription = await db.query.subscriptions.findFirst({
-        where: eq(subscriptions.userId, userId)
-      })
+      // Ensure a subscription row exists for this user
+      const existing = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, userId) })
+      if (!existing) {
+        await db.insert(subscriptions).values({
+          userId,
+          plan: 'premium',
+          status: 'inactive',
+          trialDays: 14,
+          isTrialing: false
+        })
+      }
 
-      // User is already a customer, create a portal session
-      if (subscription && subscription.stripeCustomerId) {
+      const current = existing || await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, userId) })
+
+      // If already has a customer, open the billing portal
+      if (current && current.stripeCustomerId) {
         const stripeSession = await stripe.billingPortal.sessions.create({
-          customer: subscription.stripeCustomerId,
+          customer: current.stripeCustomerId,
           return_url: billingUrl
         })
-
         return { url: stripeSession.url }
       }
 
-      // New customer, create a checkout session
-      if (!input.priceId) {
+      // New customer: require a priceId
+      const price = input.priceId || process.env.VITE_STRIPE_PRICE_ID || process.env.VITE_STRIPE_PRICE_ID_MONTHLY
+      if (!price) {
         throw new Error('priceId is required for new subscriptions.')
       }
 
@@ -120,15 +124,12 @@ const billingRouter = router({
         mode: 'subscription',
         billing_address_collection: 'auto',
         customer_email: userEmail,
-        line_items: [
-          {
-            price: input.priceId,
-            quantity: 1
-          }
-        ],
-        metadata: {
-          userId
-        }
+        line_items: [{ price, quantity: 1 }],
+        subscription_data: {
+          trial_period_days: 14,
+          metadata: { userId: String(userId) }
+        },
+        metadata: { userId: String(userId) }
       })
 
       return { url: stripeSession.url }

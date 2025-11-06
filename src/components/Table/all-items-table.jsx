@@ -20,7 +20,8 @@ import {
   Text,
   TextInput,
   Tooltip,
-  useMantineTheme
+  useMantineTheme,
+  SegmentedControl
 } from '@mantine/core'
 import {
   IconChartHistogram,
@@ -97,12 +98,30 @@ function filterData (data, filters) {
     search,
     thirdAge,
     volumeFilter,
+    volumeRankFilter,
+    riskFilter,
     raidsItems,
     priceMin,
     priceMax,
     profitMin,
     profitMax
   } = filters
+
+  // Precompute volume percentiles for rank filters
+  let p10 = 0
+  let p90 = 0
+  if (volumeRankFilter) {
+    const limits = data
+      .map((i) => Number(String(i.limit ?? '0').replace(/,/g, '')))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => a - b)
+    if (limits.length > 0) {
+      const idx10 = Math.max(0, Math.floor(limits.length * 0.10) - 1)
+      const idx90 = Math.max(0, Math.floor(limits.length * 0.90) - 1)
+      p10 = limits[idx10]
+      p90 = limits[idx90]
+    }
+  }
 
   return data.filter((item) => {
     // Basic search filter
@@ -144,6 +163,20 @@ function filterData (data, filters) {
       const limit = parseInt(String(item.limit ?? '0').replace(/,/g, ''))
       if (volumeFilter === 'low' && limit >= 100) return false
       if (volumeFilter === 'high' && limit < 1000) return false
+    }
+
+    // Volume rank filter (top/bottom 10% by limit)
+    if (volumeRankFilter) {
+      const limit = parseInt(String(item.limit ?? '0').replace(/,/g, ''))
+      if (volumeRankFilter === 'highest' && limit < p90) return false
+      if (volumeRankFilter === 'lowest' && limit > p10) return false
+    }
+
+    // Risk tag filter using row heuristics
+    if (riskFilter) {
+      const risk = classifyRisk(item)
+      const label = (risk?.label || '').toLowerCase()
+      if (riskFilter !== '' && label !== riskFilter) return false
     }
 
     // Raids items filter
@@ -231,7 +264,9 @@ export function AllItemsTable ({
   items,
   favoriteItems = new Set(),
   onToggleFavorite = null,
-  showFavoriteColumn = false
+  showFavoriteColumn = false,
+  volumeMap = {},
+  defaultVolumeWindow = '1h'
 }) {
   const theme = useMantineTheme()
   const location = useLocation()
@@ -245,10 +280,15 @@ export function AllItemsTable ({
   const [sortBy, setSortBy] = useState(null)
   const [reverseSortDirection, setReverseSortDirection] = useState(false)
 
+  // Volume window toggle
+  const [volumeWindow, setVolumeWindow] = useState(defaultVolumeWindow === '24h' ? '24h' : '1h')
+
   // Filter state
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [thirdAge, setThirdAge] = useState(false)
   const [volumeFilter, setVolumeFilter] = useState('')
+  const [volumeRankFilter, setVolumeRankFilter] = useState('')
+  const [riskFilter, setRiskFilter] = useState('')
   const [raidsItems, setRaidsItems] = useState(false)
   const [priceMin, setPriceMin] = useState(0)
   const [priceMax, setPriceMax] = useState(0)
@@ -267,6 +307,8 @@ export function AllItemsTable ({
     search,
     thirdAge,
     volumeFilter,
+    volumeRankFilter,
+    riskFilter,
     raidsItems,
     priceMin,
     priceMax,
@@ -294,7 +336,7 @@ export function AllItemsTable ({
       filters
     }))
     setCurrentPage(1) // Reset to first page when filters change
-  }, [data, sortBy, reverseSortDirection, search, thirdAge, volumeFilter, raidsItems, priceMin, priceMax, profitMin, profitMax])
+  }, [data, sortBy, reverseSortDirection, search, thirdAge, volumeFilter, volumeRankFilter, riskFilter, raidsItems, priceMin, priceMax, profitMin, profitMax])
 
   const setGraphInfo = (id) => {
     setGraphModal(true)
@@ -309,6 +351,8 @@ export function AllItemsTable ({
     setSearch('')
     setThirdAge(false)
     setVolumeFilter('')
+    setVolumeRankFilter('')
+    setRiskFilter('')
     setRaidsItems(false)
     setPriceMin(0)
     setPriceMax(0)
@@ -319,6 +363,8 @@ export function AllItemsTable ({
   const activeFiltersCount = [
     thirdAge,
     volumeFilter,
+    volumeRankFilter,
+    riskFilter,
     raidsItems,
     priceMin > 0,
     priceMax > 0,
@@ -330,6 +376,9 @@ export function AllItemsTable ({
     const profitValue = Number(String(row.profit ?? '0').replace(/,/g, ''))
     const isFavorite = favoriteItems.has(row.id)
     const risk = classifyRisk(row)
+    const vol = volumeMap?.[row.id]
+    const buyVol = volumeWindow === '1h' ? vol?.hourlyLowPriceVolume : vol?.lowPriceVolume
+    const sellVol = volumeWindow === '1h' ? vol?.hourlyHighPriceVolume : vol?.highPriceVolume
 
     return (
       <tr key={idx} style={{ background: row.background ? theme.colors.gray[7] : '' }}>
@@ -361,6 +410,8 @@ export function AllItemsTable ({
           {new Intl.NumberFormat().format(row.profit)}
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.limit}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{buyVol ? new Intl.NumberFormat().format(buyVol) : '-'}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{sellVol ? new Intl.NumberFormat().format(sellVol) : '-'}</td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
           <Tooltip label={risk.reason} withArrow position="right">
             <Badge color={risk.color} variant="filled" size="sm">{risk.label}</Badge>
@@ -469,8 +520,33 @@ export function AllItemsTable ({
                   onChange={(value) => setVolumeFilter(value ?? '')}
                   data={[
                     { value: '', label: 'All Volumes' },
-                    { value: 'low', label: 'Low Volume (< 100 limit)' },
+                    { value: 'low', label: 'Low Volume (≤ 100 limit)' },
                     { value: 'high', label: 'High Volume (≥ 1000 limit)' }
+                  ]}
+                />
+                <Select
+                  placeholder="Volume rank"
+                  value={volumeRankFilter}
+                  onChange={(value) => setVolumeRankFilter(value ?? '')}
+                  data={[
+                    { value: '', label: 'All Ranks' },
+                    { value: 'highest', label: 'Highest 10% by limit' },
+                    { value: 'lowest', label: 'Lowest 10% by limit' }
+                  ]}
+                />
+              </Stack>
+
+              <Stack spacing="sm">
+                <Text size="sm" weight={500}>Risk Tags</Text>
+                <Select
+                  placeholder="Select risk"
+                  value={riskFilter}
+                  onChange={(value) => setRiskFilter(value ?? '')}
+                  data={[
+                    { value: '', label: 'All' },
+                    { value: 'safe', label: 'Safe' },
+                    { value: 'volatile', label: 'Volatile' },
+                    { value: 'risky', label: 'Risky' }
                   ]}
                 />
               </Stack>
@@ -535,6 +611,18 @@ export function AllItemsTable ({
             {activeFiltersCount} filter{activeFiltersCount !== 1 ? 's' : ''} active
           </Badge>
         )}
+        <Group spacing="xs">
+          <Text size="sm" color="dimmed">Volume window:</Text>
+          <SegmentedControl
+            size="xs"
+            value={volumeWindow}
+            onChange={(v) => setVolumeWindow(v ?? '1h')}
+            data={[
+              { label: '1h', value: '1h' },
+              { label: '24h', value: '24h' }
+            ]}
+          />
+        </Group>
       </Group>
 
       <ScrollArea>
@@ -549,6 +637,8 @@ export function AllItemsTable ({
               <th style={{ textAlign: 'center' }}>Sell Price</th>
               <th style={{ textAlign: 'center' }}>Profit</th>
               <th style={{ textAlign: 'center' }}>Buy Limit</th>
+              <th style={{ textAlign: 'center' }}>Buy Vol ({volumeWindow})</th>
+              <th style={{ textAlign: 'center' }}>Sell Vol ({volumeWindow})</th>
               <th style={{ textAlign: 'center' }}>Risk</th>
               <th style={{ textAlign: 'center' }}>Chart</th>
               <th style={{ textAlign: 'center' }}>Settings</th>

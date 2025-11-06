@@ -13,6 +13,12 @@ export default function AllItems () {
   const [currentTime, setCurrentTime] = useState(new Date())
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
 
+  // Volume map (24h + 1h) for items
+  const { data: volumeMap = {}, isLoading: volumesLoading } = trpc.items.getAllVolumes.useQuery(undefined, {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false
+  })
+
   const favoriteItemIds = new Set(
     (favoriteItems || [])
       .filter(fav => fav.itemType === 'item')
@@ -91,6 +97,8 @@ export default function AllItems () {
                       favoriteItems={favoriteItemIds}
                       onToggleFavorite={handleToggleFavorite}
                       showFavoriteColumn={true}
+                      volumeMap={volumeMap}
+                      defaultVolumeWindow="1h"
                     />
                 </Box>
             )}
