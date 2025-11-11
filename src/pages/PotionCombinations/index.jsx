@@ -139,36 +139,200 @@ export default function PotionCombinations () {
     return []
   }, [itemMapping, allItems, volumeData])
 
+  // Reverse-decant recipes: Buy (4) dose at low, decant to (3)/(2)/(1) and sell at high (taxed)
+  const decantRecipes = useMemo(() => {
+    console.log('[PotionCombinations] decantRecipes useMemo running, recipes:', recipes?.length)
+    
+    if (!recipes || recipes.length === 0) {
+      console.log('[PotionCombinations] decantRecipes: recipes is empty')
+      return []
+    }
+
+    let skippedNoItem4 = 0
+    let skippedNoItem3 = 0
+    let skippedNoItem2 = 0
+    let skippedNoItem1 = 0
+    let skippedNoPrices = 0
+
+    const result = recipes.map((r) => {
+      // item4 is at top level, but item3/item2/item1 are in doses
+      const item4 = r.item4 || r.doses?.['4']
+      const item3 = r.item3 || r.doses?.['3']
+      const item2 = r.item2 || r.doses?.['2']
+      const item1 = r.item1 || r.doses?.['1']
+      
+      if (!item4) {
+        skippedNoItem4++
+        return null
+      }
+
+      const low4 = item4.low != null ? Number(String(item4.low).replace(/,/g, '')) : null
+      if (low4 == null) {
+        skippedNoPrices++
+        return null
+      }
+
+      const combinations = []
+      let bestProfitPerPotion = -Infinity
+      let bestMethodDose = null
+
+      // (4) → (3): Buy 3×(4) at low, decant to 4×(3), sell at high
+      // Profit per single (4) dose: (4/3 × high3 × 0.98) - low4
+      if (item3 && item3.high != null) {
+        const high3 = Number(String(item3.high).replace(/,/g, ''))
+        // For each (4) bought, you get (4/3) × (3) doses = 1.333... × (3) potions
+        // Revenue per (4): (4/3) × high3 × 0.98
+        // Cost per (4): low4
+        const revenuePer4 = (4 / 3) * Math.floor(high3 * 0.98)
+        const profitPerPotion = Math.floor(revenuePer4 - low4)
+        
+        combinations.push({
+          dose: '3',
+          itemId: item3.id,
+          low: item4.low,
+          high: item3.high,
+          profitPerPotion
+        })
+        
+        if (profitPerPotion > bestProfitPerPotion) {
+          bestProfitPerPotion = profitPerPotion
+          bestMethodDose = '3'
+        }
+      } else {
+        skippedNoItem3++
+      }
+
+      // (4) → (2): Buy 2×(4) at low, decant to 4×(2), sell at high
+      // Profit per single (4) dose: (4/2 × high2 × 0.98) - low4 = (2 × high2 × 0.98) - low4
+      if (item2 && item2.high != null) {
+        const high2 = Number(String(item2.high).replace(/,/g, ''))
+        // For each (4) bought, you get (4/2) × (2) doses = 2 × (2) potions
+        // Revenue per (4): 2 × high2 × 0.98
+        // Cost per (4): low4
+        const revenuePer4 = 2 * Math.floor(high2 * 0.98)
+        const profitPerPotion = Math.floor(revenuePer4 - low4)
+        
+        combinations.push({
+          dose: '2',
+          itemId: item2.id,
+          low: item4.low,
+          high: item2.high,
+          profitPerPotion
+        })
+        
+        if (profitPerPotion > bestProfitPerPotion) {
+          bestProfitPerPotion = profitPerPotion
+          bestMethodDose = '2'
+        }
+      } else {
+        skippedNoItem2++
+      }
+
+      // (4) → (1): Buy 1×(4) at low, decant to 4×(1), sell at high
+      // Profit per single (4) dose: (4/1 × high1 × 0.98) - low4 = (4 × high1 × 0.98) - low4
+      if (item1 && item1.high != null) {
+        const high1 = Number(String(item1.high).replace(/,/g, ''))
+        // For each (4) bought, you get (4/1) × (1) doses = 4 × (1) potions
+        // Revenue per (4): 4 × high1 × 0.98
+        // Cost per (4): low4
+        const revenuePer4 = 4 * Math.floor(high1 * 0.98)
+        const profitPerPotion = Math.floor(revenuePer4 - low4)
+        
+        combinations.push({
+          dose: '1',
+          itemId: item1.id,
+          low: item4.low,
+          high: item1.high,
+          profitPerPotion
+        })
+        
+        if (profitPerPotion > bestProfitPerPotion) {
+          bestProfitPerPotion = profitPerPotion
+          bestMethodDose = '1'
+        }
+      } else {
+        skippedNoItem1++
+      }
+
+      // Only return if we have at least one valid combination
+      if (combinations.length === 0) {
+        return null
+      }
+
+      return {
+        name: r.name,
+        item4,
+        item3,
+        item2,
+        item1,
+        combinations,
+        bestProfitPerPotion,
+        bestMethodDose,
+        normalizedScore: bestProfitPerPotion > 0 ? Math.min(10, Math.max(1, Math.ceil((bestProfitPerPotion / 1000) * 10))) : 1
+      }
+    }).filter(Boolean)
+    
+    console.log('[PotionCombinations] decantRecipes created:', {
+      inputRecipes: recipes.length,
+      outputDecantRecipes: result.length,
+      skippedNoItem4,
+      skippedNoItem3,
+      skippedNoItem2,
+      skippedNoItem1,
+      skippedNoPrices
+    })
+    
+    return result
+  }, [recipes])
+
   // Memoized Filtering and Sorting
   const filteredRecipes = useMemo(() => {
-    let filtered = recipes
+    const base = activeTab === 'decant-4-3' ? decantRecipes : recipes
+    let filtered = base
+    
+    console.log('[PotionCombinations] Filtering:', {
+      activeTab,
+      baseCount: base.length,
+      decantRecipesCount: decantRecipes.length,
+      recipesCount: recipes.length,
+      debouncedSearch: debouncedSearch.trim(),
+      minProfit,
+      minVolume,
+      minHourlyVolume,
+      sortOrder
+    })
+    
     // ... (filtering and sorting logic remains the same)
     // ... This will now work because `recipes` is correctly populated.
     // Apply tab filter
     if (activeTab === 'favorites' && favoriteItems) {
       const favoriteIds = new Set(favoriteItems.filter(f => f.itemType === 'potion').map(f => f.itemId))
       filtered = filtered.filter(recipe => favoriteIds.has(recipe.item4?.id))
+      console.log('[PotionCombinations] After favorites filter:', filtered.length)
     }
 
     // Apply search and data-driven filters
     if (debouncedSearch.trim() || minProfit > 0 || minVolume > 0) {
+      const beforeFilter = filtered.length
       filtered = filtered.filter(recipe => {
         const nameMatch = recipe.name.toLowerCase().includes(debouncedSearch.toLowerCase())
         if (!nameMatch) return false
         if (recipe.bestProfitPerPotion < minProfit) return false
-        if (volumeData) {
+        // Only check volume if minVolume filter is actually set (> 0)
+        if (minVolume > 0 && volumeData) {
           const bestProfitCombination = recipe.combinations.find(c => c.dose === recipe.bestMethodDose)
           if (bestProfitCombination) {
             const volumeInfo = volumeData[bestProfitCombination.itemId]
             if (!volumeInfo || (volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume) < minVolume) {
               return false
             }
+          } else {
+            return false
           }
-        } else if (minVolume > 0) {
-          return false
         }
         return true
       })
+      console.log('[PotionCombinations] After search/profit/volume filter:', { before: beforeFilter, after: filtered.length })
     }
 
     // 4. Filter by minimum hourly volume
@@ -213,7 +377,7 @@ export default function PotionCombinations () {
     // --- END DEBUG LOGS ---
 
     return filtered
-  }, [recipes, debouncedSearch, sortOrder, activeTab, favoriteItems, minProfit, minVolume, volumeData, minHourlyVolume])
+  }, [recipes, decantRecipes, debouncedSearch, sortOrder, activeTab, favoriteItems, minProfit, minVolume, volumeData, minHourlyVolume])
 
   const isLoading = isLoadingMapping || isLoadingAllItems || isLoadingVolumes || isLoadingLastUpdated || isLoadingFavorites
   const error = errorMapping || errorItems || errorVolumes
@@ -352,6 +516,7 @@ export default function PotionCombinations () {
       <Tabs value={activeTab} onTabChange={setActiveTab} mb="lg">
         <Tabs.List>
           <Tabs.Tab value="all" icon={<IconList size={16} />}>All Potions</Tabs.Tab>
+          <Tabs.Tab value="decant-4-3" icon={<IconGraph size={16} />}>Decant 4→3/2/1</Tabs.Tab>
           <Tabs.Tab value="favorites" icon={<IconHeart size={16} />}>Favorites ({favoriteItems ? favoriteItems.filter(f => f.itemType === 'potion').length : 0})</Tabs.Tab>
         </Tabs.List>
       </Tabs>
@@ -463,6 +628,7 @@ export default function PotionCombinations () {
             allItems={allItems}
             filterMode={sortOrder}
             volumeData={volumeData}
+            isDecantMode={activeTab === 'decant-4-3'}
             isFavorite={favoriteItems && recipe.item4?.id && favoriteItems.some(f => f.itemId === recipe.item4.id && f.itemType === 'potion')}
             onToggleFavorite={() => {
               const itemId = recipe.item4?.id

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { IconChartLine, IconHeart, IconHeartFilled } from '@tabler/icons-react'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 
-export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profit', volumeData, isFavorite, onToggleFavorite }) {
+export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profit', volumeData, isFavorite, onToggleFavorite, isDecantMode = false }) {
   const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
 
   if (!recipe || !recipe.item4 || !recipe.combinations) {
@@ -85,62 +85,120 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
 
       {/* Profit Breakdown - Integrated */}
       <Stack spacing={0}>
-        {recipe.combinations && [...recipe.combinations].sort((a, b) => parseInt(a.dose) - parseInt(b.dose)).map((combo) => {
-          const isBest = bestMethod && combo.dose === bestMethod.dose
-          const volumeInfo = volumeData ? volumeData[combo.itemId] : null
-          // Calculate total volume - handle null/undefined values properly
-          let totalVolume
-          if (volumeData === undefined) {
-            // Still loading
-            totalVolume = <Loader size="xs" />
-          } else if (volumeInfo && (volumeInfo.highPriceVolume != null || volumeInfo.lowPriceVolume != null)) {
-            // We have volume data - sum it up (treat null as 0)
-            const high = volumeInfo.highPriceVolume ?? 0
-            const low = volumeInfo.lowPriceVolume ?? 0
-            totalVolume = high + low
-          } else {
-            // No volume data for this item
-            totalVolume = 0
-          }
-          const totalVolumeDisplay = typeof totalVolume === 'number' ? totalVolume.toLocaleString() : totalVolume
+        {isDecantMode ? (
+          <>
+            {/* Decant mode: Show Buy (4) at top */}
+            <Group position="apart" py={4} mb="xs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <Text size="xs" weight={500}>Buy (4):</Text>
+              <Text size="xs" weight={500}>
+                {recipe.item4?.low ? Number(recipe.item4.low.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
+              </Text>
+            </Group>
+            
+            {/* Then show Sell (3/2/1) with profit */}
+            {recipe.combinations && [...recipe.combinations].sort((a, b) => parseInt(a.dose) - parseInt(b.dose)).map((combo) => {
+              const isBest = bestMethod && combo.dose === bestMethod.dose
+              const volumeInfo = volumeData ? volumeData[combo.itemId] : null
+              let totalVolume
+              if (volumeData === undefined) {
+                totalVolume = <Loader size="xs" />
+              } else if (volumeInfo && (volumeInfo.highPriceVolume != null || volumeInfo.lowPriceVolume != null)) {
+                const high = volumeInfo.highPriceVolume ?? 0
+                const low = volumeInfo.lowPriceVolume ?? 0
+                totalVolume = high + low
+              } else {
+                totalVolume = 0
+              }
+              const totalVolumeDisplay = typeof totalVolume === 'number' ? totalVolume.toLocaleString() : totalVolume
 
-          return (
-            <div
-              key={combo.dose}
-              style={{
-                padding: '6px 8px',
-                borderRadius: '4px',
-                backgroundColor: isBest ? 'rgba(76, 175, 80, 0.15)' : 'transparent',
-                border: isBest ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid transparent'
-              }}
-            >
-              <Group position="apart">
-                <Stack spacing={0}>
-                  <Text size="xs" weight={isBest ? 700 : 400}>
-                    ({combo.dose}): {combo.low !== null && combo.low !== undefined ? Number(combo.low.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
-                  </Text>
-                  <Text size="xs" color="dimmed">
-                    Vol 24h: {totalVolumeDisplay}
-                  </Text>
-                </Stack>
-                <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>
-                  {combo.profitPerPotion !== null ? `${Math.round(combo.profitPerPotion).toLocaleString()}/per` : 'N/A'}
-                </Text>
-              </Group>
-            </div>
-          )
-        })}
+              return (
+                <div
+                  key={combo.dose}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '4px',
+                    backgroundColor: isBest ? 'rgba(76, 175, 80, 0.15)' : 'transparent',
+                    border: isBest ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid transparent'
+                  }}
+                >
+                  <Group position="apart">
+                    <Stack spacing={0}>
+                      <Text size="xs" weight={isBest ? 700 : 400}>
+                        Sell ({combo.dose}): {combo.high !== null && combo.high !== undefined ? Number(combo.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
+                      </Text>
+                      <Text size="xs" color="dimmed">
+                        Vol 24h: {totalVolumeDisplay}
+                      </Text>
+                    </Stack>
+                    <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>
+                      {combo.profitPerPotion !== null ? `${Math.round(combo.profitPerPotion).toLocaleString()}/per` : 'N/A'}
+                    </Text>
+                  </Group>
+                </div>
+              )
+            })}
+          </>
+        ) : (
+          <>
+            {/* Regular mode: existing display */}
+            {recipe.combinations && [...recipe.combinations].sort((a, b) => parseInt(a.dose) - parseInt(b.dose)).map((combo) => {
+              const isBest = bestMethod && combo.dose === bestMethod.dose
+              const volumeInfo = volumeData ? volumeData[combo.itemId] : null
+              // Calculate total volume - handle null/undefined values properly
+              let totalVolume
+              if (volumeData === undefined) {
+                // Still loading
+                totalVolume = <Loader size="xs" />
+              } else if (volumeInfo && (volumeInfo.highPriceVolume != null || volumeInfo.lowPriceVolume != null)) {
+                // We have volume data - sum it up (treat null as 0)
+                const high = volumeInfo.highPriceVolume ?? 0
+                const low = volumeInfo.lowPriceVolume ?? 0
+                totalVolume = high + low
+              } else {
+                // No volume data for this item
+                totalVolume = 0
+              }
+              const totalVolumeDisplay = typeof totalVolume === 'number' ? totalVolume.toLocaleString() : totalVolume
 
-        {/* Divider line */}
-        <div style={{ borderTop: '1px solid #dee2e6', margin: '6px 0' }} />
+              return (
+                <div
+                  key={combo.dose}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '4px',
+                    backgroundColor: isBest ? 'rgba(76, 175, 80, 0.15)' : 'transparent',
+                    border: isBest ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid transparent'
+                  }}
+                >
+                  <Group position="apart">
+                    <Stack spacing={0}>
+                      <Text size="xs" weight={isBest ? 700 : 400}>
+                        ({combo.dose}): {combo.low !== null && combo.low !== undefined ? Number(combo.low.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
+                      </Text>
+                      <Text size="xs" color="dimmed">
+                        Vol 24h: {totalVolumeDisplay}
+                      </Text>
+                    </Stack>
+                    <Text size="xs" weight={isBest ? 700 : 400} color={combo.profitPerPotion > 0 ? 'green' : 'red'}>
+                      {combo.profitPerPotion !== null ? `${Math.round(combo.profitPerPotion).toLocaleString()}/per` : 'N/A'}
+                    </Text>
+                  </Group>
+                </div>
+              )
+            })}
 
-        {/* (4) dose sell price - show actual high price to match All Items page */}
-        <Group position="apart" py={4}>
-          <Text size="xs" weight={500}>Sell (4):</Text>
-          <Text size="xs" weight={500} color="green">
-            {item4.high ? Number(item4.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
-          </Text>
-        </Group>
+            {/* Divider line */}
+            <div style={{ borderTop: '1px solid #dee2e6', margin: '6px 0' }} />
+
+            {/* (4) dose sell price - show actual high price to match All Items page */}
+            <Group position="apart" py={4}>
+              <Text size="xs" weight={500}>Sell (4):</Text>
+              <Text size="xs" weight={500} color="green">
+                {item4.high ? Number(item4.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
+              </Text>
+            </Group>
+          </>
+        )}
       </Stack>
 
       <GraphModal
