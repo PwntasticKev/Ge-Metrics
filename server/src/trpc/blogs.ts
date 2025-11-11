@@ -20,8 +20,6 @@ export const blogsRouter = router({
     )
     .query(async ({ input }) => {
       try {
-        let query = db.select().from(blogs)
-        
         const conditions = []
         
         if (input?.startDate) {
@@ -40,9 +38,10 @@ export const blogsRouter = router({
           conditions.push(eq(blogs.category, input.category))
         }
         
-        if (conditions.length > 0) {
-          query = query.where(and(...conditions))
-        }
+        const baseQuery = db.select().from(blogs)
+        const query = conditions.length > 0 
+          ? baseQuery.where(and(...conditions))
+          : baseQuery
         
         const result = await query
           .orderBy(desc(blogs.date))

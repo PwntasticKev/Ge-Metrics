@@ -232,7 +232,15 @@ async function processTradeEvent(
     if (trade.offerType === 'sell' && 
         (trade.status === 'completed' || trade.status === 'canceled') &&
         existingEvent.status === 'pending') {
-      await processFifoMatching({ ...existingEvent, ...trade }, osrsAccountId)
+      // Convert trade timestamp string to Date for matching
+      const updatedEvent = {
+        ...existingEvent,
+        filledQuantity: trade.filledQuantity,
+        remainingQuantity: trade.remainingQuantity,
+        status: trade.status,
+        timestamp: new Date(trade.timestamp)
+      }
+      await processFifoMatching(updatedEvent, osrsAccountId)
     }
     
     return
