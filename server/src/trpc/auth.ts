@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { eq, and, or } from 'drizzle-orm'
+import { eq, and, or, gt } from 'drizzle-orm'
 import { db, users, refreshTokens, subscriptions, NewUser, userSettings } from '../db/index.js'
 import { publicProcedure, router, protectedProcedure } from './trpc.js'
 import * as AuthModule from '../utils/auth.js'
@@ -19,10 +19,12 @@ export const authRouter = router({
       email: z.string().email(),
       username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
       password: z.string().min(8),
-      name: z.string().min(1)
+      name: z.string().optional() // Optional - will use username if not provided
     }))
     .mutation(async ({ input }) => {
       const { email, username, password, name } = input
+      // Use username as name if name not provided
+      const displayName = name || username
 
       console.log('[GE-METRICS_AUTH_DEBUG] Attempting to register user. DB URL:', config.DATABASE_URL)
 
@@ -50,7 +52,7 @@ export const authRouter = router({
         username,
         passwordHash: hash,
         salt,
-        name
+        name: displayName
       }
       const [createdUser] = await db.insert(users).values(newUser).returning()
 
@@ -84,43 +86,213 @@ export const authRouter = router({
       const { sendEmail } = await import('../services/emailService.js')
       
       try {
+        // Random casual greeting
+        const casualGreetings = ['Hey brotha', 'Hey dude', 'What\'s up', 'Yo', 'Hey there']
+        const greeting = casualGreetings[Math.floor(Math.random() * casualGreetings.length)]
+        
         const emailResult = await sendEmail({
           to: email,
-          subject: 'Verify your Ge-Metrics account',
+          subject: 'Let\'s get you verified, bro',
           html: `
             <!DOCTYPE html>
             <html>
               <head>
                 <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
-                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                  .header { text-align: center; background: #1a1b1e; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
-                  .content { background: white; padding: 30px; border: 1px solid #ddd; border-top: none; }
-                  .button { display: inline-block; background: #228be6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body { 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6; 
+                    color: #1a1b1e;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 20px;
+                  }
+                  .email-wrapper {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    animation: slideUp 0.5s ease-out;
+                  }
+                  @keyframes slideUp {
+                    from {
+                      opacity: 0;
+                      transform: translateY(20px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateY(0);
+                    }
+                  }
+                  .header {
+                    background: linear-gradient(135deg, #1a1b1e 0%, #2d2e32 100%);
+                    padding: 40px 30px;
+                    text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                  }
+                  .header::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(45deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 237, 78, 0.1) 100%);
+                    animation: shimmer 3s infinite;
+                  }
+                  @keyframes shimmer {
+                    0%, 100% { transform: translateX(-100%); }
+                    50% { transform: translateX(100%); }
+                  }
+                  .logo {
+                    font-size: 36px;
+                    font-weight: 700;
+                    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    position: relative;
+                    z-index: 1;
+                    margin-bottom: 8px;
+                    letter-spacing: -1px;
+                  }
+                  .logo-subtitle {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.7);
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    position: relative;
+                    z-index: 1;
+                  }
+                  .content {
+                    padding: 40px 30px;
+                    background: #ffffff;
+                  }
+                  .greeting {
+                    font-size: 28px;
+                    font-weight: 600;
+                    color: #1a1b1e;
+                    margin-bottom: 16px;
+                    line-height: 1.2;
+                  }
+                  .message {
+                    font-size: 16px;
+                    color: #495057;
+                    margin-bottom: 24px;
+                    line-height: 1.7;
+                  }
+                  .button-container {
+                    text-align: center;
+                    margin: 32px 0;
+                  }
+                  .button {
+                    display: inline-block;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 16px 32px;
+                    text-decoration: none;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                    position: relative;
+                    overflow: hidden;
+                  }
+                  .button::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+                    transition: left 0.5s;
+                  }
+                  .button:hover::before {
+                    left: 100%;
+                  }
+                  .button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+                  }
+                  .link-fallback {
+                    margin-top: 24px;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #667eea;
+                  }
+                  .link-fallback p {
+                    font-size: 13px;
+                    color: #6c757d;
+                    margin-bottom: 8px;
+                  }
+                  .link-fallback a {
+                    color: #667eea;
+                    word-break: break-all;
+                    font-size: 12px;
+                    text-decoration: none;
+                  }
+                  .link-fallback a:hover {
+                    text-decoration: underline;
+                  }
+                  .footer {
+                    padding: 24px 30px;
+                    background: #f8f9fa;
+                    text-align: center;
+                    border-top: 1px solid #e9ecef;
+                  }
+                  .footer-text {
+                    font-size: 12px;
+                    color: #6c757d;
+                    line-height: 1.6;
+                  }
+                  @media only screen and (max-width: 600px) {
+                    .content { padding: 30px 20px; }
+                    .header { padding: 30px 20px; }
+                    .logo { font-size: 28px; }
+                    .greeting { font-size: 24px; }
+                    .button { padding: 14px 28px; font-size: 14px; }
+                  }
                 </style>
               </head>
               <body>
-                <div class="container">
+                <div class="email-wrapper">
                   <div class="header">
-                    <h1>🎮 Ge-Metrics</h1>
+                    <div class="logo">GE Metrics</div>
+                    <div class="logo-subtitle">Live Market Data</div>
                   </div>
                   <div class="content">
-                    <h2>Welcome to Ge-Metrics!</h2>
-                    <p>Hi ${name},</p>
-                    <p>Thank you for registering! Please verify your email address to complete your account setup.</p>
-                    <div style="text-align: center;">
-                      <a href="${verificationUrl}" class="button">Verify Email Address</a>
+                    <div class="greeting">${greeting}, ${createdUser.username}!</div>
+                    <p class="message">
+                      Stoked to have you on board! 🚀 Just need to verify your email real quick so we can get you set up with your free trial.
+                    </p>
+                    <p class="message">
+                      Click that button below and you'll be good to go. Takes like 2 seconds, promise.
+                    </p>
+                    <div class="button-container">
+                      <a href="${verificationUrl}" class="button">Verify My Email</a>
                     </div>
-                    <p>Or copy and paste this link into your browser:</p>
-                    <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
-                    <p><small>This verification link will expire in 24 hours.</small></p>
+                    <div class="link-fallback">
+                      <p><strong>Button not working?</strong> No worries, just copy and paste this link:</p>
+                      <a href="${verificationUrl}">${verificationUrl}</a>
+                    </div>
+                  </div>
+                  <div class="footer">
+                    <p class="footer-text">
+                      This link expires in 24 hours. If you didn't sign up for GE Metrics, you can safely ignore this email.
+                    </p>
                   </div>
                 </div>
               </body>
             </html>
           `,
-          text: `Welcome to Ge-Metrics!\n\nHi ${name},\n\nThank you for registering! Please verify your email address by visiting:\n${verificationUrl}\n\nThis link will expire in 24 hours.`
+          text: `${greeting}, ${createdUser.username}!\n\nStoked to have you on board! Just need to verify your email real quick so we can get you set up with your free trial.\n\nClick this link to verify: ${verificationUrl}\n\nThis link expires in 24 hours.\n\nIf you didn't sign up for GE Metrics, you can safely ignore this email.`
         })
 
         if (!emailResult.success) {
@@ -150,13 +322,12 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { token } = input
 
-      // Find user by verification token
+      // Find user by verification token (check expiration)
       const [user] = await db.select().from(users)
         .where(
           and(
-            eq(users.emailVerificationToken, token)
-            // In a real app, you'd check if the token has expired:
-            // gt(users.emailVerificationTokenExpiresAt, new Date())
+            eq(users.emailVerificationToken, token),
+            gt(users.emailVerificationTokenExpiresAt, new Date())
           )
         ).limit(1)
 

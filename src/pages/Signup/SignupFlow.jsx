@@ -62,7 +62,6 @@ const SignupFlow = () => {
     initialValues: {
       email: '',
       password: '',
-      name: '',
       runescapeName: '',
       acceptTerms: false,
       marketingEmails: false
@@ -77,10 +76,10 @@ const SignupFlow = () => {
         if (getStrength(value) !== 100) return 'Password does not meet all requirements'
         return null
       },
-      name: (value) => (value.length < 2 ? 'Name must be at least 2 characters long' : null),
       runescapeName: (value) => {
-        if (!value) return 'RuneScape name is required'
-        if (value.length < 1 || value.length > 12) return 'Invalid RuneScape name length'
+        if (!value) return 'RuneScape username is required'
+        if (value.length < 3 || value.length > 32) return 'Username must be between 3 and 32 characters'
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores'
         return null
       },
       acceptTerms: (value) => (value ? null : 'You must accept the terms and policy')
@@ -114,13 +113,12 @@ const SignupFlow = () => {
     setLoading(true)
     setError(null)
 
-    const { email, password, name, runescapeName, marketingEmails } = form.values
+    const { email, password, runescapeName, marketingEmails } = form.values
 
     register({
       email,
       password,
-      name,
-      username: runescapeName // Use 'username' to match the backend
+      username: runescapeName // Use 'username' to match the backend (name is optional)
     }, {
       onSuccess: (data) => {
         console.log(data.message) // "Registration successful..."
@@ -166,14 +164,6 @@ const SignupFlow = () => {
         <Paper withBorder shadow="md" p={30} mt={30} radius="md">
           <form onSubmit={(e) => { e.preventDefault(); handleSignup() }}>
             <TextInput
-              label="Full Name"
-              placeholder="Your full name"
-              required
-              autoComplete="name"
-              {...form.getInputProps('name')}
-            />
-            <TextInput
-              mt="md"
               label="Email"
               placeholder="your.email@example.com"
               required
@@ -185,7 +175,8 @@ const SignupFlow = () => {
               label="RuneScape Username"
               placeholder="Your RuneScape username"
               required
-              autoComplete="off"
+              autoComplete="username"
+              description="3-32 characters, letters, numbers, and underscores only"
               {...form.getInputProps('runescapeName')}
             />
             <PasswordInput

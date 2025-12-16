@@ -9,13 +9,21 @@ function VerifyEmailPage () {
   const location = useLocation()
   const navigate = useNavigate()
   const [error, setError] = useState(null)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   const token = new URLSearchParams(location.search).get('token')
 
   const { mutate, isLoading, isSuccess, data } = trpc.auth.verifyEmail.useMutation({
     onSuccess: (data) => {
-      // Handle successful verification, e.g., store tokens and redirect
-      // For now, just show a success message
+      // Store tokens and log user in automatically
+      if (data.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken)
+        // Redirect to home page after a brief delay
+        setIsRedirecting(true)
+        setTimeout(() => {
+          window.location.href = '/' // Full reload to trigger auth check
+        }, 1500)
+      }
     },
     onError: (error) => {
       setError(error.message)
@@ -60,11 +68,18 @@ function VerifyEmailPage () {
     return (
       <Center style={{ height: '100vh', flexDirection: 'column' }}>
         <Alert icon={<IconCircleCheck size="1rem" />} title="Email Verified!" color="green">
-          Your email has been successfully verified. You can now log in to your account.
+          {isRedirecting 
+            ? 'Your email has been verified! Redirecting you to your dashboard...'
+            : 'Your email has been successfully verified! You are now logged in.'}
         </Alert>
-        <Button onClick={handleLoginRedirect} mt="md">
-          Proceed to Login
-        </Button>
+        {!isRedirecting && (
+          <Button onClick={() => window.location.href = '/'} mt="md">
+            Go to Dashboard
+          </Button>
+        )}
+        {isRedirecting && (
+          <Loader mt="md" />
+        )}
       </Center>
     )
   }
