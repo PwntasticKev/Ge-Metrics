@@ -14,7 +14,7 @@ public interface GeMetricsConfig extends Config
 	)
 	default String apiUrl()
 	{
-		return "https://api.gemetrics.com"; // Change to your production URL
+		return "https://www.ge-metrics.com"; // Production API URL
 	}
 
 	@ConfigItem(

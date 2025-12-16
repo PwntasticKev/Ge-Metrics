@@ -57,6 +57,7 @@
     "puppeteer": "^24.13.0",
     "qrcode": "^1.5.4",
     "recharts": "^3.2.1",
+    "resend": "^4.0.0",
     "stripe": "^14.14.0",
     "superjson": "^2.2.2",
     "tsup": "^8.0.2",

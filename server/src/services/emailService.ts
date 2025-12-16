@@ -3,6 +3,33 @@ import { config } from '../config/index.js'
 
 // Create reusable transporter
 let transporter: nodemailer.Transporter | null = null
+let resendClient: any = null
+let Resend: any = null
+
+// Lazy load Resend (only if RESEND_API_KEY is configured)
+async function getResendClient () {
+  if (resendClient) {
+    return resendClient
+  }
+  
+  if (!config.RESEND_API_KEY) {
+    return null
+  }
+  
+  try {
+    // Dynamic import - Resend may not be installed
+    const resendModule = await import('resend' as string)
+    Resend = (resendModule as any).Resend
+    if (Resend && config.RESEND_API_KEY) {
+      resendClient = new Resend(config.RESEND_API_KEY)
+      return resendClient
+    }
+    return null
+  } catch (error) {
+    console.warn('[EmailService] Resend package not installed. Install with: npm install resend')
+    return null
+  }
+}
 
 function createTransporter (): nodemailer.Transporter {
   if (transporter) {
@@ -55,28 +82,65 @@ export interface EmailOptions {
 
 export async function sendEmail (options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = createTransporter()
+    // Determine from email - prefer FROM_EMAIL, then Resend default, then SMTP user, then fallback
+    let fromEmail = options.from || config.FROM_EMAIL
+    if (!fromEmail) {
+      if (config.RESEND_API_KEY) {
+        // Resend requires verified domain, but allows onboarding@resend.dev for testing
+        fromEmail = 'onboarding@resend.dev'
+      } else if (config.SMTP_USER) {
+        fromEmail = config.SMTP_USER
+      } else {
+        fromEmail = 'noreply@ge-metrics.com'
+      }
+    }
+    const fromName = 'Ge-Metrics'
+    const toEmails = Array.isArray(options.to) ? options.to : [options.to]
     
-    // Use FROM_EMAIL if configured, otherwise fall back to SMTP_USER
-    // Note: Using a different FROM_EMAIL than SMTP_USER may cause deliverability issues
-    // Some email providers will reject or mark as spam emails where From != authenticated user
-    const fromEmail = options.from || config.FROM_EMAIL || config.SMTP_USER || 'noreply@ge-metrics.com'
-    const fromName = 'ge-metrics'
-    
-    // Warn if FROM_EMAIL is different from SMTP_USER (deliverability risk)
-    if (config.FROM_EMAIL && config.SMTP_USER && config.FROM_EMAIL !== config.SMTP_USER) {
-      const fromDomain = fromEmail.split('@')[1]
-      const authDomain = config.SMTP_USER.split('@')[1]
-      if (fromDomain !== authDomain) {
-        console.warn(`[EmailService] WARNING: Sending from ${fromEmail} using credentials from ${config.SMTP_USER}`)
-        console.warn(`[EmailService] This may cause deliverability issues. Consider using a transactional email service (Resend, SendGrid, Mailgun) for better deliverability.`)
+    // Priority 1: Try Resend API (recommended - modern, reliable, free tier)
+    if (config.RESEND_API_KEY) {
+      try {
+        const client = await getResendClient()
+        if (client) {
+          const result = await client.emails.send({
+            from: `${fromName} <${fromEmail}>`,
+            to: toEmails,
+            subject: options.subject,
+            html: options.html || options.text,
+            text: options.text || stripHtml(options.html || '')
+          })
+          
+          if (result.error) {
+            throw new Error(result.error.message || 'Resend API error')
+          }
+          
+          console.log('📧 [EmailService] Email sent via Resend:', {
+            messageId: result.data?.id,
+            to: toEmails,
+            subject: options.subject
+          })
+          
+          return {
+            success: true,
+            messageId: result.data?.id
+          }
+        }
+      } catch (resendError) {
+        console.error('📧 [EmailService] Resend failed, falling back to SMTP:', resendError)
+        // Fall through to SMTP
       }
     }
     
+    // Priority 2: Try SMTP (fallback)
+    const transporter = createTransporter()
+    
+    // Use FROM_EMAIL if configured, otherwise fall back to SMTP_USER
+    const smtpFromEmail = options.from || config.FROM_EMAIL || config.SMTP_USER || 'noreply@ge-metrics.com'
+    
     const mailOptions = {
-      from: `"${fromName}" <${fromEmail}>`,
-      replyTo: config.SMTP_USER || fromEmail, // Set reply-to to the authenticated email
-      to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+      from: `"${fromName}" <${smtpFromEmail}>`,
+      replyTo: config.SMTP_USER || smtpFromEmail,
+      to: toEmails.join(', '),
       subject: options.subject,
       text: options.text || stripHtml(options.html || ''),
       html: options.html || options.text
@@ -84,14 +148,15 @@ export async function sendEmail (options: EmailOptions): Promise<{ success: bool
 
     // If SMTP is not configured, log instead of sending
     if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS) {
-      console.log('📧 [EmailService] Email would be sent (SMTP not configured):')
+      console.log('📧 [EmailService] Email would be sent (no email service configured):')
       console.log('   To:', mailOptions.to)
       console.log('   From:', mailOptions.from)
       console.log('   Subject:', mailOptions.subject)
       console.log('   Text:', mailOptions.text?.substring(0, 100) + '...')
+      console.log('   ⚠️  Configure RESEND_API_KEY or SMTP credentials to send emails')
       return {
-        success: true,
-        messageId: `logged-${Date.now()}`
+        success: false,
+        error: 'No email service configured. Set RESEND_API_KEY or SMTP credentials.'
       }
     }
 
@@ -99,7 +164,7 @@ export async function sendEmail (options: EmailOptions): Promise<{ success: bool
     try {
       const info = await transporter.sendMail(mailOptions)
       
-      console.log('📧 [EmailService] Email sent successfully:', {
+      console.log('📧 [EmailService] Email sent via SMTP:', {
         messageId: info.messageId,
         to: mailOptions.to,
         subject: mailOptions.subject
@@ -110,13 +175,6 @@ export async function sendEmail (options: EmailOptions): Promise<{ success: bool
         messageId: info.messageId
       }
     } catch (sendError) {
-      // If sending fails and SMTP wasn't configured, that's expected
-      if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS) {
-        return {
-          success: true,
-          messageId: `logged-${Date.now()}`
-        }
-      }
       throw sendError
     }
   } catch (error) {
@@ -141,11 +199,26 @@ function stripHtml (html: string): string {
     .trim()
 }
 
-// Verify SMTP connection
+// Verify email connection (checks Resend first, then SMTP)
 export async function verifyEmailConnection (): Promise<boolean> {
   try {
+    // Check Resend first
+    if (config.RESEND_API_KEY) {
+      try {
+        const client = await getResendClient()
+        if (client) {
+          // Resend doesn't have a verify method, but we can check if API key is set
+          console.log('✅ [EmailService] Resend API configured')
+          return true
+        }
+      } catch (error) {
+        console.warn('[EmailService] Resend configuration issue:', error)
+      }
+    }
+    
+    // Fall back to SMTP verification
     if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS) {
-      console.warn('[EmailService] SMTP not configured - cannot verify connection')
+      console.warn('[EmailService] No email service configured - set RESEND_API_KEY or SMTP credentials')
       return false
     }
 
@@ -154,7 +227,7 @@ export async function verifyEmailConnection (): Promise<boolean> {
     console.log('✅ [EmailService] SMTP connection verified successfully')
     return true
   } catch (error) {
-    console.error('❌ [EmailService] SMTP connection verification failed:', error)
+    console.error('❌ [EmailService] Email connection verification failed:', error)
     return false
   }
 }
