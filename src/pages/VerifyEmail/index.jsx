@@ -15,15 +15,11 @@ function VerifyEmailPage () {
 
   const { mutate, isLoading, isSuccess, data } = trpc.auth.verifyEmail.useMutation({
     onSuccess: (data) => {
-      // Store tokens and log user in automatically
-      if (data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken)
-        // Redirect to home page after a brief delay
-        setIsRedirecting(true)
-        setTimeout(() => {
-          window.location.href = '/' // Full reload to trigger auth check
-        }, 1500)
-      }
+      // Redirect to verified page (don't auto-login, let them log in manually)
+      setIsRedirecting(true)
+      setTimeout(() => {
+        navigate('/email-verified')
+      }, 500)
     },
     onError: (error) => {
       setError(error.message)
@@ -67,19 +63,8 @@ function VerifyEmailPage () {
   if (isSuccess) {
     return (
       <Center style={{ height: '100vh', flexDirection: 'column' }}>
-        <Alert icon={<IconCircleCheck size="1rem" />} title="Email Verified!" color="green">
-          {isRedirecting 
-            ? 'Your email has been verified! Redirecting you to your dashboard...'
-            : 'Your email has been successfully verified! You are now logged in.'}
-        </Alert>
-        {!isRedirecting && (
-          <Button onClick={() => window.location.href = '/'} mt="md">
-            Go to Dashboard
-          </Button>
-        )}
-        {isRedirecting && (
-          <Loader mt="md" />
-        )}
+        <Loader size="xl" />
+        <Title order={3} mt="md">Email verified! Redirecting...</Title>
       </Center>
     )
   }

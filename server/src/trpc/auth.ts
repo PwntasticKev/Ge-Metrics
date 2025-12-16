@@ -339,13 +339,23 @@ export const authRouter = router({
       }
 
       // Mark email as verified and clear token fields
-      await db.update(users)
+      const [updatedUser] = await db.update(users)
         .set({
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationTokenExpiresAt: null
         })
         .where(eq(users.id, user.id))
+        .returning()
+      
+      console.log(`✅ Email verified for user: ${user.id} (${user.email})`)
+      
+      if (!updatedUser || !updatedUser.emailVerified) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to verify email. Please try again.'
+        })
+      }
 
       // Generate tokens for the now-verified user
       const accessToken = authUtils.generateAccessToken(String(user.id), user.email)

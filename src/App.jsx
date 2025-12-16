@@ -63,6 +63,7 @@ const ProfitOpportunities = lazy(() => import('./pages/ProfitOpportunities'))
 const ItemDetails = lazy(() => import('./pages/ItemDetails/index.jsx'))
 const PotionCombinations = lazy(() => import('./pages/PotionCombinations'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmail'))
+const EmailVerifiedPage = lazy(() => import('./pages/EmailVerified'))
 const Saplings = lazy(() => import('./pages/Saplings/index.jsx'))
 const ComingSoon = lazy(() => import('./pages/ComingSoon/index.jsx'))
 const BillingPage = lazy(() => import('./pages/Billing/index.jsx'))
@@ -275,6 +276,8 @@ function AppContent () {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/signup/success" element={<SignupSuccess />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/email-verified" element={<EmailVerifiedPage />} />
             <Route path="/" element={<Navigate to="/all-items" />} />
 
             {/* Protected routes */}
@@ -315,7 +318,6 @@ function AppContent () {
               <Route path="/settings" element={<Settings />} />
               <Route path="/faq" element={<Faq />} />
               <Route path="/status" element={<Status />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/item/:id" element={<ItemDetails />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/saplings" element={<Saplings />} />
