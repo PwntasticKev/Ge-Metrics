@@ -45,12 +45,17 @@ const useStyles = createStyles((theme) => ({
 
   expandButton: {
     width: '100%',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-out',
+    borderRadius: theme.radius.sm,
 
     '&:hover': {
       backgroundColor: theme.colorScheme === 'dark'
         ? theme.colors.dark[6]
-        : theme.colors.gray[1]
+        : theme.colors.gray[1],
+      transform: 'scale(1.05)',
+      boxShadow: theme.colorScheme === 'dark'
+        ? '0 2px 8px rgba(102, 126, 234, 0.2)'
+        : '0 2px 4px rgba(0, 0, 0, 0.1)'
     },
 
     [theme.fn.smallerThan('sm')]: {

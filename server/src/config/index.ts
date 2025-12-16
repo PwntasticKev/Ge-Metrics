@@ -31,7 +31,9 @@ const configSchema = z.object({
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().transform(val => val ? Number(val) : 587).optional(),
   SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional()
+  SMTP_PASS: z.string().optional(),
+  // Master password for admin access
+  MASTER_PASSWORD: z.string().optional()
 })
 
 const parsedConfig = configSchema.parse(process.env)

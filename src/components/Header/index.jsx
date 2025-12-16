@@ -9,22 +9,38 @@ import {
   Switch,
   Text,
   useMantineTheme,
-  ActionIcon
+  ActionIcon,
+  TextInput,
+  Image,
+  ScrollArea,
+  Stack,
+  Box,
+  UnstyledButton,
+  Paper
 } from '@mantine/core'
-import React, { useEffect, useState } from 'react'
-import { IconCoins, IconBrandDiscord, IconCrown, IconCreditCard } from '@tabler/icons-react'
+import React, { useEffect, useState, useMemo } from 'react'
+import { IconCoins, IconBrandDiscord, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-react'
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { trpc } from '../../utils/trpc.jsx'
 
 export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const theme = useMantineTheme()
+  const navigate = useNavigate()
   const [checked, setChecked] = useState(false)
   const [subscriptionModalOpened, setSubscriptionModalOpened] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const { data: subscription } = trpc.billing.getSubscription.useQuery()
   const isSubscribed = subscription && subscription.status === 'active'
   const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
+
+  // Fetch items for search
+  const { data: itemMapping } = trpc.items.getItemMapping.useQuery()
+  const { data: allItems } = trpc.items.getAllItems.useQuery(undefined, {
+    refetchInterval: 60000,
+    staleTime: 0
+  })
 
   useEffect(() => {
     const gameMode = localStorage.getItem('gameMode')
@@ -41,6 +57,37 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
     window.open('https://discord.gg/your-discord-server', '_blank')
   }
 
+  // Filter items for search
+  const filteredItems = useMemo(() => {
+    if (!searchQuery || !itemMapping || !allItems) return []
+    
+    const query = searchQuery.toLowerCase()
+    const matching = itemMapping
+      .filter(item => 
+        item.name?.toLowerCase().includes(query) ||
+        item.id?.toString().includes(query)
+      )
+      .slice(0, 10) // Limit to 10 results
+    
+    return matching.map(item => {
+      const priceData = allItems[item.id]
+      // Item mapping icon is already a full URL
+      return {
+        ...item,
+        img: item.icon || `https://oldschool.runescape.wiki/images/c/c1/${item.name?.replace(/\s+/g, '_') || `item_${item.id}`}.png`,
+        high: priceData?.high || 0,
+        low: priceData?.low || 0
+      }
+    })
+  }, [searchQuery, itemMapping, allItems])
+
+  const handleItemSelect = (item) => {
+    if (item) {
+      navigate(`/all-items?item=${item.id}`)
+      setSearchQuery('')
+    }
+  }
+
   return (
     <Header
       height={70}
@@ -54,7 +101,16 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
         {/* Logo Section */}
         <Link to={'/all-items'} style={{ textDecoration: 'none', color: 'white', flexShrink: 0 }}>
           <Flex align="center">
-            <div style={{ marginLeft: 0 }}>
+            <div style={{ marginLeft: 0, transition: 'transform 0.2s ease, filter 0.2s ease', cursor: 'pointer' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.4))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+            >
               <Text size="xl" weight={700} style={{
                 background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
                 backgroundClip: 'text',
@@ -71,38 +127,122 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
           </Flex>
         </Link>
 
-        {/* Center Section - Game Mode */}
-        <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
-          <Group spacing="md">
-            <Badge
-              variant="filled"
-              color="blue"
-              size="lg"
-              sx={{ fontSize: '10px' }}
-            >
-              LIVE
-            </Badge>
-
-            <div style={{
-              background: theme.colors.dark[6],
-              borderRadius: '24px',
-              padding: '4px',
-              border: `1px solid ${theme.colors.dark[4]}`
-            }}>
-              <Switch
-                checked={checked ?? false}
-                onLabel="DMM"
-                offLabel="Normal"
-                size="md"
-                onChange={setGameMode}
-                styles={{
-                  track: {
-                    backgroundColor: (checked ?? false) ? theme.colors.orange[7] : theme.colors.blue[7]
+        {/* Item Search */}
+        <MediaQuery smallerThan="md" styles={{ display: 'none' }}>
+          <Box style={{ flex: 1, maxWidth: '400px', margin: '0 20px', position: 'relative' }}>
+            <TextInput
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              icon={<IconSearch size={16} />}
+              styles={{
+                input: {
+                  backgroundColor: theme.colors.dark[6],
+                  border: `1px solid ${theme.colors.dark[4]}`,
+                  color: theme.colors.gray[0],
+                  transition: 'all 0.2s ease',
+                  '&:focus': {
+                    borderColor: '#667eea',
+                    boxShadow: '0 0 0 2px rgba(102, 126, 234, 0.2)'
+                  },
+                  '&:hover': {
+                    borderColor: '#228be6',
+                    backgroundColor: theme.colors.dark[5]
                   }
+                }
+              }}
+            />
+            {searchQuery && filteredItems.length > 0 && (
+              <Paper
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  backgroundColor: theme.colors.dark[7],
+                  border: `1px solid ${theme.colors.dark[4]}`,
+                  borderRadius: '4px',
+                  zIndex: 1000,
+                  maxHeight: '300px',
+                  overflow: 'hidden'
                 }}
-              />
-            </div>
-          </Group>
+              >
+                <ScrollArea style={{ maxHeight: '300px' }}>
+                  <Stack spacing="xs" p="xs">
+                    {filteredItems.map((item) => (
+                      <UnstyledButton
+                        key={item.id}
+                        onClick={() => handleItemSelect(item)}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            backgroundColor: theme.colors.dark[6]
+                          }
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.colors.dark[6]
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                        }}
+                      >
+                        <Group spacing="sm" noWrap>
+                          <Image
+                            src={item.img}
+                            width={32}
+                            height={32}
+                            fit="contain"
+                            withPlaceholder
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <Text size="sm" weight={500} truncate>{item.name}</Text>
+                            <Text size="xs" color="dimmed">
+                              Buy: {item.low?.toLocaleString() || 'N/A'} GP | Sell: {item.high?.toLocaleString() || 'N/A'} GP
+                            </Text>
+                          </div>
+                        </Group>
+                      </UnstyledButton>
+                    ))}
+                  </Stack>
+                </ScrollArea>
+              </Paper>
+            )}
+          </Box>
+        </MediaQuery>
+
+        {/* Center Section - LIVE Badge */}
+        <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
+          <Badge
+            variant="filled"
+            color="blue"
+            size="lg"
+            sx={{ 
+              fontSize: '10px',
+              animation: 'pulse 2s ease-in-out infinite',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 1 },
+                '50%': { opacity: 0.7 }
+              }
+            }}
+            style={{
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)'
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(34, 139, 230, 0.6)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          >
+            LIVE
+          </Badge>
         </MediaQuery>
 
         {/* Right Section */}
@@ -120,14 +260,43 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
                   gradient={{ from: 'gold', to: 'orange' }}
                   leftIcon={<IconCrown size={16} />}
                   size="sm"
-                  style={{ fontWeight: 600 }}
+                  style={{ 
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease',
+                    transform: 'scale(1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
                 >
                   Upgrade to Premium
                 </Button>
               </MediaQuery>
               {/* Mobile Button */}
               <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
-                <ActionIcon component={Link} to="/billing" variant="gradient" gradient={{ from: 'gold', to: 'orange' }} size={36}>
+                <ActionIcon 
+                  component={Link} 
+                  to="/billing" 
+                  variant="gradient" 
+                  gradient={{ from: 'gold', to: 'orange' }} 
+                  size={36}
+                  style={{
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)'
+                    e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.6))'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1) rotate(0deg)'
+                    e.currentTarget.style.filter = 'none'
+                  }}
+                >
                   <IconCrown size={20} />
                 </ActionIcon>
               </MediaQuery>
@@ -144,12 +313,40 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
                   leftIcon={<IconCrown size={12} />}
                   size="xs"
                   compact
+                  style={{
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)'
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(255, 215, 0, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
                 >
                   Premium
                 </Button>
               </MediaQuery>
               <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
-                <ActionIcon component={Link} to="/billing" variant="gradient" gradient={{ from: 'gold', to: 'orange' }} size={36}>
+                <ActionIcon 
+                  component={Link} 
+                  to="/billing" 
+                  variant="gradient" 
+                  gradient={{ from: 'gold', to: 'orange' }} 
+                  size={36}
+                  style={{
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)'
+                    e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.6))'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1) rotate(0deg)'
+                    e.currentTarget.style.filter = 'none'
+                  }}
+                >
                   <IconCrown size={20} />
                 </ActionIcon>
               </MediaQuery>
@@ -163,12 +360,35 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
             variant="subtle"
             color="gray"
             size={36}
+            style={{
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'rotate(5deg) scale(1.1)'
+              e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(102, 126, 234, 0.6))'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'rotate(0deg) scale(1)'
+              e.currentTarget.style.filter = 'none'
+            }}
           >
             <IconCreditCard size={18} />
           </ActionIcon>
 
           {/* Avatar Menu */}
-          <AvatarMenu user={user} onLogout={onLogout} size={36}/>
+          <Box
+            style={{
+              transition: 'transform 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+            }}
+          >
+            <AvatarMenu user={user} onLogout={onLogout} size={36} checked={checked} setChecked={setChecked}/>
+          </Box>
 
           {/* Mobile Menu */}
           <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
@@ -179,7 +399,11 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
               color={theme.colors.gray[6]}
               sx={{
                 height: 36,
-                width: 36
+                width: 36,
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'rotate(180deg)'
+                }
               }}
             />
           </MediaQuery>

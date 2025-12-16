@@ -1,4 +1,4 @@
-import { Avatar, Menu, Text, Divider, Group } from '@mantine/core'
+import { Avatar, Menu, Text, Divider, Group, Switch, useMantineTheme } from '@mantine/core'
 import {
   IconLogout2,
   IconReceipt,
@@ -11,10 +11,17 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { trpc } from '../../../utils/trpc.jsx'
 
-export default function AvatarMenu ({ user, onLogout, size = 30 }) {
+export default function AvatarMenu ({ user, onLogout, size = 30, checked, setChecked }) {
+  const theme = useMantineTheme()
   const { data: subscription } = trpc.billing.getSubscription.useQuery()
   const isSubscribed = subscription && subscription.status === 'active'
   const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
+
+  const handleGameModeChange = (e) => {
+    const newChecked = e.currentTarget.checked ?? false
+    setChecked(newChecked)
+    localStorage.setItem('gameMode', newChecked ? JSON.stringify('dmm') : JSON.stringify(''))
+  }
   return (
     <Menu shadow="lg" width={280} position="bottom-end">
       <Menu.Target>
@@ -62,6 +69,27 @@ export default function AvatarMenu ({ user, onLogout, size = 30 }) {
           to="/settings"
         >
           Account Settings
+        </Menu.Item>
+
+        <Menu.Item
+          closeMenuOnClick={false}
+          icon={<IconSettings size={14} />}
+        >
+          <Group position="apart">
+            <Text size="sm">Deadman Mode</Text>
+            <Switch
+              checked={checked ?? false}
+              onLabel="DMM"
+              offLabel="Normal"
+              size="sm"
+              onChange={handleGameModeChange}
+              styles={{
+                track: {
+                  backgroundColor: (checked ?? false) ? theme.colors.orange[7] : theme.colors.blue[7]
+                }
+              }}
+            />
+          </Group>
         </Menu.Item>
 
         <Menu.Item

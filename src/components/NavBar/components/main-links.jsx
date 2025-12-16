@@ -45,7 +45,7 @@ import {
   IconShieldCheck
 } from '@tabler/icons-react'
 import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import '../../../styles/scrollbar.css'
 
@@ -93,10 +93,31 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.sm,
     color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
     textDecoration: 'none',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-out',
+    position: 'relative',
+    overflow: 'hidden',
 
     '&:hover': {
-      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+      transform: 'translateX(4px)',
+      boxShadow: theme.colorScheme === 'dark' 
+        ? '0 2px 8px rgba(102, 126, 234, 0.2)' 
+        : '0 2px 4px rgba(0, 0, 0, 0.1)'
+    },
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: '3px',
+      backgroundColor: '#667eea',
+      transform: 'scaleY(0)',
+      transition: 'transform 0.2s ease-out',
+      borderRadius: '0 2px 2px 0'
+    },
+    '&:hover::before': {
+      transform: 'scaleY(1)'
     }
   },
 
@@ -124,6 +145,8 @@ const useStyles = createStyles((theme) => ({
 
 function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
   const { classes } = useStyles()
+  const location = useLocation()
+  const isActive = location.pathname === link
 
   const handleClick = (e) => {
     if (onClick) {
@@ -150,11 +173,34 @@ function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isM
           : theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
         width: '100%',
         opacity: isPremium && !hasAccess ? 0.6 : 1,
+        backgroundColor: isActive 
+          ? theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1]
+          : 'transparent',
+        position: 'relative',
 
         '&:hover': {
           backgroundColor: isPremium && !hasAccess 
             ? 'transparent' 
-            : theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+            : theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+          transform: 'translateX(4px)',
+          boxShadow: theme.colorScheme === 'dark' 
+            ? '0 2px 8px rgba(102, 126, 234, 0.2)' 
+            : '0 2px 4px rgba(0, 0, 0, 0.1)'
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '3px',
+          backgroundColor: '#667eea',
+          transform: isActive ? 'scaleY(1)' : 'scaleY(0)',
+          transition: 'transform 0.2s ease-out',
+          borderRadius: '0 2px 2px 0'
+        },
+        '&:hover::before': {
+          transform: 'scaleY(1)'
         }
       })}
     >
@@ -235,7 +281,24 @@ function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, ex
               justifyContent: (expanded || isMobile) ? 'flex-start' : 'center'
             }}
           >
-            <ThemeIcon color={color} variant="light" size={isMobile ? 'lg' : 'md'} style={{ flexShrink: 0 }}>
+            <ThemeIcon 
+              color={color} 
+              variant="light" 
+              size={isMobile ? 'lg' : 'md'} 
+              style={{ 
+                flexShrink: 0,
+                transition: 'all 0.2s ease-out',
+                transform: 'scale(1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 6px rgba(102, 126, 234, 0.5))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+            >
                                 {icon}
                             </ThemeIcon>
             {(expanded || isMobile) && (
@@ -306,6 +369,9 @@ function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate
         fontSize: isMobile ? theme.fontSizes.sm : theme.fontSizes.sm,
         minHeight: isMobile ? 44 : 'auto',
         opacity: isPremium && !hasAccess ? 0.6 : 1,
+        transition: 'all 0.2s ease-out',
+        position: 'relative',
+        overflow: 'hidden',
 
         '&:hover': {
           backgroundColor: isPremium && !hasAccess 
@@ -313,12 +379,45 @@ function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate
             : theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
           color: isPremium && !hasAccess 
             ? theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[5]
-            : theme.colorScheme === 'dark' ? theme.white : theme.black
+            : theme.colorScheme === 'dark' ? theme.white : theme.black,
+          transform: 'translateX(4px)',
+          paddingLeft: isMobile ? '28px' : '12px'
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '2px',
+          backgroundColor: '#667eea',
+          transform: 'scaleY(0)',
+          transition: 'transform 0.2s ease-out',
+          borderRadius: '0 2px 2px 0'
+        },
+        '&:hover::before': {
+          transform: 'scaleY(1)'
         }
       })}
     >
       <Group spacing="xs">
-        <ThemeIcon color={color} variant="light" size={isMobile ? 'md' : 'sm'}>
+        <ThemeIcon 
+          color={color} 
+          variant="light" 
+          size={isMobile ? 'md' : 'sm'}
+          style={{
+            transition: 'all 0.2s ease-out',
+            transform: 'scale(1)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.15)'
+            e.currentTarget.style.filter = 'drop-shadow(0 0 4px rgba(102, 126, 234, 0.4))'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.filter = 'none'
+          }}
+        >
           {icon}
         </ThemeIcon>
         <Text size={isMobile ? 'sm' : 'sm'}>{label}</Text>

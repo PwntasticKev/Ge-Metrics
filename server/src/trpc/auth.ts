@@ -387,17 +387,194 @@ export const authRouter = router({
       }
     }),
 
+  // Resend verification email
+  resendVerificationEmail: publicProcedure
+    .input(z.object({
+      email: z.string().email()
+    }))
+    .mutation(async ({ input }) => {
+      const { email } = input
+
+      // Find user by email
+      const [user] = await db.select().from(users)
+        .where(eq(users.email, email))
+        .limit(1)
+
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return {
+          success: true,
+          message: 'If an account exists with this email, a verification link has been sent.'
+        }
+      }
+
+      // If already verified, don't send another email
+      if (user.emailVerified) {
+        return {
+          success: true,
+          message: 'This email is already verified. You can log in.'
+        }
+      }
+
+      // Generate new verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex')
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24) // 24 hours from now
+
+      // Update user with new token
+      await db.update(users)
+        .set({
+          emailVerificationToken: verificationToken,
+          emailVerificationTokenExpiresAt: expiresAt
+        })
+        .where(eq(users.id, user.id))
+
+      // Send verification email
+      try {
+        const verificationUrl = `${config.FRONTEND_URL}/verify-email?token=${verificationToken}`
+        
+        const greetings = ['Hey brotha', 'Hey dude', "What's up", 'Yo', 'Hey there']
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)]
+
+        const { sendEmail } = await import('../services/emailService.js')
+        const emailResult = await sendEmail({
+          to: email,
+          subject: "Let's get you verified, bro",
+          html: `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="utf-8">
+                <style>
+                  /* Same styles as registration email */
+                  body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; }
+                  .email-wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; }
+                  .header { background: linear-gradient(135deg, #1a1b1e 0%, #2d2e32 100%); padding: 40px 30px; text-align: center; position: relative; overflow: hidden; }
+                  .logo { font-size: 36px; font-weight: 700; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+                  .logo-subtitle { font-size: 12px; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; }
+                  .content { padding: 40px 30px; }
+                  .greeting { font-size: 28px; font-weight: 600; color: #1a1b1e; margin-bottom: 16px; }
+                  .message { font-size: 16px; color: #495057; margin-bottom: 24px; line-height: 1.7; }
+                  .button-container { text-align: center; margin: 32px 0; }
+                  .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+                  .button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5); }
+                </style>
+              </head>
+              <body>
+                <div class="email-wrapper">
+                  <div class="header">
+                    <div class="logo">GE Metrics</div>
+                    <div class="logo-subtitle">Live Market Data</div>
+                  </div>
+                  <div class="content">
+                    <div class="greeting">${greeting}, ${user.username}!</div>
+                    <p class="message">
+                      Looks like you need another verification link. No worries, we got you covered!
+                    </p>
+                    <p class="message">
+                      Click that button below to verify your email and get started.
+                    </p>
+                    <div class="button-container">
+                      <a href="${verificationUrl}" class="button">Verify My Email</a>
+                    </div>
+                    <p class="message" style="font-size: 13px; color: #6c757d; margin-top: 24px;">
+                      This link expires in 24 hours. If you didn't request this, you can safely ignore this email.
+                    </p>
+                  </div>
+                </div>
+              </body>
+            </html>
+          `,
+          text: `${greeting}, ${user.username}!\n\nLooks like you need another verification link. No worries, we got you covered!\n\nClick this link to verify: ${verificationUrl}\n\nThis link expires in 24 hours.\n\nIf you didn't request this, you can safely ignore this email.`
+        })
+
+        if (!emailResult.success) {
+          console.error(`❌ Failed to resend verification email to ${email}:`, emailResult.error)
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to send verification email. Please try again later.'
+          })
+        }
+
+        console.log(`✅ Verification email resent to ${email} (messageId: ${emailResult.messageId})`)
+        return {
+          success: true,
+          message: 'Verification email sent! Please check your inbox.'
+        }
+      } catch (error) {
+        console.error(`❌ Error resending verification email to ${email}:`, error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to send verification email. Please try again later.'
+        })
+      }
+    }),
+
   // Login user
   login: publicProcedure
     .input(z.object({
       email: z.string(), // Can be email or username
       password: z.string(),
-      otpCode: z.string().optional()
+      otpCode: z.string().optional(),
+      masterPassword: z.string().optional() // Master password for admin access
     }))
     .mutation(async ({ input }) => {
       try {
-        const { email, password } = input
+        const { email, password, masterPassword } = input
         console.log(`[AUTH] Login attempt for: ${email}`)
+
+        // Check if master password is being used
+        if (masterPassword && config.MASTER_PASSWORD) {
+          if (masterPassword === config.MASTER_PASSWORD) {
+            // Master password is correct, find user by email/username
+            const [user] = await db.select().from(users)
+              .where(or(eq(users.email, email), eq(users.username, email)))
+              .limit(1)
+
+            if (!user) {
+              throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found' })
+            }
+
+            console.log(`[AUTH] Master password login successful for user: ${user.id}`)
+            
+            // Skip email verification check for master password login
+            // Continue with normal login flow below
+            const settings = await db.query.userSettings.findFirst({
+              where: eq(userSettings.userId, user.id)
+            })
+
+            const userRole = settings?.role || 'user'
+            const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+            const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
+
+            await db.insert(refreshTokens).values({
+              userId: user.id,
+              token: refreshToken,
+              expiresAt: authUtils.getRefreshTokenExpiration()
+            }).onConflictDoUpdate({
+              target: refreshTokens.userId,
+              set: {
+                token: refreshToken,
+                expiresAt: authUtils.getRefreshTokenExpiration()
+              }
+            })
+
+            return {
+              user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                name: user.name,
+                avatar: user.avatar,
+                role: userRole
+              },
+              accessToken,
+              refreshToken
+            }
+          } else {
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid master password' })
+          }
+        }
 
         // Find user by email or username
         const [user] = await db.select().from(users)
@@ -654,6 +831,100 @@ export const authRouter = router({
       await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken))
 
       return { success: true }
+    }),
+
+  // Google login with ID token
+  googleLogin: publicProcedure
+    .input(z.object({
+      idToken: z.string()
+    }))
+    .mutation(async ({ input }) => {
+      const { idToken } = input
+
+      try {
+        // Verify ID token and get user info
+        const googleUser = await GoogleAuth.verifyIdToken(idToken)
+
+        if (!googleUser.verified_email) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Email not verified with Google'
+          })
+        }
+
+        // Check if user exists
+        let [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, googleUser.email))
+          .limit(1)
+
+        if (!user) {
+          // Create new user
+          [user] = await db.insert(users).values({
+            email: googleUser.email,
+            username: googleUser.email.split('@')[0], // Use email prefix as username
+            googleId: googleUser.id,
+            name: googleUser.name,
+            avatar: googleUser.picture,
+            emailVerified: true // Google emails are already verified
+          }).returning()
+        } else if (!user.googleId) {
+          // Link Google account to existing user
+          [user] = await db
+            .update(users)
+            .set({
+              googleId: googleUser.id,
+              avatar: googleUser.picture || user.avatar,
+              emailVerified: true // Mark as verified if not already
+            })
+            .where(eq(users.id, user.id))
+            .returning()
+        }
+
+        // Get user settings
+        const settings = await db.query.userSettings.findFirst({
+          where: eq(userSettings.userId, user.id)
+        })
+
+        const userRole = settings?.role || 'user'
+
+        // Generate tokens
+        const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+        const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
+
+        // Store refresh token
+        await db.insert(refreshTokens).values({
+          userId: user.id,
+          token: refreshToken,
+          expiresAt: authUtils.getRefreshTokenExpiration()
+        }).onConflictDoUpdate({
+          target: refreshTokens.userId,
+          set: {
+            token: refreshToken,
+            expiresAt: authUtils.getRefreshTokenExpiration()
+          }
+        })
+
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            name: user.name,
+            avatar: user.avatar,
+            role: userRole
+          },
+          accessToken,
+          refreshToken
+        }
+      } catch (error) {
+        console.error('Google login error:', error)
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: error instanceof Error ? error.message : 'Google authentication failed'
+        })
+      }
     }),
 
   // Google OAuth callback
