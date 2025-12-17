@@ -4,6 +4,7 @@ import {
   Accordion,
   Alert,
   Anchor,
+  Avatar,
   Badge,
   Button,
   Card,
@@ -12,6 +13,7 @@ import {
   Divider,
   Grid,
   Group,
+  Image,
   NumberInput,
   rem,
   Select,
@@ -46,11 +48,10 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.md,
     height: rem(90),
     backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
-    transition: 'box-shadow 150ms ease, transform 100ms ease',
+    transition: 'box-shadow 0.2s ease-out',
 
     '&:hover': {
-      boxShadow: theme.shadows.md,
-      transform: 'scale(1.05)'
+      boxShadow: theme.shadows.md
     }
   },
 
@@ -64,8 +65,22 @@ const useStyles = createStyles((theme) => ({
   },
 
   chartContainer: {
-    height: '500px', // Increased height for bigger chart
-    marginTop: theme.spacing.lg
+    minHeight: '650px', // Much larger chart - hero element
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.xl
+  },
+
+  headerCard: {
+    backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[0],
+    marginBottom: theme.spacing.md
+  },
+
+  statCard: {
+    backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[0],
+    transition: 'box-shadow 0.2s ease-out',
+    '&:hover': {
+      boxShadow: theme.shadows.sm
+    }
   }
 }))
 
@@ -82,11 +97,20 @@ export default function ItemDetails () {
 
   const getColor = (color) => theme.colors[color][theme.colorScheme === 'dark' ? 5 : 7]
 
+  // Helper function to safely parse price (handles both string and number)
+  const safeParsePrice = (price) => {
+    if (typeof price === 'number') return price
+    if (typeof price === 'string') {
+      return parseInt(price.replace(/,/g, '') || '0', 10)
+    }
+    return 0
+  }
+
   // Volume manipulation detection
   const detectVolumeManipulation = (item) => {
     if (!item || !item.volume) return { isManipulated: false, severity: 'low' }
 
-    const volume = parseInt(item.volume?.toString().replace(/,/g, '') || '0')
+    const volume = safeParsePrice(item.volume)
     const avgVolume = 50000 // This should come from historical data
     const volumeRatio = volume / avgVolume
 
@@ -99,7 +123,7 @@ export default function ItemDetails () {
 
   // Calculate taxes (2% GE tax)
   const calculateTaxes = (sellPrice) => {
-    const price = parseInt(sellPrice?.toString().replace(/,/g, '') || '0')
+    const price = safeParsePrice(sellPrice)
     return Math.floor(price * 0.02)
   }
 
@@ -122,16 +146,21 @@ export default function ItemDetails () {
     setItem(foundItem)
 
     if (foundItem) {
-      const taxes = calculateTaxes(foundItem.high)
-      const sellPriceAfterTax = parseInt(foundItem.high?.replace(/,/g, '') || 0) - taxes
+      const highPrice = safeParsePrice(foundItem.high)
+      const taxes = calculateTaxes(highPrice)
+      const sellPriceAfterTax = highPrice - taxes
+      const profitValue = safeParsePrice(foundItem.profit)
+
+      const buyPrice = safeParsePrice(foundItem.low)
+      const sellPrice = safeParsePrice(foundItem.high)
 
       setItemOptions([
         {
           title: 'Buy Price',
-          data: foundItem?.low
+          data: new Intl.NumberFormat().format(buyPrice)
         }, {
           title: 'Sell Price',
-          data: foundItem?.high
+          data: new Intl.NumberFormat().format(sellPrice)
         },
         {
           title: 'After Tax (2%)',
@@ -151,9 +180,9 @@ export default function ItemDetails () {
         },
         {
           title: 'Profit',
-          data: foundItem?.profit,
+          data: new Intl.NumberFormat().format(profitValue),
           props: {
-            color: Number(foundItem?.profit?.replace(/,/g, '') || 0) > 0 ? theme.colors.green[7] : theme.colors.red[9],
+            color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
             fontWeight: 'bold'
           }
         }
@@ -172,29 +201,43 @@ export default function ItemDetails () {
     return () => clearInterval(interval)
   }, [])
 
-  const itemInfo = options.map((option, idx) => (
-        <Group position="apart" style={{ padding: '8px 0' }} key={idx}>
-            <Text className={classes.title} size="sm">
-                {option.title}
-            </Text>
-            <Text {...option.props}>
-                {option.data}
-            </Text>
-        </Group>
-  ))
+  // Don't render itemInfo as JSX yet - we'll use options directly in the layout
 
   const manipulationData = item ? detectVolumeManipulation(item) : { isManipulated: false, severity: 'normal' }
   // const helpfulItems = item ? getHelpfulItems(item) : [] // REMOVED FOR BETTER UX
 
+  if (!item) {
+    return (
+      <Container>
+        <Text>Item not found</Text>
+      </Container>
+    )
+  }
+
   return <>
-        {/* Status Card */}
-        <Card withBorder radius="md" className={classes.statusCard}>
-          <Group position="apart">
-            <Group>
-              <IconClock size={16} />
-              <Text size="sm">
-                Updated {getRelativeTime(lastFetchTime, currentTime)}
-              </Text>
+        {/* Compact Header Section - Item Name, Image, Key Stats */}
+        <Card withBorder radius="md" className={classes.headerCard} p="md">
+          <Group position="apart" align="flex-start">
+            <Group spacing="md">
+              {item.img && (
+                <Avatar 
+                  src={item.img} 
+                  size={64} 
+                  radius="md"
+                  alt={item.name}
+                />
+              )}
+              <Stack spacing="xs">
+                <Title order={2} className={classes.title}>
+                  {item?.name}
+                </Title>
+                <Group spacing="xs">
+                  <IconClock size={14} />
+                  <Text size="sm" color="dimmed">
+                    Updated {getRelativeTime(lastFetchTime, currentTime)}
+                  </Text>
+                </Group>
+              </Stack>
             </Group>
             <Group spacing="xs">
               <Badge color="green" variant="light">Live Data</Badge>
@@ -208,6 +251,29 @@ export default function ItemDetails () {
               )}
             </Group>
           </Group>
+
+          {/* Key Stats in Horizontal Cards */}
+          <SimpleGrid
+            cols={5}
+            breakpoints={[
+              { maxWidth: 'md', cols: 3 },
+              { maxWidth: 'xs', cols: 2 }
+            ]}
+            mt="md"
+          >
+            {options.map((option, idx) => (
+              <Card key={idx} withBorder radius="md" className={classes.statCard} p="sm">
+                <Stack spacing={4} align="center">
+                  <Text size="xs" color="dimmed" weight={500}>
+                    {option.title}
+                  </Text>
+                  <Text size="lg" weight={700} {...option.props}>
+                    {option.data}
+                  </Text>
+                </Stack>
+              </Card>
+            ))}
+          </SimpleGrid>
         </Card>
 
         {/* Volume Manipulation Alert */}
@@ -223,39 +289,53 @@ export default function ItemDetails () {
           </Alert>
         )}
 
-        <SimpleGrid
-            cols={3}
-            breakpoints={[
-              { maxWidth: 'md', cols: 2 },
-              { maxWidth: 'xs', cols: 1 }
-            ]}
-        >
-            <Card withBorder radius="md" className={classes.card}>
-                <Group position="apart">
-                    <Text className={classes.title}>
-                        {item?.name}
-                    </Text>
-                </Group>
-                <Stack spacing="xs">
-                    {itemInfo}
-                </Stack>
-            </Card>
-
-            <ProfitModifier item={item} />
-        </SimpleGrid>
-
-        {/* Enhanced Chart Section - Now Much Larger */}
-        <Card withBorder radius="md" className={`${classes.card} ${classes.chartContainer}`} mt="lg">
+        {/* Hero Chart Section - Largest Element on Page */}
+        <Card withBorder radius="md" className={`${classes.card} ${classes.chartContainer}`} p="lg">
           <Group position="apart" mb="md">
-            <Text className={classes.title} size="lg">Price History</Text>
+            <Title order={2} className={classes.title}>Price History</Title>
             <Group spacing="xs">
               <Badge color="blue" variant="light">Live Updates</Badge>
               <Badge color="green" variant="light">High Volume</Badge>
             </Group>
           </Group>
-          <div style={{ height: '420px', width: '100%' }}>
-            <LineChart />
+          <div style={{ height: '600px', width: '100%' }}>
+            <LineChart id={id} items={items} />
           </div>
         </Card>
+
+        {/* Secondary Section - Profit Modifier and Additional Details */}
+        <SimpleGrid
+          cols={2}
+          breakpoints={[
+            { maxWidth: 'md', cols: 1 }
+          ]}
+          mt="xl"
+        >
+          <ProfitModifier item={item} />
+          
+          <Card withBorder radius="md" className={classes.card}>
+            <Title order={3} className={classes.title} mb="md">Item Details</Title>
+            <Stack spacing="sm">
+              {item.examine && (
+                <div>
+                  <Text size="sm" weight={600} mb={4}>Examine:</Text>
+                  <Text size="sm" color="dimmed">{item.examine}</Text>
+                </div>
+              )}
+              {item.limit && (
+                <div>
+                  <Text size="sm" weight={600} mb={4}>Buy Limit:</Text>
+                  <Text size="sm" color="dimmed">{item.limit.toLocaleString()}</Text>
+                </div>
+              )}
+              {item.volume && (
+                <div>
+                  <Text size="sm" weight={600} mb={4}>24h Volume:</Text>
+                  <Text size="sm" color="dimmed">{typeof item.volume === 'number' ? item.volume.toLocaleString() : item.volume}</Text>
+                </div>
+              )}
+            </Stack>
+          </Card>
+        </SimpleGrid>
     </>
 }

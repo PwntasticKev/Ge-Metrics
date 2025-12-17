@@ -61,11 +61,18 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const filteredItems = useMemo(() => {
     if (!searchQuery || !itemMapping || !allItems) return []
     
+    // Convert object to array if needed (itemMapping can be an object or array)
+    const itemMappingArray = Array.isArray(itemMapping) 
+      ? itemMapping 
+      : Object.values(itemMapping || {})
+    
+    if (!Array.isArray(itemMappingArray) || itemMappingArray.length === 0) return []
+    
     const query = searchQuery.toLowerCase()
-    const matching = itemMapping
+    const matching = itemMappingArray
       .filter(item => 
-        item.name?.toLowerCase().includes(query) ||
-        item.id?.toString().includes(query)
+        item?.name?.toLowerCase().includes(query) ||
+        item?.id?.toString().includes(query)
       )
       .slice(0, 10) // Limit to 10 results
     

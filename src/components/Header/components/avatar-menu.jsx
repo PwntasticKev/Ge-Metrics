@@ -42,7 +42,7 @@ export default function AvatarMenu ({ user, onLogout, size = 30, checked, setChe
         </Avatar>
       </Menu.Target>
 
-      <Menu.Dropdown sx={{ zIndex: 20 }}>
+      <Menu.Dropdown sx={{ zIndex: 2000 }}>
         <Menu.Label>
           <Group>
             <IconUserCircle size={16} />

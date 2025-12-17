@@ -74,8 +74,9 @@ import {
   IconTrendingDown
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { trpc } from '../../../utils/trpc'
 
-// Mock security service
+// Legacy mock security service - will be replaced by tRPC
 const securityService = {
   getLogs: () => [
     {
@@ -248,39 +249,88 @@ export default function SecurityLogs () {
   const [selectedLog, setSelectedLog] = useState(null)
   const [blockReason, setBlockReason] = useState('')
 
-  useEffect(() => {
-    loadData()
-    const interval = setInterval(loadData, 30000) // Refresh every 30 seconds
-    return () => clearInterval(interval)
-  }, [])
+  // tRPC queries
+  const { data: securityOverview, isLoading: overviewLoading, refetch: refetchOverview } = trpc.adminSecurity.getSecurityOverview.useQuery()
+  
+  const { data: auditLogData, isLoading: auditLoading, refetch: refetchAudit } = trpc.adminSecurity.getAuditLog.useQuery({
+    page: 1,
+    limit: 100,
+    action: undefined,
+    userId: undefined,
+    startDate: undefined,
+    endDate: undefined
+  })
+  
+  const { data: securityEventsData, isLoading: eventsLoading, refetch: refetchEvents } = trpc.adminSecurity.getSecurityEvents.useQuery({
+    page: 1,
+    limit: 100,
+    severity: undefined,
+    resolved: false
+  })
+  
+  const { data: apiAnalyticsData, isLoading: analyticsLoading, refetch: refetchAnalytics } = trpc.adminSecurity.getApiUsageAnalytics.useQuery({
+    startDate: undefined,
+    endDate: undefined,
+    groupBy: 'day'
+  })
 
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      const [logsData, metricsData] = await Promise.all([
-        securityService.getLogs(),
-        securityService.getSecurityMetrics()
-      ])
-
-      setLogs(logsData)
-      setMetrics(metricsData)
-    } catch (error) {
+  // Mutations
+  const resolveEventMutation = trpc.adminSecurity.resolveSecurityEvent.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Security event resolved successfully',
+        color: 'green'
+      })
+      refetchEvents()
+      refetchOverview()
+    },
+    onError: (error) => {
       notifications.show({
         title: 'Error',
-        message: 'Failed to load security data',
-        color: 'red',
-        icon: <IconX size={16} />
+        message: error.message || 'Failed to resolve security event',
+        color: 'red'
       })
-    } finally {
-      setLoading(false)
     }
-  }
+  })
+
+  useEffect(() => {
+    // Update state from tRPC data
+    if (auditLogData?.logs) {
+      setLogs(auditLogData.logs)
+    }
+    if (securityOverview) {
+      setMetrics({
+        totalEvents: securityOverview.totalSecurityEvents,
+        criticalEvents: securityOverview.criticalEventsThisWeek,
+        resolvedEvents: securityOverview.resolvedEventsThisWeek,
+        apiRequests: securityOverview.totalApiRequests,
+        failedLogins: securityOverview.failedLoginsToday
+      })
+    }
+  }, [auditLogData, securityOverview])
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchOverview()
+      refetchAudit()
+      refetchEvents()
+      refetchAnalytics()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleBlockIP = async () => {
     if (!selectedLog) return
 
     try {
-      const result = await securityService.blockIP(selectedLog.ipAddress, blockReason)
+      // Note: IP blocking functionality may need a dedicated tRPC endpoint
+      notifications.show({
+        title: 'Info',
+        message: 'IP blocking functionality needs backend implementation',
+        color: 'blue'
+      })
 
       if (result.success) {
         notifications.show({
@@ -306,7 +356,11 @@ export default function SecurityLogs () {
 
   const handleResolveEvent = async (eventId) => {
     try {
-      const result = await securityService.resolveEvent(eventId, 'Resolved by admin')
+      // Use tRPC mutation
+      resolveEventMutation.mutate({
+        eventId,
+        resolution: 'Resolved by admin'
+      })
 
       if (result.success) {
         notifications.show({
@@ -374,7 +428,7 @@ export default function SecurityLogs () {
 
   return (
     <Container size="xl" py="md">
-      <LoadingOverlay visible={loading} />
+      <LoadingOverlay visible={overviewLoading || auditLoading || eventsLoading || analyticsLoading} />
 
       <Group justify="space-between" mb="lg">
         <div>

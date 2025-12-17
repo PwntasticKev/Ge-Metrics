@@ -58,12 +58,12 @@ import {
   IconCash,
   IconCurrencyDollar
 } from '@tabler/icons-react'
-import billingService from '../../../services/billingService'
 import { formatPrice, formatPercentage } from '../../../utils/utils'
 import { notifications } from '@mantine/notifications'
+import { trpc } from '../../../utils/trpc'
 
 export default function BillingDashboard () {
-  const [loading, setLoading] = useState(true)
+  // Loading state now comes from tRPC queries
   const [customers, setCustomers] = useState([])
   const [subscriptionStats, setSubscriptionStats] = useState({})
   const [revenueMetrics, setRevenueMetrics] = useState({})
@@ -85,63 +85,124 @@ export default function BillingDashboard () {
   const [statusFilter, setStatusFilter] = useState('all')
   const [planFilter, setPlanFilter] = useState('all')
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [])
+  // tRPC queries
+  const { data: billingOverview, isLoading: overviewLoading } = trpc.adminBilling.getBillingOverview.useQuery()
+  const { data: subscriptionsData, isLoading: subscriptionsLoading, refetch: refetchSubscriptions } = trpc.adminBilling.getAllSubscriptions.useQuery({
+    page: 1,
+    limit: 100,
+    search: searchQuery || undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    plan: planFilter !== 'all' ? planFilter : undefined
+  })
+  const { data: revenueAnalytics } = trpc.adminBilling.getRevenueAnalytics.useQuery({})
 
-  const loadDashboardData = async () => {
-    setLoading(true)
-    try {
-      const customersData = billingService.getAllCustomers()
-      const stats = billingService.getSubscriptionStats()
-      const revenue = billingService.getRevenueMetrics()
-
-      setCustomers(customersData)
-      setSubscriptionStats(stats)
-      setRevenueMetrics(revenue)
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error)
-    } finally {
-      setLoading(false)
+  // Mutations
+  const refundMutation = trpc.adminBilling.issueRefund.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Refund processed successfully',
+        color: 'green'
+      })
+      refetchSubscriptions()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to process refund',
+        color: 'red'
+      })
     }
-  }
+  })
+
+  const cancelMutation = trpc.adminBilling.cancelSubscription.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Subscription canceled successfully',
+        color: 'green'
+      })
+      refetchSubscriptions()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to cancel subscription',
+        color: 'red'
+      })
+    }
+  })
+
+  const reactivateMutation = trpc.adminBilling.reactivateSubscription.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Subscription reactivated successfully',
+        color: 'green'
+      })
+      refetchSubscriptions()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to reactivate subscription',
+        color: 'red'
+      })
+    }
+  })
+
+  useEffect(() => {
+    // Update state from tRPC data
+    if (subscriptionsData?.subscriptions) {
+      setCustomers(subscriptionsData.subscriptions)
+    }
+    if (billingOverview) {
+      setSubscriptionStats({
+        total: billingOverview.totalSubscriptions,
+        active: billingOverview.activeSubscriptions,
+        canceled: billingOverview.canceledSubscriptions,
+        trialing: billingOverview.trialingSubscriptions
+      })
+    }
+    if (revenueAnalytics) {
+      setRevenueMetrics({
+        totalRevenue: revenueAnalytics.totalRevenue,
+        monthlyRecurringRevenue: revenueAnalytics.mrr,
+        averageRevenuePerUser: revenueAnalytics.arpu
+      })
+    }
+  }, [subscriptionsData, billingOverview, revenueAnalytics])
 
   const handleRefund = async () => {
-    try {
-      const result = await billingService.processRefund(
-        refundForm.paymentId,
-        refundForm.amount ? parseFloat(refundForm.amount) : null,
-        refundForm.reason
-      )
-
-      if (result.success) {
-        setRefundModalOpened(false)
-        setRefundForm({ paymentId: '', amount: 0, reason: '' })
-        loadDashboardData()
-        alert('Refund processed successfully')
-      } else {
-        alert(`Refund failed: ${result.error}`)
-      }
-    } catch (error) {
-      alert(`Refund failed: ${error.message}`)
+    if (!refundForm.paymentId || !refundForm.reason) {
+      notifications.show({
+        title: 'Error',
+        message: 'Please provide payment ID and reason',
+        color: 'red'
+      })
+      return
     }
+
+    refundMutation.mutate({
+      subscriptionId: refundForm.paymentId, // Note: May need to map paymentId to subscriptionId
+      amount: refundForm.amount ? Math.round(refundForm.amount * 100) : undefined, // Convert to cents
+      reason: refundForm.reason,
+      refundType: refundForm.amount ? 'partial' : 'full'
+    })
+
+    setRefundModalOpened(false)
+    setRefundForm({ paymentId: '', amount: 0, reason: '' })
   }
 
   const handleGrantTrial = async () => {
-    try {
-      const result = await billingService.grantFreeTrial(trialForm.userId, 'admin_user')
-
-      if (result.success) {
-        setTrialModalOpened(false)
-        setTrialForm({ userId: '', adminNote: '' })
-        loadDashboardData()
-        alert('Free trial granted successfully')
-      } else {
-        alert(`Failed to grant trial: ${result.error}`)
-      }
-    } catch (error) {
-      alert(`Failed to grant trial: ${error.message}`)
-    }
+    // Note: Trial granting should use adminUsers.extendUserTrialAdvanced
+    notifications.show({
+      title: 'Info',
+      message: 'Please use User Management page to grant trials',
+      color: 'blue'
+    })
+    setTrialModalOpened(false)
+    setTrialForm({ userId: '', adminNote: '' })
   }
 
   const handleCancelSubscription = async (subscriptionId, immediate = false) => {
@@ -149,18 +210,10 @@ export default function BillingDashboard () {
       return
     }
 
-    try {
-      const result = await billingService.cancelSubscription(subscriptionId, immediate)
-
-      if (result.success) {
-        loadDashboardData()
-        alert('Subscription updated successfully')
-      } else {
-        alert(`Failed to cancel subscription: ${result.error}`)
-      }
-    } catch (error) {
-      alert(`Failed to cancel subscription: ${error.message}`)
-    }
+    cancelMutation.mutate({
+      subscriptionId,
+      cancelImmediately: immediate
+    })
   }
 
   const filteredCustomers = customers.filter(customer => {
@@ -305,7 +358,7 @@ export default function BillingDashboard () {
     )
   }
 
-  if (loading) {
+  if (overviewLoading || subscriptionsLoading) {
     return (
       <Center h={400}>
         <Loader size="lg" />
@@ -315,7 +368,7 @@ export default function BillingDashboard () {
 
   return (
     <Container size="xl" py="md">
-      <LoadingOverlay visible={loading} />
+      <LoadingOverlay visible={overviewLoading || subscriptionsLoading} />
 
       <Group justify="space-between" mb="lg">
         <Title order={2}>Billing Dashboard</Title>

@@ -69,8 +69,9 @@ import {
   IconBrandSlack
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { trpc } from '../../../utils/trpc'
 
-// Mock settings service
+// Legacy mock settings service - will be replaced by tRPC
 const settingsService = {
   getSettings: () => ({
     general: {
@@ -168,7 +169,57 @@ const settingsService = {
 }
 
 export default function SystemSettings () {
-  const [settings, setSettings] = useState(settingsService.getSettings())
+  // tRPC queries
+  const { data: allSettings, isLoading, refetch } = trpc.adminSystemSettings.getAllSettings.useQuery()
+
+  // Mutations
+  const updateSectionMutation = trpc.adminSystemSettings.updateSectionSettings.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Settings Saved',
+        message: 'System settings have been updated successfully',
+        color: 'green'
+      })
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to save settings',
+        color: 'red'
+      })
+    }
+  })
+
+  const resetSectionMutation = trpc.adminSystemSettings.resetSectionToDefaults.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Settings Reset',
+        message: 'Settings have been reset to defaults',
+        color: 'blue'
+      })
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to reset settings',
+        color: 'red'
+      })
+    }
+  })
+
+  const [settings, setSettings] = useState({})
+
+  // Update local state when tRPC data loads
+  useEffect(() => {
+    if (allSettings) {
+      setSettings(allSettings)
+    } else {
+      // Fallback to mock for initial render
+      setSettings(settingsService.getSettings())
+    }
+  }, [allSettings])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('general')
@@ -334,7 +385,7 @@ export default function SystemSettings () {
           <Button
             leftIcon={<IconRefresh size={16} />}
             variant="light"
-            onClick={loadSettings}
+            onClick={() => refetch()}
           >
             Refresh
           </Button>
@@ -463,7 +514,7 @@ export default function SystemSettings () {
                   />
 
                   <Button
-                    onClick={() => saveSettings('general', settings.general)}
+                    onClick={() => updateSectionMutation.mutate({ section: 'general', settings: settings.general })}
                     loading={saving}
                     leftIcon={<IconCheck size={16} />}
                   >
@@ -585,7 +636,7 @@ export default function SystemSettings () {
 
               <Group>
                 <Button
-                  onClick={() => saveSettings('email', settings.email)}
+                  onClick={() => updateSectionMutation.mutate({ section: 'email', settings: settings.email })}
                   loading={saving}
                   leftIcon={<IconCheck size={16} />}
                 >
@@ -711,7 +762,7 @@ export default function SystemSettings () {
               </Grid>
 
               <Button
-                onClick={() => saveSettings('payments', settings.payments)}
+                onClick={() => updateSectionMutation.mutate({ section: 'payments', settings: settings.payments })}
                 loading={saving}
                 leftIcon={<IconCheck size={16} />}
               >
@@ -809,7 +860,7 @@ export default function SystemSettings () {
               />
 
               <Button
-                onClick={() => saveSettings('security', settings.security)}
+                onClick={() => updateSectionMutation.mutate({ section: 'security', settings: settings.security })}
                 loading={saving}
                 leftIcon={<IconCheck size={16} />}
               >
@@ -888,7 +939,7 @@ export default function SystemSettings () {
               />
 
               <Button
-                onClick={() => saveSettings('api', settings.api)}
+                onClick={() => updateSectionMutation.mutate({ section: 'api', settings: settings.api })}
                 loading={saving}
                 leftIcon={<IconCheck size={16} />}
               >

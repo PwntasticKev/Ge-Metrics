@@ -94,13 +94,13 @@ import {
   IconChartLine
 } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
-import userManagementService from '../../../services/userManagementService'
 import { showNotification } from '@mantine/notifications'
+import { trpc } from '../../../utils/trpc'
 
 const UserManagement = () => {
   const [users, setUsers] = useState([])
   const [filteredUsers, setFilteredUsers] = useState([])
-  const [loading, setLoading] = useState(false)
+  // Loading state now comes from tRPC queries
   const [selectedUser, setSelectedUser] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState('view') // 'view', 'edit', 'role', 'trial', 'block', 'sessions'
@@ -194,49 +194,189 @@ const UserManagement = () => {
     }
   })
 
+  // tRPC queries
+  const { data: usersData, isLoading: usersLoading, refetch: refetchUsers } = trpc.adminUsers.getAllUsers.useQuery({
+    page: currentPage,
+    limit: itemsPerPage,
+    search: searchQuery || undefined,
+    role: roleFilter || undefined,
+    subscriptionStatus: membershipFilter || undefined,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  })
+
+  const { data: userStats } = trpc.adminUsers.getUserStats.useQuery()
+
+  const { data: userDetails, isLoading: userDetailsLoading } = trpc.adminUsers.getUserDetails.useQuery(
+    { userId: selectedUser?.id },
+    { enabled: !!selectedUser?.id && modalOpen }
+  )
+
+  const { data: auditLogData, isLoading: auditLogLoading, refetch: refetchAuditLog } = trpc.adminSecurity.getAuditLog.useQuery({
+    page: 1,
+    limit: 50,
+    action: undefined,
+    userId: undefined,
+    startDate: undefined,
+    endDate: undefined
+  })
+
+  const { data: securityEventsData, isLoading: securityEventsLoading } = trpc.adminSecurity.getSecurityEvents.useQuery({
+    page: 1,
+    limit: 100,
+    severity: undefined,
+    resolved: false
+  })
+
+  const { data: pendingInvitations, refetch: refetchInvitations } = trpc.adminInvitations.getPendingInvitations.useQuery({
+    page: 1,
+    limit: 20
+  })
+
+  // Mutations
+  const updateUserMutation = trpc.adminUsers.updateUser.useMutation({
+    onSuccess: () => {
+      showNotification({
+        title: 'Success',
+        message: 'User updated successfully',
+        color: 'green'
+      })
+      refetchUsers()
+      setModalOpen(false)
+    },
+    onError: (error) => {
+      showNotification({
+        title: 'Error',
+        message: error.message || 'Failed to update user',
+        color: 'red'
+      })
+    }
+  })
+
+  const deleteUserMutation = trpc.adminUsers.deleteUser.useMutation({
+    onSuccess: () => {
+      showNotification({
+        title: 'Success',
+        message: 'User deleted successfully',
+        color: 'green'
+      })
+      refetchUsers()
+    },
+    onError: (error) => {
+      showNotification({
+        title: 'Error',
+        message: error.message || 'Failed to delete user',
+        color: 'red'
+      })
+    }
+  })
+
+  const extendTrialMutation = trpc.adminUsers.extendUserTrialAdvanced.useMutation({
+    onSuccess: () => {
+      showNotification({
+        title: 'Success',
+        message: 'Trial extended successfully',
+        color: 'green'
+      })
+      refetchUsers()
+      setModalOpen(false)
+    },
+    onError: (error) => {
+      showNotification({
+        title: 'Error',
+        message: error.message || 'Failed to extend trial',
+        color: 'red'
+      })
+    }
+  })
+
+  const createInvitationMutation = trpc.adminInvitations.createInvitation.useMutation({
+    onSuccess: () => {
+      showNotification({
+        title: 'Success',
+        message: 'Invitation sent successfully',
+        color: 'green'
+      })
+      refetchInvitations()
+    },
+    onError: (error) => {
+      showNotification({
+        title: 'Error',
+        message: error.message || 'Failed to send invitation',
+        color: 'red'
+      })
+    }
+  })
+
+  const resolveSecurityEventMutation = trpc.adminSecurity.resolveSecurityEvent.useMutation({
+    onSuccess: () => {
+      showNotification({
+        title: 'Success',
+        message: 'Security event resolved',
+        color: 'green'
+      })
+      // Refetch security events if needed
+    },
+    onError: (error) => {
+      showNotification({
+        title: 'Error',
+        message: error.message || 'Failed to resolve security event',
+        color: 'red'
+      })
+    }
+  })
+
   useEffect(() => {
-    loadUsers()
-    loadStats()
-    loadAuditLog()
+    // Update users from tRPC data
+    if (usersData?.users) {
+      setUsers(usersData.users)
+      setFilteredUsers(usersData.users)
+    }
+  }, [usersData])
+
+  useEffect(() => {
+    // Update stats from tRPC data
+    if (userStats) {
+      setStats(userStats)
+    }
+  }, [userStats])
+
+  useEffect(() => {
+    // Update audit log from tRPC data
+    if (auditLogData?.logs) {
+      setAuditLog(auditLogData.logs)
+    }
+  }, [auditLogData])
+
+  useEffect(() => {
+    // Update suspicious activity from security events
+    if (securityEventsData?.events) {
+      const events = securityEventsData.events
+      setSuspiciousActivity({
+        apiAbuse: events.filter(e => e.category === 'api_abuse' || e.severity === 'high'),
+        multipleAccounts: events.filter(e => e.category === 'multiple_accounts'),
+        suspiciousIPs: events.filter(e => e.category === 'suspicious_ip'),
+        botBehavior: events.filter(e => e.category === 'bot_behavior'),
+        dataScrapingAttempts: events.filter(e => e.category === 'data_scraping'),
+        deviceFingerprints: events.filter(e => e.category === 'device_fingerprint'),
+        networkAnalysis: events.filter(e => e.category === 'network_analysis'),
+        behaviorPatterns: events.filter(e => e.category === 'behavior_pattern')
+      })
+    }
+  }, [securityEventsData])
+
+  useEffect(() => {
     loadSuspiciousActivity()
   }, [])
 
+  // Filtering is now handled by tRPC query parameters
+  // Update query when filters change
   useEffect(() => {
-    filterUsers()
-  }, [users, searchQuery, roleFilter, membershipFilter, statusFilter])
+    // Refetch users when filters change (tRPC will handle filtering)
+    refetchUsers()
+  }, [searchQuery, roleFilter, membershipFilter, statusFilter])
 
-  const loadUsers = () => {
-    setLoading(true)
-    try {
-      const userData = userManagementService.getAllUsers()
-      const analyticsData = userManagementService.getUserAnalytics()
-      const suggestions = userManagementService.getSmartRecipientSuggestions()
-      const templates = userManagementService.getMessageTemplates()
-
-      setUsers(userData)
-      setStats(analyticsData)
-      setSmartSuggestions(suggestions)
-      setMessageTemplates(templates)
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: 'Failed to load user data',
-        color: 'red'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadStats = () => {
-    const statsData = userManagementService.getUserStats()
-    setStats(statsData)
-  }
-
-  const loadAuditLog = () => {
-    const logs = userManagementService.getAuditLog()
-    setAuditLog(logs.slice(0, 50)) // Show last 50 entries
-  }
+  // Removed loadUsers, loadStats, loadAuditLog - now handled by tRPC queries above
 
   const loadSuspiciousActivity = async () => {
     try {
@@ -464,239 +604,119 @@ const UserManagement = () => {
   }
 
   const handleCreateUser = async (values) => {
-    try {
-      const result = userManagementService.createUser(values)
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'User created successfully',
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        closeModal()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    // Note: User creation should typically go through invitation system
+    // For now, show notification that this should use invitation
+    showNotification({
+      title: 'Info',
+      message: 'Please use the Invite User feature to create new users',
+      color: 'blue'
+    })
+    closeModal()
   }
 
   const handleUpdateUser = async (values) => {
-    try {
-      const result = userManagementService.updateUser(selectedUser.id, values)
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'User updated successfully',
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        closeModal()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    if (!selectedUser?.id) return
+    
+    updateUserMutation.mutate({
+      userId: selectedUser.id,
+      name: values.name,
+      email: values.email,
+      username: values.runescape_name,
+      role: values.role,
+      subscriptionStatus: values.subscription_status
+    })
   }
 
   const handleUpdateRole = async (userId, newRole) => {
-    try {
-      const result = userManagementService.updateUserRole(userId, newRole, 'user_admin_001') // Current admin
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'User role updated successfully',
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        loadAuditLog()
-        closeModal()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    updateUserMutation.mutate({
+      userId,
+      role: newRole
+    })
   }
 
   const handleGrantTrial = async (values) => {
-    try {
-      // Determine if using end date or duration
-      const endDate = values.useEndDate ? values.endDate : null
-      const duration = values.useEndDate ? null : values.duration
+    if (!selectedUser?.id) return
 
-      const result = userManagementService.grantFreeTrial(
-        selectedUser.id,
-        duration,
-        endDate,
-        values.note
-      )
-      if (result.success) {
-        const message = values.useEndDate
-          ? `Free trial granted until ${new Date(values.endDate).toLocaleDateString()}`
-          : `Free trial granted for ${values.duration} days`
+    const endDate = values.useEndDate ? values.endDate : null
+    const durationDays = values.useEndDate ? null : parseInt(values.duration) || 14
 
-        showNotification({
-          title: 'Success',
-          message,
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        loadAuditLog()
-        closeModal()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    extendTrialMutation.mutate({
+      userId: selectedUser.id,
+      durationDays,
+      endDate: endDate ? new Date(endDate).toISOString() : undefined,
+      adminNote: values.note || undefined
+    })
   }
 
   const handleBlockUser = async (values) => {
-    try {
-      const result = userManagementService.blockUser(
-        selectedUser.id,
-        values.reason,
-        'user_admin_001'
-      )
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'User blocked successfully',
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        loadAuditLog()
-        closeModal()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    // Note: Blocking functionality may need a dedicated tRPC endpoint
+    showNotification({
+      title: 'Info',
+      message: 'User blocking functionality needs backend implementation',
+      color: 'blue'
+    })
+    closeModal()
   }
 
   const handleUnblockUser = async (userId) => {
-    try {
-      const result = userManagementService.unblockUser(userId, 'user_admin_001')
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'User unblocked successfully',
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        loadAuditLog()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    // Note: Unblocking functionality may need a dedicated tRPC endpoint
+    showNotification({
+      title: 'Info',
+      message: 'User unblocking functionality needs backend implementation',
+      color: 'blue'
+    })
   }
 
   const handleDestroySession = async (userId) => {
-    try {
-      const result = userManagementService.destroyUserSessions(userId)
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: `Destroyed ${result.destroyedCount} session(s)`,
-          color: 'green'
-        })
-        loadUsers()
-        loadAuditLog()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    // Note: Session destruction may need a dedicated tRPC endpoint
+    showNotification({
+      title: 'Info',
+      message: 'Session destruction functionality needs backend implementation',
+      color: 'blue'
+    })
   }
 
   const handleSendPasswordReset = async (userId) => {
-    try {
-      const result = userManagementService.sendPasswordReset(userId)
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'Password reset email sent',
-          color: 'green'
-        })
-        loadAuditLog()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    // Note: Password reset may need a dedicated tRPC endpoint
+    showNotification({
+      title: 'Info',
+      message: 'Password reset functionality needs backend implementation',
+      color: 'blue'
+    })
   }
 
   const handleSendUsernameReminder = async (userId) => {
-    try {
-      const result = userManagementService.sendUsernameReminder(userId)
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'Username reminder sent',
-          color: 'green'
-        })
-        loadAuditLog()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    // Note: Username reminder may need a dedicated tRPC endpoint
+    showNotification({
+      title: 'Info',
+      message: 'Username reminder functionality needs backend implementation',
+      color: 'blue'
+    })
   }
 
   const exportData = (format) => {
+    // Export current users data
     try {
-      const data = userManagementService.exportUserData(format)
+      const dataToExport = users.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        subscriptionStatus: user.subscriptionStatus,
+        createdAt: user.createdAt,
+        emailVerified: user.emailVerified
+      }))
+
+      let data
+      if (format === 'csv') {
+        const headers = Object.keys(dataToExport[0] || {}).join(',')
+        const rows = dataToExport.map(obj => Object.values(obj).join(','))
+        data = [headers, ...rows].join('\n')
+      } else {
+        data = JSON.stringify(dataToExport, null, 2)
+      }
+
       const blob = new Blob([data], {
         type: format === 'csv' ? 'text/csv' : 'application/json'
       })
@@ -780,27 +800,16 @@ const UserManagement = () => {
   }
 
   const handleSaveUser = async () => {
-    try {
-      const result = await userManagementService.updateUser(selectedUser.id, editForm)
-      if (result.success) {
-        showNotification({
-          title: 'Success',
-          message: 'User updated successfully',
-          color: 'green'
-        })
-        loadUsers()
-        loadStats()
-        closeModal()
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: error.message,
-        color: 'red'
-      })
-    }
+    if (!selectedUser?.id) return
+    
+    updateUserMutation.mutate({
+      userId: selectedUser.id,
+      name: editForm.name,
+      email: editForm.email,
+      username: editForm.runescape_name,
+      role: editForm.role,
+      subscriptionStatus: editForm.subscription_status
+    })
   }
 
   const handleToggleUserSelection = (userId) => {
@@ -831,12 +840,11 @@ const UserManagement = () => {
       body: messageBody
     }
 
-    const result = await userManagementService.sendMassMessage(criteria, message)
-
+    // Note: Mass messaging functionality may need a dedicated tRPC endpoint
     showNotification({
-      title: 'Message Sent',
-      message: `Message sent to ${result.deliveryStats.total} recipients`,
-      color: 'green'
+      title: 'Info',
+      message: 'Mass messaging functionality needs backend implementation',
+      color: 'blue'
     })
 
     setMessageModalOpened(false)
@@ -1036,7 +1044,7 @@ const UserManagement = () => {
 
   return (
     <Container size="xl" py="md">
-      <LoadingOverlay visible={loading} />
+      <LoadingOverlay visible={usersLoading || userDetailsLoading || auditLogLoading || securityEventsLoading} />
 
       {/* Modals */}
       <Modal
@@ -1239,9 +1247,11 @@ const UserManagement = () => {
                     <Text size="xs" color="dimmed">Permissions:</Text>
                     <ScrollArea style={{ height: 100 }}>
                       <Stack spacing={2}>
-                        {userManagementService.getUserRole(selectedUser.id)?.permissions.map(permission => (
-                          <Code key={permission} size="xs">{permission}</Code>
-                        )) || <Text size="xs" color="dimmed">No special permissions</Text>}
+                        {userDetails?.role ? (
+                          <Code size="xs">{userDetails.role}</Code>
+                        ) : (
+                          <Text size="xs" color="dimmed">No special permissions</Text>
+                        )}
                       </Stack>
                     </ScrollArea>
                   </Stack>

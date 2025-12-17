@@ -34,7 +34,11 @@ import {
   IconActivity
 } from '@tabler/icons-react'
 
-// Mock cron job data - in real app this would come from API
+// Import tRPC
+import { trpc } from '../../../utils/trpc'
+import { notifications } from '@mantine/notifications'
+
+// Legacy mock data - will be replaced by tRPC
 const MOCK_CRON_JOBS = [
   {
     id: 'profit-opportunities',
@@ -160,10 +164,114 @@ const MOCK_CRON_JOBS = [
 ]
 
 export default function CronJobs () {
-  const [cronJobs, setCronJobs] = useState(MOCK_CRON_JOBS)
+  // tRPC queries
+  const { data: jobsData, isLoading: jobsLoading, refetch: refetchJobs } = trpc.adminCronJobs.getAllJobs.useQuery()
+  const { data: executionData, isLoading: executionsLoading, refetch: refetchExecutions } = trpc.adminCronJobs.getExecutionHistory.useQuery({
+    jobName: selectedJob?.name,
+    page: 1,
+    limit: 50
+  }, {
+    enabled: !!selectedJob?.name
+  })
+
+  // Mutations
+  const createJobMutation = trpc.adminCronJobs.createJob.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Cron job created successfully',
+        color: 'green'
+      })
+      refetchJobs()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to create cron job',
+        color: 'red'
+      })
+    }
+  })
+
+  const updateJobMutation = trpc.adminCronJobs.updateJob.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Cron job updated successfully',
+        color: 'green'
+      })
+      refetchJobs()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to update cron job',
+        color: 'red'
+      })
+    }
+  })
+
+  const deleteJobMutation = trpc.adminCronJobs.deleteJob.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Cron job deleted successfully',
+        color: 'green'
+      })
+      refetchJobs()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to delete cron job',
+        color: 'red'
+      })
+    }
+  })
+
+  const toggleJobMutation = trpc.adminCronJobs.toggleJob.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Cron job toggled successfully',
+        color: 'green'
+      })
+      refetchJobs()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to toggle cron job',
+        color: 'red'
+      })
+    }
+  })
+
+  const runJobMutation = trpc.adminCronJobs.runJob.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Cron job started successfully',
+        color: 'green'
+      })
+      refetchJobs()
+      refetchExecutions()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to run cron job',
+        color: 'red'
+      })
+    }
+  })
+
   const [selectedJob, setSelectedJob] = useState(null)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [logsModalOpen, setLogsModalOpen] = useState(false)
+
+  // Use tRPC data if available, fallback to mock for now
+  const cronJobs = jobsData?.jobs || MOCK_CRON_JOBS
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -216,23 +324,22 @@ export default function CronJobs () {
   }
 
   const toggleJob = (jobId) => {
-    setCronJobs(prev => prev.map(job =>
-      job.id === jobId
-        ? { ...job, enabled: !job.enabled }
-        : job
-    ))
+    const job = cronJobs.find(j => j.id === jobId)
+    if (job) {
+      toggleJobMutation.mutate({
+        jobName: job.name,
+        enabled: !job.enabled
+      })
+    }
   }
 
   const runJobNow = (jobId) => {
-    setCronJobs(prev => prev.map(job =>
-      job.id === jobId
-        ? {
-            ...job,
-            status: 'running',
-            lastRun: new Date().toISOString()
-          }
-        : job
-    ))
+    const job = cronJobs.find(j => j.id === jobId)
+    if (job) {
+      runJobMutation.mutate({
+        jobName: job.name
+      })
+    }
   }
 
   const stats = {
