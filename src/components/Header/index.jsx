@@ -18,7 +18,7 @@ import {
   UnstyledButton,
   Paper
 } from '@mantine/core'
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { IconCoins, IconBrandDiscord, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-react'
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
@@ -31,6 +31,9 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const [checked, setChecked] = useState(false)
   const [subscriptionModalOpened, setSubscriptionModalOpened] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const searchInputRef = useRef(null)
+  const dropdownRef = useRef(null)
   const { data: subscription } = trpc.billing.getSubscription.useQuery()
   const isSubscribed = subscription && subscription.status === 'active'
   const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
@@ -57,6 +60,22 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
     window.open('https://discord.gg/your-discord-server', '_blank')
   }
 
+  // Helper function to get proper image URL (matches AllItems pattern)
+  const getItemImageUrl = (item) => {
+    if (item.icon) {
+      // If icon is already a full URL, use it
+      if (item.icon.startsWith('http://') || item.icon.startsWith('https://')) {
+        return item.icon
+      }
+      // Otherwise, construct URL from relative path (same pattern as AllItems)
+      // item.icon is typically like "c/c1/Item_name.png"
+      return `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_')
+    }
+    // Fallback to default wiki image based on item name
+    const itemName = item.name?.replace(/\s+/g, '_') || `item_${item.id}`
+    return `https://oldschool.runescape.wiki/images/c/c1/${itemName}.png`
+  }
+
   // Filter items for search
   const filteredItems = useMemo(() => {
     if (!searchQuery || !itemMapping || !allItems) return []
@@ -78,15 +97,84 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
     
     return matching.map(item => {
       const priceData = allItems[item.id]
-      // Item mapping icon is already a full URL
+      const highPrice = priceData?.high ? Number(priceData.high) : 0
+      const lowPrice = priceData?.low ? Number(priceData.low) : 0
+      // Calculate profit: high * 0.99 (1% tax) - low
+      const profit = highPrice && lowPrice ? Math.floor(highPrice * 0.99 - lowPrice) : 0
       return {
         ...item,
-        img: item.icon || `https://oldschool.runescape.wiki/images/c/c1/${item.name?.replace(/\s+/g, '_') || `item_${item.id}`}.png`,
-        high: priceData?.high || 0,
-        low: priceData?.low || 0
+        img: getItemImageUrl(item),
+        high: highPrice,
+        low: lowPrice,
+        profit
       }
     })
   }, [searchQuery, itemMapping, allItems])
+
+  // Reset selected index when search query changes
+  useEffect(() => {
+    setSelectedIndex(-1)
+  }, [searchQuery])
+
+  // Keyboard navigation handler
+  const handleKeyDown = (e) => {
+    // If dropdown is open, handle navigation
+    if (searchQuery && filteredItems.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedIndex(prev => 
+          prev < filteredItems.length - 1 ? prev + 1 : 0
+        )
+        return
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : filteredItems.length - 1
+        )
+        return
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        // If an item is selected, navigate to it
+        if (selectedIndex >= 0 && filteredItems[selectedIndex]) {
+          handleItemSelect(filteredItems[selectedIndex])
+        } else if (filteredItems.length > 0) {
+          // If no item selected but results exist, select first item
+          handleItemSelect(filteredItems[0])
+        }
+        return
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setSearchQuery('')
+        setSelectedIndex(-1)
+        searchInputRef.current?.blur()
+        return
+      }
+    }
+  }
+
+  // Cmd+K / Ctrl+K hotkey handler
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Cmd+K on Mac, Ctrl+K on Windows/Linux
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && dropdownRef.current) {
+      const selectedElement = dropdownRef.current.querySelector(`[data-item-index="${selectedIndex}"]`)
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }
+  }, [selectedIndex])
 
   const handleItemSelect = (item) => {
     if (item) {
@@ -138,9 +226,11 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
         <MediaQuery smallerThan="md" styles={{ display: 'none' }}>
           <Box style={{ flex: 1, maxWidth: '400px', margin: '0 20px', position: 'relative' }}>
             <TextInput
-              placeholder="Search items..."
+              ref={searchInputRef}
+              placeholder="Search items... (⌘K or Ctrl+K)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
               icon={<IconSearch size={16} />}
               styles={{
                 input: {
@@ -161,6 +251,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
             />
             {searchQuery && filteredItems.length > 0 && (
               <Paper
+                ref={dropdownRef}
                 style={{
                   position: 'absolute',
                   top: '100%',
@@ -177,43 +268,84 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
               >
                 <ScrollArea style={{ maxHeight: '300px' }}>
                   <Stack spacing="xs" p="xs">
-                    {filteredItems.map((item) => (
-                      <UnstyledButton
-                        key={item.id}
-                        onClick={() => handleItemSelect(item)}
-                        style={{
-                          padding: '8px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            backgroundColor: theme.colors.dark[6]
-                          }
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.colors.dark[6]
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent'
-                        }}
-                      >
-                        <Group spacing="sm" noWrap>
-                          <Image
-                            src={item.img}
-                            width={32}
-                            height={32}
-                            fit="contain"
-                            withPlaceholder
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <Text size="sm" weight={500} truncate>{item.name}</Text>
-                            <Text size="xs" color="dimmed">
-                              Buy: {item.low?.toLocaleString() || 'N/A'} GP | Sell: {item.high?.toLocaleString() || 'N/A'} GP
-                            </Text>
-                          </div>
-                        </Group>
-                      </UnstyledButton>
-                    ))}
+                    {filteredItems.map((item, index) => {
+                      const isSelected = index === selectedIndex
+                      return (
+                        <UnstyledButton
+                          key={item.id}
+                          data-item-index={index}
+                          onClick={() => handleItemSelect(item)}
+                          onMouseEnter={() => setSelectedIndex(index)}
+                          style={{
+                            padding: '8px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            backgroundColor: isSelected ? theme.colors.dark[6] : 'transparent',
+                            border: isSelected ? `1px solid ${theme.colors.blue[6]}` : '1px solid transparent'
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = 'transparent'
+                            }
+                          }}
+                        >
+                          <Group spacing="sm" noWrap>
+                            <Box
+                              style={{
+                                width: 32,
+                                height: 32,
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: theme.colors.dark[5],
+                                borderRadius: '2px'
+                              }}
+                            >
+                              <Image
+                                src={item.img}
+                                width={32}
+                                height={32}
+                                fit="contain"
+                                withPlaceholder
+                                onError={(e) => {
+                                  // Fallback to default image on error
+                                  const fallbackUrl = `https://oldschool.runescape.wiki/images/c/c1/${item.name?.replace(/\s+/g, '_') || `item_${item.id}`}.png`
+                                  e.target.src = fallbackUrl
+                                }}
+                                alt={item.name || `Item ${item.id}`}
+                                style={{
+                                  imageRendering: 'pixelated',
+                                  maxWidth: '100%',
+                                  maxHeight: '100%'
+                                }}
+                              />
+                            </Box>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <Text size="sm" weight={500} truncate>{item.name}</Text>
+                              <Group spacing={4} noWrap>
+                                <Text size="xs" color="dimmed">
+                                  Buy: {item.low?.toLocaleString() || 'N/A'} GP
+                                </Text>
+                                <Text size="xs" color="dimmed">|</Text>
+                                <Text size="xs" color="dimmed">
+                                  Sell: {item.high?.toLocaleString() || 'N/A'} GP
+                                </Text>
+                                {item.profit !== undefined && (
+                                  <>
+                                    <Text size="xs" color="dimmed">|</Text>
+                                    <Text size="xs" weight={600} style={{ color: item.profit > 0 ? theme.colors.green[5] : item.profit < 0 ? theme.colors.red[5] : theme.colors.gray[5] }}>
+                                      Profit: {item.profit > 0 ? '+' : ''}{item.profit.toLocaleString()} GP
+                                    </Text>
+                                  </>
+                                )}
+                              </Group>
+                            </div>
+                          </Group>
+                        </UnstyledButton>
+                      )
+                    })}
                   </Stack>
                 </ScrollArea>
               </Paper>
