@@ -224,12 +224,16 @@ export const darkTheme = {
     }
   },
 
-  // Component-specific theme overrides
+  // Component-specific theme overrides with global hover effects
   components: {
     Button: {
       styles: (theme) => ({
         root: {
           fontWeight: 500,
+          transition: 'box-shadow 0.2s ease-out, background-color 0.2s ease-out',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+          },
           '&:focus': {
             outline: `2px solid ${theme.colors.blue[4]}`,
             outlineOffset: '2px'
@@ -243,7 +247,9 @@ export const darkTheme = {
         root: {
           backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
           borderColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[3],
+          transition: 'box-shadow 0.2s ease-out, border-color 0.2s ease-out',
           '&:hover': {
+            boxShadow: '0 4px 16px rgba(102, 126, 234, 0.2)',
             borderColor: theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[4]
           }
         }
@@ -254,7 +260,11 @@ export const darkTheme = {
       styles: (theme) => ({
         root: {
           fontWeight: 500,
-          textTransform: 'none'
+          textTransform: 'none',
+          transition: 'box-shadow 0.2s ease-out',
+          '&:hover': {
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+          }
         }
       })
     },
@@ -266,13 +276,21 @@ export const darkTheme = {
             backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
             color: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[7],
             fontWeight: 600,
-            borderBottom: `1px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[3]}`
+            borderBottom: `1px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[3]}`,
+            transition: 'background-color 0.2s ease-out',
+            '&:hover': {
+              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[2]
+            }
           },
           '& td': {
-            borderBottom: `1px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[2]}`
+            borderBottom: `1px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[2]}`,
+            transition: 'background-color 0.2s ease-out'
           },
-          '& tr:hover': {
-            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+          '& tr': {
+            transition: 'background-color 0.2s ease-out',
+            '&:hover': {
+              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+            }
           }
         }
       })
@@ -281,10 +299,200 @@ export const darkTheme = {
     Input: {
       styles: (theme) => ({
         input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
           '&:focus': {
-            borderColor: theme.colors.blue[4],
-            outline: `2px solid ${theme.colors.blue[1]}`,
-            outlineOffset: '-1px'
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        }
+      })
+    },
+
+    TextInput: {
+      styles: (theme) => ({
+        input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
+          '&:focus': {
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        }
+      })
+    },
+
+    PasswordInput: {
+      styles: (theme) => ({
+        input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
+          '&:focus': {
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        }
+      })
+    },
+
+    NumberInput: {
+      styles: (theme) => ({
+        input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
+          '&:focus': {
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        }
+      })
+    },
+
+    Textarea: {
+      styles: (theme) => ({
+        input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
+          '&:focus': {
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        }
+      })
+    },
+
+    Select: {
+      styles: (theme) => ({
+        input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
+          '&:focus': {
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        },
+        item: {
+          transition: 'background-color 0.2s ease-out, transform 0.2s ease-out',
+          '&:hover': {
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
+            transform: 'translateX(4px)'
+          }
+        }
+      })
+    },
+
+    Autocomplete: {
+      styles: (theme) => ({
+        input: {
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+          '&:hover': {
+            borderColor: '#228be6',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[0]
+          },
+          '&:focus': {
+            borderColor: '#ffd700',
+            boxShadow: '0 0 0 2px rgba(255, 215, 0, 0.2)',
+            outline: 'none'
+          }
+        },
+        item: {
+          transition: 'background-color 0.2s ease-out, transform 0.2s ease-out',
+          '&:hover': {
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
+            transform: 'translateX(4px)'
+          }
+        }
+      })
+    },
+
+    Checkbox: {
+      styles: (theme) => ({
+        input: {
+          transition: 'box-shadow 0.2s ease-out',
+          '&:hover': {
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+          }
+        }
+      })
+    },
+
+    Switch: {
+      styles: (theme) => ({
+        input: {
+          transition: 'background-color 0.2s ease-out'
+        }
+      })
+    },
+
+    ActionIcon: {
+      styles: (theme) => ({
+        root: {
+          transition: 'box-shadow 0.2s ease-out, background-color 0.2s ease-out',
+          '&:hover': {
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.4)'
+          }
+        }
+      })
+    },
+
+    Menu: {
+      styles: (theme) => ({
+        item: {
+          transition: 'background-color 0.2s ease-out',
+          position: 'relative',
+          '&:hover': {
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '3px',
+              backgroundColor: '#667eea',
+              borderRadius: '0 2px 2px 0'
+            }
+          }
+        }
+      })
+    },
+
+    Pagination: {
+      styles: (theme) => ({
+        control: {
+          transition: 'box-shadow 0.2s ease-out, background-color 0.2s ease-out',
+          '&:hover': {
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+          },
+          '&[data-active]': {
+            backgroundColor: theme.colors.blue[6],
+            '&:hover': {
+              backgroundColor: theme.colors.blue[7]
+            }
           }
         }
       })
@@ -293,6 +501,10 @@ export const darkTheme = {
     Tabs: {
       styles: (theme) => ({
         tab: {
+          transition: 'color 0.2s ease-out, border-color 0.2s ease-out',
+          '&:hover': {
+            color: theme.colors.blue[4]
+          },
           '&:focus': {
             outline: `2px solid ${theme.colors.blue[4]}`,
             outlineOffset: '2px'
@@ -300,6 +512,40 @@ export const darkTheme = {
           '&[data-active]': {
             borderBottomColor: theme.colors.orange[4],
             color: theme.colors.orange[4]
+          }
+        }
+      })
+    },
+
+    Modal: {
+      styles: (theme) => ({
+        content: {
+          transition: 'transform 0.2s ease-out, opacity 0.2s ease-out'
+        },
+        header: {
+          transition: 'background-color 0.2s ease-out'
+        }
+      }),
+      defaultProps: {
+        transitionProps: {
+          transition: 'pop',
+          duration: 200
+        },
+        overlayProps: {
+          blur: 3,
+          opacity: 0.55
+        }
+      }
+    },
+
+    CloseButton: {
+      styles: (theme) => ({
+        root: {
+          transition: 'background-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out',
+          '&:hover': {
+            transform: 'rotate(90deg)',
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
           }
         }
       })

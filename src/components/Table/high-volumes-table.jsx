@@ -27,6 +27,7 @@ const useStyles = createStyles((theme) => ({
   control: {
     width: '100%',
     padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+    transition: 'background-color 0.2s ease-out',
 
     '&:hover': {
       backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
