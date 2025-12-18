@@ -39,7 +39,6 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Herbs = lazy(() => import('./pages/Herbs'))
 const DeathsCoffer = lazy(() => import('./pages/DeathsCoffer'))
 const Faq = lazy(() => import('./pages/Faq'))
-const Status = lazy(() => import('./pages/Status'))
 const FoodIndex = lazy(() => import('./pages/MarketWatch/FoodIndex.jsx'))
 const LogsIndex = lazy(() => import('./pages/MarketWatch/LogsIndex.jsx'))
 const RunesIndex = lazy(() => import('./pages/MarketWatch/RunesIndex.jsx'))
@@ -56,6 +55,7 @@ const SystemSettings = lazy(() => import('./pages/Admin/SystemSettings'))
 const SecurityLogs = lazy(() => import('./pages/Admin/SecurityLogs'))
 const FormulaDocumentation = lazy(() => import('./pages/Admin/FormulaDocumentation'))
 const CronJobs = lazy(() => import('./pages/Admin/CronJobs'))
+const ApiStatus = lazy(() => import('./pages/Admin/ApiStatus'))
 const AIPredictions = lazy(() => import('./pages/AIPredictions'))
 const FutureItems = lazy(() => import('./pages/FutureItems'))
 const Favorites = lazy(() => import('./pages/Favorites/index.jsx'))
@@ -317,7 +317,6 @@ function AppContent () {
               <Route path="/community" element={<CommunityLeaderboard />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/faq" element={<Faq />} />
-              <Route path="/status" element={<Status />} />
               <Route path="/item/:id" element={<ItemDetails />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/saplings" element={<Saplings />} />
@@ -350,6 +349,7 @@ function AppContent () {
               <Route path="/admin/security" element={<AdminRoute><SecurityLogs /></AdminRoute>} />
               <Route path="/admin/formulas" element={<AdminRoute><FormulaDocumentation /></AdminRoute>} />
               <Route path="/admin/cron-jobs" element={<AdminRoute><CronJobs /></AdminRoute>} />
+              <Route path="/admin/api-status" element={<AdminRoute><ApiStatus /></AdminRoute>} />
               {/* Legacy routes for backwards compatibility */}
               <Route path="/access-denied" element={<AccessDenied />} />
               <Route path="*" element={<ErrorPage />} />

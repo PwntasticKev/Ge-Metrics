@@ -11,7 +11,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime, getItemSetProfit, safeParseFloat } from '../../utils/utils.jsx'
-import { plankMakeRecipes, PLANK_MAKE_RUNES } from '../../components/Table/data/plank-make-filters.jsx'
+import { plankMakeRecipes, PLANK_MAKE_RUNES, PLANK_LOG_MAPPINGS } from '../../components/Table/data/plank-make-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
@@ -33,13 +33,15 @@ export default function PlankMake () {
   // Get rune prices for display
   const runePrices = useMemo(() => {
     if (priceStatus !== 'success' || !items || items.length === 0) {
-      return { nature: 0, astral: 0 }
+      return { earth: 0, astral: 0, nature: 0 }
     }
-    const natureRune = items.find(item => item.id === PLANK_MAKE_RUNES.NATURE_RUNE_ID)
+    const earthRune = items.find(item => item.id === PLANK_MAKE_RUNES.EARTH_RUNE_ID)
     const astralRune = items.find(item => item.id === PLANK_MAKE_RUNES.ASTRAL_RUNE_ID)
+    const natureRune = items.find(item => item.id === PLANK_MAKE_RUNES.NATURE_RUNE_ID)
     return {
-      nature: safeParseFloat(natureRune?.low, 0),
-      astral: safeParseFloat(astralRune?.low, 0)
+      earth: safeParseFloat(earthRune?.low, 0),
+      astral: safeParseFloat(astralRune?.low, 0),
+      nature: safeParseFloat(natureRune?.low, 0)
     }
   }, [items, priceStatus])
 
@@ -82,12 +84,18 @@ export default function PlankMake () {
         const plankType = plankName.replace(' plank', '').replace('plank', '').trim()
         const logType = logName.replace(' logs', '').replace(' log', '').replace('logs', '').trim()
         
-        // Handle special cases: regular plank/log, mahogany, and teak
-        // Always allow mahogany and teak through (they're commonly used)
-        const isMahogany = plankName.includes('mahogany') && logName.includes('mahogany')
-        const isTeak = plankName.includes('teak') && logName.includes('teak')
+        // Explicitly handle mahogany: Mahogany plank (8782) <- Mahogany logs (1517)
+        const expectedMahoganyPlank = PLANK_LOG_MAPPINGS[1517] // Should be 8782
+        const isMahogany = (plankName.includes('mahogany') && logName.includes('mahogany')) ||
+                          (recipe.itemSet === expectedMahoganyPlank && recipe.itemsToCreateSet[0] === 1517)
+        
+        // Explicitly handle teak: Teak plank (8780) <- Teak logs (1519)
+        const expectedTeakPlank = PLANK_LOG_MAPPINGS[1519] // Should be 8780
+        const isTeak = (plankName.includes('teak') && logName.includes('teak')) ||
+                      (recipe.itemSet === expectedTeakPlank && recipe.itemsToCreateSet[0] === 1519)
         
         if (isMahogany || isTeak) {
+          console.log(`[PlankMake] Validated ${isMahogany ? 'mahogany' : 'teak'} recipe: plank="${plankName}" (${recipe.itemSet}) <- log="${logName}" (${recipe.itemsToCreateSet[0]})`)
           return true
         }
         
@@ -108,21 +116,23 @@ export default function PlankMake () {
       console.log(`[PlankMake] Valid recipes: ${validPlankRecipes.length}/${plankMakeRecipes.length}`)
 
       // Calculate rune cost per plank
-      // Plank Make requires: 1 Nature rune + 2 Astral runes + coins per plank
+      // Plank Make requires: 15 Earth runes + 2 Astral runes + 1 Nature rune + coins per plank
+      // Reference: https://oldschool.runescape.wiki/w/Plank_Make
       const processedPlanks = validPlankRecipes
         .map(recipe => {
           // Get coin cost from recipe (already set in the data file)
           const coinCost = recipe.conversionCost || 0
           
-          // Create itemQuantities map for display (Astral runes x2)
+          // Create itemQuantities map for display
           // This will be used by totalPriceConverted to calculate rune costs
           const itemQuantities = {
-            [PLANK_MAKE_RUNES.NATURE_RUNE_ID]: 1,
-            [PLANK_MAKE_RUNES.ASTRAL_RUNE_ID]: 2
+            [PLANK_MAKE_RUNES.EARTH_RUNE_ID]: 15, // 15 Earth runes
+            [PLANK_MAKE_RUNES.ASTRAL_RUNE_ID]: 2, // 2 Astral runes
+            [PLANK_MAKE_RUNES.NATURE_RUNE_ID]: 1  // 1 Nature rune
           }
           
           // Create recipe with coin cost in conversionCost
-          // totalPriceConverted will calculate: log cost + (nature * 1) + (astral * 2) + coinCost
+          // totalPriceConverted will calculate: log cost + (earth * 15) + (astral * 2) + (nature * 1) + coinCost
           const recipeWithRunes = {
             ...recipe,
             conversionCost: coinCost, // Only coin cost, runes calculated via itemQuantities
@@ -164,7 +174,7 @@ export default function PlankMake () {
               <Text size="sm" color="rgba(255, 255, 255, 0.7)">
                 Monitor profit from converting logs to planks using the Plank Make spell.
                 <br />
-                Spell Cost: 1 Nature rune ({runePrices.nature.toLocaleString()} gp) + 2 Astral runes ({runePrices.astral.toLocaleString()} gp each) + coins per plank.
+                Spell Cost: 15 Earth runes ({runePrices.earth.toLocaleString()} gp each) + 2 Astral runes ({runePrices.astral.toLocaleString()} gp each) + 1 Nature rune ({runePrices.nature.toLocaleString()} gp) + coins per plank.
               </Text>
             </div>
             <Group spacing="md">

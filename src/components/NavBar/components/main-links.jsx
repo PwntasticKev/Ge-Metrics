@@ -787,16 +787,6 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           onNavigate={onNavigate}
         />
 
-        <MainLink
-          icon={<IconActivity size="1rem"/>}
-          color="green"
-          label="API Status"
-          link="/status"
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-
         {/* TEMPORARILY HIDDEN MENU ITEMS - Commented out for now */}
         {/*
         <MainLink
