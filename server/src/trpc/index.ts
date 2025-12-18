@@ -14,6 +14,7 @@ import { itemsRouter } from './items.js'
 import { favoritesRouter } from './favorites.js'
 import { settingsRouter } from './settings.js'
 import { otpRouter } from './otp.js'
+import { sessionsRouter } from './sessions.js'
 import billingRouter from './billing.js'
 import { blogsRouter } from './blogs.js'
 import { flipsRouter } from './flips.js'
@@ -35,6 +36,7 @@ export const appRouter = router({
   items: itemsRouter,
   settings: settingsRouter,
   otp: otpRouter,
+  sessions: sessionsRouter,
   billing: billingRouter,
   flips: flipsRouter,
   blogs: blogsRouter,

@@ -217,7 +217,7 @@ export async function verifyEmailConnection (): Promise<boolean> {
     }
     
     // Fall back to SMTP verification
-    if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS) {
+    if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS || !config.RESEND_API_KEY) {
       console.warn('[EmailService] No email service configured - set RESEND_API_KEY or SMTP credentials')
       return false
     }

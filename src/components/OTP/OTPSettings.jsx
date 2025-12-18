@@ -14,13 +14,18 @@ import {
   Code,
   Box,
   PinInput,
-  Center
+  Center,
+  SimpleGrid,
+  Divider,
+  Modal
 } from '@mantine/core'
 import {
   IconShield,
   IconCheck,
   IconCopy,
-  IconDeviceMobile
+  IconDeviceMobile,
+  IconRefresh,
+  IconDownload
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc'
 import { notifications } from '@mantine/notifications'
@@ -30,9 +35,13 @@ export default function OTPSettings ({ user, onUpdate }) {
   const setupOtp = trpc.otp.setup.useMutation()
   const verifyOtp = trpc.otp.verifyAndEnable.useMutation()
   const disableOtp = trpc.otp.disable.useMutation()
+  const generateBackupCodes = trpc.otp.generateBackupCodes.useMutation()
 
   const [setupData, setSetupData] = useState(null)
   const [verificationCode, setVerificationCode] = useState('')
+  const [backupCodes, setBackupCodes] = useState(null)
+  const [showBackupCodesModal, setShowBackupCodesModal] = useState(false)
+  const [regeneratingCodes, setRegeneratingCodes] = useState(false)
 
   const otpEnabled = settings?.otpEnabled || false
 
@@ -60,6 +69,13 @@ export default function OTPSettings ({ user, onUpdate }) {
           color: 'green',
           icon: <IconCheck size={18} />
         })
+        
+        // Show backup codes if provided
+        if (result.backupCodes && result.backupCodes.length > 0) {
+          setBackupCodes(result.backupCodes)
+          setShowBackupCodesModal(true)
+        }
+        
         setSetupData(null)
         setVerificationCode('')
         refetch()
@@ -72,6 +88,47 @@ export default function OTPSettings ({ user, onUpdate }) {
         color: 'red'
       })
     }
+  }
+
+  const handleRegenerateBackupCodes = async () => {
+    setRegeneratingCodes(true)
+    try {
+      const result = await generateBackupCodes.mutateAsync()
+      if (result.success && result.backupCodes) {
+        setBackupCodes(result.backupCodes)
+        setShowBackupCodesModal(true)
+        notifications.show({
+          title: 'Backup Codes Regenerated',
+          message: 'New backup codes have been generated. Save them securely!',
+          color: 'green',
+          icon: <IconCheck size={18} />
+        })
+      }
+    } catch (error) {
+      notifications.show({
+        title: 'Failed to Regenerate Codes',
+        message: error.message || 'Could not regenerate backup codes.',
+        color: 'red'
+      })
+    } finally {
+      setRegeneratingCodes(false)
+    }
+  }
+
+  const downloadBackupCodes = () => {
+    if (!backupCodes) return
+    
+    const content = `GE-Metrics Backup Codes\n\nSave these codes in a safe place. Each code can only be used once.\n\n${backupCodes.map((code, i) => `${i + 1}. ${code}`).join('\n')}\n\nGenerated: ${new Date().toLocaleString()}\n\nIf you lose access to your authenticator app, you can use these codes to log in.`
+    
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gemetrics-backup-codes-${new Date().toISOString().split('T')[0]}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const handleDisableOTP = async () => {
@@ -195,17 +252,97 @@ export default function OTPSettings ({ user, onUpdate }) {
         )}
 
         {otpEnabled && (
-          <Button
-            onClick={handleDisableOTP}
-            loading={disableOtp.isLoading}
-            color="red"
-            variant="outline"
-            leftIcon={<IconShield size={16} />}
-          >
-            Disable 2FA
-          </Button>
+          <Stack spacing="md">
+            <Group>
+              <Button
+                onClick={handleRegenerateBackupCodes}
+                loading={regeneratingCodes}
+                color="blue"
+                variant="outline"
+                leftIcon={<IconRefresh size={16} />}
+              >
+                Regenerate Backup Codes
+              </Button>
+              <Button
+                onClick={handleDisableOTP}
+                loading={disableOtp.isLoading}
+                color="red"
+                variant="outline"
+                leftIcon={<IconShield size={16} />}
+              >
+                Disable 2FA
+              </Button>
+            </Group>
+            
+            <Alert color="yellow">
+              <Text size="sm">
+                Make sure you have backup codes saved. If you lose access to your authenticator app, 
+                you'll need backup codes to log in.
+              </Text>
+            </Alert>
+          </Stack>
         )}
       </Stack>
+
+      {/* Backup Codes Modal */}
+      <Modal
+        opened={showBackupCodesModal}
+        onClose={() => setShowBackupCodesModal(false)}
+        title="Save Your Backup Codes"
+        size="lg"
+        centered
+      >
+        <Stack spacing="md">
+          <Alert color="red" icon={<IconShield size={16} />}>
+            <Text size="sm" weight={600} mb="xs">Important: Save these codes now!</Text>
+            <Text size="sm">
+              These codes will only be shown once. Each code can only be used once. 
+              Store them in a safe place. If you lose access to your authenticator app, 
+              you'll need these codes to log in.
+            </Text>
+          </Alert>
+
+          {backupCodes && (
+            <>
+              <SimpleGrid cols={2} spacing="xs">
+                {backupCodes.map((code, index) => (
+                  <Code key={index} style={{ 
+                    padding: '8px', 
+                    textAlign: 'center',
+                    fontSize: '14px',
+                    fontFamily: 'monospace'
+                  }}>
+                    {code}
+                  </Code>
+                ))}
+              </SimpleGrid>
+
+              <Group position="right">
+                <CopyButton value={backupCodes.join('\n')}>
+                  {({ copied, copy }) => (
+                    <Button
+                      variant="outline"
+                      leftIcon={<IconCopy size={16} />}
+                      onClick={copy}
+                    >
+                      {copied ? 'Copied!' : 'Copy All'}
+                    </Button>
+                  )}
+                </CopyButton>
+                <Button
+                  leftIcon={<IconDownload size={16} />}
+                  onClick={downloadBackupCodes}
+                >
+                  Download
+                </Button>
+                <Button onClick={() => setShowBackupCodesModal(false)}>
+                  I've Saved Them
+                </Button>
+              </Group>
+            </>
+          )}
+        </Stack>
+      </Modal>
     </Card>
   )
 }

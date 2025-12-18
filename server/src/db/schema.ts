@@ -16,6 +16,9 @@ export const users = pgTable('users', {
   emailVerificationTokenExpiresAt: timestamp('email_verification_token_expires_at'),
   passwordResetOtp: text('password_reset_otp'),
   passwordResetOtpExpiresAt: timestamp('password_reset_otp_expires_at'),
+  emailChangeToken: text('email_change_token'),
+  emailChangeTokenExpiresAt: timestamp('email_change_token_expires_at'),
+  pendingEmail: text('pending_email'), // New email address pending verification
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
@@ -378,6 +381,7 @@ export const userSettings = pgTable('user_settings', {
   otpEnabled: boolean('otp_enabled').default(false).notNull(),
   otpSecret: text('otp_secret'),
   otpVerified: boolean('otp_verified').default(false).notNull(),
+  backupCodes: jsonb('backup_codes'), // Array of { code: hashedCode, used: boolean, createdAt: timestamp }
   role: text('role').notNull().default('user'), // 'user', 'admin', 'moderator'
   permissions: jsonb('permissions'), // Store additional permissions as JSON
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -386,6 +390,48 @@ export const userSettings = pgTable('user_settings', {
 
 export type UserSettings = typeof userSettings.$inferSelect;
 export type NewUserSettings = typeof userSettings.$inferInsert;
+
+// User Sessions - Track active sessions for security
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(), // Refresh token or session token
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  deviceInfo: jsonb('device_info'), // Browser, OS, device type
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull()
+}, (table) => ({
+  userIdIdx: index('user_sessions_user_id_idx').on(table.userId),
+  tokenIdx: index('user_sessions_token_idx').on(table.token),
+  isActiveIdx: index('user_sessions_is_active_idx').on(table.isActive)
+}))
+
+export type UserSession = typeof userSessions.$inferSelect;
+export type NewUserSession = typeof userSessions.$inferInsert;
+
+// Login History - Track all login attempts
+export const loginHistory = pgTable('login_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  email: text('email'), // Store email even if user doesn't exist (for failed attempts)
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  deviceInfo: jsonb('device_info'),
+  success: boolean('success').notNull(),
+  failureReason: text('failure_reason'), // 'invalid_password', 'invalid_otp', 'account_locked', etc.
+  twoFactorUsed: boolean('two_factor_used').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('login_history_user_id_idx').on(table.userId),
+  emailIdx: index('login_history_email_idx').on(table.email),
+  successIdx: index('login_history_success_idx').on(table.success),
+  createdAtIdx: index('login_history_created_at_idx').on(table.createdAt)
+}))
+
+export type LoginHistory = typeof loginHistory.$inferSelect;
+export type NewLoginHistory = typeof loginHistory.$inferInsert;
 
 // --- COMPREHENSIVE ADMIN TRACKING TABLES ---
 
@@ -548,27 +594,8 @@ export const userInvitations = pgTable('user_invitations', {
   expiresAtIdx: index('user_invitations_expires_at_idx').on(table.expiresAt)
 }))
 
-// User Sessions - Enhanced session tracking
-export const userSessions = pgTable('user_sessions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  sessionToken: text('session_token').notNull().unique(),
-  refreshToken: text('refresh_token').unique(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  deviceInfo: jsonb('device_info'), // parsed device/browser info
-  location: jsonb('location'), // city, country, timezone
-  isActive: boolean('is_active').default(true),
-  lastActivity: timestamp('last_activity').defaultNow().notNull(),
-  loginMethod: text('login_method'), // 'email', 'google', 'otp'
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-}, (table) => ({
-  userIdIdx: index('user_sessions_user_id_idx').on(table.userId),
-  sessionTokenIdx: index('user_sessions_session_token_idx').on(table.sessionToken),
-  isActiveIdx: index('user_sessions_is_active_idx').on(table.isActive),
-  lastActivityIdx: index('user_sessions_last_activity_idx').on(table.lastActivity)
-}))
+// Note: userSessions table is already defined above (line 395)
+// Removed duplicate definition - using the one defined earlier
 
 // Type exports for new admin tables
 export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;

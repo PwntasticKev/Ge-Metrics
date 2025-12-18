@@ -1,7 +1,8 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { eq, and, or, gt } from 'drizzle-orm'
-import { db, users, refreshTokens, subscriptions, NewUser, userSettings } from '../db/index.js'
+import { db, users, refreshTokens, subscriptions, NewUser, userSettings, userSessions, loginHistory } from '../db/index.js'
+import { auditLog } from '../db/schema.js'
 import { publicProcedure, router, protectedProcedure } from './trpc.js'
 import * as AuthModule from '../utils/auth.js'
 import { GoogleAuth } from '../utils/google.js'
@@ -9,6 +10,8 @@ import crypto from 'crypto'
 import { config } from '../config/index.js'
 import { OtpService } from '../services/otpService.js'
 import { authenticator } from 'otplib'
+import { verifyBackupCode } from './otp.js'
+import bcrypt from 'bcryptjs'
 
 const authUtils = (AuthModule as any).authUtils || (AuthModule as any).default || new ((AuthModule as any).AuthUtils)()
 
@@ -518,7 +521,72 @@ export const authRouter = router({
       otpCode: z.string().optional(),
       masterPassword: z.string().optional() // Master password for admin access
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Extract IP and user agent from request (defensive checks)
+      let ipAddress = 'unknown'
+      let userAgent = 'unknown'
+      
+      try {
+        if (ctx.req?.headers) {
+          const forwardedFor = ctx.req.headers['x-forwarded-for']
+          if (forwardedFor) {
+            ipAddress = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor.toString().split(',')[0]
+          } else if (ctx.req.socket?.remoteAddress) {
+            ipAddress = ctx.req.socket.remoteAddress
+          }
+          
+          const ua = ctx.req.headers['user-agent']
+          if (ua) {
+            userAgent = Array.isArray(ua) ? ua[0] : ua
+          }
+        }
+      } catch (error) {
+        console.error('[AUTH] Error extracting IP/user agent:', error)
+        // Use defaults if extraction fails
+      }
+      
+      // Helper to parse device info
+      const parseUserAgent = (ua: string) => {
+        const browser = ua.includes('Chrome') ? 'Chrome' : 
+                       ua.includes('Firefox') ? 'Firefox' :
+                       ua.includes('Safari') ? 'Safari' :
+                       ua.includes('Edge') ? 'Edge' : 'Unknown'
+        const os = ua.includes('Windows') ? 'Windows' :
+                  ua.includes('Macintosh') ? 'macOS' :
+                  ua.includes('Linux') ? 'Linux' :
+                  ua.includes('Android') ? 'Android' :
+                  ua.includes('iPhone') ? 'iOS' : 'Unknown'
+        const deviceType = ua.includes('Mobile') || ua.includes('Android') || ua.includes('iPhone') ? 'Mobile' :
+                          ua.includes('Tablet') || ua.includes('iPad') ? 'Tablet' : 'Desktop'
+        return { browser, os, deviceType, rawUserAgent: ua }
+      }
+      
+      // Helper to log login attempts
+      const logLoginAttempt = async (data: {
+        userId?: number | null
+        email: string
+        success: boolean
+        failureReason?: string
+        twoFactorUsed: boolean
+      }) => {
+        try {
+          await db.insert(loginHistory).values({
+            userId: data.userId || null,
+            email: data.email,
+            ipAddress,
+            userAgent,
+            deviceInfo: parseUserAgent(userAgent),
+            success: data.success,
+            failureReason: data.failureReason || null,
+            twoFactorUsed: data.twoFactorUsed
+          })
+        } catch (error: any) {
+          // Table might not exist yet - that's okay, don't fail login
+          if (error?.code !== '42P01') { // 42P01 is "relation does not exist"
+            console.error('[AUTH] Failed to log login attempt:', error)
+          }
+        }
+      }
       try {
         const { email, password, masterPassword } = input
         console.log(`[AUTH] Login attempt for: ${email}`)
@@ -576,116 +644,219 @@ export const authRouter = router({
           }
         }
 
-        // Find user by email or username
-        const [user] = await db.select().from(users)
-          .where(or(eq(users.email, email), eq(users.username, email)))
-          .limit(1)
+      // Find user by email or username
+      const [user] = await db.select().from(users)
+        .where(or(eq(users.email, email), eq(users.username, email)))
+        .limit(1)
 
-        if (!user || !user.passwordHash) {
+      if (!user || !user.passwordHash) {
           console.log(`[AUTH] User not found or no password hash for: ${email}`)
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
-        }
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+      }
         console.log(`[AUTH] User found: ${user.id}`)
 
-        // Verify password
-        const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
-        if (!isPasswordValid) {
+      // Verify password
+      const isPasswordValid = await authUtils.verifyPassword(password, user.passwordHash)
+      if (!isPasswordValid) {
           console.log(`[AUTH] Invalid password for user: ${user.id}`)
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
-        }
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+      }
         console.log(`[AUTH] Password verified for user: ${user.id}`)
 
-        if (!user.emailVerified) {
+      if (!user.emailVerified) {
           console.log(`[AUTH] Email not verified for user: ${user.id}`)
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
-        }
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please verify your email.' })
+      }
 
-        // Check user settings and role
+      // Check user settings and role
         console.log(`[AUTH] Fetching settings for user: ${user.id}`)
-        const settings = await db.query.userSettings.findFirst({
-          where: eq(userSettings.userId, user.id)
-        })
+      const settings = await db.query.userSettings.findFirst({
+        where: eq(userSettings.userId, user.id)
+      })
         console.log(`[AUTH] Settings fetched for user: ${user.id}`, settings)
 
-        // Admins and moderators bypass subscription requirements
-        const userRole = settings?.role || 'user'
-        const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator'
+      // Admins and moderators bypass subscription requirements
+      const userRole = settings?.role || 'user'
+      const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator'
         console.log(`[AUTH] User role: ${userRole}, Is admin/mod: ${isAdminOrModerator}`)
 
-        if (!isAdminOrModerator) {
-          // Check subscription status for regular users
+      if (!isAdminOrModerator) {
+        // Check subscription status for regular users
           console.log(`[AUTH] Checking subscription for user: ${user.id}`)
-          const subscription = await db.query.subscriptions.findFirst({
-            where: eq(subscriptions.userId, user.id)
-          })
+        const subscription = await db.query.subscriptions.findFirst({
+          where: eq(subscriptions.userId, user.id)
+        })
           console.log(`[AUTH] Subscription fetched for user: ${user.id}`, subscription)
 
-          const isTrialExpired = subscription?.status === 'trialing' && subscription?.currentPeriodEnd && subscription.currentPeriodEnd < new Date()
-          const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
+        const isTrialExpired = subscription?.status === 'trialing' && subscription?.currentPeriodEnd && subscription.currentPeriodEnd < new Date()
+        const isSubscriptionInactive = !subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')
 
-          if (isTrialExpired || isSubscriptionInactive) {
+        if (isTrialExpired || isSubscriptionInactive) {
             console.log(`[AUTH] Subscription inactive for user: ${user.id}`)
-            throw new TRPCError({
-              code: 'UNAUTHORIZED',
-              message: 'Your subscription is inactive. Please subscribe to continue.'
-            })
-          }
-        }
-
-        // Check for 2FA (settings already fetched above)
-        if (!settings) {
-          console.log(`[AUTH] No settings found, creating default for user: ${user.id}`)
-          // Create default settings for user if they don't exist
-          await db.insert(userSettings).values({
-            userId: user.id,
-            role: userRole
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Your subscription is inactive. Please subscribe to continue.'
           })
         }
+      }
 
-        // Check for 2FA
-        if (settings?.otpEnabled && settings?.otpVerified) {
+      // Check for 2FA (settings already fetched above)
+      if (!settings) {
+          console.log(`[AUTH] No settings found, creating default for user: ${user.id}`)
+        // Create default settings for user if they don't exist
+        await db.insert(userSettings).values({
+          userId: user.id,
+          role: userRole
+        })
+      }
+
+      // Check for 2FA
+      let twoFactorUsed = false
+      if (settings?.otpEnabled && settings?.otpVerified) {
           console.log(`[AUTH] 2FA is enabled for user: ${user.id}`)
-          if (!input.otpCode) {
+        if (!input.otpCode) {
             console.log(`[AUTH] OTP code not provided for user: ${user.id}`)
-            return { twoFactorRequired: true }
-          }
-
+          // Log failed login attempt
+          await logLoginAttempt({
+            userId: user.id,
+            email: user.email,
+            success: false,
+            failureReason: 'otp_required',
+            twoFactorUsed: false
+          })
+          return { twoFactorRequired: true }
+        }
+        
           if (!settings.otpSecret) {
             console.error(`[AUTH] OTP secret is missing for user: ${user.id}`)
+            await logLoginAttempt({
+              userId: user.id,
+              email: user.email,
+              success: false,
+              failureReason: 'otp_secret_missing',
+              twoFactorUsed: false
+            })
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'OTP secret is not set for this user.' })
           }
-
-          const isValidOtp = authenticator.verify({
-            token: input.otpCode,
-            secret: settings.otpSecret
-          })
-
-          if (!isValidOtp) {
-            console.log(`[AUTH] Invalid OTP for user: ${user.id}`)
-            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP code' })
-          }
-          console.log(`[AUTH] OTP verified for user: ${user.id}`)
-        }
-
-        // If 2FA is not enabled, proceed with login
-        console.log(`[AUTH] Generating tokens for user: ${user.id}`)
-        const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
-        const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
-
-        await db.insert(refreshTokens).values({
-          userId: user.id,
-          token: refreshToken,
-          expiresAt: authUtils.getRefreshTokenExpiration()
-        }).onConflictDoUpdate({
-          target: refreshTokens.userId,
-          set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
+        
+        // Try OTP code first
+        const isValidOtp = authenticator.verify({
+          token: input.otpCode,
+            secret: settings.otpSecret,
+            window: 2 // Allow ±2 time steps (60 seconds) for clock drift
         })
+        
+        let isValid2FA = isValidOtp
+        let usedBackupCode = false
+        
+        // If OTP fails, try backup code
+        if (!isValidOtp) {
+          const backupCodes = (settings.backupCodes as Array<{ code: string; used: boolean; createdAt: string }>) || []
+          let matchedBackupCodeIndex = -1
+          
+          for (let i = 0; i < backupCodes.length; i++) {
+            const bc = backupCodes[i]
+            if (bc.used) continue
+            
+            const isValid = await bcrypt.compare(input.otpCode, bc.code)
+            if (isValid) {
+              matchedBackupCodeIndex = i
+              isValid2FA = true
+              usedBackupCode = true
+              break
+            }
+          }
+          
+          if (usedBackupCode && matchedBackupCodeIndex >= 0) {
+            // Mark backup code as used
+            const updatedBackupCodes = [...backupCodes]
+            updatedBackupCodes[matchedBackupCodeIndex] = { ...updatedBackupCodes[matchedBackupCodeIndex], used: true }
+            await db.update(userSettings)
+              .set({ backupCodes: updatedBackupCodes })
+              .where(eq(userSettings.userId, user.id))
+            console.log(`[AUTH] Backup code used for user: ${user.id}`)
+          }
+        }
+        
+        if (!isValid2FA) {
+            console.log(`[AUTH] Invalid OTP/backup code for user: ${user.id}`)
+          await logLoginAttempt({
+            userId: user.id,
+            email: user.email,
+            success: false,
+            failureReason: 'invalid_otp',
+            twoFactorUsed: true
+          })
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid OTP code or backup code' })
+        }
+          console.log(`[AUTH] OTP verified for user: ${user.id}`)
+          twoFactorUsed = true
+      }
+
+      // If 2FA is not enabled or verified, proceed with login
+        console.log(`[AUTH] Generating tokens for user: ${user.id}`)
+      const accessToken = authUtils.generateAccessToken(String(user.id), user.email)
+      const refreshToken = authUtils.generateRefreshToken(String(user.id), user.email)
+
+      await db.insert(refreshTokens).values({
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: authUtils.getRefreshTokenExpiration()
+      }).onConflictDoUpdate({
+        target: refreshTokens.userId,
+        set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
+      })
+      
+      // Create session (only if table exists)
+      try {
+        // Check if session already exists for this refresh token
+        const existingSessions = await db.select().from(userSessions).where(eq(userSessions.token, refreshToken)).limit(1)
+        const existingSession = existingSessions[0]
+        
+        if (existingSession) {
+          // Update existing session
+          await db.update(userSessions)
+            .set({ 
+              lastActivity: new Date(),
+              isActive: true,
+              ipAddress,
+              userAgent,
+              deviceInfo: parseUserAgent(userAgent)
+            })
+            .where(eq(userSessions.id, existingSession.id))
+        } else {
+          // Create new session
+          await db.insert(userSessions).values({
+            userId: user.id,
+            token: refreshToken,
+            ipAddress,
+            userAgent,
+            deviceInfo: parseUserAgent(userAgent),
+            lastActivity: new Date(),
+            isActive: true
+          })
+        }
+      } catch (error: any) {
+        // Table might not exist yet - that's okay, don't fail login
+        if (error?.code !== '42P01') { // 42P01 is "relation does not exist"
+          console.error('[AUTH] Failed to create session:', error)
+        }
+      }
+      
+      // Log successful login
+      await logLoginAttempt({
+        userId: user.id,
+        email: user.email,
+        success: true,
+        twoFactorUsed
+      })
+      
         console.log(`[AUTH] Tokens generated and stored for user: ${user.id}`)
 
-        return {
-          user: { id: user.id, email: user.email, username: user.username, name: user.name, avatar: user.avatar },
-          accessToken,
-          refreshToken
+      return {
+        user: { id: user.id, email: user.email, username: user.username, name: user.name, avatar: user.avatar },
+        accessToken,
+        refreshToken
         }
       } catch (error) {
         console.error('[AUTH] Login procedure failed:', error)
@@ -1228,6 +1399,133 @@ export const authRouter = router({
       return {
         success: true,
         message: 'Password changed successfully'
+      }
+    }),
+
+  // Request email change - sends verification email to new address
+  requestEmailChange: protectedProcedure
+    .input(z.object({
+      newEmail: z.string().email(),
+      password: z.string() // Require password confirmation
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user.id
+      const { newEmail, password } = input
+
+      // Get user
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' })
+      }
+
+      // Verify password
+      const isValidPassword = await authUtils.verifyPassword(password, user.passwordHash)
+      if (!isValidPassword) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Password is incorrect' })
+      }
+
+      // Check if new email is already in use
+      const [existingUser] = await db.select().from(users).where(eq(users.email, newEmail)).limit(1)
+      if (existingUser) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'This email is already in use' })
+      }
+
+      // Generate verification token
+      const emailChangeToken = crypto.randomBytes(32).toString('hex')
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24) // 24 hours
+
+      // Store pending email and token
+      await db.update(users)
+        .set({
+          pendingEmail: newEmail,
+          emailChangeToken,
+          emailChangeTokenExpiresAt: expiresAt
+        })
+        .where(eq(users.id, userId))
+
+      // Send verification email to new address
+      const { sendEmail } = await import('../services/emailService.js')
+      const verificationUrl = `${config.FRONTEND_URL}/verify-email-change?token=${emailChangeToken}`
+      
+      await sendEmail({
+        to: newEmail,
+        subject: 'Verify Your New Email Address',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #228be6;">Verify Your New Email Address</h2>
+            <p>You requested to change your email address to ${newEmail}.</p>
+            <p>Click the button below to verify this email address:</p>
+            <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background-color: #228be6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">Verify Email Address</a>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+            <p>This link will expire in 24 hours.</p>
+            <p>If you didn't request this change, please ignore this email.</p>
+          </div>
+        `,
+        text: `Verify your new email address by visiting: ${verificationUrl}`
+      })
+
+      return {
+        success: true,
+        message: 'Verification email sent to your new email address.'
+      }
+    }),
+
+  // Confirm email change - verifies token and updates email
+  confirmEmailChange: publicProcedure
+    .input(z.object({
+      token: z.string()
+    }))
+    .mutation(async ({ input }) => {
+      const { token } = input
+
+      // Find user with this token
+      const [user] = await db.select().from(users)
+        .where(and(
+          eq(users.emailChangeToken, token),
+          gt(users.emailChangeTokenExpiresAt, new Date())
+        ))
+        .limit(1)
+
+      if (!user || !user.pendingEmail) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid or expired token'
+        })
+      }
+
+      // Update email
+      await db.update(users)
+        .set({
+          email: user.pendingEmail,
+          emailVerified: true, // New email is verified
+          pendingEmail: null,
+          emailChangeToken: null,
+          emailChangeTokenExpiresAt: null,
+          emailVerificationToken: null,
+          emailVerificationTokenExpiresAt: null
+        })
+        .where(eq(users.id, user.id))
+
+      // Log email change in audit log (if audit log exists)
+      try {
+        const { auditLog } = await import('../db/schema.js')
+        await db.insert(auditLog).values({
+          userId: user.id,
+          action: 'email_changed',
+          resource: 'user',
+          resourceId: String(user.id),
+          details: { oldEmail: user.email, newEmail: user.pendingEmail }
+        })
+      } catch (error) {
+        console.error('[AUTH] Failed to log email change:', error)
+        // Don't fail the email change if audit log fails
+      }
+
+      return {
+        success: true,
+        message: 'Email address updated successfully.'
       }
     }),
 
