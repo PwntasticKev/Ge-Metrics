@@ -196,8 +196,20 @@ export const gameUpdates = pgTable('game_updates', {
   description: text('description'),
   type: text('type').notNull(), // 'major', 'event', 'minor', etc.
   color: text('color'),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-})
+  url: text('url'), // Link to wiki Update: page
+  content: text('content'), // Full update description or summary
+  category: text('category'), // 'major', 'minor', 'event', 'integrity', etc.
+  year: integer('year'), // Year extracted from date for easier filtering
+  month: integer('month'), // Month extracted from date
+  day: integer('day'), // Day extracted from date
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  dateIdx: index('game_updates_date_idx').on(table.updateDate),
+  yearIdx: index('game_updates_year_idx').on(table.year),
+  categoryIdx: index('game_updates_category_idx').on(table.category),
+  typeIdx: index('game_updates_type_idx').on(table.type)
+}))
 
 // User Profits/Stats
 export const userProfits = pgTable('user_profits', {

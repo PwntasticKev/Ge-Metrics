@@ -53,14 +53,25 @@ export const getVolumeData = async () => {
 }
 
 // Fetches historical data for a specific item
-export const getItemHistoryById = async (timeframe, id, startUnix) => {
+// Note: OSRS Wiki API start parameter is unreliable - fetching without it
+export const getItemHistoryById = async (timeframe, id, startUnix = undefined) => {
   try {
-    const startParam = typeof startUnix === 'number' ? `&start=${startUnix}` : ''
-    const url = `${TIMESERIES_URL}?timestep=${timeframe}&id=${id}${startParam}`
+    // Validate inputs
+    if (!id || !timeframe) {
+      throw new Error('Missing required parameters: id and timeframe are required')
+    }
+
+    // OSRS Wiki API doesn't reliably accept start parameter
+    // Always fetch without start parameter to avoid 400 errors
+    // The API will return available historical data for the timeframe
+    const url = `${TIMESERIES_URL}?timestep=${timeframe}&id=${id}`
+    
+    console.log(`[RSWikiAPI] Fetching: ${url}`)
     const response = await fetch(url)
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
     }
 
     const contentType = response.headers.get('content-type')

@@ -55,6 +55,10 @@ setTimeout(async () => {
     // Verify email connection
     const { verifyEmailConnection } = await import('./services/emailService.js')
     await verifyEmailConnection()
+
+    // Seed cron jobs if they don't exist
+    const { seedCronJobs } = await import('./scripts/seedCronJobs.js')
+    await seedCronJobs()
   } catch (error) {
     console.error('[Startup] Error checking tables or email connection:', error)
   }

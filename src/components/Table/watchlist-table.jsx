@@ -262,7 +262,7 @@ export function WatchlistTable ({ data, onRemove, onUpdateThresholds }) {
           </Badge>
         </td>
         <td style={{ verticalAlign: 'middle', padding: '8px' }}>
-          <MiniChart itemId={row.item_id} width={120} height={40} />
+          <MiniChart itemId={row.item_id} width={120} height={40} currentPrice={row.high} />
         </td>
         <td style={{ verticalAlign: 'middle' }}>
           {isEditing

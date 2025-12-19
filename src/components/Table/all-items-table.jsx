@@ -420,7 +420,7 @@ export function AllItemsTable ({
         </td>
         <td style={{ verticalAlign: 'middle', padding: '8px', textAlign: 'center' }}>
           <LazyLoad>
-            <MiniChart itemId={row.id} width={120} height={40} />
+            <MiniChart itemId={row.id} width={120} height={40} currentPrice={row.high} />
           </LazyLoad>
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>

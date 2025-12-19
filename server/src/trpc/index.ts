@@ -19,6 +19,7 @@ import billingRouter from './billing.js'
 import { blogsRouter } from './blogs.js'
 import { flipsRouter } from './flips.js'
 import { runeliteTradesRouter } from './runelite-trades.js'
+import { gameEventsRouter } from './gameEvents.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -40,7 +41,8 @@ export const appRouter = router({
   billing: billingRouter,
   flips: flipsRouter,
   blogs: blogsRouter,
-  runelite: runeliteTradesRouter
+  runelite: runeliteTradesRouter,
+  gameEvents: gameEventsRouter
 })
 
 export type AppRouter = typeof appRouter

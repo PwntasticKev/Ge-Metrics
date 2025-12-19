@@ -71,7 +71,8 @@ export default function AllItems () {
                     <Loader/>
                 </Center>
             }
-            {priceStatus === 'success' && items.length > 0 && (
+            {/* Keep the table mounted even during background refetch so modals don't close */ }
+            {items.length > 0 && (
                 <Box sx={{ py: 4 }}>
                     {/* Status Card */}
                     <Card withBorder radius="md" mb="md" sx={(theme) => ({

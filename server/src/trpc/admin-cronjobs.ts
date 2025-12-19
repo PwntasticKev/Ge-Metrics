@@ -363,24 +363,6 @@ export const adminCronJobsRouter = router({
         throw new Error('Cannot run disabled job')
       }
 
-      // Update job status to running
-      await db
-        .update(cronJobs)
-        .set({
-          status: 'running',
-          lastRun: new Date()
-        })
-        .where(eq(cronJobs.id, jobId))
-
-      // Create execution record
-      const [execution] = await db.insert(cronJobLogs).values({
-        jobName: job.name,
-        jobType: job.category,
-        status: 'running',
-        startedAt: new Date(),
-        logs: 'Job started manually...'
-      }).returning()
-
       // Log the admin action
       await db.insert(auditLog).values({
         userId: ctx.user.id,
@@ -391,47 +373,33 @@ export const adminCronJobsRouter = router({
           jobName: job.name,
           manualTrigger: true
         },
-        ipAddress: ctx.req.ip,
-        userAgent: ctx.req.headers['user-agent']
+        ipAddress: ctx.req?.ip,
+        userAgent: ctx.req?.headers?.['user-agent']
       })
 
-      // Simulate job completion after a delay (in a real system, this would be handled by the job runner)
-      setTimeout(async () => {
-        const success = Math.random() > 0.1 // 90% success rate
-        const duration = Math.floor(Math.random() * 120000) + 30000 // 30-150 seconds in ms
-        
-        // Update execution
-        await db
-          .update(cronJobLogs)
-          .set({
-            status: success ? 'completed' : 'failed',
-            completedAt: new Date(),
-            duration,
-            logs: success 
-              ? `Job started manually...\nJob completed successfully after ${Math.round(duration/1000)} seconds`
-              : `Job started manually...\nJob failed after ${Math.round(duration/1000)} seconds`,
-            errorMessage: success ? null : 'Simulated random failure for testing'
-          })
-          .where(eq(cronJobLogs.id, execution.id))
+      // Import executor dynamically to avoid circular dependencies
+      const { executeJob } = await import('../services/cronJobExecutor.js')
+      
+      // Execute the job (this will handle status updates and logging)
+      const result = await executeJob(job.name)
 
-        // Update job status
-        await db
-          .update(cronJobs)
-          .set({
-            status: success ? 'success' : 'failed'
-          })
-          .where(eq(cronJobs.id, jobId))
-      }, 5000) // Complete after 5 seconds
+      // Get the latest execution log
+      const [execution] = await db
+        .select()
+        .from(cronJobLogs)
+        .where(eq(cronJobLogs.jobName, job.name))
+        .orderBy(desc(cronJobLogs.startedAt))
+        .limit(1)
 
       return {
-        id: execution.id,
+        id: execution?.id || null,
         jobName: job.name,
-        status: 'running',
-        startTime: execution.startedAt,
-        endTime: null,
-        duration: 0,
-        output: 'Job started manually...',
-        errorMessage: null
+        status: result.success ? 'completed' : 'failed',
+        startTime: execution?.startedAt || new Date(),
+        endTime: execution?.completedAt || new Date(),
+        duration: result.duration,
+        output: result.logs,
+        errorMessage: result.error || null
       }
     })
 })

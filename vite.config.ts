@@ -6,6 +6,19 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
+  optimizeDeps: {
+    include: ['lightweight-charts'],
+    esbuildOptions: {
+      // Ensure CommonJS modules are handled correctly
+      target: 'es2020'
+    }
+  },
+  build: {
+    commonjsOptions: {
+      include: [/lightweight-charts/, /node_modules/],
+      transformMixedEsModules: true
+    }
+  },
   server: {
     port: 8000,
     strictPort: true,

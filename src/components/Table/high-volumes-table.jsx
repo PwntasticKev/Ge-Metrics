@@ -258,7 +258,7 @@ export function HighVolumesTable ({ data }) {
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>{row.limit || 'N/A'}</td>
                 <td style={{ verticalAlign: 'middle', padding: '8px' }}>
-                    <MiniChart itemId={row.id} width={120} height={40} />
+                    <MiniChart itemId={row.id} width={120} height={40} currentPrice={row.high} />
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>
                     <Flex gap="xs">

@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer'
 import { db } from '../db/index.js'
 import { gameUpdates } from '../db/schema.js'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and } from 'drizzle-orm'
 
 interface GameUpdate {
   date: Date
@@ -10,6 +10,7 @@ interface GameUpdate {
   type: string
   url: string
   content?: string
+  category?: string
 }
 
 export class GameUpdatesScraper {
@@ -208,12 +209,14 @@ export class GameUpdatesScraper {
         if (updateDate > latestDbDate) {
           const fullUrl = update.url.startsWith('http') ? update.url : this.BASE_URL + update.url
           
+          const updateType = this.determineUpdateType(update.title)
           parsedUpdates.push({
             date: updateDate,
             title: update.title,
             description: `Update from ${update.dateText}, ${update.year}`,
-            type: this.determineUpdateType(update.title),
-            url: fullUrl
+            type: updateType,
+            url: fullUrl,
+            category: updateType // Use type as category for now
           })
         }
       }
@@ -289,6 +292,7 @@ export class GameUpdatesScraper {
 
   /**
    * Save updates to database
+   * Only inserts new updates (checks by date + URL and date only to prevent duplicates)
    */
   private async saveUpdatesToDatabase(updates: GameUpdate[]): Promise<void> {
     if (updates.length === 0) {
@@ -296,19 +300,72 @@ export class GameUpdatesScraper {
       return
     }
 
-    try {
-      const records = updates.map(update => ({
-        updateDate: update.date,
-        title: update.title,
-        description: update.description,
-        type: update.type,
-        color: this.getTypeColor(update.type)
-      }))
+    let inserted = 0
+    let skipped = 0
 
-      await db.insert(gameUpdates).values(records)
-      console.log(`💾 Saved ${records.length} updates to database`)
+    try {
+      for (const update of updates) {
+        try {
+          const year = update.date.getFullYear()
+          const month = update.date.getMonth() + 1 // getMonth() returns 0-11
+          const day = update.date.getDate()
+
+          // Check if update already exists (by date + URL)
+          const existingByUrl = await db
+            .select()
+            .from(gameUpdates)
+            .where(
+              and(
+                eq(gameUpdates.updateDate, update.date),
+                eq(gameUpdates.url, update.url)
+              )
+            )
+            .limit(1)
+
+          if (existingByUrl.length > 0) {
+            skipped++
+            continue
+          }
+
+          // Also check if update with same date exists (date-only check)
+          const existingByDate = await db
+            .select()
+            .from(gameUpdates)
+            .where(eq(gameUpdates.updateDate, update.date))
+            .limit(1)
+
+          if (existingByDate.length > 0) {
+            console.log(`[GameUpdatesScraper] Update with date ${update.date.toISOString()} already exists, skipping`)
+            skipped++
+            continue
+          }
+
+          // Insert new update with all required fields
+          await db.insert(gameUpdates).values({
+            updateDate: update.date,
+            title: update.title,
+            description: update.description,
+            type: update.type,
+            color: this.getTypeColor(update.type),
+            url: update.url,
+            content: update.content,
+            category: update.category || update.type,
+            year,
+            month,
+            day
+          })
+
+          inserted++
+        } catch (error) {
+          console.error(`[GameUpdatesScraper] Error storing update "${update.title}":`, error)
+          // Continue with next entry
+        }
+      }
+
+      console.log(`[GameUpdatesScraper] Stored updates: ${inserted} inserted, ${skipped} skipped`)
     } catch (error) {
-      console.error('Error saving updates to database:', error)
+      console.error('[GameUpdatesScraper] Error saving updates to database:', error)
+      throw error
     }
   }
 

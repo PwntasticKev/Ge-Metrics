@@ -1,640 +1,690 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import Chart from 'react-apexcharts'
+// @ts-ignore - lightweight-charts uses CommonJS
+import { createChart, ColorType } from 'lightweight-charts'
 import { getItemHistoryById } from '../api/rs-wiki-api.jsx'
 import { getItemById, getRelativeTime } from '../utils/utils.jsx'
-import { Badge, Group, Text, Loader, Center, Button, Checkbox, Stack } from '@mantine/core'
-import { IconClock, IconRefresh, IconDownload } from '@tabler/icons-react'
+import { transformToLine, transformToVolume } from '../utils/chartDataTransform.js'
+import { calculateSMA, calculateEMA } from '../utils/indicators.js'
+import { Badge, Group, Text, Loader, Center, Button, Checkbox, Stack, ActionIcon, Tooltip, Box } from '@mantine/core'
+import { IconRefresh, IconDownload, IconInfoCircle } from '@tabler/icons-react'
 import { trpc } from '../utils/trpc.jsx'
+import ChartToolbar from '../components/charts/ChartToolbar.jsx'
+import IndicatorPanel from '../components/charts/IndicatorPanel.jsx'
 import logoImage from '../assets/highalch.png'
 
-export default function LineChart ({ id, items }) {
-  const [timeframe, setTimeframe] = useState('5m')
-  const [historyData, setHistoryData] = useState(null)
-  const [historyStatus, setHistoryStatus] = useState('idle')
-  const [isFetching, setIsFetching] = useState(false)
+export default function LineChart ({ id, items, height = 600 }) {
+  // Default chart to 6h
+  const [timeframe, setTimeframe] = useState('6h')
+  const [historyData, setHistoryData] = useState([])
+  const [historyStatus, setHistoryStatus] = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
   const [lastUpdateTime, setLastUpdateTime] = useState(null)
-  const [zoomLevel, setZoomLevel] = useState({ xaxis: { min: undefined, max: undefined } })
-  const chartRef = useRef(null)
+  const [hoveredEvents, setHoveredEvents] = useState(null) // { x, y, items: Array<{ title, kind, date }> } | null
   
-  // Series visibility toggles - volumes dimmed by default
+  const chartContainerRef = useRef(null)
+  const chartRef = useRef(null)
+  const highPriceSeriesRef = useRef(null)
+  const lowPriceSeriesRef = useRef(null)
+  const smaSeriesRef = useRef(null)
+  const emaSeriesRef = useRef(null)
+  const buyVolumeSeriesRef = useRef(null)
+  const sellVolumeSeriesRef = useRef(null)
+  const eventsByTimeRef = useRef(new Map()) // Map<number, Array<{title, kind, date}>>
+
   const [seriesVisibility, setSeriesVisibility] = useState({
     highPrice: true,
     lowPrice: true,
-    buyVolume: false, // Dimmed by default (visible but dimmed)
-    sellVolume: false, // Dimmed by default (visible but dimmed)
+    // Default volumes ON
+    buyVolume: true,
+    sellVolume: true,
     sma20: false,
     ema20: false
   })
 
+  const [activeDrawingTool, setActiveDrawingTool] = useState(null)
+  const [indicators, setIndicators] = useState({
+    sma: { enabled: false, period: 20 },
+    ema: { enabled: false, period: 20 }
+  })
+
   const item = useMemo(() => getItemById(id, items) || {}, [id, items])
-  
-  // Fetch blogs for the chart's date range
-  const blogsQuery = trpc.blogs.getByDateRange.useQuery({
-    startDate: historyData && historyData.length > 0 
+
+  // Fetch data from API
+  const fetchData = async () => {
+    if (!id) {
+      console.warn('LineChart: No item ID provided')
+      return
+    }
+
+    setHistoryStatus('loading')
+
+    try {
+      console.log(`LineChart: Fetching data for ID: ${id}, timeframe: ${timeframe}`)
+      
+      // Fetch WITHOUT start parameter - API doesn't support it reliably
+      const result = await getItemHistoryById(timeframe, id)
+
+      if (!result || !result.success) {
+        throw new Error(result?.error?.message || 'Failed to fetch data')
+      }
+
+      // Handle different response structures
+      let dataArray = null
+      
+      if (Array.isArray(result.data)) {
+        dataArray = result.data
+      } else if (result.data?.data && Array.isArray(result.data.data)) {
+        dataArray = result.data.data
+      } else if (result.data?.timeseries && Array.isArray(result.data.timeseries)) {
+        dataArray = result.data.timeseries
+      }
+
+      if (!dataArray || dataArray.length === 0) {
+        console.warn('LineChart: No data received from API', result)
+        setHistoryData([])
+        setHistoryStatus('error')
+        return
+      }
+
+      // Validate data structure
+      const validData = dataArray.filter(point => {
+        if (!point || typeof point !== 'object') return false
+        if (typeof point.timestamp !== 'number') return false
+        if (point.avgHighPrice === null && point.avgLowPrice === null) return false
+        return true
+      })
+
+      if (validData.length === 0) {
+        console.warn('LineChart: No valid data points after filtering')
+        setHistoryData([])
+        setHistoryStatus('error')
+        return
+      }
+
+      // Sort by timestamp
+      validData.sort((a, b) => a.timestamp - b.timestamp)
+
+      console.log(`LineChart: Successfully fetched ${validData.length} data points`)
+      setHistoryData(validData)
+      setHistoryStatus('success')
+      setLastUpdateTime(new Date())
+    } catch (error) {
+      console.error('LineChart: Error fetching data:', error)
+      setHistoryData([])
+      setHistoryStatus('error')
+    }
+  }
+
+  // Initialize chart
+  useEffect(() => {
+    if (!chartContainerRef.current) return
+
+    console.log('LineChart: Initializing chart')
+
+    try {
+      const getContainerWidth = () => {
+        const width = chartContainerRef.current?.clientWidth ?? 0
+        // In modals during transitions the width can briefly be 0; provide a safe fallback.
+        return width > 0 ? width : 800
+      }
+
+      const chart = createChart(chartContainerRef.current, {
+        width: getContainerWidth(),
+        height,
+        layout: {
+          background: { type: ColorType.Solid, color: '#1A1B1E' },
+          textColor: '#C1C2C5',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          // Remove TradingView attribution logo overlay
+          attributionLogo: false
+        },
+        grid: {
+          vertLines: { color: '#373A40' },
+          horzLines: { color: '#373A40' }
+        },
+        crosshair: {
+          mode: 0
+        },
+        rightPriceScale: {
+          borderColor: '#373A40'
+        },
+        timeScale: {
+          borderColor: '#373A40',
+          timeVisible: true,
+          secondsVisible: false
+        }
+      })
+
+      chartRef.current = chart
+
+      // Hover tooltip for game events (blogs + updates)
+      chart.subscribeCrosshairMove((param) => {
+        if (!param || !param.time || !param.point) {
+          setHoveredEvents(null)
+          return
+        }
+
+        // Lightweight Charts time for our series is a unix timestamp (seconds)
+        const t = typeof param.time === 'number' ? param.time : null
+        if (!t) {
+          setHoveredEvents(null)
+          return
+        }
+
+        const items = eventsByTimeRef.current.get(t)
+        if (!items || items.length === 0) {
+          setHoveredEvents(null)
+          return
+        }
+
+        setHoveredEvents({
+          x: param.point.x,
+          y: param.point.y,
+          items
+        })
+      })
+
+      // Create series
+      highPriceSeriesRef.current = chart.addLineSeries({
+        color: '#f59e0b',
+        lineWidth: 2,
+        title: 'High Price',
+        priceFormat: { type: 'price', precision: 0, minMove: 1 }
+      })
+
+      lowPriceSeriesRef.current = chart.addLineSeries({
+        color: '#ff6b6b',
+        lineWidth: 2,
+        lineStyle: 2,
+        title: 'Low Price',
+        priceFormat: { type: 'price', precision: 0, minMove: 1 }
+      })
+
+      smaSeriesRef.current = chart.addLineSeries({
+        color: '#60a5fa',
+        lineWidth: 2,
+        lineStyle: 1,
+        title: 'SMA(20)',
+        priceFormat: { type: 'price', precision: 0, minMove: 1 }
+      })
+
+      emaSeriesRef.current = chart.addLineSeries({
+        color: '#a78bfa',
+        lineWidth: 2,
+        title: 'EMA(20)',
+        priceFormat: { type: 'price', precision: 0, minMove: 1 }
+      })
+
+      buyVolumeSeriesRef.current = chart.addHistogramSeries({
+        color: '#f59e0b',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+        scaleMargins: { top: 0.8, bottom: 0 },
+        title: 'Buy Volume'
+      })
+
+      sellVolumeSeriesRef.current = chart.addHistogramSeries({
+        color: '#22c55e',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+        scaleMargins: { top: 0.8, bottom: 0 },
+        title: 'Sell Volume'
+      })
+
+      chart.priceScale('volume').applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 }
+      })
+
+      // Handle resize
+      const handleResize = () => {
+        if (chartContainerRef.current && chartRef.current) {
+          chartRef.current.applyOptions({
+            width: getContainerWidth()
+          })
+        }
+      }
+
+      window.addEventListener('resize', handleResize)
+
+      // Use ResizeObserver for modal support
+      const resizeObserver = new ResizeObserver(handleResize)
+      if (chartContainerRef.current) {
+        resizeObserver.observe(chartContainerRef.current)
+      }
+
+      // Kick a resize shortly after mount to handle modal transitions / initial 0-width layout.
+      const postMountResizeTimer = setTimeout(handleResize, 150)
+
+      console.log('LineChart: Chart initialized successfully')
+
+      return () => {
+        console.log('LineChart: Cleaning up chart')
+        clearTimeout(postMountResizeTimer)
+        window.removeEventListener('resize', handleResize)
+        if (resizeObserver && chartContainerRef.current) {
+          resizeObserver.unobserve(chartContainerRef.current)
+        }
+        if (chartRef.current) {
+          try {
+            chartRef.current.remove()
+          } catch (error) {
+            console.error('LineChart: Error removing chart:', error)
+          }
+          chartRef.current = null
+        }
+      }
+    } catch (error) {
+      console.error('LineChart: Error initializing chart:', error)
+      setHistoryStatus('error')
+    }
+  }, [])
+
+  // Fetch blogs for annotations (only after data is loaded)
+  const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
+    startDate: historyData.length > 0 
       ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Default to last 7 days
-    endDate: historyData && historyData.length > 0
+      : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    endDate: historyData.length > 0
       ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
       : new Date()
   }, {
-    enabled: historyStatus === 'success' && !!historyData && historyData.length > 0,
+    enabled: historyStatus === 'success' && historyData.length > 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
     retry: false
   })
-  
-  const blogs = blogsQuery.data?.data || []
-  const [blogAnnotations, setBlogAnnotations] = useState([])
 
+  const blogs = blogsQuery.data?.data?.blogs || []
+  const updates = blogsQuery.data?.data?.updates || []
+
+  const normalizedEvents = useMemo(() => {
+    const normalizeDateToUnixSec = (value) => {
+      if (!value) return null
+      const d = value instanceof Date ? value : new Date(value)
+      const ts = d.getTime()
+      if (!Number.isFinite(ts)) return null
+      return Math.floor(ts / 1000)
+    }
+
+    const out = []
+
+    for (const b of blogs) {
+      const time = normalizeDateToUnixSec(b.date)
+      if (!time) continue
+      out.push({
+        time,
+        kind: 'blog',
+        title: b.title ?? 'Developer Blog',
+        date: b.date
+      })
+    }
+
+    for (const u of updates) {
+      const time = normalizeDateToUnixSec(u.updateDate ?? u.date)
+      if (!time) continue
+      out.push({
+        time,
+        kind: 'update',
+        title: u.title ?? 'Game Update',
+        date: u.updateDate ?? u.date
+      })
+    }
+
+    // Deduplicate exact (time,title,kind)
+    const seen = new Set()
+    const deduped = []
+    for (const e of out) {
+      const key = `${e.time}|${e.kind}|${e.title}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      deduped.push(e)
+    }
+
+    return deduped.sort((a, b) => a.time - b.time)
+  }, [blogs, updates])
+
+  // Update chart data when historyData changes
   useEffect(() => {
-    if (!blogs || blogs.length === 0 || historyStatus !== 'success') return
-    // Build annotations once per blogs change
-    const ann = blogs.map(blog => ({
-      x: new Date(blog.date).getTime(),
-      borderColor: '#9aa0a6',
-      strokeDashArray: 4,
-      borderWidth: 2,
-      opacity: 0.6,
-      label: { borderColor: '#9aa0a6', style: { color: '#111', background: '#9aa0a6', fontSize: '10px' }, text: 'Update', orientation: 'vertical', offsetY: 0, offsetX: 0 }
-    }))
-    setBlogAnnotations(ann)
-  }, [blogs, historyStatus])
-
-  // Freeze option recompute while hovering to avoid resets
-  const [isHovering, setIsHovering] = useState(false)
-
-  const fetchData = async () => {
-    if (!id) {
-      console.warn('LineChart: No ID provided')
-      setHistoryStatus('error')
+    if (!chartRef.current || !historyData || historyData.length === 0) {
+      // Clear all series if no data
+      if (highPriceSeriesRef.current) highPriceSeriesRef.current.setData([])
+      if (lowPriceSeriesRef.current) lowPriceSeriesRef.current.setData([])
+      if (smaSeriesRef.current) smaSeriesRef.current.setData([])
+      if (emaSeriesRef.current) emaSeriesRef.current.setData([])
+      if (buyVolumeSeriesRef.current) buyVolumeSeriesRef.current.setData([])
+      if (sellVolumeSeriesRef.current) sellVolumeSeriesRef.current.setData([])
       return
     }
-    
-    console.log('LineChart: Fetching data for ID:', id, 'timeframe:', timeframe)
-    setIsFetching(true)
-    setHistoryStatus('loading')
-    
+
     try {
-      // Compute a start window to limit payload
-      const nowMs = Date.now()
-      const startWindowMs = {
-        '5m': 3 * 24 * 60 * 60 * 1000,
-        '1h': 90 * 24 * 60 * 60 * 1000,
-        '6h': 365 * 24 * 60 * 60 * 1000,
-        '24h': 3 * 365 * 24 * 60 * 60 * 1000
-      }[timeframe] || (90 * 24 * 60 * 60 * 1000)
-      const startUnix = Math.floor((nowMs - startWindowMs) / 1000)
+      // Transform data
+      const highPriceData = transformToLine(historyData, 'high')
+      const lowPriceData = transformToLine(historyData, 'low')
 
-      // First try: with start parameter
-      let result = await getItemHistoryById(timeframe, id, startUnix)
-
-      // Fallback: retry without start if the API rejected the first call or returned empty
-      if (!result?.success || !result?.data) {
-        console.warn('LineChart: Retry timeseries without start param due to error/empty payload')
-        result = await getItemHistoryById(timeframe, id)
+      if (!Array.isArray(highPriceData) || !Array.isArray(lowPriceData)) {
+        console.error('LineChart: Invalid data format from transformToLine')
+        return
       }
-      
-      if (result && result.success && result.data) {
-        const histData = result.data.data || result.data
-        
-        if (Array.isArray(histData) && histData.length > 0) {
-          setHistoryData(histData)
-          setHistoryStatus('success')
-          setLastUpdateTime(new Date())
-        } else {
-          console.warn('LineChart: No valid data available. Data type:', typeof histData, 'Length:', histData?.length)
-          setHistoryData([])
-          setHistoryStatus('error')
+
+      if (highPriceData.length === 0 || lowPriceData.length === 0) {
+        console.warn('LineChart: No data after transformation')
+        return
+      }
+
+      console.log(`LineChart: Updating chart with ${highPriceData.length} data points`)
+
+      // Update price series
+      if (highPriceSeriesRef.current && seriesVisibility.highPrice) {
+        highPriceSeriesRef.current.setData(highPriceData)
+      }
+      if (lowPriceSeriesRef.current && seriesVisibility.lowPrice) {
+        lowPriceSeriesRef.current.setData(lowPriceData)
+      }
+
+      // Update indicators if enabled
+      if (indicators.sma.enabled && smaSeriesRef.current && seriesVisibility.sma20) {
+        const smaData = calculateSMA(highPriceData, indicators.sma.period)
+        if (smaData.length > 0) {
+          smaSeriesRef.current.setData(smaData)
         }
-      } else {
-        console.warn('LineChart: Invalid API response structure:', result)
-        setHistoryData([])
-        setHistoryStatus('error')
       }
-    } catch (error) {
-      console.error('LineChart: Error fetching history data (final):', error)
-      setHistoryStatus('error')
-    } finally {
-      setIsFetching(false)
-    }
-  }
+      if (smaSeriesRef.current && !seriesVisibility.sma20) {
+        smaSeriesRef.current.setData([])
+      }
 
-  useEffect(() => {
-    fetchData()
-    
-    const timeout = setTimeout(() => {
-      if (historyStatus === 'loading') {
-        console.warn('Chart data fetch timed out')
-        setHistoryStatus('error')
-        setIsFetching(false)
+      if (indicators.ema.enabled && emaSeriesRef.current && seriesVisibility.ema20) {
+        const emaData = calculateEMA(highPriceData, indicators.ema.period)
+        if (emaData.length > 0) {
+          emaSeriesRef.current.setData(emaData)
+        }
       }
-    }, 10000)
-    
-    return () => clearTimeout(timeout)
+      if (emaSeriesRef.current && !seriesVisibility.ema20) {
+        emaSeriesRef.current.setData([])
+      }
+
+      // Update volume series if enabled
+      if (seriesVisibility.buyVolume && buyVolumeSeriesRef.current) {
+        const buyVolumeData = transformToVolume(historyData, 'buy')
+        if (buyVolumeData.length > 0) {
+          buyVolumeSeriesRef.current.setData(buyVolumeData)
+        }
+      }
+      if (buyVolumeSeriesRef.current && !seriesVisibility.buyVolume) {
+        buyVolumeSeriesRef.current.setData([])
+      }
+
+      if (seriesVisibility.sellVolume && sellVolumeSeriesRef.current) {
+        const sellVolumeData = transformToVolume(historyData, 'sell')
+        if (sellVolumeData.length > 0) {
+          sellVolumeSeriesRef.current.setData(sellVolumeData)
+        }
+      }
+      if (sellVolumeSeriesRef.current && !seriesVisibility.sellVolume) {
+        sellVolumeSeriesRef.current.setData([])
+      }
+
+      // Event markers (blogs + updates) as small circles on both series
+      // We "snap" each event to the nearest available bar time in the series so markers align with data.
+      const snapToNearestTime = (data, targetTime) => {
+        if (!Array.isArray(data) || data.length === 0) return null
+        // data is sorted by time
+        let lo = 0
+        let hi = data.length - 1
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2)
+          const t = data[mid].time
+          if (t === targetTime) return t
+          if (t < targetTime) lo = mid + 1
+          else hi = mid - 1
+        }
+        const left = Math.max(0, Math.min(data.length - 1, hi))
+        const right = Math.max(0, Math.min(data.length - 1, lo))
+        const lt = data[left]?.time
+        const rt = data[right]?.time
+        if (typeof lt !== 'number') return rt ?? null
+        if (typeof rt !== 'number') return lt ?? null
+        return Math.abs(lt - targetTime) <= Math.abs(rt - targetTime) ? lt : rt
+      }
+
+      const markerColor = '#ffd700'
+      const eventMap = new Map()
+      for (const ev of normalizedEvents) {
+        const snapped = snapToNearestTime(highPriceData, ev.time)
+        if (!snapped) continue
+        const existing = eventMap.get(snapped) || []
+        existing.push({ title: ev.title, kind: ev.kind, date: ev.date })
+        eventMap.set(snapped, existing)
+      }
+
+      eventsByTimeRef.current = eventMap
+
+      const markerTimes = Array.from(eventMap.keys()).sort((a, b) => a - b)
+      const markers = markerTimes.map((time) => ({
+        time,
+        position: 'inBar',
+        color: markerColor,
+        shape: 'circle',
+        text: ''
+      }))
+
+      if (highPriceSeriesRef.current?.setMarkers) {
+        highPriceSeriesRef.current.setMarkers(markers)
+      }
+      if (lowPriceSeriesRef.current?.setMarkers) {
+        lowPriceSeriesRef.current.setMarkers(markers)
+      }
+
+      // Auto-fit time scale
+      if (chartRef.current && highPriceData.length > 0) {
+        chartRef.current.timeScale().fitContent()
+      }
+
+      console.log('LineChart: Chart data updated successfully')
+    } catch (error) {
+      console.error('LineChart: Error updating chart data:', error)
+    }
+  }, [historyData, seriesVisibility, indicators, normalizedEvents])
+
+  // Fetch data when id or timeframe changes
+  useEffect(() => {
+    if (id) {
+      fetchData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, timeframe])
 
-  const chartOptions = useMemo(() => {
-    if (!historyData || historyData.length === 0) return null
-
-    // Last-N-points window per resolution (range length)
-    const pointsPerResolution = {
-      '5m': 144,   // last 12 hours @5m
-      '1h': 24,    // last 24 hours @1h
-      '6h': 56,    // last ~14 days @6h
-      '24h': 90    // last ~90 days @24h
-    }
-    const points = pointsPerResolution[timeframe] ?? 144
-    const windowed = historyData.slice(-points)
-
-    const timestamps = windowed.map(d => d.timestamp * 1000)
-    const minTime = timestamps.length > 0 ? Math.min(...timestamps) : undefined
-    const maxTime = timestamps.length > 0 ? Math.max(...timestamps) : undefined
-
-    // Compute dynamic volume y-axis upper bound (95th percentile) to avoid tiny bars
-    const allVolumes = windowed.map(d => (d.lowPriceVolume || 0)).concat(windowed.map(d => (d.highPriceVolume || 0)))
-    let volumeMax
-    if (allVolumes.length > 0) {
-      const sorted = [...allVolumes].sort((a, b) => a - b)
-      const idx = Math.max(0, Math.floor(sorted.length * 0.95) - 1)
-      volumeMax = Math.max(sorted[idx], sorted[sorted.length - 1] || 0)
-      if (volumeMax === 0) volumeMax = undefined
-    }
-
-    // Filter blogs to only show those within the chart's date range
-    const filteredBlogs = blogs.filter(blog => {
-      const blogDate = new Date(blog.date).getTime()
-      return (minTime === undefined || blogDate >= minTime) && (maxTime === undefined || blogDate <= maxTime)
-    })
-
-    return {
-      chart: {
-        id: `chart-${id}-${timeframe}`,
-        type: 'line',
-        height: 400,
-        stacked: false,
-        zoom: {
-          enabled: true,
-          type: 'x',
-          autoScaleYaxis: false,
-          zoomedArea: {
-            fill: { color: '#90CAF9', opacity: 0.4 },
-            stroke: { color: '#0D47A1', opacity: 0.4, width: 1 }
-          }
-        },
-        pan: { enabled: true, type: 'x' },
-        toolbar: {
-          show: true,
-          offsetX: 0,
-          offsetY: 0,
-          tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true },
-          export: {
-            csv: { filename: `${item?.name || 'chart'}-${timeframe}`, columnDelimiter: ',', headerCategory: 'Time', headerValue: 'Value' },
-            svg: { filename: `${item?.name || 'chart'}-${timeframe}` },
-            png: { filename: `${item?.name || 'chart'}-${timeframe}` }
-          }
-        },
-        events: {
-          zoomed: (ctx, { xaxis }) => setZoomLevel({ xaxis }),
-          scrolled: (ctx, { xaxis }) => setZoomLevel({ xaxis }),
-          selection: (ctx, { xaxis }) => setZoomLevel({ xaxis })
-        },
-        animations: { enabled: false },
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
-      },
-      dataLabels: { enabled: false },
-      // Use a single width for lines; per-series dashes/colors handled in updated options using chartSeries
-      stroke: { curve: 'smooth', width: 4 },
-      markers: { size: 0, hover: { size: 5 } },
-      grid: {
-        borderColor: '#50545a',
-        strokeDashArray: 2,
-        xaxis: { lines: { show: true, strokeDashArray: 2, opacity: 0.35 } },
-        yaxis: { lines: { show: true, strokeDashArray: 2, opacity: 0.35 } }
-      },
-      xaxis: {
-        type: 'datetime',
-        min: zoomLevel?.xaxis?.min ?? minTime,
-        max: zoomLevel?.xaxis?.max ?? maxTime,
-        labels: { style: { colors: '#E6E7E9', fontSize: '12px' }, format: 'MMM dd HH:mm' },
-        axisBorder: { color: '#3d4147' },
-        axisTicks: { color: '#3d4147' }
-      },
-      yaxis: [
-        {
-          title: { text: 'Price (GP)', style: { color: '#E6E7E9', fontSize: '12px' } },
-          labels: { style: { colors: '#E6E7E9' }, formatter: (v) => new Intl.NumberFormat().format(Math.round(v)) },
-          opposite: false
-        },
-        {
-          title: { text: 'Volume', style: { color: '#B0B4BA', fontSize: '12px' } },
-          labels: { style: { colors: '#B0B4BA' }, formatter: (v) => new Intl.NumberFormat().format(Math.round(v)) },
-          opposite: true,
-          forceNiceScale: true,
-          min: 0,
-          max: volumeMax
-        }
-      ],
-      tooltip: {
-        shared: true,
-        intersect: false,
-        theme: 'dark',
-        style: { fontSize: '12px' },
-        x: { format: 'MMM dd, yyyy HH:mm' },
-        y: { formatter: (v) => new Intl.NumberFormat().format(Math.round(v)) },
-        marker: { show: true },
-        followCursor: true,
-        fixed: { enabled: true, position: 'topLeft', offsetX: 16, offsetY: 16 },
-        custom: function({ series, seriesIndex, dataPointIndex, w }) {
-          const dataPoint = w.globals.series[0] && w.globals.series[0][dataPointIndex]
-          if (!dataPoint || dataPoint.length < 1) return ''
-          const timestamp = dataPoint[0]
-          const blogMarkers = blogs.filter(blog => Math.abs(new Date(blog.date).getTime() - timestamp) < 24 * 60 * 60 * 1000)
-          let html = '<div style="padding: 10px;">'
-          html += '<div>'
-          series.forEach((s, i) => {
-            const value = s[dataPointIndex]
-            if (value !== null && value !== undefined) {
-              const seriesName = w.globals.seriesNames[i]
-              const color = (w.globals.colors && w.globals.colors[i]) || '#ccc'
-              html += `<div style="display:flex;align-items:center;gap:8px;">`
-              html += `<span style="display:inline-block;width:10px;height:10px;border-radius:10px;background:${color}"></span>`
-              html += `<span><strong>${seriesName}:</strong> ${new Intl.NumberFormat().format(Math.round(value))}</span>`
-              html += `</div>`
-            }
-          })
-          html += '</div>'
-          if (blogMarkers.length > 0) {
-            html += '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #4d5156;">'
-            html += '<div style="font-weight: bold; margin-bottom: 5px;">Game Updates:</div>'
-            blogMarkers.forEach(blog => {
-              const blogDate = new Date(blog.date)
-              html += `<div style=\"margin-bottom: 5px;\">`
-              html += `<a href=\"${blog.url}\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #339af0; text-decoration: underline;\">`
-              html += `${blog.title}`
-              html += `</a>`
-              html += `<div style=\"font-size: 10px; color: #868E96;\">${blogDate.toLocaleDateString()}</div>`
-              html += `</div>`
-            })
-            html += '</div>'
-          }
-          html += '</div>'
-          return html
-        }
-      },
-      annotations: {
-        xaxis: blogAnnotations
-      },
-      legend: { position: 'top', horizontalAlign: 'left', floating: false, fontSize: '12px', fontFamily: 'Inter, system-ui', fontWeight: 500, offsetX: 0, offsetY: 0, labels: { colors: '#E6E7E9', useSeriesColors: false }, markers: { width: 10, height: 10, strokeWidth: 0, radius: 10 } },
-      title: { text: `${item?.name || 'Loading...'}: ${timeframe}`, align: 'left', style: { fontSize: '16px', fontWeight: 600, color: '#E6E7E9', fontFamily: 'Inter, system-ui' } },
-      subtitle: { text: isFetching ? 'Updating...' : '', align: 'left', style: { fontSize: '12px', color: '#B0B4BA' } }
-    }
-  }, [id, timeframe, item?.name, historyData, isFetching, blogs, zoomLevel, blogAnnotations])
-
-  const chartSeries = useMemo(() => {
-    if (!historyData || historyData.length === 0) return []
-
-    const pointsPerResolution = { '5m': 288, '1h': 168, '6h': 120, '24h': 365 }
-    const points = pointsPerResolution[timeframe] ?? 288
-    const windowed = historyData.slice(-points)
-
-    // Helper: SMA & EMA based on High Price
-    const highValues = windowed.map(d => d.avgHighPrice).filter(v => v !== null && v !== undefined)
-    const timestamps = windowed.map(d => d.timestamp * 1000)
-    const computeSMA = (values, period) => {
-      const out = []
-      let sum = 0
-      for (let i = 0; i < values.length; i++) {
-        sum += values[i]
-        if (i >= period) sum -= values[i - period]
-        if (i >= period - 1) out.push([timestamps[i], sum / period])
-      }
-      return out
-    }
-    const computeEMA = (values, period) => {
-      const k = 2 / (period + 1)
-      const out = []
-      let ema
-      for (let i = 0; i < values.length; i++) {
-        const v = values[i]
-        ema = i === 0 ? v : v * k + ema * (1 - k)
-        if (i >= period - 1) out.push([timestamps[i], ema])
-      }
-      return out
-    }
-
-    const series = []
-    if (seriesVisibility.highPrice) {
-      series.push({ name: 'High Price', type: 'line', data: windowed.map(d => [d.timestamp * 1000, d.avgHighPrice]).filter(d => d[1] !== null) })
-    }
-    if (seriesVisibility.lowPrice) {
-      series.push({ name: 'Low Price', type: 'line', data: windowed.map(d => [d.timestamp * 1000, d.avgLowPrice]).filter(d => d[1] !== null) })
-    }
-    if (seriesVisibility.sma20 && highValues.length > 0) {
-      series.push({ name: 'SMA(20)', type: 'line', data: computeSMA(highValues, 20) })
-    }
-    if (seriesVisibility.ema20 && highValues.length > 0) {
-      series.push({ name: 'EMA(20)', type: 'line', data: computeEMA(highValues, 20) })
-    }
-    series.push({ name: 'Buy Volume', type: 'column', data: windowed.map(d => [d.timestamp * 1000, d.lowPriceVolume || 0]), yAxisIndex: 1 })
-    series.push({ name: 'Sell Volume', type: 'column', data: windowed.map(d => [d.timestamp * 1000, d.highPriceVolume || 0]), yAxisIndex: 1 })
-    return series
-  }, [historyData, seriesVisibility, timeframe])
-
-  // Update chart options to support mixed chart types
-  const updatedChartOptions = useMemo(() => {
-    if (!chartOptions) return null
-    
-    // Build colors/dash arrays that match the actual series order for clarity
-    const colorsMap = {
-      'High Price': '#22d3ee',
-      'Low Price': '#ff6b6b',
-      'SMA(20)': '#60a5fa',
-      'EMA(20)': '#a78bfa',
-      'Buy Volume': '#f59e0b',
-      'Sell Volume': '#22c55e'
-    }
-    const dashesMap = {
-      'High Price': 0,
-      'Low Price': 6,
-      'SMA(20)': 4,
-      'EMA(20)': 0,
-      'Buy Volume': 0,
-      'Sell Volume': 0
-    }
-    const widthsMap = {
-      'High Price': 5,
-      'Low Price': 4,
-      'SMA(20)': 3,
-      'EMA(20)': 3,
-      'Buy Volume': 0,
-      'Sell Volume': 0
-    }
-
-    const colors = chartSeries.map(s => colorsMap[s.name] || '#cccccc')
-    const dashArray = chartSeries.map(s => dashesMap[s.name] || 0)
-    const widths = chartSeries.map(s => widthsMap[s.name] || 4)
-
-    return {
-      ...chartOptions,
-      chart: {
-        ...chartOptions.chart,
-        type: 'line'
-      },
-      stroke: {
-        curve: 'smooth',
-        dashArray,
-        width: widths
-      },
-      colors,
-      plotOptions: {
-        bar: {
-          columnWidth: '100%',
-          borderRadius: 4,
-          dataLabels: { position: 'top', enabled: false },
-          horizontal: false,
-          distributed: false,
-          rangeBarOverlap: false,
-          rangeBarGroupRows: false
-        }
-      }
-    }
-  }, [chartOptions, chartSeries])
-
-  if (historyStatus === 'loading' || historyStatus === 'idle') {
-    return (
-      <Center style={{ height: 400 }}>
-        <Loader />
-        <Text ml="md">Loading chart data...</Text>
-      </Center>
-    )
+  const handleRefresh = () => {
+    fetchData()
   }
 
-  if (historyStatus === 'error') {
-    return (
-      <Center style={{ height: 400 }}>
-        <Text color="red">Error loading chart data. Please try again later.</Text>
-      </Center>
-    )
+  const handleDownload = () => {
+    // TODO: Implement chart download
+    console.log('Download chart')
   }
-
-  if (!historyData || historyData.length === 0) {
-    return (
-      <Center style={{ height: 400 }}>
-        <Text>No historical data available for this item and timeframe.</Text>
-      </Center>
-    )
-  }
-
-  const handleDownload = async () => {
-    if (!chartRef.current) return
-    
-    try {
-      const chart = chartRef.current.chart
-      if (!chart) return
-      
-      // Get the chart's SVG as data URI
-      const svgDataUri = await chart.dataURI()
-      
-      // Create a canvas to overlay the logo
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-      
-      // Set canvas size to match chart
-      canvas.width = svgDataUri.width || 1200
-      canvas.height = svgDataUri.height || 600
-      
-      // Load the logo image
-      img.onload = () => {
-        // Fill white background
-        ctx.fillStyle = '#1a1b1e'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        
-        // Draw the chart image
-        const chartImg = new Image()
-        chartImg.onload = () => {
-          ctx.drawImage(chartImg, 0, 0, canvas.width, canvas.height)
-          
-          // Draw logo in top left (scaled to ~80px height)
-          const logoSize = 80
-          const logoPadding = 20
-          ctx.drawImage(img, logoPadding, logoPadding, logoSize, logoSize)
-          
-          // Convert to blob and download
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = `${item?.name || 'chart'}-${timeframe}-${new Date().toISOString().split('T')[0]}.png`
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              URL.revokeObjectURL(url)
-            }
-          }, 'image/png')
-        }
-        chartImg.src = svgDataUri.imgURI
-      }
-      
-      img.src = logoImage
-      img.crossOrigin = 'anonymous'
-    } catch (error) {
-      console.error('Error downloading chart:', error)
-      // Fallback: use ApexCharts built-in download
-      const chart = chartRef.current.chart
-      if (chart) {
-        chart.download({
-          filename: `${item?.name || 'chart'}-${timeframe}`,
-          format: 'png'
-        })
-      }
-    }
-  }
-
-  const timeframeButtons = [
-    { value: '5m', label: '5m' },
-    { value: '1h', label: '1hr' },
-    { value: '6h', label: '6hr' },
-    { value: '24h', label: '24hr' }
-  ]
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Chart Status Header */}
+    <div style={{ width: '100%', padding: '1rem' }}>
+      {/* Header */}
       <Group position="apart" mb="md">
-        <Group>
-          <IconClock size={16} />
-          <Text size="sm">
-            Chart {getRelativeTime(lastUpdateTime)}
-          </Text>
-        </Group>
-        <Group>
-          <Button variant="light" size="xs" onClick={() => fetchData()} disabled={isFetching}>
-            <IconRefresh size={14} />
-          </Button>
-          <Button variant="light" size="xs" onClick={handleDownload} disabled={isFetching || !updatedChartOptions}>
-            <IconDownload size={14} />
-          </Button>
-          <Badge color="green" variant="light">
-            Live Updates
-          </Badge>
-          {isFetching && (
-            <Badge color="blue" variant="light" leftIcon={<IconRefresh size={12} />}>
-              Updating...
+        <Group spacing="xs">
+          <Text size="xl" weight={700}>Price History</Text>
+          {lastUpdateTime && (
+            <Badge variant="dot" color="gray">
+              Chart pulled {getRelativeTime(lastUpdateTime)} ago
             </Badge>
           )}
         </Group>
+        <Group spacing="xs">
+          <Button
+            variant="subtle"
+            size="sm"
+            leftIcon={<IconRefresh size={16} />}
+            onClick={handleRefresh}
+            loading={historyStatus === 'loading'}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="subtle"
+            size="sm"
+            leftIcon={<IconDownload size={16} />}
+            onClick={handleDownload}
+          >
+            Download
+          </Button>
+        </Group>
       </Group>
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Timeframe buttons */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {timeframeButtons.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setTimeframe(value)}
-              disabled={isFetching}
-              style={{
-                backgroundColor: timeframe === value ? '#339af0' : '#25262b',
-                color: '#C1C2C5',
-                border: `1px solid ${timeframe === value ? '#339af0' : '#373A40'}`,
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: isFetching ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                opacity: isFetching ? 0.6 : 1
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        
-        {/* Series visibility toggles */}
-        <div style={{ display: 'flex', gap: '16px', marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Text size="xs" color="dimmed" style={{ marginRight: '8px' }}>Show:</Text>
+      {/* Timeframe Selector */}
+      <Group mb="md">
+        {['5m', '1h', '6h', '24h'].map(tf => (
+          <Button
+            key={tf}
+            variant={timeframe === tf ? 'filled' : 'outline'}
+            size="sm"
+            onClick={() => setTimeframe(tf)}
+          >
+            {tf === '5m' ? '5m' : tf === '1h' ? '1hr' : tf === '6h' ? '6hr' : '24hr'}
+          </Button>
+        ))}
+      </Group>
+
+      {/* Series Visibility Toggles */}
+      <Stack spacing="xs" mb="md">
+        <Text size="sm" weight={500}>Show:</Text>
+        <Group spacing="md">
           <Checkbox
-            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#22d3ee',marginRight:6}}></span>High Price</span>}
+            label="High Price"
             checked={seriesVisibility.highPrice}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, highPrice: e.currentTarget.checked })}
-            size="xs"
-            styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
           />
           <Checkbox
-            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#ff6b6b',marginRight:6}}></span>Low Price</span>}
+            label="Low Price"
             checked={seriesVisibility.lowPrice}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, lowPrice: e.currentTarget.checked })}
-            size="xs"
-            styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
           />
           <Checkbox
-            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#60a5fa',marginRight:6}}></span>SMA(20)</span>}
+            label={(
+              <Group spacing={6} noWrap>
+                <Text size="sm">SMA(20)</Text>
+                <Tooltip
+                  label="Simple Moving Average: smooths price over the last N periods."
+                  withArrow
+                  position="top"
+                >
+                  <ActionIcon variant="subtle" size="xs" aria-label="About SMA">
+                    <IconInfoCircle size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+            )}
             checked={seriesVisibility.sma20}
-            onChange={(e) => setSeriesVisibility({ ...seriesVisibility, sma20: e.currentTarget.checked })}
-            size="xs"
-            styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
+            onChange={(e) => {
+              setSeriesVisibility({ ...seriesVisibility, sma20: e.currentTarget.checked })
+              setIndicators({ ...indicators, sma: { ...indicators.sma, enabled: e.currentTarget.checked } })
+            }}
           />
           <Checkbox
-            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#a78bfa',marginRight:6}}></span>EMA(20)</span>}
+            label={(
+              <Group spacing={6} noWrap>
+                <Text size="sm">EMA(20)</Text>
+                <Tooltip
+                  label="Exponential Moving Average: like SMA, but weights recent prices more."
+                  withArrow
+                  position="top"
+                >
+                  <ActionIcon variant="subtle" size="xs" aria-label="About EMA">
+                    <IconInfoCircle size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+            )}
             checked={seriesVisibility.ema20}
-            onChange={(e) => setSeriesVisibility({ ...seriesVisibility, ema20: e.currentTarget.checked })}
-            size="xs"
-            styles={{ label: { color: '#C1C2C5', fontSize: '12px' } }}
+            onChange={(e) => {
+              setSeriesVisibility({ ...seriesVisibility, ema20: e.currentTarget.checked })
+              setIndicators({ ...indicators, ema: { ...indicators.ema, enabled: e.currentTarget.checked } })
+            }}
           />
           <Checkbox
-            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#f59e0b',marginRight:6}}></span>Buy Volume</span>}
+            label="Buy Volume"
             checked={seriesVisibility.buyVolume}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, buyVolume: e.currentTarget.checked })}
-            size="xs"
-            styles={{ label: { color: '#C1C2C5', fontSize: '12px', opacity: seriesVisibility.buyVolume ? 1 : 0.5 } }}
           />
           <Checkbox
-            label={<span style={{display:'inline-flex',alignItems:'center'}}><span style={{width:10,height:10,borderRadius:10,background:'#22c55e',marginRight:6}}></span>Sell Volume</span>}
+            label="Sell Volume"
             checked={seriesVisibility.sellVolume}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, sellVolume: e.currentTarget.checked })}
-            size="xs"
-            styles={{ label: { color: '#C1C2C5', fontSize: '12px', opacity: seriesVisibility.sellVolume ? 1 : 0.5 } }}
           />
-        </div>
-      </div>
+        </Group>
+      </Stack>
 
-      {updatedChartOptions && chartSeries.length > 0 && (
-        <>
-          <div onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
-            <Chart
-              ref={chartRef}
-              options={updatedChartOptions}
-              series={chartSeries}
-              type="line"
-              height={440}
-            />
-          </div>
-          {/* Brush (range) chart */}
-          <div style={{ marginTop: 12 }}>
-            <Chart
-              options={{
-                chart: {
-                  id: `brush-${id}-${timeframe}`,
-                  brush: { enabled: true, target: `chart-${id}-${timeframe}` },
-                  animations: { enabled: false }
-                },
-                xaxis: { type: 'datetime' },
-                yaxis: { labels: { show: false } },
-                grid: { show: false },
-                colors: ['#22d3ee']
+      {/* Chart Container (always mounted so the chart can initialize reliably, incl. inside modals) */}
+      <div style={{ position: 'relative', width: '100%', height }}>
+        <div
+          ref={chartContainerRef}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative'
+          }}
+        />
+
+        {hoveredEvents && historyStatus === 'success' && (
+          <Box
+            style={{
+              position: 'absolute',
+              left: Math.min(Math.max(hoveredEvents.x + 12, 8), 760),
+              top: Math.min(Math.max(hoveredEvents.y + 12, 8), 520),
+              zIndex: 5,
+              pointerEvents: 'none',
+              maxWidth: 320
+            }}
+          >
+            <Box
+              style={{
+                background: 'rgba(26,27,30,0.92)',
+                border: '1px solid rgba(255, 215, 0, 0.35)',
+                borderRadius: 10,
+                padding: '10px 12px',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.35)'
               }}
-              series={[{
-                name: 'High Price',
-                data: chartSeries.find(s => s.name === 'High Price')?.data || []
-              }]}
-              type="area"
-              height={80}
-            />
-          </div>
-        </>
-      )}
+            >
+              <Text size="xs" color="dimmed" mb={6}>Game event</Text>
+              <Stack spacing={6}>
+                {hoveredEvents.items.slice(0, 4).map((e, idx) => (
+                  <Text key={`${e.kind}-${idx}`} size="sm" style={{ lineHeight: 1.2 }}>
+                    {e.title}
+                  </Text>
+                ))}
+                {hoveredEvents.items.length > 4 && (
+                  <Text size="xs" color="dimmed">+{hoveredEvents.items.length - 4} more</Text>
+                )}
+              </Stack>
+            </Box>
+          </Box>
+        )}
+
+        {historyStatus === 'loading' && (
+        <Center style={{ position: 'absolute', inset: 0 }}>
+            <Loader size="lg" />
+          </Center>
+        )}
+
+        {historyStatus === 'error' && (
+          <Center style={{ position: 'absolute', inset: 0 }}>
+            <Stack align="center" spacing="xs">
+              <Text color="red">Failed to load chart data</Text>
+              <Button onClick={handleRefresh} size="sm">Retry</Button>
+            </Stack>
+          </Center>
+        )}
+
+        {historyStatus === 'idle' && (
+          <Center style={{ position: 'absolute', inset: 0 }}>
+            <Text color="dimmed">Select an item to view price history</Text>
+          </Center>
+        )}
+      </div>
     </div>
   )
 }

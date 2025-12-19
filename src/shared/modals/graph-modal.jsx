@@ -1,7 +1,20 @@
 import { Box, Container, Modal, Group, Avatar, Title } from '@mantine/core'
+import { useEffect, useState } from 'react'
 import LineChart from '../../shared/line-chart.jsx'
 
 export default function GraphModal ({ opened, setOpened, onClose, item, id, items }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    if (opened) {
+      // Small delay to ensure modal is fully rendered before mounting chart
+      const timer = setTimeout(() => setMounted(true), 100)
+      return () => clearTimeout(timer)
+    } else {
+      setMounted(false)
+    }
+  }, [opened])
+
   const handleClose = () => {
     console.log('GraphModal: Attempting to close modal')
     if (setOpened) {
@@ -14,6 +27,7 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
 
   const imageUrl = item?.icon ? `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_') : undefined
   const titleText = item?.name || 'Price History'
+  const chartId = id || item?.id
 
   return (
     <Modal
@@ -25,7 +39,7 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
       closeOnClickOutside={false}
       withCloseButton={true}
       trapFocus={true}
-      keepMounted
+      keepMounted={false}
       lockScroll={false}
       overlayProps={{
         blur: 3
@@ -35,14 +49,28 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
         duration: 200
       }}
       title={null}
+      styles={{
+        body: {
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }
+      }}
     >
-      <Box style={{ padding: '1rem', minHeight: '70vh' }}>
+      <Box style={{ padding: '1rem', width: '100%' }}>
         <Group mb="md" spacing="sm">
           {imageUrl && <Avatar src={imageUrl} alt={titleText} radius="sm" size={36} />}
           <Title order={2}>{titleText}</Title>
         </Group>
-        <Container px={0}>
-          <LineChart id={id || item?.id} items={items || item?.items} />
+        <Container px={0} style={{ width: '100%' }}>
+          {mounted && chartId ? (
+            <div style={{ width: '100%', minHeight: '520px' }}>
+              <LineChart id={chartId} items={items || item?.items} height={520} />
+            </div>
+          ) : (
+            <div style={{ width: '100%', minHeight: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div>Loading chart...</div>
+            </div>
+          )}
         </Container>
       </Box>
     </Modal>

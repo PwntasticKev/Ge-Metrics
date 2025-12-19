@@ -63,6 +63,7 @@ export const authRouter = router({
       await db.insert(userSettings).values({ userId: createdUser.id })
 
       // Create a 14-day trial subscription for the new user
+      const trialStartDate = new Date()
       const trialEndDate = new Date()
       trialEndDate.setDate(trialEndDate.getDate() + 14)
 
@@ -70,7 +71,12 @@ export const authRouter = router({
         userId: createdUser.id,
         status: 'trialing',
         plan: 'premium',
-        currentPeriodEnd: trialEndDate
+        currentPeriodStart: trialStartDate,
+        currentPeriodEnd: trialEndDate,
+        trialStart: trialStartDate,
+        trialEnd: trialEndDate,
+        trialDays: 14,
+        isTrialing: true
       })
 
       // Generate email verification token

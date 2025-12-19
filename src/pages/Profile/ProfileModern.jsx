@@ -27,17 +27,7 @@ import {
   Autocomplete,
   Image
 } from '@mantine/core'
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  AreaChart,
-  Area
-} from 'recharts'
+import { createChart, ColorType } from 'lightweight-charts'
 import {
   IconCrown,
   IconTrophy,
@@ -66,7 +56,100 @@ import { trpc } from '../../utils/trpc.jsx'
 import { getRelativeTime } from '../../utils/utils'
 import { useNavigate } from 'react-router-dom'
 import ItemData from '../../utils/item-data.jsx'
-import { forwardRef, useEffect } from 'react'
+import { forwardRef, useEffect, useRef } from 'react'
+// @ts-ignore - lightweight-charts uses CommonJS
+import { createChart, ColorType } from 'lightweight-charts'
+
+// Profit Chart Component using Lightweight Charts
+function ProfitChart({ data, formatCurrency }) {
+  const chartContainerRef = useRef(null)
+  const chartRef = useRef(null)
+  const seriesRef = useRef(null)
+
+  useEffect(() => {
+    if (!chartContainerRef.current || !data || data.length === 0) return
+
+    const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 300,
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: '#C1C2C5',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: 12
+      },
+      grid: {
+        vertLines: { color: '#373A40', style: 1 },
+        horzLines: { color: '#373A40', style: 1 }
+      },
+      crosshair: {
+        mode: 0,
+        vertLine: { color: '#339af0', width: 1, style: 1 },
+        horzLine: { color: '#339af0', width: 1, style: 1 }
+      },
+      rightPriceScale: {
+        borderColor: '#373A40'
+      },
+      timeScale: {
+        borderColor: '#373A40',
+        timeVisible: true,
+        secondsVisible: false
+      }
+    })
+
+    chartRef.current = chart
+
+    const series = chart.addAreaSeries({
+      lineColor: '#228be6',
+      topColor: '#228be61a',
+      bottomColor: '#228be600',
+      lineWidth: 2,
+      priceFormat: {
+        type: 'price',
+        precision: 0,
+        minMove: 1
+      }
+    })
+
+    seriesRef.current = series
+
+    // Transform data: [{ date, profit }] -> [{ time, value }]
+    const chartData = data.map(item => ({
+      time: Math.floor(new Date(item.date).getTime() / 1000),
+      value: item.profit || 0
+    }))
+
+    series.setData(chartData)
+
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth
+        })
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (chartRef.current) {
+        chartRef.current.remove()
+        chartRef.current = null
+      }
+    }
+  }, [data])
+
+  return (
+    <div
+      ref={chartContainerRef}
+      style={{
+        width: '100%',
+        height: '300px'
+      }}
+    />
+  )
+}
 
 export default function ProfileModern() {
   const { user, isSubscribed, logout } = useAuth()
@@ -443,25 +526,7 @@ export default function ProfileModern() {
               </Group>
               
               {profitOverTime && profitOverTime.length > 0 ? (
-                <div style={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={profitOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <RechartsTooltip
-                        formatter={(value) => [`${formatCurrency(value)} GP`, 'Daily Profit']}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="profit"
-                        stroke="#228be6"
-                        fill="#228be6"
-                        fillOpacity={0.1}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                <ProfitChart data={profitOverTime} formatCurrency={formatCurrency} />
               ) : (
                 <Center h={300}>
                   <Stack align="center">

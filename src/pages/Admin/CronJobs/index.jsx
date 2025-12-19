@@ -248,21 +248,13 @@ export default function CronJobs () {
   })
 
   const runJobMutation = trpc.adminCronJobs.runJob.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: 'Success',
-        message: 'Cron job started successfully',
-        color: 'green'
-      })
+    onSuccess: (result) => {
+      // Success notification is handled in runJobNow callback
       refetchJobs()
       refetchExecutions()
     },
     onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error.message || 'Failed to run cron job',
-        color: 'red'
-      })
+      // Error notification is handled in runJobNow callback
     }
   })
 
@@ -336,9 +328,41 @@ export default function CronJobs () {
   const runJobNow = (jobId) => {
     const job = cronJobs.find(j => j.id === jobId)
     if (job) {
-      runJobMutation.mutate({
-        jobName: job.name
+      // Show loading notification
+      notifications.show({
+        id: `running-${jobId}`,
+        title: 'Running Job',
+        message: `Starting ${job.name}...`,
+        color: 'blue',
+        loading: true,
+        autoClose: false
       })
+      
+      runJobMutation.mutate(
+        { jobId: job.id },
+        {
+          onSuccess: (result) => {
+            notifications.update({
+              id: `running-${jobId}`,
+              title: 'Success',
+              message: `${job.name} completed successfully${result.duration ? ` in ${formatDuration(result.duration)}` : ''}`,
+              color: 'green',
+              autoClose: 5000
+            })
+            refetchJobs()
+            refetchExecutions()
+          },
+          onError: (error) => {
+            notifications.update({
+              id: `running-${jobId}`,
+              title: 'Error',
+              message: error.message || `Failed to run ${job.name}`,
+              color: 'red',
+              autoClose: 5000
+            })
+          }
+        }
+      )
     }
   }
 
@@ -464,14 +488,18 @@ export default function CronJobs () {
                         <IconSettings size={14} />
                       </ActionIcon>
                     </Tooltip>
-                    <Tooltip label="Run Now">
-                      <ActionIcon
-                        size="sm"
+                    <Tooltip label="Run Now (Manual Execution)">
+                      <Button
+                        size="xs"
                         color="blue"
+                        variant="filled"
+                        leftIcon={<IconPlayerPlay size={14} />}
                         onClick={() => runJobNow(job.id)}
+                        disabled={runJobMutation.isLoading || !job.enabled}
+                        loading={runJobMutation.isLoading}
                       >
-                        <IconPlayerPlay size={14} />
-                      </ActionIcon>
+                        Run Now
+                      </Button>
                     </Tooltip>
                     <Switch
                       size="sm"

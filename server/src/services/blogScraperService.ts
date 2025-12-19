@@ -172,7 +172,7 @@ export async function storeBlogs(blogEntries: BlogEntry[]): Promise<{ inserted: 
     for (const entry of blogEntries) {
       try {
         // Check if blog already exists (by date + URL)
-        const existing = await db
+        const existingByUrl = await db
           .select()
           .from(blogs)
           .where(and(
@@ -181,7 +181,21 @@ export async function storeBlogs(blogEntries: BlogEntry[]): Promise<{ inserted: 
           ))
           .limit(1)
         
-        if (existing.length > 0) {
+        if (existingByUrl.length > 0) {
+          skipped++
+          continue
+        }
+
+        // Also check if blog with same date exists (date-only check)
+        // User requirement: "if we already have the date scraped, we don't need to re-add it"
+        const existingByDate = await db
+          .select()
+          .from(blogs)
+          .where(eq(blogs.date, entry.date))
+          .limit(1)
+        
+        if (existingByDate.length > 0) {
+          console.log(`[BlogScraper] Blog with date ${entry.date.toISOString()} already exists, skipping`)
           skipped++
           continue
         }
