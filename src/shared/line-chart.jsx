@@ -19,6 +19,8 @@ export default function LineChart ({ id, items, height = 600 }) {
   const [historyStatus, setHistoryStatus] = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
   const [lastUpdateTime, setLastUpdateTime] = useState(null)
   const [hoveredEvents, setHoveredEvents] = useState(null) // { x, y, items: Array<{ title, kind, date }> } | null
+  const [eventDots, setEventDots] = useState([]) // Array<{ id, time, series, value, title, kind, date }>
+  const [hoveredDotId, setHoveredDotId] = useState(null)
   
   const chartContainerRef = useRef(null)
   const chartRef = useRef(null)
@@ -151,12 +153,15 @@ export default function LineChart ({ id, items, height = 600 }) {
           borderColor: '#373A40',
           timeVisible: true,
           secondsVisible: false
+        },
+        localization: {
+          priceFormatter: (price) => price.toLocaleString('en-US')
         }
       })
 
       chartRef.current = chart
 
-      // Hover tooltip for game events (blogs + updates)
+        // Hover tooltip for game events (blogs + updates) when crosshair is on an event time
       chart.subscribeCrosshairMove((param) => {
         if (!param || !param.time || !param.point) {
           setHoveredEvents(null)
@@ -188,7 +193,8 @@ export default function LineChart ({ id, items, height = 600 }) {
         color: '#f59e0b',
         lineWidth: 2,
         title: 'High Price',
-        priceFormat: { type: 'price', precision: 0, minMove: 1 }
+        priceFormat: { type: 'price', precision: 0, minMove: 1 },
+        crosshairMarkerVisible: true
       })
 
       lowPriceSeriesRef.current = chart.addLineSeries({
@@ -196,7 +202,8 @@ export default function LineChart ({ id, items, height = 600 }) {
         lineWidth: 2,
         lineStyle: 2,
         title: 'Low Price',
-        priceFormat: { type: 'price', precision: 0, minMove: 1 }
+        priceFormat: { type: 'price', precision: 0, minMove: 1 },
+        crosshairMarkerVisible: true
       })
 
       smaSeriesRef.current = chart.addLineSeries({
@@ -380,6 +387,12 @@ export default function LineChart ({ id, items, height = 600 }) {
       if (lowPriceSeriesRef.current && seriesVisibility.lowPrice) {
         lowPriceSeriesRef.current.setData(lowPriceData)
       }
+      if (highPriceSeriesRef.current && !seriesVisibility.highPrice) {
+        highPriceSeriesRef.current.setData([])
+      }
+      if (lowPriceSeriesRef.current && !seriesVisibility.lowPrice) {
+        lowPriceSeriesRef.current.setData([])
+      }
 
       // Update indicators if enabled
       if (indicators.sma.enabled && smaSeriesRef.current && seriesVisibility.sma20) {
@@ -423,8 +436,8 @@ export default function LineChart ({ id, items, height = 600 }) {
         sellVolumeSeriesRef.current.setData([])
       }
 
-      // Event markers (blogs + updates) as small circles on both series
-      // We "snap" each event to the nearest available bar time in the series so markers align with data.
+      // Event markers (blogs + updates) as small circles on both series.
+      // We "snap" each event to the nearest available bar time so it aligns with chart data.
       const snapToNearestTime = (data, targetTime) => {
         if (!Array.isArray(data) || data.length === 0) return null
         // data is sorted by time
@@ -448,7 +461,26 @@ export default function LineChart ({ id, items, height = 600 }) {
 
       const markerColor = '#ffd700'
       const eventMap = new Map()
-      for (const ev of normalizedEvents) {
+      const minSeriesTime = highPriceData[0]?.time
+      const maxSeriesTime = highPriceData[highPriceData.length - 1]?.time
+
+      // Build lookup maps for value at time
+      const highByTime = new Map(highPriceData.map((p) => [p.time, p.value]))
+      const lowByTime = new Map(lowPriceData.map((p) => [p.time, p.value]))
+
+      const inRangeEvents = normalizedEvents.filter((ev) => {
+        if (typeof minSeriesTime !== 'number' || typeof maxSeriesTime !== 'number') return false
+        return ev.time >= minSeriesTime && ev.time <= maxSeriesTime
+      })
+
+      // Limit number of markers so dense historical data doesn't overwhelm UI
+      const MAX_EVENT_DOTS = 60
+      const limitedEvents =
+        inRangeEvents.length > MAX_EVENT_DOTS
+          ? inRangeEvents.slice(inRangeEvents.length - MAX_EVENT_DOTS)
+          : inRangeEvents
+
+      for (const ev of limitedEvents) {
         const snapped = snapToNearestTime(highPriceData, ev.time)
         if (!snapped) continue
         const existing = eventMap.get(snapped) || []
@@ -458,6 +490,8 @@ export default function LineChart ({ id, items, height = 600 }) {
 
       eventsByTimeRef.current = eventMap
 
+      // Lightweight Charts markers are limited in placement; we also render DOM overlay dots so
+      // users clearly see circles on both High and Low series lines.
       const markerTimes = Array.from(eventMap.keys()).sort((a, b) => a - b)
       const markers = markerTimes.map((time) => ({
         time,
@@ -467,12 +501,39 @@ export default function LineChart ({ id, items, height = 600 }) {
         text: ''
       }))
 
-      if (highPriceSeriesRef.current?.setMarkers) {
-        highPriceSeriesRef.current.setMarkers(markers)
+      if (highPriceSeriesRef.current?.setMarkers) highPriceSeriesRef.current.setMarkers(markers)
+      if (lowPriceSeriesRef.current?.setMarkers) lowPriceSeriesRef.current.setMarkers(markers)
+
+      // Build overlay dots (two per event time, one for each series)
+      const dots = []
+      for (const time of markerTimes) {
+        const meta = eventMap.get(time) || []
+        const highVal = highByTime.get(time)
+        const lowVal = lowByTime.get(time)
+        if (typeof highVal === 'number') {
+          dots.push({
+            id: `high-${time}`,
+            time,
+            series: 'high',
+            value: highVal,
+            title: meta[0]?.title ?? 'Event',
+            kind: meta[0]?.kind ?? 'event',
+            date: meta[0]?.date
+          })
+        }
+        if (typeof lowVal === 'number') {
+          dots.push({
+            id: `low-${time}`,
+            time,
+            series: 'low',
+            value: lowVal,
+            title: meta[0]?.title ?? 'Event',
+            kind: meta[0]?.kind ?? 'event',
+            date: meta[0]?.date
+          })
+        }
       }
-      if (lowPriceSeriesRef.current?.setMarkers) {
-        lowPriceSeriesRef.current.setMarkers(markers)
-      }
+      setEventDots(dots)
 
       // Auto-fit time scale
       if (chartRef.current && highPriceData.length > 0) {
@@ -628,6 +689,47 @@ export default function LineChart ({ id, items, height = 600 }) {
             position: 'relative'
           }}
         />
+
+        {/* Event dots overlay (visible circles on both High + Low series). */}
+        {historyStatus === 'success' && chartRef.current && eventDots.length > 0 && (
+          <Box
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 4,
+              pointerEvents: 'none'
+            }}
+          >
+            {eventDots.map((d) => {
+              const x = chartRef.current?.timeScale()?.timeToCoordinate?.(d.time)
+              const series = d.series === 'high' ? highPriceSeriesRef.current : lowPriceSeriesRef.current
+              const y = series?.priceToCoordinate?.(d.value)
+              if (typeof x !== 'number' || typeof y !== 'number') return null
+
+              const isHovered = hoveredDotId === d.id
+              return (
+                <Box
+                  key={d.id}
+                  onMouseEnter={() => setHoveredDotId(d.id)}
+                  onMouseLeave={() => setHoveredDotId(null)}
+                  style={{
+                    position: 'absolute',
+                    left: x - 4,
+                    top: y - 4,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    background: '#ffd700',
+                    boxShadow: isHovered ? '0 0 0 3px rgba(255,215,0,0.25)' : '0 0 0 2px rgba(0,0,0,0.35)',
+                    pointerEvents: 'none',
+                    cursor: 'pointer'
+                  }}
+                  title={d.title}
+                />
+              )
+            })}
+          </Box>
+        )}
 
         {hoveredEvents && historyStatus === 'success' && (
           <Box

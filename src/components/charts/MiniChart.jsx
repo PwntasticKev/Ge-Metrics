@@ -134,6 +134,9 @@ const MiniChart = ({ itemId, width = 120, height = 40, currentPrice }) => {
           },
           timeScale: {
             visible: false
+          },
+          localization: {
+            priceFormatter: (price) => price.toLocaleString('en-US')
           }
         })
 
