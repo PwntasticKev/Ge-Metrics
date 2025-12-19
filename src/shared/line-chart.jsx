@@ -706,12 +706,9 @@ export default function LineChart ({ id, items, height = 600 }) {
               const y = series?.priceToCoordinate?.(d.value)
               if (typeof x !== 'number' || typeof y !== 'number') return null
 
-              const isHovered = hoveredDotId === d.id
               return (
                 <Box
                   key={d.id}
-                  onMouseEnter={() => setHoveredDotId(d.id)}
-                  onMouseLeave={() => setHoveredDotId(null)}
                   style={{
                     position: 'absolute',
                     left: x - 4,
@@ -720,11 +717,9 @@ export default function LineChart ({ id, items, height = 600 }) {
                     height: 8,
                     borderRadius: 999,
                     background: '#ffd700',
-                    boxShadow: isHovered ? '0 0 0 3px rgba(255,215,0,0.25)' : '0 0 0 2px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none',
-                    cursor: 'pointer'
+                    boxShadow: '0 0 0 2px rgba(0,0,0,0.35)',
+                    pointerEvents: 'none'
                   }}
-                  title={d.title}
                 />
               )
             })}

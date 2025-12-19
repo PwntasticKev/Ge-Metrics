@@ -117,15 +117,12 @@ export const adminSessionsRouter = router({
           userId: userSessions.userId,
           userEmail: users.email,
           userName: users.name,
-          sessionToken: userSessions.sessionToken,
+          token: userSessions.token,
           ipAddress: userSessions.ipAddress,
           userAgent: userSessions.userAgent,
           deviceInfo: userSessions.deviceInfo,
-          location: userSessions.location,
           isActive: userSessions.isActive,
           lastActivity: userSessions.lastActivity,
-          loginMethod: userSessions.loginMethod,
-          expiresAt: userSessions.expiresAt,
           createdAt: userSessions.createdAt
         })
         .from(userSessions)
@@ -170,8 +167,7 @@ export const adminSessionsRouter = router({
         .select({ count: count() })
         .from(userSessions)
         .where(and(
-          eq(userSessions.isActive, true),
-          gte(userSessions.expiresAt, now)
+          eq(userSessions.isActive, true)
         ))
 
       // Sessions in last 24 hours
@@ -196,16 +192,8 @@ export const adminSessionsRouter = router({
         .where(gte(userSessions.createdAt, last7Days))
         .groupBy(userSessions.deviceInfo)
 
-      // Top countries
-      const countryBreakdown = await db
-        .select({
-          location: userSessions.location,
-          count: count()
-        })
-        .from(userSessions)
-        .where(gte(userSessions.createdAt, last7Days))
-        .groupBy(userSessions.location)
-        .limit(10)
+      // Top countries (derived from IP - placeholder for now)
+      const countryBreakdown: Array<{ location: string; count: number }> = []
 
       return {
         activeSessions: activeSessions.count,
@@ -239,35 +227,25 @@ export const adminSessionsRouter = router({
   createSession: adminProcedure
     .input(z.object({
       userId: z.number(),
-      sessionToken: z.string(),
-      refreshToken: z.string().optional(),
+      token: z.string(),
       ipAddress: z.string(),
-      userAgent: z.string(),
-      loginMethod: z.string().default('email'),
-      expiresAt: z.date()
+      userAgent: z.string()
     }))
     .mutation(async ({ input }) => {
-      const { userId, sessionToken, refreshToken, ipAddress, userAgent, loginMethod, expiresAt } = input
+      const { userId, token, ipAddress, userAgent } = input
 
       // Parse device info
       const deviceInfo = parseUserAgent(userAgent)
-
-      // Get location info
-      const location = await getLocationFromIP(ipAddress)
 
       // Create session
       const [session] = await db
         .insert(userSessions)
         .values({
           userId,
-          sessionToken,
-          refreshToken,
+          token,
           ipAddress,
           userAgent,
           deviceInfo,
-          location,
-          loginMethod,
-          expiresAt,
           isActive: true
         })
         .returning()
@@ -278,17 +256,17 @@ export const adminSessionsRouter = router({
   // Update session activity
   updateSessionActivity: adminProcedure
     .input(z.object({
-      sessionToken: z.string()
+      token: z.string()
     }))
     .mutation(async ({ input }) => {
-      const { sessionToken } = input
+      const { token } = input
 
       await db
         .update(userSessions)
         .set({
           lastActivity: new Date()
         })
-        .where(eq(userSessions.sessionToken, sessionToken))
+        .where(eq(userSessions.token, token))
 
       return { success: true }
     }),
@@ -316,8 +294,7 @@ export const adminSessionsRouter = router({
       await db
         .update(userSessions)
         .set({
-          isActive: false,
-          expiresAt: new Date() // Set to expired
+          isActive: false
         })
         .where(eq(userSessions.id, sessionId))
 
@@ -329,7 +306,7 @@ export const adminSessionsRouter = router({
         resourceId: sessionId,
         details: {
           terminatedUserId: session.userId,
-          sessionToken: session.sessionToken.substring(0, 8) + '...',
+          token: session.token.substring(0, 8) + '...',
           ipAddress: session.ipAddress
         },
         ipAddress: ctx.req.ip,
@@ -360,8 +337,7 @@ export const adminSessionsRouter = router({
       await db
         .update(userSessions)
         .set({
-          isActive: false,
-          expiresAt: new Date()
+          isActive: false
         })
         .where(and(
           eq(userSessions.userId, userId),
@@ -389,21 +365,22 @@ export const adminSessionsRouter = router({
       }
     }),
 
-  // Clean up expired sessions
+  // Clean up expired sessions (sessions inactive for 30+ days)
   cleanupExpiredSessions: adminProcedure
     .mutation(async ({ ctx }) => {
       const now = new Date()
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-      // Count expired sessions
+      // Count inactive sessions (last activity > 30 days ago)
       const [expiredCount] = await db
         .select({ count: count() })
         .from(userSessions)
         .where(and(
           eq(userSessions.isActive, true),
-          lte(userSessions.expiresAt, now)
+          lte(userSessions.lastActivity, thirtyDaysAgo)
         ))
 
-      // Deactivate expired sessions
+      // Deactivate inactive sessions
       await db
         .update(userSessions)
         .set({
@@ -411,7 +388,7 @@ export const adminSessionsRouter = router({
         })
         .where(and(
           eq(userSessions.isActive, true),
-          lte(userSessions.expiresAt, now)
+          lte(userSessions.lastActivity, thirtyDaysAgo)
         ))
 
       // Log admin action

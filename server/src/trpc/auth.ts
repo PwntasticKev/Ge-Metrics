@@ -745,12 +745,8 @@ export const authRouter = router({
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'OTP secret is not set for this user.' })
           }
         
-        // Try OTP code first
-        const isValidOtp = authenticator.verify({
-          token: input.otpCode,
-            secret: settings.otpSecret,
-            window: 2 // Allow ±2 time steps (60 seconds) for clock drift
-        })
+        // Try OTP code first (verify with default window tolerance)
+        const isValidOtp = authenticator.check(input.otpCode, settings.otpSecret)
         
         let isValid2FA = isValidOtp
         let usedBackupCode = false

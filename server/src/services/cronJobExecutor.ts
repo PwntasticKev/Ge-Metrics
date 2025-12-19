@@ -41,7 +41,7 @@ const JOB_EXECUTORS: Record<string, () => Promise<any>> = {
     return { success: true }
   },
   'collect-historical-data': async () => {
-    const service = HistoricalDataService.getInstance()
+    const service = new HistoricalDataService()
     // This would need item IDs - for now, return a placeholder
     // In production, you'd want to pass item IDs or fetch all items
     return { message: 'Historical data collection requires item IDs' }

@@ -626,8 +626,7 @@ export type RevenueAnalytic = typeof revenueAnalytics.$inferSelect;
 export type NewRevenueAnalytic = typeof revenueAnalytics.$inferInsert;
 export type UserInvitation = typeof userInvitations.$inferSelect;
 export type NewUserInvitation = typeof userInvitations.$inferInsert;
-export type UserSession = typeof userSessions.$inferSelect;
-export type NewUserSession = typeof userSessions.$inferInsert;
+// UserSession and NewUserSession already exported above at line 423-424
 
 // Formula Documentation - For managing calculation formulas
 export const formulas = pgTable('formulas', {

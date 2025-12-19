@@ -230,9 +230,7 @@ export const adminUsersRouter = router({
           id: userSessions.id,
           ipAddress: userSessions.ipAddress,
           deviceInfo: userSessions.deviceInfo,
-          location: userSessions.location,
           lastActivity: userSessions.lastActivity,
-          loginMethod: userSessions.loginMethod,
           createdAt: userSessions.createdAt
         })
         .from(userSessions)
