@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef, forwardRef } from 'react'
 import {
   Box,
   Card,
@@ -56,9 +56,6 @@ import { trpc } from '../../utils/trpc.jsx'
 import { getRelativeTime } from '../../utils/utils'
 import { useNavigate } from 'react-router-dom'
 import ItemData from '../../utils/item-data.jsx'
-import { forwardRef, useEffect, useRef } from 'react'
-// @ts-ignore - lightweight-charts uses CommonJS
-import { createChart, ColorType } from 'lightweight-charts'
 
 // Profit Chart Component using Lightweight Charts
 function ProfitChart({ data, formatCurrency }) {
