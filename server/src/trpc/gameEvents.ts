@@ -78,10 +78,10 @@ export const gameEventsRouter = router({
       } catch (error) {
         console.error('[GameEventsRouter] Error fetching events by date range:', error)
         console.error('[GameEventsRouter] Error details:', {
-          message: error?.message,
-          code: error?.code,
-          detail: error?.detail,
-          stack: error?.stack
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: (error as any)?.code || 'UNKNOWN',
+          detail: (error as any)?.detail || 'No details',
+          stack: error instanceof Error ? error.stack : 'No stack trace'
         })
         return {
           success: false,
