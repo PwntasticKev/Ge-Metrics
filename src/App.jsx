@@ -74,6 +74,7 @@ const MagicTablets = lazy(() => import('./pages/MagicTablets/index.jsx'))
 const EnchantingBolts = lazy(() => import('./pages/EnchantingBolts/index.jsx'))
 const EnchantingJewelry = lazy(() => import('./pages/EnchantingJewelry/index.jsx'))
 const BarrowsRepair = lazy(() => import('./pages/BarrowsRepair/index.jsx'))
+const SuggestedItems = lazy(() => import('./pages/SuggestedItems/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -303,6 +304,7 @@ function AppContent () {
               <Route path="/home" element={<Navigate to="/all-items" />} />
               <Route path="/all-items" element={<AllItems />} />
               <Route path="/high-volumes" element={<HighVolumes />} />
+              <Route path="/suggested-items" element={<SuggestedItems />} />
               <Route path="/watchlist" element={<Watchlist />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}><h2>Market Watch Overview</h2><p>Coming Soon - Comprehensive market analysis dashboard</p></div>} />

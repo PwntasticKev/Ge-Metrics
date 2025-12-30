@@ -140,6 +140,7 @@
   .mantine-Menu-dropdown {
     min-width: 160px !important;
     max-width: calc(100vw - 32px) !important;
+    z-index: 9999 !important;
   }
 
   .mantine-Menu-item {
@@ -457,4 +458,9 @@ body {
 
 [data-mantine-color-scheme="light"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+/* Fix for dropdown z-index issues */
+.mantine-Menu-dropdown {
+  z-index: 9999 !important;
 } 

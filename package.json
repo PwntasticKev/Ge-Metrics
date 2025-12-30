@@ -37,7 +37,11 @@
     "db:reset": "cd server && npm run db:reset",
     "db:create": "cd server && npm run db:create",
     "db:deploy": "npx prisma migrate deploy",
-    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts"
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
+    "test:suggested-items": "vitest run src/pages/SuggestedItems",
+    "test:suggested-items-api": "vitest run server/src/**/*suggested*",
+    "test:e2e-suggested": "playwright test suggested-items --config=tests/e2e/playwright.config.ts",
+    "test:suggested-items-all": "npm run test:suggested-items && npm run test:suggested-items-api"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

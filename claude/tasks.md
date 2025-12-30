@@ -348,3 +348,162 @@
 - Code refactoring
 
 Each task should be estimated in story points and assigned based on team capacity and expertise. Regular sprint reviews and retrospectives will help adjust priorities and improve development velocity.
+
+---
+
+## 🧪 Suggested Items Testing Suite
+
+### **Test Coverage Overview** (✅ COMPLETED - Dec 29, 2024)
+
+**Comprehensive test suite implemented for the new Suggested Items feature to validate functionality and prevent regressions.**
+
+### **Test Files Created**:
+- `server/src/services/__tests__/suggestedItemsService.test.ts` - Backend service unit tests
+- `server/src/trpc/__tests__/suggestedItems.test.ts` - TRPC router tests  
+- `src/pages/SuggestedItems/__tests__/index.test.jsx` - Frontend component tests
+- `tests/e2e/suggested-items.spec.ts` - End-to-end Playwright tests
+
+### **Test Commands Available**:
+
+```bash
+# Frontend unit tests for SuggestedItems page
+npm run test:suggested-items
+
+# Backend API tests (service + TRPC router)
+npm run test:suggested-items-api
+
+# End-to-end tests with Playwright
+npm run test:e2e-suggested
+
+# Run all suggested items tests
+npm run test:suggested-items-all
+
+# Full E2E test suite
+npm run test:e2e
+```
+
+### **Key Test Scenarios Covered**:
+
+#### **🔧 Backend Service Tests**:
+- ✅ Capital filtering (1M vs 1B budget scenarios)
+- ✅ Volume type filtering (high/low volume categorization)
+- ✅ Margin calculation accuracy
+- ✅ Market manipulation detection algorithm
+- ✅ Time-based buy/sell recommendations
+- ✅ Suggestion scoring algorithm (60% volume + 40% margin)
+- ✅ Edge cases: empty database, invalid inputs, large datasets
+
+#### **🌐 TRPC Router Tests**:
+- ✅ Input validation with Zod schemas
+- ✅ Parameter passing to service layer
+- ✅ Error handling and TRPCError responses
+- ✅ Statistics endpoint functionality
+
+#### **⚛️ Frontend Component Tests**:
+- ✅ Component rendering and loading states
+- ✅ Capital input localStorage persistence
+- ✅ Tab switching functionality (Global/High/Low volume)
+- ✅ TRPC query integration and data display
+- ✅ Empty states and error handling
+- ✅ Performance optimization checks
+
+#### **🎭 End-to-End Tests**:
+- ✅ Navigation menu item visibility and functionality
+- ✅ **Critical Issue Testing**: 1B capital input should show items (not "No items match" error)
+- ✅ **Performance Issue Testing**: Capital input debouncing prevents refresh on keystroke
+- ✅ Tab switching and data filtering
+- ✅ Table functionality (sorting, favorites, chart modals)
+- ✅ Mobile responsiveness and touch interactions
+- ✅ Error handling and network failure scenarios
+
+### **Issues Identified & Test Focus**:
+
+#### **🚨 Known Issues to Validate**:
+1. **"No items match" with 1B capital** - E2E tests specifically check this scenario
+2. **Capital input refresh on keystroke** - Performance tests verify debouncing works
+3. **Navigation menu item missing** - E2E tests verify menu visibility
+
+#### **🎯 Critical Test Scenarios**:
+```bash
+# Test the specific reported issues:
+
+# 1. Test 1B capital filtering works correctly
+npm run test:e2e-suggested -- --grep "1B capital correctly"
+
+# 2. Test capital input performance 
+npm run test:e2e-suggested -- --grep "debouncing prevents excessive"
+
+# 3. Test navigation menu visibility
+npm run test:e2e-suggested -- --grep "menu item is visible"
+```
+
+### **Mock Data for Testing**:
+
+**Test items include**:
+- High-volume items (Nature runes: 50K volume, 5% margin)
+- Low-volume items (Abyssal whip: 50 volume, 6.7% margin)  
+- Manipulated items (Suspicious item: 100% margin, volume spikes)
+- Expensive items (Twisted bow: 1.5B price)
+- No-margin items (Coins: 0% profit)
+
+### **Performance Benchmarks**:
+- Page load time: < 5 seconds
+- Capital input debounce: 300ms delay
+- API response handling: Graceful error states
+- Mobile viewport: No horizontal scroll
+
+### **Running Tests in CI/CD**:
+
+```bash
+# For GitHub Actions or similar CI
+npm run test:suggested-items-all  # Unit + API tests
+npm run test:e2e-suggested        # E2E tests
+
+# With coverage reporting
+npm run test:coverage -- src/pages/SuggestedItems
+```
+
+### **Debugging Test Failures**:
+
+**Common Issues**:
+- **TRPC mock failures**: Check `vi.mock` setup in frontend tests
+- **Database connection errors**: Ensure test database is available for backend tests  
+- **Playwright timeouts**: Increase timeout for slow API responses
+- **LocalStorage mocking**: Verify localStorage mocks in component tests
+
+**Debug Commands**:
+```bash
+# Run tests with verbose output
+npm run test:suggested-items -- --reporter=verbose
+
+# Run E2E tests with browser visible (debugging)
+npx playwright test suggested-items --headed --config=tests/e2e/playwright.config.ts
+
+# Run single test file
+npx vitest run src/pages/SuggestedItems/__tests__/index.test.jsx
+```
+
+### **Next Steps for Testing**:
+1. ✅ **Complete Test Suite** - All tests implemented
+2. 🔄 **Fix Identified Issues** - Use tests to validate fixes for:
+   - Capital filtering logic errors
+   - Input debouncing implementation  
+   - Navigation menu visibility
+3. 🎯 **Run Test Suite** - Validate current implementation:
+   ```bash
+   npm run test:suggested-items-all
+   npm run test:e2e-suggested
+   ```
+
+### **Test Results Documentation**:
+
+**Last Run**: *(To be filled when tests are executed)*
+- Backend Tests: ❓ Pending
+- Frontend Tests: ❓ Pending  
+- E2E Tests: ❓ Pending
+
+**Issues Found**: *(To be documented after test execution)*
+
+**Fixes Applied**: *(To be documented after fixes)*
+
+This comprehensive test suite ensures the Suggested Items feature works correctly and helps prevent regressions in future updates.

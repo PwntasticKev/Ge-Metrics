@@ -241,6 +241,37 @@ const FormulaDocumentation = () => {
               lastUpdated="Dec 2024"
               complexity="Simple"
             />
+
+            <FormulaCard
+              title="Suggested Items Scoring Algorithm"
+              icon={IconTarget}
+              description="How we rank and score items on the Suggested Items page. Prioritizes high-profit opportunities with market stability."
+              formula="Score = (Profit Score × 0.7) + (Volume Score × 0.3) × Manipulation Penalty"
+              variables={[
+                'Profit Score: 500K+ GP = 100pts, 100K-500K GP = 80-100pts, 50K-100K GP = 60-80pts, 10K-50K GP = 30-60pts, <10K GP = 0-30pts',
+                'Volume Score: Min(√(volume24h) / 100, 100) - Higher volume = more stable',
+                'Manipulation Penalty: 0.9 for high-profit items (500K+), 0.7 for others if manipulation detected'
+              ]}
+              example="Item with 600K profit (100pts) + 10K volume (10pts) = (100 × 0.7) + (10 × 0.3) = 73 score"
+              lastUpdated="Dec 2024"
+              complexity="Medium"
+            />
+
+            <FormulaCard
+              title="Market Manipulation Detection"
+              icon={IconShield}
+              description="Detects potentially manipulated items on the Suggested Items page to warn users of high-risk trades."
+              formula="Warning = (Volume Spike > 300%) OR (Price Spread > 50%)"
+              variables={[
+                'Volume Spike: Hourly volume > (24h volume / 24) × 3',
+                'Price Spread: ((High Price - Low Price) / Low Price) × 100 > 50%',
+                'Expected Hourly Volume: 24h total volume ÷ 24 hours',
+                'Risk Level: Shows HIGH RISK badge if manipulation detected'
+              ]}
+              example="If 24h volume = 1200, expected hourly = 50. If current hourly volume = 200 (>150), manipulation warning triggers"
+              lastUpdated="Dec 2024"
+              complexity="Medium"
+            />
           </Stack>
         </Tabs.Panel>
 
@@ -269,6 +300,22 @@ const FormulaDocumentation = () => {
               variables={['Sell: sell price', 'Buy: buy price']}
               example="Buy at 2,500 GP, sell at 2,800 GP: ((2,800×0.98 − 2,500)/2,500) × 100 ≈ 3.2%"
               lastUpdated="2025-11-06"
+              complexity="Simple"
+            />
+
+            <FormulaCard
+              title="Suggested Items Profit Calculation"
+              icon={IconCoins}
+              description="How profit per flip is calculated on the Suggested Items page. Uses the corrected 2% GE tax rate."
+              formula="Profit Per Flip = Math.floor((High Price - Low Price) × 0.98)"
+              variables={[
+                'High Price: OSRS Wiki API high price (sell price)',
+                'Low Price: OSRS Wiki API low price (buy price)', 
+                'GE Tax: 2% (multiply by 0.98)',
+                'Math.floor: Rounds down to nearest whole GP'
+              ]}
+              example="High: 10,000 GP, Low: 8,500 GP → Profit = Math.floor((10,000 - 8,500) × 0.98) = Math.floor(1,470) = 1,470 GP"
+              lastUpdated="Dec 2024"
               complexity="Simple"
             />
 

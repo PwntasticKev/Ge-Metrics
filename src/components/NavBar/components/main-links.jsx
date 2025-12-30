@@ -766,6 +766,18 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         </SubmenuLink>
 
         <MainLink
+          icon={<IconTarget size="1rem"/>}
+          color="blue"
+          label="Suggested Items"
+          link="/suggested-items"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+
+        <MainLink
           icon={<IconHeart size="1rem"/>}
           color="red"
           label="Favorites"
@@ -804,6 +816,16 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           color="green"
           label="High Volume"
           link="/high-volumes"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+        />
+
+        <MainLink
+          icon={<IconTarget size="1rem"/>}
+          color="blue"
+          label="Suggested Items"
+          link="/suggested-items"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}

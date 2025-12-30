@@ -20,6 +20,7 @@ import { blogsRouter } from './blogs.js'
 import { flipsRouter } from './flips.js'
 import { runeliteTradesRouter } from './runelite-trades.js'
 import { gameEventsRouter } from './gameEvents.js'
+import { suggestedItemsRouter } from './suggestedItems.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -42,7 +43,8 @@ export const appRouter = router({
   flips: flipsRouter,
   blogs: blogsRouter,
   runelite: runeliteTradesRouter,
-  gameEvents: gameEventsRouter
+  gameEvents: gameEventsRouter,
+  suggestedItems: suggestedItemsRouter
 })
 
 export type AppRouter = typeof appRouter
