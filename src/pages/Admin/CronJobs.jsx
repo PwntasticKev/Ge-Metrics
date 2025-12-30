@@ -64,6 +64,10 @@ const CronJobs = () => {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [logModalOpen, setLogModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [liveLogModalOpen, setLiveLogModalOpen] = useState(false)
+  const [runningJobId, setRunningJobId] = useState(null)
+  const [liveLogs, setLiveLogs] = useState([])
+  const [jobStartTime, setJobStartTime] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -165,18 +169,46 @@ const CronJobs = () => {
   })
 
   const runJobMutation = trpc.adminCronJobs.runJob.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: 'Job Started',
-        message: 'Job execution started successfully',
-        color: 'blue'
-      })
-      refetchJobs()
-      refetchExecutions()
+    onSuccess: (result) => {
+      setLiveLogs(prev => [...prev, {
+        timestamp: new Date(),
+        type: 'success',
+        message: `Job completed successfully in ${formatDuration(Math.floor(result.duration / 1000))}`
+      }])
+      
+      setTimeout(() => {
+        setLiveLogModalOpen(false)
+        setRunningJobId(null)
+        setLiveLogs([])
+        setJobStartTime(null)
+        refetchJobs()
+        refetchExecutions()
+        
+        notifications.show({
+          title: 'Job Completed',
+          message: `Job "${result.jobName}" completed successfully`,
+          color: 'green'
+        })
+      }, 2000) // Show completion message for 2 seconds before closing
     },
     onError: (error) => {
+      setLiveLogs(prev => [...prev, {
+        timestamp: new Date(),
+        type: 'error',
+        message: `Job failed: ${error.message}`
+      }])
+      
+      setTimeout(() => {
+        setLiveLogModalOpen(false)
+        setRunningJobId(null)
+        setLiveLogs([])
+        setJobStartTime(null)
+        refetchJobs()
+        refetchExecutions()
+      }, 3000) // Show error longer before closing
+      
       notifications.show({
-        title: 'Error',
+        title: 'Job Failed',
         message: error.message,
         color: 'red'
       })
@@ -188,6 +220,18 @@ const CronJobs = () => {
   const jobStats = jobsData?.stats || { totalJobs: 0, activeJobs: 0, runningJobs: 0, failedJobs: 0 }
   const executions = executionData?.executions || []
   const executionTrend = executionData?.executionTrend || []
+
+  // Update elapsed time every second for live logs
+  useEffect(() => {
+    let interval
+    if (runJobMutation.isLoading && jobStartTime) {
+      interval = setInterval(() => {
+        // Force re-render to update elapsed time
+        setJobStartTime(prev => prev)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [runJobMutation.isLoading, jobStartTime])
 
   const categories = [
     { value: 'data-sync', label: 'Data Synchronization', icon: <IconDatabase size={16} /> },
@@ -294,6 +338,35 @@ const CronJobs = () => {
   }
 
   const handleRunJob = (job) => {
+    // Set up live log modal
+    setSelectedJob(job)
+    setRunningJobId(job.id)
+    setJobStartTime(new Date())
+    setLiveLogs([{
+      timestamp: new Date(),
+      type: 'info',
+      message: `Starting job "${job.name}" manually...`
+    }])
+    setLiveLogModalOpen(true)
+    
+    // Add simulated progress messages
+    setTimeout(() => {
+      setLiveLogs(prev => [...prev, {
+        timestamp: new Date(),
+        type: 'info',
+        message: `Executing command: ${job.command}`
+      }])
+    }, 500)
+    
+    setTimeout(() => {
+      setLiveLogs(prev => [...prev, {
+        timestamp: new Date(),
+        type: 'info', 
+        message: job.name.includes('scrape') ? 'Fetching data from external sources...' : 'Processing data...'
+      }])
+    }, 1500)
+    
+    // Execute the job
     runJobMutation.mutate({ jobId: job.id })
   }
 
@@ -886,6 +959,142 @@ const CronJobs = () => {
             <Button color="red" onClick={handleDeleteConfirm} loading={deleteJobMutation.isLoading}>
               Delete Job
             </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Live Log Modal - Real-time execution logs */}
+      <Modal
+        opened={liveLogModalOpen}
+        onClose={() => {
+          if (!runJobMutation.isLoading) {
+            setLiveLogModalOpen(false)
+            setRunningJobId(null)
+            setLiveLogs([])
+            setJobStartTime(null)
+            setSelectedJob(null)
+          }
+        }}
+        title={
+          <Group spacing="xs">
+            <IconActivity size={20} />
+            <Text>Live Execution - {selectedJob?.name}</Text>
+            {runJobMutation.isLoading && <Loader size="sm" />}
+          </Group>
+        }
+        size="xl"
+        closeOnClickOutside={false}
+        closeOnEscape={!runJobMutation.isLoading}
+        withCloseButton={!runJobMutation.isLoading}
+      >
+        <Stack spacing="md">
+          {/* Execution Status Header */}
+          <Paper p="md" withBorder style={{ backgroundColor: 'rgba(26,27,30,0.6)' }}>
+            <Grid>
+              <Grid.Col md={6}>
+                <Text size="sm" color="dimmed">Job Status:</Text>
+                <Group spacing="xs">
+                  <Badge 
+                    color={runJobMutation.isLoading ? "blue" : runJobMutation.isSuccess ? "green" : runJobMutation.isError ? "red" : "gray"} 
+                    leftSection={runJobMutation.isLoading ? <IconActivity size={16} /> : runJobMutation.isSuccess ? <IconCheck size={16} /> : runJobMutation.isError ? <IconX size={16} /> : <IconClock size={16} />}
+                  >
+                    {runJobMutation.isLoading ? "Running" : runJobMutation.isSuccess ? "Completed" : runJobMutation.isError ? "Failed" : "Pending"}
+                  </Badge>
+                </Group>
+              </Grid.Col>
+              <Grid.Col md={6}>
+                <Text size="sm" color="dimmed">Elapsed Time:</Text>
+                <Text size="sm" weight={500}>
+                  {jobStartTime && formatDuration(Math.floor((new Date() - jobStartTime) / 1000))}
+                </Text>
+              </Grid.Col>
+              <Grid.Col xs={12}>
+                <Text size="sm" color="dimmed">Command:</Text>
+                <Code size="sm">{selectedJob?.command}</Code>
+              </Grid.Col>
+            </Grid>
+          </Paper>
+
+          {/* Live Log Output */}
+          <div>
+            <Group position="apart" mb="xs">
+              <Text size="sm" weight={500}>Live Output</Text>
+              <Text size="xs" color="dimmed">{liveLogs.length} log entries</Text>
+            </Group>
+            
+            <Paper 
+              p="md" 
+              withBorder 
+              style={{ 
+                backgroundColor: '#1a1b1e', 
+                color: '#c1c2c5',
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}
+            >
+              <Stack spacing="xs">
+                {liveLogs.length > 0 ? (
+                  liveLogs.map((log, index) => (
+                    <Group key={index} spacing="xs" align="flex-start" noWrap>
+                      <Text 
+                        size="xs" 
+                        color="dimmed" 
+                        style={{ minWidth: '60px', fontFamily: 'monospace' }}
+                      >
+                        {log.timestamp.toLocaleTimeString()}
+                      </Text>
+                      <Badge 
+                        size="xs" 
+                        color={log.type === 'error' ? 'red' : log.type === 'success' ? 'green' : 'blue'}
+                        style={{ minWidth: '50px' }}
+                      >
+                        {log.type.toUpperCase()}
+                      </Badge>
+                      <Text 
+                        size="sm" 
+                        style={{ 
+                          fontFamily: 'monospace', 
+                          lineHeight: 1.4,
+                          color: log.type === 'error' ? '#ff6b6b' : log.type === 'success' ? '#51cf66' : '#c1c2c5'
+                        }}
+                      >
+                        {log.message}
+                      </Text>
+                    </Group>
+                  ))
+                ) : (
+                  <Text size="sm" color="dimmed" style={{ textAlign: 'center', padding: '2rem' }}>
+                    Waiting for output...
+                  </Text>
+                )}
+                
+                {/* Auto-scroll to bottom */}
+                <div ref={(el) => el?.scrollIntoView({ behavior: 'smooth' })} />
+              </Stack>
+            </Paper>
+          </div>
+
+          {/* Actions */}
+          <Group position="right">
+            {!runJobMutation.isLoading && (
+              <Button
+                variant="light"
+                onClick={() => {
+                  setLiveLogModalOpen(false)
+                  setRunningJobId(null)
+                  setLiveLogs([])
+                  setJobStartTime(null)
+                  setSelectedJob(null)
+                }}
+              >
+                Close
+              </Button>
+            )}
+            {runJobMutation.isLoading && (
+              <Text size="sm" color="dimmed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Loader size="xs" /> Job is running, please wait...
+              </Text>
+            )}
           </Group>
         </Stack>
       </Modal>

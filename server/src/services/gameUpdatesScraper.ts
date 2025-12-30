@@ -44,8 +44,11 @@ export class GameUpdatesScraper {
           '--no-first-run',
           '--no-zygote',
           '--single-process',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ],
+        timeout: 60000 // Increase timeout to 60 seconds
       })
     }
   }
@@ -143,7 +146,7 @@ export class GameUpdatesScraper {
       console.log('🔍 Navigating to game updates page...')
       await page.goto(this.BASE_URL + this.UPDATES_PAGE, { 
         waitUntil: 'networkidle2',
-        timeout: 30000
+        timeout: 60000
       })
 
       console.log('📖 Parsing game updates...')
@@ -242,7 +245,7 @@ export class GameUpdatesScraper {
       console.log(`📄 Scraping content for: ${update.title}`)
       await page.goto(update.url, { 
         waitUntil: 'networkidle2',
-        timeout: 30000
+        timeout: 60000
       })
 
       const content = await page.evaluate(() => {

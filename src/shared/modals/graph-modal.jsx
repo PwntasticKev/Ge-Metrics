@@ -57,14 +57,10 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
       }}
     >
       <Box style={{ padding: '1rem', width: '100%' }}>
-        <Group mb="md" spacing="sm">
-          {imageUrl && <Avatar src={imageUrl} alt={titleText} radius="sm" size={36} />}
-          <Title order={2}>{titleText}</Title>
-        </Group>
         <Container px={0} style={{ width: '100%' }}>
           {mounted && chartId ? (
             <div style={{ width: '100%', minHeight: '520px' }}>
-              <LineChart id={chartId} items={items || item?.items} height={520} />
+              <LineChart id={chartId} items={items || item?.items} item={item} height={520} />
             </div>
           ) : (
             <div style={{ width: '100%', minHeight: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

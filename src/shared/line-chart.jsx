@@ -13,12 +13,13 @@ import IndicatorPanel from '../components/charts/IndicatorPanel.jsx'
 import logoImage from '../assets/highalch.png'
 
 export default function LineChart ({ id, items, height = 600 }) {
-  // Default chart to 6h
-  const [timeframe, setTimeframe] = useState('6h')
+  // Default chart to month
+  const [timeframe, setTimeframe] = useState('month')
   const [historyData, setHistoryData] = useState([])
   const [historyStatus, setHistoryStatus] = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
   const [lastUpdateTime, setLastUpdateTime] = useState(null)
   const [hoveredEvents, setHoveredEvents] = useState(null) // { x, y, items: Array<{ title, kind, date }> } | null
+  const [hoveredPrices, setHoveredPrices] = useState(null) // { x, y, time, buyPrice, sellPrice } | null
   const [eventDots, setEventDots] = useState([]) // Array<{ id, time, series, value, title, kind, date }>
   const [hoveredDotId, setHoveredDotId] = useState(null)
   
@@ -48,7 +49,48 @@ export default function LineChart ({ id, items, height = 600 }) {
     ema: { enabled: false, period: 20 }
   })
 
-  const item = useMemo(() => getItemById(id, items) || {}, [id, items])
+  const currentItem = useMemo(() => getItemById(id, items) || {}, [id, items])
+
+  // Convert our timeframe to RS Wiki API timestep
+  const getApiTimestep = (timeframe) => {
+    switch (timeframe) {
+      case 'day':
+        return '1h'        // Hourly data for 1 day
+      case 'week':
+        return '6h'        // 6-hour data for 1 week
+      case 'month':
+        return '24h'       // Daily data for 1 month
+      case 'quarter':
+        return '24h'       // Daily data for 3 months
+      case 'year':
+        return '24h'       // Daily data for 1 year
+      case 'alltime':
+        return '24h'       // All available daily data
+      default:
+        return '24h'
+    }
+  }
+
+  // Get the cutoff timestamp for filtering data based on timeframe
+  const getCutoffTimestamp = (timeframe) => {
+    const now = Math.floor(Date.now() / 1000) // Current Unix timestamp in seconds
+    switch (timeframe) {
+      case 'day':
+        return now - (24 * 60 * 60)           // 1 day ago
+      case 'week':
+        return now - (7 * 24 * 60 * 60)       // 1 week ago
+      case 'month':
+        return now - (30 * 24 * 60 * 60)      // 30 days ago
+      case 'quarter':
+        return now - (90 * 24 * 60 * 60)      // 90 days ago
+      case 'year':
+        return now - (365 * 24 * 60 * 60)     // 365 days ago
+      case 'alltime':
+        return 0                              // No cutoff, show all data
+      default:
+        return now - (7 * 24 * 60 * 60)       // Default to 1 week
+    }
+  }
 
   // Fetch data from API
   const fetchData = async () => {
@@ -60,10 +102,11 @@ export default function LineChart ({ id, items, height = 600 }) {
     setHistoryStatus('loading')
 
     try {
-      console.log(`LineChart: Fetching data for ID: ${id}, timeframe: ${timeframe}`)
+      const apiTimestep = getApiTimestep(timeframe)
+      console.log(`LineChart: Fetching data for ID: ${id}, timeframe: ${timeframe}, apiTimestep: ${apiTimestep}`)
       
       // Fetch WITHOUT start parameter - API doesn't support it reliably
-      const result = await getItemHistoryById(timeframe, id)
+      const result = await getItemHistoryById(apiTimestep, id)
 
       if (!result || !result.success) {
         throw new Error(result?.error?.message || 'Failed to fetch data')
@@ -105,8 +148,14 @@ export default function LineChart ({ id, items, height = 600 }) {
       // Sort by timestamp
       validData.sort((a, b) => a.timestamp - b.timestamp)
 
-      console.log(`LineChart: Successfully fetched ${validData.length} data points`)
-      setHistoryData(validData)
+      // Filter data based on timeframe cutoff
+      const cutoffTimestamp = getCutoffTimestamp(timeframe)
+      const filteredData = cutoffTimestamp > 0 
+        ? validData.filter(point => point.timestamp >= cutoffTimestamp)
+        : validData
+
+      console.log(`LineChart: Fetched ${validData.length} data points, filtered to ${filteredData.length} for timeframe ${timeframe}`)
+      setHistoryData(filteredData)
       setHistoryStatus('success')
       setLastUpdateTime(new Date())
     } catch (error) {
@@ -144,15 +193,31 @@ export default function LineChart ({ id, items, height = 600 }) {
           horzLines: { color: '#373A40' }
         },
         crosshair: {
-          mode: 0
+          mode: 1,              // Normal crosshair mode
+          vertLine: {
+            color: '#758694',
+            width: 1,
+            style: 0,           // Solid line
+            visible: true,
+          },
+          horzLine: {
+            color: '#758694',
+            width: 1,
+            style: 0,           // Solid line
+            visible: true,
+          },
         },
         rightPriceScale: {
-          borderColor: '#373A40'
+          borderColor: '#373A40',
+          visible: true,
+          entireTextOnly: false,
         },
         timeScale: {
           borderColor: '#373A40',
           timeVisible: true,
-          secondsVisible: false
+          secondsVisible: false,
+          rightOffset: 10,        // Add some padding on the right
+          barSpacing: 8,          // Better spacing between bars
         },
         localization: {
           priceFormatter: (price) => price.toLocaleString('en-US')
@@ -161,10 +226,11 @@ export default function LineChart ({ id, items, height = 600 }) {
 
       chartRef.current = chart
 
-        // Hover tooltip for game events (blogs + updates) when crosshair is on an event time
+        // Hover tooltip for both prices and game events
       chart.subscribeCrosshairMove((param) => {
         if (!param || !param.time || !param.point) {
           setHoveredEvents(null)
+          setHoveredPrices(null)
           return
         }
 
@@ -172,38 +238,68 @@ export default function LineChart ({ id, items, height = 600 }) {
         const t = typeof param.time === 'number' ? param.time : null
         if (!t) {
           setHoveredEvents(null)
+          setHoveredPrices(null)
           return
         }
 
+        // Handle price tooltip
+        const seriesData = param.seriesData
+        let buyPrice = null
+        let sellPrice = null
+        
+        if (seriesData) {
+          // Get prices from the series data
+          if (lowPriceSeriesRef.current && seriesData.has(lowPriceSeriesRef.current)) {
+            buyPrice = seriesData.get(lowPriceSeriesRef.current)?.value
+          }
+          if (highPriceSeriesRef.current && seriesData.has(highPriceSeriesRef.current)) {
+            sellPrice = seriesData.get(highPriceSeriesRef.current)?.value
+          }
+        }
+
+        // Show price tooltip if we have price data
+        if (buyPrice !== null || sellPrice !== null) {
+          const date = new Date(t * 1000)
+          setHoveredPrices({
+            x: param.point.x,
+            y: param.point.y,
+            time: date,
+            buyPrice,
+            sellPrice
+          })
+        } else {
+          setHoveredPrices(null)
+        }
+
+        // Handle game events tooltip
         const items = eventsByTimeRef.current.get(t)
-        if (!items || items.length === 0) {
+        if (items && items.length > 0) {
+          setHoveredEvents({
+            x: param.point.x,
+            y: param.point.y,
+            items
+          })
+        } else {
           setHoveredEvents(null)
-          return
         }
-
-        setHoveredEvents({
-          x: param.point.x,
-          y: param.point.y,
-          items
-        })
       })
 
-      // Create series
+      // Create series with app color scheme
       highPriceSeriesRef.current = chart.addLineSeries({
-        color: '#f59e0b',
+        color: '#f59e0b',         // App's warning/orange color for sell price
         lineWidth: 2,
-        title: 'High Price',
+        title: 'Sell Price',
         priceFormat: { type: 'price', precision: 0, minMove: 1 },
-        crosshairMarkerVisible: true
+        crosshairMarkerVisible: false // Disable built-in crosshair price marker
       })
 
       lowPriceSeriesRef.current = chart.addLineSeries({
-        color: '#ff6b6b',
+        color: '#3b82f6',         // App's info/blue color for buy price
         lineWidth: 2,
-        lineStyle: 2,
-        title: 'Low Price',
+        lineStyle: 0,             // Solid line instead of dashed
+        title: 'Buy Price',
         priceFormat: { type: 'price', precision: 0, minMove: 1 },
-        crosshairMarkerVisible: true
+        crosshairMarkerVisible: false // Disable built-in crosshair price marker
       })
 
       smaSeriesRef.current = chart.addLineSeries({
@@ -285,24 +381,30 @@ export default function LineChart ({ id, items, height = 600 }) {
     }
   }, [])
 
-  // Fetch blogs for annotations (only after data is loaded)
+  // Fetch blogs for annotations (load in parallel with chart data)
   const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
     startDate: historyData.length > 0 
       ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default to 30 days for better coverage
     endDate: historyData.length > 0
       ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
       : new Date()
   }, {
-    enabled: historyStatus === 'success' && historyData.length > 0,
+    enabled: id && (historyStatus === 'loading' || historyStatus === 'success'), // Enable during loading for parallel fetch
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: false,
-    retry: false
+    refetchOnMount: true, // Enable mount fetching for immediate loading
+    retry: 1, // Allow one retry for better reliability
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
   })
 
   const blogs = blogsQuery.data?.data?.blogs || []
   const updates = blogsQuery.data?.data?.updates || []
+  
+  // Debug blog/update data
+  console.log('LineChart: Blog/update query status:', blogsQuery.status)
+  if (blogsQuery.error) console.log('LineChart: Blog/update query error:', blogsQuery.error)
+  console.log('LineChart: Blogs fetched:', blogs.length, 'Updates fetched:', updates.length)
 
   const normalizedEvents = useMemo(() => {
     const normalizeDateToUnixSec = (value) => {
@@ -459,7 +561,7 @@ export default function LineChart ({ id, items, height = 600 }) {
         return Math.abs(lt - targetTime) <= Math.abs(rt - targetTime) ? lt : rt
       }
 
-      const markerColor = '#ffd700'
+      const markerColor = '#f59e0b'     // Use app's warning color for markers
       const eventMap = new Map()
       const minSeriesTime = highPriceData[0]?.time
       const maxSeriesTime = highPriceData[highPriceData.length - 1]?.time
@@ -490,19 +592,43 @@ export default function LineChart ({ id, items, height = 600 }) {
 
       eventsByTimeRef.current = eventMap
 
-      // Lightweight Charts markers are limited in placement; we also render DOM overlay dots so
-      // users clearly see circles on both High and Low series lines.
+      // Lightweight Charts markers with different colors for blogs vs updates
       const markerTimes = Array.from(eventMap.keys()).sort((a, b) => a - b)
-      const markers = markerTimes.map((time) => ({
-        time,
-        position: 'inBar',
-        color: markerColor,
-        shape: 'circle',
-        text: ''
-      }))
+      
+      // Create separate markers for blogs and updates
+      const blogMarkers = []
+      const updateMarkers = []
+      
+      markerTimes.forEach(time => {
+        const events = eventMap.get(time) || []
+        const hasBlogs = events.some(e => e.kind === 'blog')
+        const hasUpdates = events.some(e => e.kind === 'update')
+        
+        if (hasBlogs) {
+          blogMarkers.push({
+            time,
+            position: 'inBar',
+            color: '#3b82f6', // Blue for blogs
+            shape: 'circle',
+            text: ''
+          })
+        }
+        
+        if (hasUpdates) {
+          updateMarkers.push({
+            time,
+            position: 'inBar',
+            color: '#f59e0b', // Orange for updates
+            shape: 'circle',
+            text: ''
+          })
+        }
+      })
 
-      if (highPriceSeriesRef.current?.setMarkers) highPriceSeriesRef.current.setMarkers(markers)
-      if (lowPriceSeriesRef.current?.setMarkers) lowPriceSeriesRef.current.setMarkers(markers)
+      // Apply markers to series
+      const allMarkers = [...blogMarkers, ...updateMarkers]
+      if (highPriceSeriesRef.current?.setMarkers) highPriceSeriesRef.current.setMarkers(allMarkers)
+      if (lowPriceSeriesRef.current?.setMarkers) lowPriceSeriesRef.current.setMarkers(allMarkers)
 
       // Build overlay dots (two per event time, one for each series)
       const dots = []
@@ -598,29 +724,101 @@ export default function LineChart ({ id, items, height = 600 }) {
 
       {/* Timeframe Selector */}
       <Group mb="md">
-        {['5m', '1h', '6h', '24h'].map(tf => (
+        {['day', 'week', 'month', 'quarter', 'year', 'alltime'].map(tf => (
           <Button
             key={tf}
             variant={timeframe === tf ? 'filled' : 'outline'}
             size="sm"
             onClick={() => setTimeframe(tf)}
           >
-            {tf === '5m' ? '5m' : tf === '1h' ? '1hr' : tf === '6h' ? '6hr' : '24hr'}
+            {tf === 'day' ? '1D' : 
+             tf === 'week' ? '1W' : 
+             tf === 'month' ? '1M' : 
+             tf === 'quarter' ? '3M' : 
+             tf === 'year' ? '1Y' : 
+             'All'}
           </Button>
         ))}
       </Group>
+
+      {/* Item Header - Name, Image, and Brief Stats */}
+      {currentItem?.name && (
+        <Box
+          style={{
+            padding: '12px 16px',
+            background: 'rgba(26,27,30,0.6)',
+            border: '1px solid rgba(55,58,64,0.4)',
+            borderRadius: 8,
+            marginBottom: '1rem'
+          }}
+        >
+          <Group align="center" spacing="md">
+            {/* Item Image */}
+            {currentItem?.icon && (
+              <img
+                src={`https://oldschool.runescape.wiki/images/${currentItem?.icon}`.replace(/ /g, '_')}
+                alt={currentItem?.name}
+                style={{
+                  width: 32,
+                  height: 32,
+                  imageRendering: 'pixelated'
+                }}
+              />
+            )}
+            
+            {/* Item Name */}
+            <Text size="lg" weight={600} style={{ flex: 1 }}>
+              {currentItem?.name}
+            </Text>
+
+            {/* Brief Stats */}
+            <Group spacing="lg">
+              {currentItem?.limit && (
+                <Group spacing={4}>
+                  <Text size="xs" color="dimmed">Limit:</Text>
+                  <Text size="sm" weight={500}>
+                    {currentItem?.limit.toLocaleString()}
+                  </Text>
+                </Group>
+              )}
+              
+              {/* Volume info - using latest data point if available */}
+              {historyData.length > 0 && historyData[historyData.length - 1] && (
+                <Group spacing="lg">
+                  {historyData[historyData.length - 1].highPriceVolume && (
+                    <Group spacing={4}>
+                      <Text size="xs" color="#f59e0b">Sell Vol:</Text>
+                      <Text size="sm" weight={500}>
+                        {historyData[historyData.length - 1].highPriceVolume.toLocaleString()}
+                      </Text>
+                    </Group>
+                  )}
+                  {historyData[historyData.length - 1].lowPriceVolume && (
+                    <Group spacing={4}>
+                      <Text size="xs" color="#3b82f6">Buy Vol:</Text>
+                      <Text size="sm" weight={500}>
+                        {historyData[historyData.length - 1].lowPriceVolume.toLocaleString()}
+                      </Text>
+                    </Group>
+                  )}
+                </Group>
+              )}
+            </Group>
+          </Group>
+        </Box>
+      )}
 
       {/* Series Visibility Toggles */}
       <Stack spacing="xs" mb="md">
         <Text size="sm" weight={500}>Show:</Text>
         <Group spacing="md">
           <Checkbox
-            label="High Price"
+            label="Sell Price"
             checked={seriesVisibility.highPrice}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, highPrice: e.currentTarget.checked })}
           />
           <Checkbox
-            label="Low Price"
+            label="Buy Price"
             checked={seriesVisibility.lowPrice}
             onChange={(e) => setSeriesVisibility({ ...seriesVisibility, lowPrice: e.currentTarget.checked })}
           />
@@ -716,7 +914,7 @@ export default function LineChart ({ id, items, height = 600 }) {
                     width: 8,
                     height: 8,
                     borderRadius: 999,
-                    background: '#ffd700',
+                    background: d.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
                     boxShadow: '0 0 0 2px rgba(0,0,0,0.35)',
                     pointerEvents: 'none'
                   }}
@@ -726,12 +924,67 @@ export default function LineChart ({ id, items, height = 600 }) {
           </Box>
         )}
 
+        {/* Price tooltip */}
+        {hoveredPrices && historyStatus === 'success' && (
+          <Box
+            style={{
+              position: 'absolute',
+              left: Math.min(Math.max(hoveredPrices.x + 12, 8), 760),
+              top: Math.min(Math.max(hoveredPrices.y - (hoveredEvents ? 140 : 60), 8), 520), // Adjust position if event tooltip is also present
+              zIndex: 6,
+              pointerEvents: 'none',
+              maxWidth: 280
+            }}
+          >
+            <Box
+              style={{
+                background: 'rgba(26,27,30,0.95)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: 8,
+                padding: '8px 10px',
+                boxShadow: '0 8px 25px rgba(0,0,0,0.4)'
+              }}
+            >
+              <Text size="xs" color="dimmed" mb={4}>
+                {hoveredPrices.time.toLocaleDateString()} {hoveredPrices.time.toLocaleTimeString()}
+              </Text>
+              <Stack spacing={2}>
+                {hoveredPrices.buyPrice && (
+                  <Group spacing={8}>
+                    <Text size="sm" color="#3b82f6" style={{ fontWeight: 500 }}>Buy:</Text>
+                    <Text size="sm" style={{ fontWeight: 600 }}>
+                      {hoveredPrices.buyPrice.toLocaleString()} gp
+                    </Text>
+                  </Group>
+                )}
+                {hoveredPrices.sellPrice && (
+                  <Group spacing={8}>
+                    <Text size="sm" color="#f59e0b" style={{ fontWeight: 500 }}>Sell:</Text>
+                    <Text size="sm" style={{ fontWeight: 600 }}>
+                      {hoveredPrices.sellPrice.toLocaleString()} gp
+                    </Text>
+                  </Group>
+                )}
+                {hoveredPrices.buyPrice && hoveredPrices.sellPrice && (
+                  <Group spacing={8}>
+                    <Text size="xs" color="dimmed">Margin:</Text>
+                    <Text size="xs" color={hoveredPrices.sellPrice > hoveredPrices.buyPrice ? '#10b981' : '#ef4444'}>
+                      {(hoveredPrices.sellPrice - hoveredPrices.buyPrice).toLocaleString()} gp
+                    </Text>
+                  </Group>
+                )}
+              </Stack>
+            </Box>
+          </Box>
+        )}
+
+        {/* Game events tooltip */}
         {hoveredEvents && historyStatus === 'success' && (
           <Box
             style={{
               position: 'absolute',
               left: Math.min(Math.max(hoveredEvents.x + 12, 8), 760),
-              top: Math.min(Math.max(hoveredEvents.y + 12, 8), 520),
+              top: Math.min(Math.max(hoveredEvents.y + 20, 8), 520), // Slight offset down
               zIndex: 5,
               pointerEvents: 'none',
               maxWidth: 320
@@ -740,7 +993,7 @@ export default function LineChart ({ id, items, height = 600 }) {
             <Box
               style={{
                 background: 'rgba(26,27,30,0.92)',
-                border: '1px solid rgba(255, 215, 0, 0.35)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',    // Use app warning color
                 borderRadius: 10,
                 padding: '10px 12px',
                 boxShadow: '0 12px 30px rgba(0,0,0,0.35)'
@@ -749,9 +1002,21 @@ export default function LineChart ({ id, items, height = 600 }) {
               <Text size="xs" color="dimmed" mb={6}>Game event</Text>
               <Stack spacing={6}>
                 {hoveredEvents.items.slice(0, 4).map((e, idx) => (
-                  <Text key={`${e.kind}-${idx}`} size="sm" style={{ lineHeight: 1.2 }}>
-                    {e.title}
-                  </Text>
+                  <Group key={`${e.kind}-${idx}`} spacing={8} align="flex-start">
+                    <Box
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: e.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
+                        marginTop: 4,
+                        flexShrink: 0
+                      }}
+                    />
+                    <Text size="sm" style={{ lineHeight: 1.2, flex: 1 }}>
+                      {e.title}
+                    </Text>
+                  </Group>
                 ))}
                 {hoveredEvents.items.length > 4 && (
                   <Text size="xs" color="dimmed">+{hoveredEvents.items.length - 4} more</Text>
