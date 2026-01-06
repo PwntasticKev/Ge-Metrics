@@ -24,10 +24,13 @@ const configSchema = z.object({
   STRIPE_PRICE_MONTHLY: z.string().optional(),
   STRIPE_PRICE_YEARLY: z.string().optional(),
   STRIPE_PRODUCT_PREMIUM: z.string().optional(),
-  // Email Configuration (Resend is recommended, SMTP is fallback)
-  RESEND_API_KEY: z.string().optional(),
-  FROM_EMAIL: z.string().email().optional(),
-  // SMTP Email Configuration (fallback if Resend not configured)
+  // Email Configuration (AWS SES is primary, SMTP is fallback)
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  SES_FROM_EMAIL: z.string().email().optional(),
+  FROM_EMAIL: z.string().email().optional(), // Fallback for SMTP
+  // SMTP Email Configuration (fallback if SES not configured)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().transform(val => val ? Number(val) : 587).optional(),
   SMTP_USER: z.string().optional(),

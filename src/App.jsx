@@ -75,6 +75,8 @@ const EnchantingBolts = lazy(() => import('./pages/EnchantingBolts/index.jsx'))
 const EnchantingJewelry = lazy(() => import('./pages/EnchantingJewelry/index.jsx'))
 const BarrowsRepair = lazy(() => import('./pages/BarrowsRepair/index.jsx'))
 const SuggestedItems = lazy(() => import('./pages/SuggestedItems/index.jsx'))
+const Recipes = lazy(() => import('./pages/Recipes/index.jsx'))
+const GlobalRecipes = lazy(() => import('./pages/Admin/GlobalRecipes.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -312,6 +314,7 @@ function AppContent () {
               <Route path="/ai-predictions" element={<AIPredictions />} />
               <Route path="/money-making" element={<MoneyMaking />} />
               <Route path="/combination-items" element={<CombinationItems />} />
+              <Route path="/recipes" element={<Recipes />} />
               <Route path="/potion-combinations" element={<PotionCombinations />} />
               <Route path="/herbs" element={<Herbs />} />
               <Route path="/nightmare-zone" element={<NightmareZone />} />
@@ -351,6 +354,7 @@ function AppContent () {
               <Route path="/admin/security" element={<AdminRoute><SecurityLogs /></AdminRoute>} />
               <Route path="/admin/formulas" element={<AdminRoute><FormulaDocumentation /></AdminRoute>} />
               <Route path="/admin/cron-jobs" element={<AdminRoute><CronJobs /></AdminRoute>} />
+              <Route path="/admin/global-recipes" element={<AdminRoute><GlobalRecipes /></AdminRoute>} />
               <Route path="/admin/api-status" element={<AdminRoute><ApiStatus /></AdminRoute>} />
               {/* Legacy routes for backwards compatibility */}
               <Route path="/access-denied" element={<AccessDenied />} />

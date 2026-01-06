@@ -29,6 +29,7 @@
     "db:report": "tsx database-status-report.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.705.0",
     "@trpc/client": "^10.45.0",
     "@trpc/server": "^10.45.0",
     "@types/node-cron": "^3.0.11",
@@ -57,7 +58,6 @@
     "puppeteer": "^24.13.0",
     "qrcode": "^1.5.4",
     "recharts": "^3.2.1",
-    "resend": "^4.0.0",
     "stripe": "^14.14.0",
     "superjson": "^2.2.2",
     "tsup": "^8.0.2",

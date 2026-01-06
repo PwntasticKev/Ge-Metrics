@@ -73,6 +73,16 @@ npm run db:generate
 npm run db:migrate
 ```
 
+**Important**: If you encounter database table errors (like missing `recipes` tables), you may need to manually apply migrations:
+
+```bash
+# For local development
+PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d auth_db -f src/db/migrations/0012_add_custom_recipes_tables.sql
+
+# Check if tables exist
+PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d auth_db -c "\dt" | grep -i recipe
+```
+
 ### 5. Start the Server
 
 ```bash
@@ -305,6 +315,50 @@ refresh_tokens (
 - Use secure cookie settings
 - Implement proper logging
 - Set up monitoring
+
+## Database Maintenance
+
+### Migration Management
+
+Keep local and production databases in sync:
+
+```bash
+# Check table differences between environments
+PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d auth_db -c "\dt" | sort
+PGPASSWORD="production_password" psql -h production_host -U production_user -d production_db -c "\dt" | sort
+
+# Apply specific migration to local database
+PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d auth_db -f src/db/migrations/XXXX_migration_name.sql
+
+# Verify schema consistency
+PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d auth_db -c "\d table_name"
+```
+
+### Common Database Tasks
+
+```bash
+# Check recipes system tables
+PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d auth_db -c "SELECT COUNT(*) FROM recipes; SELECT COUNT(*) FROM recipe_ingredients;"
+
+# Reset local database (destructive!)
+dropdb auth_db && createdb auth_db
+npm run db:push
+
+# Backup production data
+pg_dump -h production_host -U production_user production_db > backup.sql
+```
+
+### Troubleshooting
+
+**Missing Tables Error**: If you see "table does not exist" errors:
+1. Check if tables exist: `\dt` in psql
+2. Apply missing migrations manually
+3. Verify schema matches production
+
+**Migration Conflicts**: When drizzle migrations fail:
+1. Check migration files in `src/db/migrations/`
+2. Apply migrations manually with psql
+3. Update migration tracking if needed
 
 ## Development
 

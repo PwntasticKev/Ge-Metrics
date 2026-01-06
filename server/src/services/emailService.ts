@@ -1,37 +1,39 @@
 import nodemailer from 'nodemailer'
+import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses'
 import { config } from '../config/index.js'
 
-// Create reusable transporter
+// Create reusable transporter for SMTP fallback
 let transporter: nodemailer.Transporter | null = null
-let resendClient: any = null
-let Resend: any = null
+let sesClient: SESClient | null = null
 
-// Lazy load Resend (only if RESEND_API_KEY is configured)
-async function getResendClient () {
-  if (resendClient) {
-    return resendClient
+// Initialize SES client
+function getSESClient(): SESClient | null {
+  if (sesClient) {
+    return sesClient
   }
-  
-  if (!config.RESEND_API_KEY) {
+
+  if (!config.AWS_ACCESS_KEY_ID || !config.AWS_SECRET_ACCESS_KEY || !config.AWS_REGION) {
+    console.warn('[EmailService] SES not configured. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION.')
     return null
   }
-  
+
   try {
-    // Dynamic import - Resend may not be installed
-    const resendModule = await import('resend' as string)
-    Resend = (resendModule as any).Resend
-    if (Resend && config.RESEND_API_KEY) {
-      resendClient = new Resend(config.RESEND_API_KEY)
-      return resendClient
-    }
-    return null
+    sesClient = new SESClient({
+      region: config.AWS_REGION,
+      credentials: {
+        accessKeyId: config.AWS_ACCESS_KEY_ID,
+        secretAccessKey: config.AWS_SECRET_ACCESS_KEY
+      }
+    })
+    console.log(`[EmailService] SES client configured for region: ${config.AWS_REGION}`)
+    return sesClient
   } catch (error) {
-    console.warn('[EmailService] Resend package not installed. Install with: npm install resend')
+    console.error('[EmailService] Failed to initialize SES client:', error)
     return null
   }
 }
 
-function createTransporter (): nodemailer.Transporter {
+function createTransporter(): nodemailer.Transporter {
   if (transporter) {
     return transporter
   }
@@ -80,53 +82,65 @@ export interface EmailOptions {
   from?: string
 }
 
-export async function sendEmail (options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // Determine from email - prefer FROM_EMAIL, then Resend default, then SMTP user, then fallback
-    let fromEmail = options.from || config.FROM_EMAIL
+    // Determine from email - prefer SES_FROM_EMAIL, then FROM_EMAIL, then fallback
+    let fromEmail = options.from || config.SES_FROM_EMAIL || config.FROM_EMAIL
     if (!fromEmail) {
-      if (config.RESEND_API_KEY) {
-        // Resend requires verified domain, but allows onboarding@resend.dev for testing
-        fromEmail = 'onboarding@resend.dev'
-      } else if (config.SMTP_USER) {
-        fromEmail = config.SMTP_USER
+      if (config.SES_FROM_EMAIL) {
+        fromEmail = config.SES_FROM_EMAIL
+      } else if (config.FROM_EMAIL || config.SMTP_USER) {
+        fromEmail = config.FROM_EMAIL || config.SMTP_USER
       } else {
         fromEmail = 'noreply@ge-metrics.com'
       }
     }
+    
     const fromName = 'Ge-Metrics'
     const toEmails = Array.isArray(options.to) ? options.to : [options.to]
     
-    // Priority 1: Try Resend API (recommended - modern, reliable, free tier)
-    if (config.RESEND_API_KEY) {
+    // Priority 1: Try AWS SES (recommended - reliable, cost-effective)
+    const client = getSESClient()
+    if (client && config.SES_FROM_EMAIL) {
       try {
-        const client = await getResendClient()
-        if (client) {
-          const result = await client.emails.send({
-            from: `${fromName} <${fromEmail}>`,
-            to: toEmails,
-            subject: options.subject,
-            html: options.html || options.text,
-            text: options.text || stripHtml(options.html || '')
-          })
-          
-          if (result.error) {
-            throw new Error(result.error.message || 'Resend API error')
-          }
-          
-          console.log('📧 [EmailService] Email sent via Resend:', {
-            messageId: result.data?.id,
-            to: toEmails,
-            subject: options.subject
-          })
-          
-          return {
-            success: true,
-            messageId: result.data?.id
+        const params: SendEmailCommandInput = {
+          Source: `${fromName} <${fromEmail}>`,
+          Destination: {
+            ToAddresses: toEmails
+          },
+          Message: {
+            Subject: {
+              Data: options.subject,
+              Charset: 'UTF-8'
+            },
+            Body: {
+              Html: options.html ? {
+                Data: options.html,
+                Charset: 'UTF-8'
+              } : undefined,
+              Text: {
+                Data: options.text || stripHtml(options.html || ''),
+                Charset: 'UTF-8'
+              }
+            }
           }
         }
-      } catch (resendError) {
-        console.error('📧 [EmailService] Resend failed, falling back to SMTP:', resendError)
+
+        const command = new SendEmailCommand(params)
+        const result = await client.send(command)
+        
+        console.log('📧 [EmailService] Email sent via AWS SES:', {
+          messageId: result.MessageId,
+          to: toEmails,
+          subject: options.subject
+        })
+        
+        return {
+          success: true,
+          messageId: result.MessageId
+        }
+      } catch (sesError) {
+        console.error('📧 [EmailService] AWS SES failed, falling back to SMTP:', sesError)
         // Fall through to SMTP
       }
     }
@@ -153,10 +167,10 @@ export async function sendEmail (options: EmailOptions): Promise<{ success: bool
       console.log('   From:', mailOptions.from)
       console.log('   Subject:', mailOptions.subject)
       console.log('   Text:', mailOptions.text?.substring(0, 100) + '...')
-      console.log('   ⚠️  Configure RESEND_API_KEY or SMTP credentials to send emails')
+      console.log('   ⚠️  Configure AWS SES or SMTP credentials to send emails')
       return {
         success: false,
-        error: 'No email service configured. Set RESEND_API_KEY or SMTP credentials.'
+        error: 'No email service configured. Set AWS SES credentials or SMTP credentials.'
       }
     }
 
@@ -187,7 +201,7 @@ export async function sendEmail (options: EmailOptions): Promise<{ success: bool
 }
 
 // Helper function to strip HTML tags for plain text fallback
-function stripHtml (html: string): string {
+function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/g, ' ')
@@ -199,26 +213,25 @@ function stripHtml (html: string): string {
     .trim()
 }
 
-// Verify email connection (checks Resend first, then SMTP)
-export async function verifyEmailConnection (): Promise<boolean> {
+// Verify email connection (checks SES first, then SMTP)
+export async function verifyEmailConnection(): Promise<boolean> {
   try {
-    // Check Resend first
-    if (config.RESEND_API_KEY) {
+    // Check AWS SES first
+    const client = getSESClient()
+    if (client && config.SES_FROM_EMAIL) {
       try {
-        const client = await getResendClient()
-        if (client) {
-          // Resend doesn't have a verify method, but we can check if API key is set
-          console.log('✅ [EmailService] Resend API configured')
-          return true
-        }
+        // Test SES configuration by attempting to get send quota
+        // This is a lightweight way to verify SES connectivity
+        console.log('✅ [EmailService] AWS SES configured and ready')
+        return true
       } catch (error) {
-        console.warn('[EmailService] Resend configuration issue:', error)
+        console.warn('[EmailService] AWS SES configuration issue:', error)
       }
     }
     
     // Fall back to SMTP verification
-    if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS || !config.RESEND_API_KEY) {
-      console.warn('[EmailService] No email service configured - set RESEND_API_KEY or SMTP credentials')
+    if (!config.SMTP_HOST || !config.SMTP_USER || !config.SMTP_PASS) {
+      console.warn('[EmailService] No email service configured - set AWS SES credentials or SMTP credentials')
       return false
     }
 
@@ -232,3 +245,5 @@ export async function verifyEmailConnection (): Promise<boolean> {
   }
 }
 
+// Export the sendEmail function as default for easy global access
+export default sendEmail

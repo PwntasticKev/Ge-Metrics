@@ -42,7 +42,8 @@ import {
   IconTool,
   IconLock,
   IconSparkles,
-  IconShieldCheck
+  IconShieldCheck,
+  IconChefHat
 } from '@tabler/icons-react'
 import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link, useLocation } from 'react-router-dom'
@@ -509,6 +510,18 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           color="violet"
           label="Combination Items"
           link="/combination-items"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+
+        <MainLink
+          icon={<IconChefHat size="1rem"/>}
+          color="orange"
+          label="Recipes"
+          link="/recipes"
           expanded={expanded}
           isMobile={isMobile}
           onNavigate={onNavigate}
@@ -1016,6 +1029,15 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               color="teal"
               label="Cron Jobs"
               link="/admin/cron-jobs"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
+            <SubmenuItem
+              icon={<IconChefHat size="0.8rem"/>}
+              color="orange"
+              label="Global Recipes"
+              link="/admin/global-recipes"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}

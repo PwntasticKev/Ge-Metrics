@@ -835,3 +835,58 @@ export type OpenPosition = typeof openPositions.$inferSelect;
 export type NewOpenPosition = typeof openPositions.$inferInsert;
 export type AllTradesAdmin = typeof allTradesAdmin.$inferSelect;
 export type NewAllTradesAdmin = typeof allTradesAdmin.$inferInsert;
+
+// --- CUSTOM RECIPES SYSTEM ---
+
+// Recipes - User-generated item combinations
+export const recipes = pgTable('recipes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  outputItemId: integer('output_item_id').notNull(),
+  outputItemName: text('output_item_name').notNull(),
+  conversionCost: integer('conversion_cost').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('recipes_user_id_idx').on(table.userId),
+  outputItemIdIdx: index('recipes_output_item_id_idx').on(table.outputItemId),
+  createdAtIdx: index('recipes_created_at_idx').on(table.createdAt),
+  // Unique constraint to prevent duplicate recipes globally  
+  duplicateCheckIdx: uniqueIndex('recipes_duplicate_check_idx').on(table.outputItemId)
+}))
+
+// Recipe Ingredients - Items needed to create the recipe output
+export const recipeIngredients = pgTable('recipe_ingredients', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  recipeId: uuid('recipe_id').notNull().references(() => recipes.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id').notNull(),
+  itemName: text('item_name').notNull(),
+  quantity: integer('quantity').default(1).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  recipeIdIdx: index('recipe_ingredients_recipe_id_idx').on(table.recipeId),
+  itemIdIdx: index('recipe_ingredients_item_id_idx').on(table.itemId)
+}))
+
+// Validation schemas for recipes
+export const insertRecipeSchema = createInsertSchema(recipes, {
+  outputItemId: (schema) => schema.positive(),
+  outputItemName: (schema) => schema.min(1).max(255),
+  conversionCost: (schema) => schema.nonnegative().optional()
+})
+
+export const selectRecipeSchema = createSelectSchema(recipes)
+
+export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients, {
+  itemId: (schema) => schema.positive(),
+  itemName: (schema) => schema.min(1).max(255),
+  quantity: (schema) => schema.positive()
+})
+
+export const selectRecipeIngredientSchema = createSelectSchema(recipeIngredients)
+
+// Type exports for recipes system
+export type Recipe = typeof recipes.$inferSelect;
+export type NewRecipe = typeof recipes.$inferInsert;
+export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
+export type NewRecipeIngredient = typeof recipeIngredients.$inferInsert;

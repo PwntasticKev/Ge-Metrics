@@ -178,7 +178,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
 
   const handleItemSelect = (item) => {
     if (item) {
-      navigate(`/all-items?item=${item.id}`)
+      navigate(`/item/${item.id}`)
       setSearchQuery('')
     }
   }
@@ -353,36 +353,6 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
           </Box>
         </MediaQuery>
 
-        {/* Center Section - LIVE Badge */}
-        <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
-          <Badge
-            variant="filled"
-            color="blue"
-            size="lg"
-            sx={{ 
-              fontSize: '10px',
-              animation: 'pulse 2s ease-in-out infinite',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-              '@keyframes pulse': {
-                '0%, 100%': { opacity: 1 },
-                '50%': { opacity: 0.7 }
-              }
-            }}
-            style={{
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)'
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(34, 139, 230, 0.6)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-          >
-            LIVE
-          </Badge>
-        </MediaQuery>
 
         {/* Right Section */}
         <Group spacing="sm" noWrap>
