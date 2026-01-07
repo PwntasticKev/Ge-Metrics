@@ -185,64 +185,119 @@ CREATE TABLE IF NOT EXISTS "user_sessions" (
 );
 --> statement-breakpoint
 ALTER TABLE "employees" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
-DROP TABLE "employees" CASCADE;--> statement-breakpoint
-ALTER TABLE "subscriptions" ADD COLUMN "trial_start" timestamp;--> statement-breakpoint
-ALTER TABLE "subscriptions" ADD COLUMN "trial_end" timestamp;--> statement-breakpoint
-ALTER TABLE "subscriptions" ADD COLUMN "trial_days" integer DEFAULT 14;--> statement-breakpoint
-ALTER TABLE "subscriptions" ADD COLUMN "is_trialing" boolean DEFAULT false;--> statement-breakpoint
-ALTER TABLE "subscriptions" ADD COLUMN "trial_extended_by" integer;--> statement-breakpoint
-ALTER TABLE "admin_actions" ADD CONSTRAINT "admin_actions_admin_user_id_users_id_fk" FOREIGN KEY ("admin_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "admin_actions" ADD CONSTRAINT "admin_actions_target_user_id_users_id_fk" FOREIGN KEY ("target_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "api_usage_logs" ADD CONSTRAINT "api_usage_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "cron_jobs" ADD CONSTRAINT "cron_jobs_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "formulas" ADD CONSTRAINT "formulas_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "security_events" ADD CONSTRAINT "security_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "security_events" ADD CONSTRAINT "security_events_resolved_by_users_id_fk" FOREIGN KEY ("resolved_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "stripe_events" ADD CONSTRAINT "stripe_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "system_settings" ADD CONSTRAINT "system_settings_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_invitations" ADD CONSTRAINT "user_invitations_invited_by_users_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "admin_actions_admin_user_idx" ON "admin_actions" USING btree ("admin_user_id");--> statement-breakpoint
-CREATE INDEX "admin_actions_target_user_idx" ON "admin_actions" USING btree ("target_user_id");--> statement-breakpoint
-CREATE INDEX "admin_actions_action_type_idx" ON "admin_actions" USING btree ("action_type");--> statement-breakpoint
-CREATE INDEX "admin_actions_created_at_idx" ON "admin_actions" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "api_usage_logs_user_id_idx" ON "api_usage_logs" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "api_usage_logs_endpoint_idx" ON "api_usage_logs" USING btree ("endpoint");--> statement-breakpoint
-CREATE INDEX "api_usage_logs_created_at_idx" ON "api_usage_logs" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "api_usage_logs_status_code_idx" ON "api_usage_logs" USING btree ("status_code");--> statement-breakpoint
-CREATE INDEX "cron_job_logs_job_name_idx" ON "cron_job_logs" USING btree ("job_name");--> statement-breakpoint
-CREATE INDEX "cron_job_logs_status_idx" ON "cron_job_logs" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "cron_job_logs_started_at_idx" ON "cron_job_logs" USING btree ("started_at");--> statement-breakpoint
-CREATE INDEX "cron_jobs_category_idx" ON "cron_jobs" USING btree ("category");--> statement-breakpoint
-CREATE INDEX "cron_jobs_enabled_idx" ON "cron_jobs" USING btree ("enabled");--> statement-breakpoint
-CREATE INDEX "cron_jobs_status_idx" ON "cron_jobs" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "cron_jobs_next_run_idx" ON "cron_jobs" USING btree ("next_run");--> statement-breakpoint
-CREATE INDEX "cron_jobs_created_by_idx" ON "cron_jobs" USING btree ("created_by");--> statement-breakpoint
-CREATE INDEX "formulas_category_idx" ON "formulas" USING btree ("category");--> statement-breakpoint
-CREATE INDEX "formulas_complexity_idx" ON "formulas" USING btree ("complexity");--> statement-breakpoint
-CREATE INDEX "formulas_is_active_idx" ON "formulas" USING btree ("is_active");--> statement-breakpoint
-CREATE INDEX "formulas_created_by_idx" ON "formulas" USING btree ("created_by");--> statement-breakpoint
-CREATE INDEX "revenue_analytics_date_idx" ON "revenue_analytics" USING btree ("date");--> statement-breakpoint
-CREATE INDEX "revenue_analytics_period_type_idx" ON "revenue_analytics" USING btree ("period_type");--> statement-breakpoint
-CREATE INDEX "security_events_user_id_idx" ON "security_events" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "security_events_event_type_idx" ON "security_events" USING btree ("event_type");--> statement-breakpoint
-CREATE INDEX "security_events_severity_idx" ON "security_events" USING btree ("severity");--> statement-breakpoint
-CREATE INDEX "security_events_created_at_idx" ON "security_events" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "stripe_events_stripe_event_id_idx" ON "stripe_events" USING btree ("stripe_event_id");--> statement-breakpoint
-CREATE INDEX "stripe_events_event_type_idx" ON "stripe_events" USING btree ("event_type");--> statement-breakpoint
-CREATE INDEX "stripe_events_user_id_idx" ON "stripe_events" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "stripe_events_created_at_idx" ON "stripe_events" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "system_metrics_metric_type_idx" ON "system_metrics" USING btree ("metric_type");--> statement-breakpoint
-CREATE INDEX "system_metrics_created_at_idx" ON "system_metrics" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "system_settings_section_key_idx" ON "system_settings" USING btree ("section","key");--> statement-breakpoint
-CREATE INDEX "system_settings_section_idx" ON "system_settings" USING btree ("section");--> statement-breakpoint
-CREATE INDEX "system_settings_is_secret_idx" ON "system_settings" USING btree ("is_secret");--> statement-breakpoint
-CREATE INDEX "user_invitations_email_idx" ON "user_invitations" USING btree ("email");--> statement-breakpoint
-CREATE INDEX "user_invitations_token_idx" ON "user_invitations" USING btree ("invitation_token");--> statement-breakpoint
-CREATE INDEX "user_invitations_status_idx" ON "user_invitations" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "user_invitations_expires_at_idx" ON "user_invitations" USING btree ("expires_at");--> statement-breakpoint
-CREATE INDEX "user_sessions_user_id_idx" ON "user_sessions" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "user_sessions_session_token_idx" ON "user_sessions" USING btree ("session_token");--> statement-breakpoint
-CREATE INDEX "user_sessions_is_active_idx" ON "user_sessions" USING btree ("is_active");--> statement-breakpoint
-CREATE INDEX "user_sessions_last_activity_idx" ON "user_sessions" USING btree ("last_activity");--> statement-breakpoint
-CREATE INDEX "subscriptions_trial_end_idx" ON "subscriptions" USING btree ("trial_end");
+DROP TABLE IF EXISTS "employees" CASCADE;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "trial_start" timestamp;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "trial_end" timestamp;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "trial_days" integer DEFAULT 14;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "is_trialing" boolean DEFAULT false;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "trial_extended_by" integer;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "admin_actions" ADD CONSTRAINT "admin_actions_admin_user_id_users_id_fk" FOREIGN KEY ("admin_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "admin_actions" ADD CONSTRAINT "admin_actions_target_user_id_users_id_fk" FOREIGN KEY ("target_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "api_usage_logs" ADD CONSTRAINT "api_usage_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "cron_jobs" ADD CONSTRAINT "cron_jobs_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "formulas" ADD CONSTRAINT "formulas_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "security_events" ADD CONSTRAINT "security_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "security_events" ADD CONSTRAINT "security_events_resolved_by_users_id_fk" FOREIGN KEY ("resolved_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "stripe_events" ADD CONSTRAINT "stripe_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "system_settings" ADD CONSTRAINT "system_settings_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "user_invitations" ADD CONSTRAINT "user_invitations_invited_by_users_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "admin_actions_admin_user_idx" ON "admin_actions" USING btree ("admin_user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "admin_actions_target_user_idx" ON "admin_actions" USING btree ("target_user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "admin_actions_action_type_idx" ON "admin_actions" USING btree ("action_type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "admin_actions_created_at_idx" ON "admin_actions" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "api_usage_logs_user_id_idx" ON "api_usage_logs" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "api_usage_logs_endpoint_idx" ON "api_usage_logs" USING btree ("endpoint");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "api_usage_logs_created_at_idx" ON "api_usage_logs" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "api_usage_logs_status_code_idx" ON "api_usage_logs" USING btree ("status_code");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_job_logs_job_name_idx" ON "cron_job_logs" USING btree ("job_name");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_job_logs_status_idx" ON "cron_job_logs" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_job_logs_started_at_idx" ON "cron_job_logs" USING btree ("started_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_jobs_category_idx" ON "cron_jobs" USING btree ("category");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_jobs_enabled_idx" ON "cron_jobs" USING btree ("enabled");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_jobs_status_idx" ON "cron_jobs" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_jobs_next_run_idx" ON "cron_jobs" USING btree ("next_run");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cron_jobs_created_by_idx" ON "cron_jobs" USING btree ("created_by");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "formulas_category_idx" ON "formulas" USING btree ("category");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "formulas_complexity_idx" ON "formulas" USING btree ("complexity");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "formulas_is_active_idx" ON "formulas" USING btree ("is_active");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "formulas_created_by_idx" ON "formulas" USING btree ("created_by");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "revenue_analytics_date_idx" ON "revenue_analytics" USING btree ("date");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "revenue_analytics_period_type_idx" ON "revenue_analytics" USING btree ("period_type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "security_events_user_id_idx" ON "security_events" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "security_events_event_type_idx" ON "security_events" USING btree ("event_type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "security_events_severity_idx" ON "security_events" USING btree ("severity");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "security_events_created_at_idx" ON "security_events" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "stripe_events_stripe_event_id_idx" ON "stripe_events" USING btree ("stripe_event_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "stripe_events_event_type_idx" ON "stripe_events" USING btree ("event_type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "stripe_events_user_id_idx" ON "stripe_events" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "stripe_events_created_at_idx" ON "stripe_events" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "system_metrics_metric_type_idx" ON "system_metrics" USING btree ("metric_type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "system_metrics_created_at_idx" ON "system_metrics" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "system_settings_section_key_idx" ON "system_settings" USING btree ("section","key");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "system_settings_section_idx" ON "system_settings" USING btree ("section");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "system_settings_is_secret_idx" ON "system_settings" USING btree ("is_secret");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_invitations_email_idx" ON "user_invitations" USING btree ("email");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_invitations_token_idx" ON "user_invitations" USING btree ("invitation_token");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_invitations_status_idx" ON "user_invitations" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_invitations_expires_at_idx" ON "user_invitations" USING btree ("expires_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_sessions_user_id_idx" ON "user_sessions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_sessions_session_token_idx" ON "user_sessions" USING btree ("session_token");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_sessions_is_active_idx" ON "user_sessions" USING btree ("is_active");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "user_sessions_last_activity_idx" ON "user_sessions" USING btree ("last_activity");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_trial_end_idx" ON "subscriptions" USING btree ("trial_end");
