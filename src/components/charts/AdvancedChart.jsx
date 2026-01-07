@@ -71,7 +71,6 @@ const COLORS = {
 const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showControls = true }) => {
   const [timeframe, setTimeframe] = useState('24h') // API Timestep
   const [range, setRange] = useState('1D') // View Range
-  const [chartType, setChartType] = useState('line')
   
   // Visibility State
   const [seriesVisibility, setSeriesVisibility] = useState({
@@ -100,8 +99,6 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   const [annotationModalOpen, setAnnotationModalOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  const chartRef = useRef(null)
-  
   // Resolve item
   const item = useMemo(() => {
     if (itemProp) return itemProp;
@@ -122,20 +119,32 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   })
 
   // Fetch Game Updates (Blogs/Updates)
-  const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
-    startDate: historyData?.length > 0 
+  const startDate = useMemo(() => {
+    return historyData?.length > 0 
       ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), 
+      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+  }, [historyData])
+
+  const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
+    startDate, 
     endDate: new Date()
   }, {
     enabled: !!historyData && seriesVisibility.updates,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
+        console.log('AdvancedChart: Updates fetched', data)
+    },
+    onError: (err) => {
+        console.error('AdvancedChart: Updates fetch error', err)
+    }
   })
 
   const gameUpdates = useMemo(() => {
     const blogs = blogsQuery.data?.data?.blogs || []
     const updates = blogsQuery.data?.data?.updates || []
     
+    console.log(`AdvancedChart: Processing ${blogs.length} blogs and ${updates.length} updates`)
+
     const combined = [
         ...blogs.map(b => ({
             id: `blog_${b.date}`,
@@ -155,9 +164,18 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
         }))
     ]
     
-    // Sort by date
     return combined.sort((a, b) => a.date - b.date)
   }, [blogsQuery.data])
+
+  // Helper for date formatting
+  const formatDateForTimeframe = (date, rng) => {
+    switch (rng) {
+      case '1D': return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      case '1W': return date.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit' })
+      case '1M': case '3M': return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      default: return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+    }
+  }
 
   // Map Range to Timestep
   useEffect(() => {
@@ -201,18 +219,6 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
         const date = new Date(d.timestamp * 1000)
         const high = d.avgHighPrice || d.avgLowPrice || 0
         const low = d.avgLowPrice || d.avgHighPrice || 0
-        
-        // Find update (snap to nearest day/hour within reasonable window)
-        // Since chart points are discrete, we associate the update with the closest point
-        // Or we just find if an update occurred on this "day" or timeframe bucket.
-        const update = gameUpdates.find(u => {
-             // Match strictly by date for daily data, or within window for others
-             const diff = Math.abs(u.date.getTime() - date.getTime())
-             // If timeframe is 24h, match same day. If 5m, match within an hour?
-             // Simple approach: within 12 hours for daily, or match closest point.
-             // Let's use 12h window.
-             return diff < 12 * 60 * 60 * 1000
-        })
 
         return {
           timestamp: d.timestamp,
@@ -224,31 +230,45 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
           high,
           low,
           buyVolume: d.lowPriceVolume || 0,
-          sellVolume: d.highPriceVolume || 0,
-          update: update ? 1 : null, // Marker value for Y-axis
-          updateData: update
+          sellVolume: d.highPriceVolume || 0
         }
       })
 
-    // Calculate Indicators
+    // Calculate Indicators (Optimized O(N))
     if (processed.length > 0) {
         const sma20 = calculateSMA(processed, 20)
         const ema20 = calculateEMA(processed, 20)
 
+        // Use Maps for O(1) lookup
+        const smaMap = new Map(sma20.map(s => [s.time, s.value]))
+        const emaMap = new Map(ema20.map(e => [e.time, e.value]))
+
         // Merge indicators back
-        processed = processed.map(p => {
-            const smaPoint = sma20.find(s => s.time === p.time)
-            const emaPoint = ema20.find(e => e.time === p.time)
-            return {
-                ...p,
-                sma20: smaPoint ? smaPoint.value : null,
-                ema20: emaPoint ? emaPoint.value : null
-            }
-        })
+        processed = processed.map(p => ({
+            ...p,
+            sma20: smaMap.get(p.time) ?? null,
+            ema20: emaMap.get(p.time) ?? null
+        }))
     }
 
     return processed
-  }, [historyData, range, timeframe, gameUpdates])
+  }, [historyData, range, timeframe])
+
+  // Prepare Scatter Data for Updates (Exact Positioning)
+  const updatesData = useMemo(() => {
+    if (!gameUpdates.length) return []
+    
+    const mapped = gameUpdates.map(u => ({
+        x: u.date.getTime() / 1000, // Exact timestamp
+        y: 0.5,                     // Fixed Y position (center of bottom track)
+        updateData: u,
+        dateFormatted: formatDateForTimeframe(u.date, range),
+        dateObj: u.date
+    }))
+    
+    console.log(`AdvancedChart: Mapped ${mapped.length} updates for visualization`)
+    return mapped
+  }, [gameUpdates, range])
 
   // Update hover data
   useEffect(() => {
@@ -256,15 +276,6 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
       setHoverData(chartData[chartData.length - 1])
     }
   }, [chartData])
-
-  function formatDateForTimeframe(date, rng) {
-    switch (rng) {
-      case '1D': return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      case '1W': return date.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit' })
-      case '1M': case '3M': return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      default: return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-    }
-  }
 
   // Zoom Logic
   const zoom = () => {
@@ -313,8 +324,102 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     setRefAreaRight('')
   }
 
+  // Wheel Zoom/Pan Handler
+  const handleWheel = (e) => {
+    // Note: e.preventDefault() for wheel is often blocked by passive listeners.
+    // We rely on container style touch-action: none if possible.
+    
+    if (!chartData || chartData.length === 0) return
+
+    const minTime = chartData[0].timestamp
+    const maxTime = chartData[chartData.length - 1].timestamp
+    
+    let currentLeft = left === 'dataMin' ? minTime : left
+    let currentRight = right === 'dataMax' ? maxTime : right
+    
+    if (typeof currentLeft !== 'number') currentLeft = minTime
+    if (typeof currentRight !== 'number') currentRight = maxTime
+    
+    const rangeVal = currentRight - currentLeft
+    if (rangeVal <= 0) return
+
+    if (e.ctrlKey || e.metaKey) {
+        // Zoom
+        // e.preventDefault() // Try to prevent page zoom
+        const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9
+        const newRange = rangeVal * zoomFactor
+        
+        // Center zoom
+        const center = (currentLeft + currentRight) / 2
+        let newLeft = center - newRange / 2
+        let newRight = center + newRange / 2
+        
+        // Clamp
+        if (newLeft < minTime) newLeft = minTime
+        if (newRight > maxTime) newRight = maxTime
+        
+        // Recalculate Y domain for new window
+        const visibleData = chartData.filter(d => d.timestamp >= newLeft && d.timestamp <= newRight)
+        if (visibleData.length > 0) {
+             const activeValues = []
+             visibleData.forEach(d => {
+                 if (seriesVisibility.highPrice) activeValues.push(d.high)
+                 if (seriesVisibility.lowPrice) activeValues.push(d.low)
+             })
+             if (activeValues.length > 0) {
+                 const minP = Math.min(...activeValues)
+                 const maxP = Math.max(...activeValues)
+                 const padding = (maxP - minP) * 0.1
+                 setBottom(minP - padding)
+                 setTop(maxP + padding)
+             }
+        }
+
+        setLeft(newLeft)
+        setRight(newRight)
+    } else {
+        // Pan
+        const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY
+        if (delta === 0) return
+        
+        const shift = (rangeVal / 1000) * delta
+        
+        let newLeft = currentLeft + shift
+        let newRight = currentRight + shift
+        
+        if (newLeft < minTime) {
+            newLeft = minTime
+            newRight = newLeft + rangeVal
+        }
+        if (newRight > maxTime) {
+            newRight = maxTime
+            newLeft = newRight - rangeVal
+        }
+        
+        setLeft(newLeft)
+        setRight(newRight)
+        
+        // Optionally recalculate Y for pan
+        const visibleData = chartData.filter(d => d.timestamp >= newLeft && d.timestamp <= newRight)
+        if (visibleData.length > 0) {
+             const activeValues = []
+             visibleData.forEach(d => {
+                 if (seriesVisibility.highPrice) activeValues.push(d.high)
+                 if (seriesVisibility.lowPrice) activeValues.push(d.low)
+             })
+             if (activeValues.length > 0) {
+                 const minP = Math.min(...activeValues)
+                 const maxP = Math.max(...activeValues)
+                 const padding = (maxP - minP) * 0.1
+                 setBottom(minP - padding)
+                 setTop(maxP + padding)
+             }
+        }
+    }
+  }
+
   const commonChartProps = {
-    data: chartData,
+      data: chartData,
     margin: { top: 10, right: 0, left: 0, bottom: 0 },
     onMouseDown: (e) => setRefAreaLeft(e?.activePayload?.[0]?.payload?.timestamp),
     onMouseMove: (e) => refAreaLeft && setRefAreaRight(e?.activePayload?.[0]?.payload?.timestamp),
@@ -387,7 +492,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   const renderMainChart = () => {
     const yDomain = [bottom === 'auto' ? 'dataMin' : bottom, top === 'auto' ? 'dataMax' : top]
 
-    return (
+        return (
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart {...commonChartProps} onMouseMove={handleMouseMove}>
             <defs>
@@ -426,6 +531,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
               dot={false}
                     activeDot={{ r: 4, stroke: COLORS.sell, fill: '#1A1B1E' }}
                     isAnimationActive={false}
+                    connectNulls
             />
             )}
 
@@ -439,6 +545,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
               dot={false}
                     activeDot={{ r: 4, stroke: COLORS.buy, fill: '#1A1B1E' }}
                     isAnimationActive={false}
+                    connectNulls
                 />
             )}
 
@@ -452,6 +559,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                     dot={false}
                     activeDot={false}
                     isAnimationActive={false}
+                    connectNulls
                 />
             )}
 
@@ -465,13 +573,14 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                     dot={false}
                     activeDot={false}
                     isAnimationActive={false}
+                    connectNulls
                 />
             )}
 
-             {/* Game Updates (Dots at bottom) */}
-             {seriesVisibility.updates && (
+             {/* Game Updates (Dots at bottom with precise X) */}
+             {seriesVisibility.updates && updatesData.length > 0 && (
                 <Scatter 
-                    dataKey="update" 
+                    data={updatesData}
                     fill="#fff"
                     shape={(props) => {
                         const { cx, cy, payload } = props
@@ -488,12 +597,19 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                         )
                     }}
                     yAxisId="updates"
+                    onMouseEnter={(e) => {
+                        // When hovering the dot, force the info panel to show update data
+                        if (e.payload) setHoverData(e.payload)
+                    }}
+                    onMouseLeave={() => {
+                        // Optional: reset or leave as is (next mouse move on chart will fix it)
+                    }}
+                    isAnimationActive={false}
                 />
             )}
             
-            {/* Hidden Y-Axis for Updates to keep them fixed at the bottom */}
-            {/* Domain [0, 10], update=1, so it plots at bottom 10% */}
-            <YAxis yAxisId="updates" domain={[0, 10]} hide />
+            {/* Hidden Y-Axis for Updates to keep them fixed at the bottom (y=0.5 in [0, 1]) */}
+            <YAxis yAxisId="updates" domain={[0, 1]} hide />
 
             {refAreaLeft && refAreaRight ? (
               <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#3B82F6" fillOpacity={0.1} />
@@ -552,30 +668,33 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
         <div>
             <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Date</Text>
             <Text size="lg" weight={600} color="white">{data.dateFormatted}</Text>
-            <Text size="xs" color="dimmed">{data.dateObj.toLocaleTimeString()}</Text>
+            <Text size="xs" color="dimmed">{data.dateObj?.toLocaleTimeString()}</Text>
         </div>
 
-        <div>
-            <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Price</Text>
-            <Stack spacing={4}>
-                {seriesVisibility.highPrice && (
-                    <Group position="apart">
-                        <Text size="sm" color={COLORS.sell}>Sell:</Text>
-                        <Text size="sm" weight={700} color={COLORS.sell}>
-                            {new Intl.NumberFormat().format(data.high)}
-                        </Text>
-                    </Group>
-                )}
-                {seriesVisibility.lowPrice && (
-                    <Group position="apart">
-                        <Text size="sm" color={COLORS.buy}>Buy:</Text>
-                        <Text size="sm" weight={700} color={COLORS.buy}>
-                            {new Intl.NumberFormat().format(data.low)}
-                        </Text>
-                    </Group>
-                )}
-            </Stack>
-        </div>
+        {/* Show price if available */}
+        {(data.high !== undefined || data.low !== undefined) && (
+            <div>
+                <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Price</Text>
+                <Stack spacing={4}>
+                    {seriesVisibility.highPrice && data.high !== undefined && (
+                        <Group position="apart">
+                            <Text size="sm" color={COLORS.sell}>Sell:</Text>
+                            <Text size="sm" weight={700} color={COLORS.sell}>
+                                {new Intl.NumberFormat().format(data.high)}
+                            </Text>
+                        </Group>
+                    )}
+                    {seriesVisibility.lowPrice && data.low !== undefined && (
+                        <Group position="apart">
+                            <Text size="sm" color={COLORS.buy}>Buy:</Text>
+                            <Text size="sm" weight={700} color={COLORS.buy}>
+                                {new Intl.NumberFormat().format(data.low)}
+                            </Text>
+                        </Group>
+                    )}
+                </Stack>
+            </div>
+        )}
 
         {(seriesVisibility.sma20 || seriesVisibility.ema20) && (
             <div>
@@ -601,27 +720,30 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
             </div>
         )}
 
-        <div>
-            <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Volume</Text>
-             <Stack spacing={4}>
-                {seriesVisibility.sellVolume && (
-                    <Group position="apart">
-                        <Text size="sm" color={COLORS.sell}>Sell Vol:</Text>
-                        <Text size="sm" weight={600} color="white">
-                            {new Intl.NumberFormat().format(data.sellVolume)}
-                        </Text>
-                    </Group>
-                )}
-                {seriesVisibility.buyVolume && (
-                    <Group position="apart">
-                        <Text size="sm" color={COLORS.buy}>Buy Vol:</Text>
-                        <Text size="sm" weight={600} color="white">
-                            {new Intl.NumberFormat().format(data.buyVolume)}
-                        </Text>
-                    </Group>
-                )}
-            </Stack>
-        </div>
+        {/* Show volume if available */}
+        {(data.sellVolume !== undefined || data.buyVolume !== undefined) && (
+            <div>
+                <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Volume</Text>
+                <Stack spacing={4}>
+                    {seriesVisibility.sellVolume && (
+                        <Group position="apart">
+                            <Text size="sm" color={COLORS.sell}>Sell Vol:</Text>
+                            <Text size="sm" weight={600} color="white">
+                                {new Intl.NumberFormat().format(data.sellVolume || 0)}
+                            </Text>
+                        </Group>
+                    )}
+                    {seriesVisibility.buyVolume && (
+                        <Group position="apart">
+                            <Text size="sm" color={COLORS.buy}>Buy Vol:</Text>
+                            <Text size="sm" weight={600} color="white">
+                                {new Intl.NumberFormat().format(data.buyVolume || 0)}
+                            </Text>
+                        </Group>
+                    )}
+                </Stack>
+            </div>
+        )}
 
         {data.updateData && (
             <Box mt="sm" p="xs" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>
@@ -724,7 +846,10 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
             {/* Charts Column */}
             <Stack spacing={0} style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
                 {/* Price Chart (Top) */}
-                <div style={{ flex: 3, width: '100%', minHeight: 0, padding: '10px 0 0 0' }}>
+                <div 
+                    style={{ flex: 3, width: '100%', minHeight: 0, padding: '10px 0 0 0', touchAction: 'none' }}
+                    onWheel={handleWheel}
+                >
                     {isLoading ? (
                         <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Text size="xs" color="dimmed">Loading data...</Text>

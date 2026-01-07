@@ -79,7 +79,9 @@ const SuggestedItems = lazy(() => import('./pages/SuggestedItems/index.jsx'))
 const Recipes = lazy(() => import('./pages/Recipes/index.jsx'))
 const GlobalRecipes = lazy(() => import('./pages/GlobalRecipes/index.jsx'))
 const AdminGlobalRecipes = lazy(() => import('./pages/Admin/GlobalRecipes.jsx'))
-const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions/index.jsx'))
+import TermsAndConditions from './pages/TermsAndConditions/index.jsx'
+import Contact from './pages/Contact/index.jsx'
+import Affiliate from './pages/Affiliate/index.jsx'
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -288,6 +290,8 @@ function AppContent () {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/email-verified" element={<EmailVerifiedPage />} />
             <Route path="/terms" element={<TermsAndConditions />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/affiliate" element={<Affiliate />} />
             <Route path="/" element={<Navigate to="/all-items" />} />
 
             {/* Protected routes */}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Text, Box, ActionIcon, Anchor } from '@mantine/core'
-import { IconUsers, IconExternalLink } from '@tabler/icons-react'
+import { IconUsers, IconExternalLink, IconBrandDiscord, IconBrandYoutube, IconMail } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { trpc } from '../../utils/trpc.jsx'
 
@@ -68,8 +68,46 @@ export default function Footer() {
           </Text>
         </Group>
 
-        {/* Links */}
+        {/* Links & Social */}
         <Group spacing="md" noWrap>
+          <Anchor
+            component={Link}
+            to="/contact"
+            size="sm"
+            color="dimmed"
+            style={{
+              textDecoration: 'none',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#667eea'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#9ca3af'
+            }}
+          >
+            Contact
+          </Anchor>
+
+          <Anchor
+            component={Link}
+            to="/affiliate"
+            size="sm"
+            color="dimmed"
+            style={{
+              textDecoration: 'none',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#f59e0b'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#9ca3af'
+            }}
+          >
+            Partner
+          </Anchor>
+
           <Anchor
             component={Link}
             to="/terms"
@@ -86,30 +124,54 @@ export default function Footer() {
               e.currentTarget.style.color = '#9ca3af'
             }}
           >
-            Terms & Privacy
+            Terms
           </Anchor>
           
-          <Anchor
-            href="https://discord.gg/BdDfzg4ZMQ"
-            target="_blank"
-            size="sm"
-            color="dimmed"
-            style={{
-              textDecoration: 'none',
-              transition: 'color 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#7289da'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#9ca3af'
-            }}
-          >
-            <Group spacing={4} noWrap>
-              Discord
-              <IconExternalLink size={12} />
-            </Group>
-          </Anchor>
+          {/* Social Icons */}
+          <Group spacing={8} noWrap>
+            <ActionIcon
+              onClick={() => window.open('https://discord.gg/BdDfzg4ZMQ', '_blank')}
+              variant="subtle"
+              color="gray"
+              size={32}
+              style={{
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 6px rgba(114, 137, 218, 0.6))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+              title="Join our Discord"
+            >
+              <IconBrandDiscord size={16} />
+            </ActionIcon>
+
+            <ActionIcon
+              onClick={() => console.log('YouTube link coming soon!')}
+              variant="subtle"
+              color="gray"
+              size={32}
+              style={{
+                transition: 'all 0.2s ease',
+                opacity: 0.4
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 6px rgba(255, 0, 0, 0.3))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+              title="YouTube coming soon!"
+            >
+              <IconBrandYoutube size={16} />
+            </ActionIcon>
+          </Group>
         </Group>
       </Group>
 
