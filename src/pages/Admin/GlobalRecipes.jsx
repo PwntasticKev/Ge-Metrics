@@ -7,189 +7,24 @@ import {
   Text,
   Badge,
   Card,
-  Button,
-  Alert,
-  ActionIcon,
-  Tooltip,
-  Select,
-  TextInput,
-  Table,
-  ScrollArea,
-  Paper,
-  Stack,
-  Image
+  Alert
 } from '@mantine/core'
 import {
   IconClock,
   IconRefresh,
-  IconInfoCircle,
-  IconEdit,
-  IconTrash,
-  IconSearch,
-  IconFilter
+  IconInfoCircle
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc.jsx'
 import { showNotification } from '@mantine/notifications'
-import { formatNumber, getRelativeTime } from '../../utils/utils.jsx'
-
-function AdminRecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems }) {
-  // Calculate recipe profitability
-  const calculateProfit = () => {
-    if (!allItems || !recipe.ingredients) return null
-    
-    let totalCost = recipe.conversionCost || 0
-    
-    // Add up ingredient costs (using low price to buy)
-    recipe.ingredients.forEach(ingredient => {
-      const item = allItems[ingredient.itemId]
-      if (item && item.low) {
-        totalCost += (item.low * ingredient.quantity)
-      }
-    })
-    
-    // Get output item sell price (using high price to sell)
-    const outputItem = allItems[recipe.outputItemId]
-    const sellPrice = outputItem?.high || 0
-    
-    // Calculate profit after 1% GE tax
-    const grossProfit = sellPrice - totalCost
-    const netProfit = Math.floor(grossProfit * 0.99) // 1% GE tax
-    
-    return {
-      totalCost,
-      sellPrice,
-      grossProfit,
-      netProfit,
-      marginPercentage: totalCost > 0 ? (grossProfit / totalCost) * 100 : 0
-    }
-  }
-
-  const profit = calculateProfit()
-
-  const getItemImageUrl = (itemId) => {
-    return `https://oldschool.runescape.wiki/images/c/c1/${itemId}.png`
-  }
-
-  return (
-    <tr>
-      <td>
-        <Group spacing="xs">
-          <Image
-            src={getItemImageUrl(recipe.outputItemId)}
-            width={32}
-            height={32}
-            fit="contain"
-            withPlaceholder
-            style={{ imageRendering: 'pixelated' }}
-          />
-          <div>
-            <Text size="sm" weight={500}>
-              {recipe.outputItemName}
-            </Text>
-            <Text size="xs" color="dimmed">
-              ID: {recipe.outputItemId}
-            </Text>
-          </div>
-        </Group>
-      </td>
-      
-      <td>
-        <div>
-          <Text size="sm" weight={500}>
-            {recipe.username}
-          </Text>
-          <Text size="xs" color="dimmed">
-            {recipe.userEmail}
-          </Text>
-        </div>
-      </td>
-
-      <td>
-        <Stack spacing={2}>
-          {recipe.ingredients?.slice(0, 2).map((ingredient, index) => (
-            <Group key={index} spacing="xs">
-              <Image
-                src={getItemImageUrl(ingredient.itemId)}
-                width={16}
-                height={16}
-                fit="contain"
-                withPlaceholder
-                style={{ imageRendering: 'pixelated' }}
-              />
-              <Text size="xs">
-                {ingredient.quantity}x {ingredient.itemName}
-              </Text>
-            </Group>
-          ))}
-          {recipe.ingredients && recipe.ingredients.length > 2 && (
-            <Text size="xs" color="dimmed">
-              +{recipe.ingredients.length - 2} more...
-            </Text>
-          )}
-        </Stack>
-      </td>
-
-      <td>
-        {profit && profit.netProfit !== null ? (
-          <Group spacing="xs">
-            <Text
-              size="sm"
-              weight={600}
-              color={profit.netProfit > 0 ? 'green' : profit.netProfit < 0 ? 'red' : 'gray'}
-            >
-              {profit.netProfit > 0 ? '+' : ''}{formatNumber(profit.netProfit)} GP
-            </Text>
-            <Badge
-              size="xs"
-              color={profit.marginPercentage > 0 ? 'green' : 'red'}
-              variant="outline"
-            >
-              {profit.marginPercentage.toFixed(1)}%
-            </Badge>
-          </Group>
-        ) : (
-          <Text size="sm" color="dimmed">N/A</Text>
-        )}
-      </td>
-
-      <td>
-        <Text size="xs" color="dimmed">
-          {new Date(recipe.createdAt).toLocaleDateString()}
-        </Text>
-      </td>
-
-      <td>
-        <Group spacing="xs">
-          <Tooltip label="Edit Recipe Globally">
-            <ActionIcon
-              size="sm"
-              color="blue"
-              onClick={() => onEdit(recipe)}
-            >
-              <IconEdit size={16} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Delete Recipe Globally">
-            <ActionIcon
-              size="sm"
-              color="red"
-              loading={isDeleting}
-              onClick={() => onDelete(recipe.id)}
-            >
-              <IconTrash size={16} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </td>
-    </tr>
-  )
-}
+import { getRelativeTime } from '../../utils/utils.jsx'
+import ItemData from '../../utils/item-data.jsx'
+import RecipesTable from '../Recipes/components/RecipesTable.jsx'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 export default function GlobalRecipes() {
+  const { items } = ItemData()
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('createdAt')
-  const [sortOrder, setSortOrder] = useState('desc')
+  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
   
   // Fetch all recipes (admin only)
   const { 
@@ -198,17 +33,12 @@ export default function GlobalRecipes() {
     error, 
     refetch: refetchRecipes 
   } = trpc.recipes.getAllRecipes.useQuery({
-    limit: 100,
-    offset: 0,
-    sortBy,
-    sortOrder
+    limit: 1000, // Fetch more since we do client side sorting now
+    offset: 0
   })
 
   // Get global recipe stats
   const { data: globalStats } = trpc.recipes.getGlobalRecipeStats.useQuery()
-
-  // Get current items data for profit calculations
-  const { data: allItems } = trpc.items.getAllItems.useQuery()
 
   // Delete recipe mutation (admin)
   const deleteRecipeGloballyMutation = trpc.recipes.deleteRecipeGlobally.useMutation({
@@ -252,16 +82,6 @@ export default function GlobalRecipes() {
     })
   }
 
-  // Filter recipes based on search
-  const filteredRecipes = allRecipes?.filter(recipe =>
-    recipe.outputItemName.toLowerCase().includes(search.toLowerCase()) ||
-    recipe.username.toLowerCase().includes(search.toLowerCase()) ||
-    recipe.userEmail.toLowerCase().includes(search.toLowerCase()) ||
-    recipe.ingredients?.some(ingredient =>
-      ingredient.itemName.toLowerCase().includes(search.toLowerCase())
-    )
-  ) || []
-
   if (isLoading) {
     return (
       <Center maw={400} h={300} mx="auto">
@@ -295,10 +115,10 @@ export default function GlobalRecipes() {
             </Group>
           </Badge>
           <Badge
-            color={filteredRecipes?.length > 0 ? 'green' : 'orange'}
+            color={allRecipes?.length > 0 ? 'green' : 'orange'}
             size="lg"
           >
-            {filteredRecipes?.length || 0} Recipes
+            {allRecipes?.length || 0} Recipes
           </Badge>
         </Group>
       </Group>
@@ -341,83 +161,21 @@ export default function GlobalRecipes() {
         </Card>
       </Group>
 
-      {/* Filters and Search */}
-      <Group mb="md">
-        <TextInput
-          placeholder="Search recipes, users, or items..."
-          icon={<IconSearch size={16} />}
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
-          style={{ minWidth: 300 }}
-        />
-        <Select
-          placeholder="Sort by"
-          icon={<IconFilter size={16} />}
-          data={[
-            { value: 'createdAt', label: 'Date Created' },
-            { value: 'outputItemName', label: 'Recipe Name' },
-            { value: 'username', label: 'Creator' }
-          ]}
-          value={sortBy}
-          onChange={setSortBy}
-        />
-        <Select
-          data={[
-            { value: 'desc', label: 'Descending' },
-            { value: 'asc', label: 'Ascending' }
-          ]}
-          value={sortOrder}
-          onChange={setSortOrder}
-        />
-      </Group>
+      <RecipesTable
+        recipes={allRecipes || []}
+        items={items}
+        onEdit={handleEditRecipe}
+        onDelete={handleDeleteRecipe}
+        isDeleting={deleteRecipeGloballyMutation.isLoading}
+        setGraphInfo={setGraphInfo}
+        showUserColumn={true}
+      />
 
-      {/* Recipes Table */}
-      {filteredRecipes && filteredRecipes.length > 0 ? (
-        <Paper withBorder style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-          <ScrollArea>
-            <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
-              <thead>
-                <tr style={{ borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>
-                  <th style={{ color: 'white', fontWeight: 600 }}>Recipe</th>
-                  <th style={{ color: 'white', fontWeight: 600 }}>Creator</th>
-                  <th style={{ color: 'white', fontWeight: 600 }}>Ingredients</th>
-                  <th style={{ color: 'white', fontWeight: 600 }}>Profit</th>
-                  <th style={{ color: 'white', fontWeight: 600 }}>Created</th>
-                  <th style={{ color: 'white', fontWeight: 600 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecipes.map((recipe) => (
-                  <AdminRecipeRow
-                    key={recipe.id}
-                    recipe={recipe}
-                    onEdit={handleEditRecipe}
-                    onDelete={handleDeleteRecipe}
-                    isDeleting={deleteRecipeGloballyMutation.isLoading}
-                    allItems={allItems}
-                  />
-                ))}
-              </tbody>
-            </Table>
-          </ScrollArea>
-        </Paper>
-      ) : (
-        <Card withBorder p="xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-          <Center>
-            <div style={{ textAlign: 'center' }}>
-              <Text size="lg" weight={600} color="white" mb="sm">
-                {search ? 'No Matching Recipes' : 'No Recipes Found'}
-              </Text>
-              <Text size="sm" color="rgba(255, 255, 255, 0.7)">
-                {search 
-                  ? 'Try adjusting your search criteria.'
-                  : 'Users haven\'t created any recipes yet.'
-                }
-              </Text>
-            </div>
-          </Center>
-        </Card>
-      )}
+      <GraphModal
+        opened={graphInfo.open}
+        onClose={() => setGraphInfo({ open: false, item: null })}
+        item={graphInfo.item}
+      />
     </Box>
   )
 }

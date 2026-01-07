@@ -18,7 +18,8 @@ import {
   rem,
   Center,
   UnstyledButton,
-  useMantineTheme
+  useMantineTheme,
+  Flex
 } from '@mantine/core'
 import {
   IconEdit,
@@ -38,7 +39,8 @@ import {
   IconHeart
 } from '@tabler/icons-react'
 import MiniChart from '../../../components/charts/MiniChart.jsx'
-import { formatNumber } from '../../../utils/utils.jsx'
+import { formatNumber, calculateGETax } from '../../../utils/utils.jsx'
+import { useMediaQuery } from '@mantine/hooks'
 import { trpc } from '../../../utils/trpc.jsx'
 
 const useStyles = createStyles((theme) => ({
@@ -105,8 +107,9 @@ function Th({ children, reversed, sorted, onSort }) {
   )
 }
 
-function RecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems, items, onToggleFavorite, favoriteItemIds = new Set() }) {
+function RecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems, items, onToggleFavorite, favoriteItemIds = new Set(), setGraphInfo, showUserColumn = false }) {
   const theme = useMantineTheme()
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const isFavorite = favoriteItemIds.has(recipe.id)
   
   const calculateProfit = () => {
@@ -124,15 +127,14 @@ function RecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems, items, onTo
     const outputItem = allItems[recipe.outputItemId]
     const sellPrice = outputItem?.high || 0
     
-    const grossProfit = sellPrice - totalCost
-    const netProfit = Math.floor(grossProfit * 0.99)
+    const tax = calculateGETax(sellPrice)
+    const netProfit = sellPrice - totalCost - tax
     
     return {
       totalCost,
       sellPrice,
-      grossProfit,
       netProfit,
-      marginPercentage: totalCost > 0 ? (grossProfit / totalCost) * 100 : 0
+      marginPercentage: totalCost > 0 ? (netProfit / totalCost) * 100 : 0
     }
   }
 
@@ -148,106 +150,111 @@ function RecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems, items, onTo
 
   return (
     <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-      <td style={{ textAlign: 'center', padding: '12px 8px' }}>
-        <Center>
-          <Image
-            height={32}
-            width={32}
-            src={getItemImageUrl(recipe.outputItemId)}
-            withPlaceholder
-            style={{ imageRendering: 'pixelated' }}
-          />
-        </Center>
+      <td colSpan={1} style={{ verticalAlign: 'middle', padding: '8px' }}>
+        <Image
+          height={32}
+          width={32}
+          src={getItemImageUrl(recipe.outputItemId)}
+          withPlaceholder
+          style={{ 
+            imageRendering: 'pixelated',
+            objectFit: 'contain'
+          }}
+        />
       </td>
 
-      <td style={{ padding: '12px 8px' }}>
-        <Text size="sm" weight={500} color="white">
-          {recipe.outputItemName}
-        </Text>
-        <Text size="xs" color="dimmed" lineClamp={1}>
-          Recipe with {recipe.ingredients?.length || 0} ingredient{(recipe.ingredients?.length || 0) !== 1 ? 's' : ''}
-        </Text>
-      </td>
-      
-      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-        <Text size="sm" weight={500} color="white">
-          {profit ? formatNumber(profit.totalCost) : 'N/A'}
-        </Text>
-        <Text size="xs" color="dimmed">
-          GP
-        </Text>
-      </td>
-
-      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-        <Text size="sm" weight={500} color="white">
-          {profit && profit.sellPrice > 0 ? formatNumber(profit.sellPrice) : 'N/A'}
-        </Text>
-        <Text size="xs" color="dimmed">
-          GP
-        </Text>
-      </td>
-      
-      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-        <Group spacing={4} position="right" noWrap>
-          <IconCoins size={14} color={profit?.netProfit > 0 ? theme.colors.green[5] : theme.colors.red[5]} />
-          <Text
-            size="sm"
-            weight={600}
-            color={profit?.netProfit > 0 ? 'green' : 'red'}
-          >
-            {profit ? formatNumber(profit.netProfit) : 'N/A'}
+      <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+        <div>
+          <Text size="sm" weight={500} color="white">
+            {recipe.outputItemName}
           </Text>
-        </Group>
-        <Text size="xs" color="dimmed">
-          {profit ? `${profit.marginPercentage.toFixed(1)}%` : '0%'}
-        </Text>
+        </div>
       </td>
       
-      <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-        <MiniChart itemId={recipe.outputItemId} width={120} height={40} currentPrice={profit?.sellPrice || 0} />
+      <td colSpan={2} style={{ verticalAlign: 'middle', padding: '8px' }}>
+        {recipe.ingredients?.filter(Boolean).map((ingredient, idx) => (
+          <Flex key={idx}>
+            <Tooltip label={
+              ingredient.quantity
+                ? `${ingredient.itemName} (${ingredient.quantity})`
+                : ingredient.itemName
+            } position="left">
+              <div>
+                <Image 
+                  fit="contain" 
+                  width={25} 
+                  height={25} 
+                  src={getItemImageUrl(ingredient.itemId)}
+                  style={{ 
+                    marginRight: '8px',
+                    imageRendering: 'pixelated',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+            </Tooltip>
+            <div>
+              {new Intl.NumberFormat().format(allItems?.[ingredient.itemId]?.low || 0)}
+              {ingredient.quantity > 1 && (
+                <Text component="span" size="6px" color="dimmed" style={{ marginLeft: '4px' }}>({ingredient.quantity})</Text>
+              )}
+            </div>
+          </Flex>
+        ))}
+      </td>
+
+      <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+        {new Intl.NumberFormat().format(allItems?.[recipe.outputItemId]?.high || 0)}
+      </td>
+
+      <td style={{
+        color: profit?.netProfit > 0 ? theme.colors.green[7] : theme.colors.red[9],
+        fontWeight: 'bold',
+        verticalAlign: 'middle',
+        padding: '8px'
+      }}>
+        {new Intl.NumberFormat().format(profit?.netProfit || 0)}
       </td>
       
-      <td style={{ padding: '12px 8px' }}>
-        <Group spacing="xs" noWrap>
+      <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+        <MiniChart itemId={recipe.outputItemId} width={120} height={40} currentPrice={allItems?.[recipe.outputItemId]?.high || 0} />
+      </td>
+
+      {showUserColumn && (
+        <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+          <Text size="sm" weight={500} color="white">
+            {recipe.username || 'Unknown'}
+          </Text>
+        </td>
+      )}
+      
+      <td style={{ verticalAlign: 'middle', padding: '8px' }}>
+        <Flex gap="xs">
           <ActionIcon
-            size="sm"
-            color="red"
-            variant={isFavorite ? 'filled' : 'subtle'}
-            onClick={() => onToggleFavorite?.(recipe.id)}
-          >
-            {isFavorite ? <IconHeartFilled size={16} /> : <IconHeart size={16} />}
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
+            variant="light"
             color="blue"
-            size="sm"
+            onClick={() => setGraphInfo?.({ open: true, item: { id: recipe.outputItemId, items } })}
+            size={isMobile ? 'sm' : 'md'}
           >
-            <IconChartHistogram size={16} />
+            <IconChartHistogram size={isMobile ? 14 : 16} />
           </ActionIcon>
-          <ActionIcon
-            size="sm"
-            color="blue"
-            variant="subtle"
-            onClick={() => onEdit(recipe)}
-          >
-            <IconEdit size={16} />
-          </ActionIcon>
-          <ActionIcon
-            size="sm"
-            color="red"
-            variant="subtle"
-            loading={isDeleting}
-            onClick={() => onDelete(recipe.id)}
-          >
-            <IconTrash size={16} />
-          </ActionIcon>
-        </Group>
+          {onEdit && (
+            <ActionIcon
+              variant="light"
+              color="yellow"
+              onClick={() => onEdit(recipe)}
+              size={isMobile ? 'sm' : 'md'}
+            >
+              <IconEdit size={isMobile ? 14 : 16} />
+            </ActionIcon>
+          )}
+        </Flex>
       </td>
     </tr>
   )
 }
 
-export default function RecipesTable({ recipes, items, onEdit, onDelete, isDeleting }) {
+export default function RecipesTable({ recipes, items, onEdit, onDelete, isDeleting, setGraphInfo, showUserColumn = false }) {
   const { classes, cx } = useStyles()
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('profit')
@@ -285,16 +292,15 @@ export default function RecipesTable({ recipes, items, onEdit, onDelete, isDelet
     const outputItem = allItems[recipe.outputItemId]
     const sellPrice = outputItem?.high || 0
     
-    // Calculate profit after 1% GE tax
-    const grossProfit = sellPrice - totalCost
-    const netProfit = Math.floor(grossProfit * 0.99) // 1% GE tax
+    // Calculate profit after GE tax
+    const tax = calculateGETax(sellPrice)
+    const netProfit = sellPrice - totalCost - tax
     
     return {
       totalCost,
       sellPrice,
-      grossProfit,
       netProfit,
-      marginPercentage: totalCost > 0 ? (grossProfit / totalCost) * 100 : 0
+      marginPercentage: totalCost > 0 ? (netProfit / totalCost) * 100 : 0
     }
   }
 
@@ -337,6 +343,10 @@ export default function RecipesTable({ recipes, items, onEdit, onDelete, isDelet
         case 'name':
           aValue = a.outputItemName.toLowerCase()
           bValue = b.outputItemName.toLowerCase()
+          break
+        case 'username':
+          aValue = (a.username || '').toLowerCase()
+          bValue = (b.username || '').toLowerCase()
           break
         default:
           return 0
@@ -390,7 +400,8 @@ export default function RecipesTable({ recipes, items, onEdit, onDelete, isDelet
                 data={[
                   { value: 'profit', label: 'Profit' },
                   { value: 'name', label: 'Recipe Name' },
-                  { value: 'sellPrice', label: 'Sell Price' }
+                  { value: 'sellPrice', label: 'Sell Price' },
+                  { value: 'username', label: 'User' }
                 ]}
                 value={sortBy}
                 onChange={setSortBy}
@@ -437,37 +448,39 @@ export default function RecipesTable({ recipes, items, onEdit, onDelete, isDelet
 
       {/* Table */}
       <ScrollArea 
-        h={600}
         onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
       >
         <Table sx={{ minWidth: 800 }} verticalSpacing="xs">
           <thead className={cx(classes.header, { [classes.scrolled]: scrolled })}>
             <tr>
-              <th className={classes.th}><Text fz="sm">Item</Text></th>
-              <Th 
-                sorted={sortBy === 'name'} 
-                reversed={reverseSortDirection} 
-                onSort={() => setSorting('name')}
-              >
-                Name
-              </Th>
-              <th className={classes.th}><Text fz="sm">Buy Price</Text></th>
-              <Th 
-                sorted={sortBy === 'sellPrice'} 
-                reversed={reverseSortDirection} 
+              <th colSpan={1}>Img</th>
+              <th>Name</th>
+              <th colSpan={2}>Items</th>
+              <Th
+                sorted={sortBy === 'sellPrice'}
+                reversed={reverseSortDirection}
                 onSort={() => setSorting('sellPrice')}
               >
                 Sell Price
               </Th>
-              <Th 
-                sorted={sortBy === 'profit'} 
-                reversed={reverseSortDirection} 
+              <Th
+                sorted={sortBy === 'profit'}
+                reversed={reverseSortDirection}
                 onSort={() => setSorting('profit')}
               >
                 Profit
               </Th>
-              <th className={classes.th}><Text fz="sm">Chart</Text></th>
-              <th className={classes.th}><Text fz="sm">Actions</Text></th>
+              <th>Chart</th>
+              {showUserColumn && (
+                <Th 
+                  sorted={sortBy === 'username'} 
+                  reversed={reverseSortDirection} 
+                  onSort={() => setSorting('username')}
+                >
+                  User
+                </Th>
+              )}
+              <th>Settings</th>
             </tr>
           </thead>
           <tbody>
@@ -480,6 +493,8 @@ export default function RecipesTable({ recipes, items, onEdit, onDelete, isDelet
                 isDeleting={isDeleting}
                 allItems={allItems}
                 items={items}
+                setGraphInfo={setGraphInfo}
+                showUserColumn={showUserColumn}
               />
             ))}
           </tbody>

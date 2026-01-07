@@ -862,10 +862,12 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
   itemId: integer('item_id').notNull(),
   itemName: text('item_name').notNull(),
   quantity: integer('quantity').default(1).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   recipeIdIdx: index('recipe_ingredients_recipe_id_idx').on(table.recipeId),
-  itemIdIdx: index('recipe_ingredients_item_id_idx').on(table.itemId)
+  itemIdIdx: index('recipe_ingredients_item_id_idx').on(table.itemId),
+  sortOrderIdx: index('recipe_ingredients_sort_order_idx').on(table.recipeId, table.sortOrder)
 }))
 
 // Validation schemas for recipes

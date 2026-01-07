@@ -22,6 +22,7 @@ import ItemData from '../../utils/item-data.jsx'
 import RecipeCreationModal from './components/RecipeCreationModal.jsx'
 import RecipeEditModal from './components/RecipeEditModal.jsx'
 import RecipesTable from './components/RecipesTable.jsx'
+import GraphModal from '../../shared/modals/graph-modal.jsx'
 
 export default function UserRecipes() {
   const { items, mapStatus, priceStatus } = ItemData()
@@ -29,8 +30,9 @@ export default function UserRecipes() {
   const [creationModalOpen, setCreationModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedRecipe, setSelectedRecipe] = useState(null)
+  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
   
-  // Fetch user recipes
+  // Fetch user's own recipes
   const { 
     data: userRecipes, 
     isLoading, 
@@ -120,7 +122,7 @@ export default function UserRecipes() {
           <div>
             <Text size="xl" weight={700} color="white">My Recipes</Text>
             <Text size="sm" color="rgba(255, 255, 255, 0.7)">
-              Create and manage your custom item combinations. Track profit opportunities for your recipes.
+              Manage your custom item combinations. Track profit opportunities for your recipes.
             </Text>
           </div>
           <Group spacing="md">
@@ -134,12 +136,12 @@ export default function UserRecipes() {
               color={userRecipes?.length > 0 ? 'green' : 'orange'}
               size="lg"
             >
-              {userRecipes?.length || 0} / 200 Recipes
+              {userRecipes?.length || 0} / 300 Recipes
             </Badge>
             <Button
               leftIcon={<IconPlus size={16} />}
               onClick={() => setCreationModalOpen(true)}
-              disabled={(recipeCount || 0) >= 200}
+              disabled={(recipeCount || 0) >= 300}
             >
               Create Recipe
             </Button>
@@ -152,7 +154,7 @@ export default function UserRecipes() {
               <Text weight={500} size="sm" color="white">Recipe Status</Text>
               <Text size="xs" color="rgba(255, 255, 255, 0.7)">
                 {userRecipes?.length || 0} custom recipes created •
-                {200 - (recipeCount || 0)} slots remaining
+                {300 - (recipeCount || 0)} slots remaining
               </Text>
             </div>
             <Badge color="green">
@@ -164,9 +166,9 @@ export default function UserRecipes() {
           </Group>
         </Card>
 
-        {(recipeCount || 0) >= 200 && (
+        {(recipeCount || 0) >= 300 && (
           <Alert color="yellow" icon={<IconInfoCircle size={16} />} mb="md">
-            You have reached the maximum limit of 200 recipes. Delete some recipes to create new ones.
+            You have reached the maximum limit of 300 recipes. Delete some recipes to create new ones.
           </Alert>
         )}
 
@@ -177,16 +179,18 @@ export default function UserRecipes() {
             onEdit={handleEditRecipe}
             onDelete={handleDeleteRecipe}
             isDeleting={deleteRecipeMutation.isLoading}
+            setGraphInfo={setGraphInfo}
+            showUserColumn={false}
           />
         ) : (
           <Card withBorder p="xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
             <Center>
               <div style={{ textAlign: 'center' }}>
                 <Text size="lg" weight={600} color="white" mb="sm">
-                  No Recipes Yet
+                  No Recipes Created
                 </Text>
                 <Text size="sm" color="rgba(255, 255, 255, 0.7)" mb="lg">
-                  Create your first custom recipe to track profit opportunities for item combinations.
+                  Create your first custom recipe to track profit opportunities for item combinations you discover.
                 </Text>
                 <Button
                   leftIcon={<IconPlus size={16} />}
@@ -221,6 +225,13 @@ export default function UserRecipes() {
           items={items}
         />
       )}
+      
+      {/* Graph Modal */}
+      <GraphModal
+        opened={graphInfo.open}
+        onClose={() => setGraphInfo({ open: false, item: null })}
+        item={graphInfo.item}
+      />
     </PremiumPageWrapper>
   )
 }

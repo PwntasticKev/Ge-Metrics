@@ -529,6 +529,21 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           hasAccess={hasAccess}
         />
 
+        {/* Global Recipes removed from public menu */}
+        {/*
+        <MainLink
+          icon={<IconUsers size="1rem"/>}
+          color="cyan"
+          label="Global Recipes"
+          link="/global-recipes"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+        */}
+
         {/* Herblore Submenu */}
         <SubmenuLink
           icon={<IconFlask size="1rem"/>}

@@ -52,9 +52,9 @@ setTimeout(async () => {
       console.log(`[Startup] Item volumes table has ${volumeCount.length} items`)
     }
 
-    // Verify email connection
-    const { verifyEmailConnection } = await import('./services/emailService.js')
-    await verifyEmailConnection()
+    // Verify email connection (temporarily disabled due to missing AWS SDK)
+    // const { verifyEmailConnection } = await import('./services/emailService.js')
+    // await verifyEmailConnection()
 
     // Seed cron jobs if they don't exist
     const { seedCronJobs } = await import('./scripts/seedCronJobs.js')

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Modal,
   Stack,
@@ -15,16 +15,21 @@ import {
 } from '@mantine/core'
 import {
   IconTrash,
-  IconInfoCircle
+  IconInfoCircle,
+  IconGripVertical,
+  IconChevronUp,
+  IconChevronDown
 } from '@tabler/icons-react'
 import { trpc } from '../../../utils/trpc.jsx'
 import { showNotification } from '@mantine/notifications'
-import { formatNumber } from '../../../utils/utils.jsx'
+import { formatNumber, calculateGETax } from '../../../utils/utils.jsx'
 
 export default function RecipeEditModal({ opened, onClose, recipe, onSuccess, items }) {
   const [ingredients, setIngredients] = useState([])
   const [conversionCost, setConversionCost] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const dragItem = useRef(null)
+  const dragOverItem = useRef(null)
 
   // Update recipe mutation
   const updateRecipeMutation = trpc.recipes.updateRecipe.useMutation({
@@ -102,6 +107,56 @@ export default function RecipeEditModal({ opened, onClose, recipe, onSuccess, it
     setIngredients(prev => prev.filter(ing => ing.itemId !== itemId))
   }
 
+  const handleMoveIngredientUp = (index) => {
+    if (index === 0) return
+    setIngredients(prev => {
+      const newIngredients = [...prev]
+      const temp = newIngredients[index]
+      newIngredients[index] = newIngredients[index - 1]
+      newIngredients[index - 1] = temp
+      return newIngredients
+    })
+  }
+
+  const handleMoveIngredientDown = (index) => {
+    if (index === ingredients.length - 1) return
+    setIngredients(prev => {
+      const newIngredients = [...prev]
+      const temp = newIngredients[index]
+      newIngredients[index] = newIngredients[index + 1]
+      newIngredients[index + 1] = temp
+      return newIngredients
+    })
+  }
+
+  const handleDragStart = (e, index) => {
+    dragItem.current = index
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index)
+  }
+
+  const handleDragEnter = (e, index) => {
+    dragOverItem.current = index
+  }
+
+  const handleDragEnd = () => {
+    const dragIndex = dragItem.current
+    const dragOverIndex = dragOverItem.current
+
+    if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
+      setIngredients(prev => {
+        const newIngredients = [...prev]
+        const draggedItemContent = newIngredients[dragIndex]
+        newIngredients.splice(dragIndex, 1)
+        newIngredients.splice(dragOverIndex, 0, draggedItemContent)
+        return newIngredients
+      })
+    }
+
+    dragItem.current = null
+    dragOverItem.current = null
+  }
+
   const handleSubmit = async () => {
     if (ingredients.length === 0) {
       showNotification({
@@ -117,10 +172,11 @@ export default function RecipeEditModal({ opened, onClose, recipe, onSuccess, it
     await updateRecipeMutation.mutateAsync({
       id: recipe.id,
       conversionCost: conversionCost || 0,
-      ingredients: ingredients.map(ing => ({
+      ingredients: ingredients.map((ing, index) => ({
         itemId: ing.itemId,
         itemName: ing.itemName,
-        quantity: ing.quantity
+        quantity: ing.quantity,
+        sortOrder: index
       }))
     })
   }
@@ -133,14 +189,15 @@ export default function RecipeEditModal({ opened, onClose, recipe, onSuccess, it
       sum + ((allItems[ing.itemId]?.low || 0) * ing.quantity), 0
     )
     const sellPrice = outputItem?.high || 0
-    const grossProfit = sellPrice - totalCost
-    const netProfit = Math.floor(grossProfit * 0.99) // 1% GE tax
+    
+    const tax = calculateGETax(sellPrice)
+    const netProfit = sellPrice - totalCost - tax
 
     return {
       totalCost,
       sellPrice,
       netProfit,
-      marginPercentage: totalCost > 0 ? (grossProfit / totalCost) * 100 : 0
+      marginPercentage: totalCost > 0 ? (netProfit / totalCost) * 100 : 0
     }
   }
 
@@ -194,17 +251,60 @@ export default function RecipeEditModal({ opened, onClose, recipe, onSuccess, it
           
           {ingredients.length > 0 ? (
             <Stack spacing="xs">
-              {ingredients.map((ingredient) => (
-                <Paper key={ingredient.itemId} withBorder p="sm">
+              {ingredients.map((ingredient, index) => (
+                <Paper 
+                  key={ingredient.itemId} 
+                  withBorder 
+                  p="sm"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnter={(e) => handleDragEnter(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  style={{ cursor: 'move' }}
+                >
                   <Group spacing="sm" position="apart">
-                    <Group spacing="sm">
+                    <Group spacing="sm" style={{ flex: 1 }}>
+                      {/* Drag Handle */}
+                      <Group spacing="xs" noWrap>
+                        <IconGripVertical 
+                          size={16} 
+                          color="#666" 
+                          style={{ cursor: 'grab' }}
+                        />
+                        <Stack spacing={0}>
+                          <ActionIcon
+                            size="xs"
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => handleMoveIngredientUp(index)}
+                            disabled={index === 0}
+                          >
+                            <IconChevronUp size={12} />
+                          </ActionIcon>
+                          <ActionIcon
+                            size="xs"
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => handleMoveIngredientDown(index)}
+                            disabled={index === ingredients.length - 1}
+                          >
+                            <IconChevronDown size={12} />
+                          </ActionIcon>
+                        </Stack>
+                      </Group>
+
                       <Image
                         src={ingredient.img}
-                        width={32}
-                        height={32}
+                        width={40}
+                        height={40}
                         fit="contain"
                         withPlaceholder
-                        style={{ imageRendering: 'pixelated' }}
+                        style={{ 
+                          imageRendering: 'pixelated',
+                          minWidth: '40px',
+                          minHeight: '40px'
+                        }}
                       />
                       <div>
                         <Text size="sm" weight={500}>{ingredient.itemName}</Text>
@@ -213,6 +313,7 @@ export default function RecipeEditModal({ opened, onClose, recipe, onSuccess, it
                         </Text>
                       </div>
                     </Group>
+                    
                     <Group spacing="sm">
                       <NumberInput
                         value={ingredient.quantity}

@@ -9,7 +9,7 @@ export const recipesRouter = router({
   // Get user's recipes with pagination
   getUserRecipes: protectedProcedure
     .input(z.object({
-      limit: z.number().min(1).max(100).default(50),
+      limit: z.number().min(1).max(1000).default(50),
       offset: z.number().min(0).default(0)
     }))
     .query(async ({ ctx, input }) => {
@@ -31,7 +31,7 @@ export const recipesRouter = router({
                   'itemName', ${recipeIngredients.itemName},
                   'quantity', ${recipeIngredients.quantity}
                 )
-                ORDER BY ${recipeIngredients.createdAt}
+                ORDER BY ${recipeIngredients.sortOrder}, ${recipeIngredients.createdAt}
               ) FILTER (WHERE ${recipeIngredients.id} IS NOT NULL),
               '[]'::json
             )
@@ -77,7 +77,8 @@ export const recipesRouter = router({
       ingredients: z.array(z.object({
         itemId: z.number().positive(),
         itemName: z.string().min(1).max(255),
-        quantity: z.number().positive().default(1)
+        quantity: z.number().positive().default(1),
+        sortOrder: z.number().nonnegative().optional()
       })).min(1).max(50) // Max 50 ingredients per recipe
     }))
     .mutation(async ({ ctx, input }) => {
@@ -89,10 +90,10 @@ export const recipesRouter = router({
         .from(recipes)
         .where(eq(recipes.userId, userId))
       
-      if ((userRecipeCount[0]?.count || 0) >= 200) {
+      if ((userRecipeCount[0]?.count || 0) >= 300) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'You have reached the maximum limit of 200 recipes. Please delete some recipes before creating new ones.'
+          message: 'You have reached the maximum limit of 300 recipes. Please delete some recipes before creating new ones.'
         })
       }
 
@@ -132,11 +133,12 @@ export const recipesRouter = router({
       await db
         .insert(recipeIngredients)
         .values(
-          input.ingredients.map(ingredient => ({
+          input.ingredients.map((ingredient, index) => ({
             recipeId: newRecipe[0].id,
             itemId: ingredient.itemId,
             itemName: ingredient.itemName,
-            quantity: ingredient.quantity
+            quantity: ingredient.quantity,
+            sortOrder: ingredient.sortOrder ?? index
           }))
         )
 
@@ -157,7 +159,8 @@ export const recipesRouter = router({
       ingredients: z.array(z.object({
         itemId: z.number().positive(),
         itemName: z.string().min(1).max(255),
-        quantity: z.number().positive().default(1)
+        quantity: z.number().positive().default(1),
+        sortOrder: z.number().nonnegative().optional()
       })).min(1).max(50).optional()
     }))
     .mutation(async ({ ctx, input }) => {
@@ -219,11 +222,12 @@ export const recipesRouter = router({
         await db
           .insert(recipeIngredients)
           .values(
-            input.ingredients.map(ingredient => ({
+            input.ingredients.map((ingredient, index) => ({
               recipeId: id,
               itemId: ingredient.itemId,
               itemName: ingredient.itemName,
-              quantity: ingredient.quantity
+              quantity: ingredient.quantity,
+              sortOrder: ingredient.sortOrder ?? index
             }))
           )
       }
@@ -267,12 +271,70 @@ export const recipesRouter = router({
       return { success: true }
     }),
 
+  // Get global recipes (public view)
+  getGlobalRecipes: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(1000).default(50),
+      offset: z.number().min(0).default(0),
+      sortBy: z.enum(['createdAt', 'outputItemName', 'username', 'profit']).default('createdAt'),
+      sortOrder: z.enum(['asc', 'desc']).default('desc')
+    }))
+    .query(async ({ input }) => {
+      
+      const globalRecipes = await db
+        .select({
+          id: recipes.id,
+          userId: recipes.userId,
+          outputItemId: recipes.outputItemId,
+          outputItemName: recipes.outputItemName,
+          conversionCost: recipes.conversionCost,
+          createdAt: recipes.createdAt,
+          updatedAt: recipes.updatedAt,
+          username: users.username,
+          ingredients: sql<any[]>`
+            COALESCE(
+              JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'itemId', ${recipeIngredients.itemId},
+                  'itemName', ${recipeIngredients.itemName},
+                  'quantity', ${recipeIngredients.quantity}
+                )
+                ORDER BY ${recipeIngredients.sortOrder}, ${recipeIngredients.createdAt}
+              ) FILTER (WHERE ${recipeIngredients.id} IS NOT NULL),
+              '[]'::json
+            )
+          `
+        })
+        .from(recipes)
+        .innerJoin(users, eq(recipes.userId, users.id))
+        .leftJoin(recipeIngredients, eq(recipes.id, recipeIngredients.recipeId))
+        .groupBy(
+          recipes.id,
+          recipes.userId,
+          recipes.outputItemId,
+          recipes.outputItemName,
+          recipes.conversionCost,
+          recipes.createdAt,
+          recipes.updatedAt,
+          users.username
+        )
+        .orderBy(
+          input.sortOrder === 'desc' 
+            ? desc(input.sortBy === 'username' ? users.username : input.sortBy === 'outputItemName' ? recipes.outputItemName : recipes.createdAt)
+            : (input.sortBy === 'username' ? users.username : input.sortBy === 'outputItemName' ? recipes.outputItemName : recipes.createdAt)
+        )
+        .limit(input.limit)
+        .offset(input.offset)
+
+      return globalRecipes
+    }),
+
   // ===== ADMIN ROUTES =====
 
   // Get all recipes (admin only)
   getAllRecipes: adminProcedure
     .input(z.object({
-      limit: z.number().min(1).max(100).default(50),
+      limit: z.number().min(1).max(1000).default(50),
       offset: z.number().min(0).default(0),
       sortBy: z.enum(['createdAt', 'outputItemName', 'username']).default('createdAt'),
       sortOrder: z.enum(['asc', 'desc']).default('desc')
@@ -298,7 +360,7 @@ export const recipesRouter = router({
                   'itemName', ${recipeIngredients.itemName},
                   'quantity', ${recipeIngredients.quantity}
                 )
-                ORDER BY ${recipeIngredients.createdAt}
+                ORDER BY ${recipeIngredients.sortOrder}, ${recipeIngredients.createdAt}
               ) FILTER (WHERE ${recipeIngredients.id} IS NOT NULL),
               '[]'::json
             )
@@ -355,7 +417,8 @@ export const recipesRouter = router({
       ingredients: z.array(z.object({
         itemId: z.number().positive(),
         itemName: z.string().min(1).max(255),
-        quantity: z.number().positive().default(1)
+        quantity: z.number().positive().default(1),
+        sortOrder: z.number().nonnegative().optional()
       })).min(1).max(50).optional()
     }))
     .mutation(async ({ input }) => {
@@ -410,11 +473,12 @@ export const recipesRouter = router({
         await db
           .insert(recipeIngredients)
           .values(
-            input.ingredients.map(ingredient => ({
+            input.ingredients.map((ingredient, index) => ({
               recipeId: id,
               itemId: ingredient.itemId,
               itemName: ingredient.itemName,
-              quantity: ingredient.quantity
+              quantity: ingredient.quantity,
+              sortOrder: ingredient.sortOrder ?? index
             }))
           )
       }

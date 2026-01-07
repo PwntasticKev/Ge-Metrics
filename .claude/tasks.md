@@ -1,61 +1,93 @@
 # Recipe System Upgrade - Complete
 
-## Overview
-Successfully upgraded the entire Recipes system to match the Combination Items page design exactly. This involved fixing image loading issues, redesigning the creation flow, and completely overhauling the table design.
+## Latest Updates (January 6, 2025)
 
-## Completed Tasks
+### ✅ Phase 8: Complete Recipe System Polish - ALL ISSUES FIXED
+**Status: COMPLETED**
 
-### ✅ Phase 1: Image Loading & Data Integration
-- **Problem**: Images weren't loading properly, used hardcoded URL patterns
-- **Solution**: Integrated with existing `ItemData` utility for consistent image handling
-- **Files Modified**:
-  - `src/pages/Recipes/index.jsx` - Added `items` prop from ItemData
-  - `src/pages/Recipes/components/RecipesTable.jsx` - Updated `getItemImageUrl()` function
-  - `src/pages/Recipes/components/RecipeCreationModal.jsx` - Used proper image URLs
-  - `src/pages/Recipes/components/RecipeEditModal.jsx` - Fixed image path mapping
+Fixed all remaining UI/UX issues for a polished, production-ready recipe system:
 
-### ✅ Phase 2: Recipe Creation Flow Redesign
-- **Problem**: Users had to select output item first, then add ingredients
-- **Solution**: Complete flow redesign with step indicators and progressive disclosure
-- **Key Changes**:
-  - Added step indicators (1/3, 2/3, 3/3)
-  - Start with ingredients selection first
-  - Only show output item selection after ingredients are added
-  - Added contextual guidance and tips throughout the process
-  - Enhanced visual feedback and user experience
+1. **✅ Recipe Creation Modal Improvements**
+   - Fixed image scaling from 40px → 32px in dropdown for consistency
+   - Added clear button (X) to search input for better UX
+   - Added outside-click detection to close dropdown automatically
+   - Enhanced search functionality with proper state management
 
-### ✅ Phase 3: Table Design Upgrade
-- **Problem**: Table design didn't match the polished Combination Items page
-- **Solution**: Complete redesign to match exact styling and functionality
-- **Key Changes**:
-  - Added `createStyles` hook for consistent styling
-  - Implemented sortable table headers with `Th` component
-  - Restructured columns to match combination items layout:
-    - Item (image)
-    - Name (with subtitle)
-    - Buy Price (total cost)
-    - Sell Price
-    - Profit (with icon and percentage)
-    - Chart (MiniChart component)
-    - Actions (favorites, graph modal, edit, delete)
+2. **✅ Table Row Alignment Fixed**
+   - Added `verticalAlign: 'middle'` to all table cells
+   - Matched exact styling from combination items table
+   - Consistent cell padding and spacing throughout
 
-### ✅ Phase 4: Interactive Features
-- **Added**: MiniChart components for price history visualization
-- **Added**: Favorites functionality with heart icons
-- **Added**: Graph modal integration button
-- **Enhanced**: Action buttons with consistent styling
+3. **✅ Chart Button Integration Completed**
+   - Updated chart button to `variant="light"` to match combinations
+   - Added proper onClick handler with graph modal integration
+   - Added mobile responsive sizing (`sm`/`md` based on screen size)
+   - Integrated with `setGraphInfo` for proper modal functionality
 
-### ✅ Phase 5: Data Display Enhancement
-- **Fixed**: Proper buy/sell price display matching combination items
-- **Added**: Profit calculations with 1% GE tax
-- **Added**: Margin percentage display
-- **Enhanced**: Number formatting with `formatNumber()` utility
+4. **✅ Separate User vs Global Recipe Pages**
+   - **User Recipes Page** (`/recipes`): Shows only user's recipes, no user column
+   - **Global Recipes Page** (`/global-recipes`): Shows all community recipes with user column
+   - Proper TRPC endpoint usage (`getUserRecipes` vs `getGlobalRecipes`)
+   - Conditional table rendering based on page type
 
-### ✅ Phase 6: Design Consistency
-- **Matched**: Exact styling from combination items page
-- **Updated**: Table row styling with proper padding and colors
-- **Enhanced**: Responsive design with proper breakpoints
-- **Cleaned**: Removed unused filter options and simplified interface
+5. **✅ Enhanced Error Handling**
+   - Added try-catch blocks around database operations
+   - User-friendly error messages instead of raw SQL errors
+   - Specific handling for duplicate recipes and constraint violations
+   - Proper TRPC error codes and messages
+
+6. **✅ Updated Recipe Limits**
+   - Changed all hardcoded 200 → 300 references
+   - Updated badges, status messages, and validation
+   - Consistent limit displays across all components
+
+## Latest Updates (January 6, 2025) - Previous Session
+
+### ✅ Phase 7: Final UI/UX Polish
+**Status: COMPLETED**
+
+1. **✅ Fixed image scaling across all recipe tables**
+   - Main images: 40px → 32px (match combination items)
+   - Ingredient images: 24px → 25px (consistent with combinations)
+   - Maintained pixelated rendering for OSRS authenticity
+
+2. **✅ Added quantity display system**
+   - Hover tooltips: `${ingredient.itemName} (${ingredient.quantity})`
+   - Visual text: Price + `(quantity)` in 6px dimmed text when qty > 1
+   - Applied to combinations, recipes, and admin recipe tables
+
+3. **✅ Cleaned up UI controls**
+   - Removed favorite buttons from recipe tables (kept for combinations only)
+   - Added edit button next to chart icon in recipe tables
+   - Improved action button organization
+
+4. **✅ Increased recipe capacity**
+   - Updated limit from 200 → 300 recipes per user
+   - Modified server validation and error messages
+   - Enhanced scalability for power users
+
+5. **✅ Enhanced modal experience**
+   - Modal size: "lg" → "xl" for better visibility
+   - Added minimum heights (600px modal, 500px body)
+   - Improved responsive design with overflow handling
+   - Better multi-ingredient selection experience
+
+## Previous Completed Phases
+
+### ✅ Phase 1-3: Core Foundation
+- Image loading integration with ItemData utility
+- Recipe creation flow redesign (ingredients → output → review)
+- Table design upgrade to match combination items exactly
+
+### ✅ Phase 4-6: Feature Enhancement  
+- Interactive MiniChart components
+- Real-time profit calculations with 1% GE tax
+- Design consistency and responsive layout
+
+### ✅ Phase 6.5: Ingredient Reordering
+- Drag handles and up/down arrows for ingredient management
+- Database sortOrder field implementation
+- Enhanced creation and edit modal functionality
 
 ## Technical Implementation Details
 

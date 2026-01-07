@@ -21,17 +21,23 @@ import {
   IconSearch,
   IconPlus,
   IconTrash,
-  IconInfoCircle
+  IconInfoCircle,
+  IconGripVertical,
+  IconChevronUp,
+  IconChevronDown,
+  IconX
 } from '@tabler/icons-react'
 import { trpc } from '../../../utils/trpc.jsx'
 import { showNotification } from '@mantine/notifications'
-import { formatNumber } from '../../../utils/utils.jsx'
+import { formatNumber, calculateGETax } from '../../../utils/utils.jsx'
 
-function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items }) {
+function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items, multiSelect = false, clearAfterSelect = true }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [showDropdown, setShowDropdown] = useState(false)
   const searchRef = useRef(null)
   const dropdownRef = useRef(null)
+  const containerRef = useRef(null)
 
   // Use items prop if provided, otherwise fallback to TRPC calls
   const { data: itemMapping } = trpc.items.getItemMapping.useQuery()
@@ -93,7 +99,21 @@ function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items
   // Reset selected index when search query changes
   useEffect(() => {
     setSelectedIndex(-1)
-  }, [searchQuery])
+    setShowDropdown(searchQuery.length > 0 && filteredItems.length > 0)
+  }, [searchQuery, filteredItems.length])
+
+  // Handle outside clicks to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setShowDropdown(false)
+        setSelectedIndex(-1)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Keyboard navigation handler
   const handleKeyDown = (e) => {
@@ -117,7 +137,7 @@ function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items
         }
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setSearchQuery('')
+        setShowDropdown(false)
         setSelectedIndex(-1)
       }
     }
@@ -126,23 +146,50 @@ function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items
   const handleItemSelect = (item) => {
     if (item) {
       onItemSelect(item)
-      setSearchQuery('')
-      setSelectedIndex(-1)
+      // Only clear search if not in multi-select mode or explicitly requested
+      if (clearAfterSelect && !multiSelect) {
+        setSearchQuery('')
+        setSelectedIndex(-1)
+        setShowDropdown(false)
+      } else if (multiSelect) {
+        // Keep search open but reset selection index for multi-select
+        setSelectedIndex(-1)
+      }
     }
   }
 
+  const handleClearSearch = () => {
+    setSearchQuery('')
+    setSelectedIndex(-1)
+    setShowDropdown(false)
+    searchRef.current?.focus()
+  }
+
   return (
-    <Box style={{ position: 'relative' }}>
+    <Box ref={containerRef} style={{ position: 'relative' }}>
       <TextInput
         ref={searchRef}
         placeholder={placeholder}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         onKeyDown={handleKeyDown}
+        onFocus={() => searchQuery && setShowDropdown(true)}
         icon={<IconSearch size={16} />}
+        rightSection={
+          searchQuery ? (
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              color="gray"
+              onClick={handleClearSearch}
+            >
+              <IconX size={14} />
+            </ActionIcon>
+          ) : null
+        }
       />
       
-      {searchQuery && filteredItems.length > 0 && (
+      {showDropdown && filteredItems.length > 0 && (
         <Paper
           ref={dropdownRef}
           style={{
@@ -152,11 +199,11 @@ function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items
             right: 0,
             marginTop: '4px',
             zIndex: 1000,
-            maxHeight: '300px',
+            maxHeight: '450px',
             overflow: 'hidden'
           }}
         >
-          <ScrollArea style={{ maxHeight: '300px' }}>
+          <ScrollArea style={{ maxHeight: '450px' }}>
             <Stack spacing="xs" p="xs">
               {filteredItems.map((item, index) => {
                 const isSelected = index === selectedIndex
@@ -180,7 +227,11 @@ function ItemSearchInput({ onItemSelect, placeholder, excludeItemIds = [], items
                         height={32}
                         fit="contain"
                         withPlaceholder
-                        style={{ imageRendering: 'pixelated' }}
+                        style={{ 
+                          imageRendering: 'pixelated',
+                          minWidth: '32px',
+                          minHeight: '32px'
+                        }}
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Text size="sm" weight={500}>{item.name}</Text>
@@ -211,6 +262,8 @@ export default function RecipeCreationModal({ opened, onClose, onSuccess, items 
   const [outputItem, setOutputItem] = useState(null)
   const [conversionCost, setConversionCost] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const dragItem = useRef(null)
+  const dragOverItem = useRef(null)
 
   // Create recipe mutation
   const createRecipeMutation = trpc.recipes.createRecipe.useMutation({
@@ -283,6 +336,56 @@ export default function RecipeCreationModal({ opened, onClose, onSuccess, items 
     )
   }
 
+  const handleMoveIngredientUp = (index) => {
+    if (index === 0) return
+    setIngredients(prev => {
+      const newIngredients = [...prev]
+      const temp = newIngredients[index]
+      newIngredients[index] = newIngredients[index - 1]
+      newIngredients[index - 1] = temp
+      return newIngredients
+    })
+  }
+
+  const handleMoveIngredientDown = (index) => {
+    if (index === ingredients.length - 1) return
+    setIngredients(prev => {
+      const newIngredients = [...prev]
+      const temp = newIngredients[index]
+      newIngredients[index] = newIngredients[index + 1]
+      newIngredients[index + 1] = temp
+      return newIngredients
+    })
+  }
+
+  const handleDragStart = (e, index) => {
+    dragItem.current = index
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index)
+  }
+
+  const handleDragEnter = (e, index) => {
+    dragOverItem.current = index
+  }
+
+  const handleDragEnd = () => {
+    const dragIndex = dragItem.current
+    const dragOverIndex = dragOverItem.current
+
+    if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
+      setIngredients(prev => {
+        const newIngredients = [...prev]
+        const draggedItemContent = newIngredients[dragIndex]
+        newIngredients.splice(dragIndex, 1)
+        newIngredients.splice(dragOverIndex, 0, draggedItemContent)
+        return newIngredients
+      })
+    }
+
+    dragItem.current = null
+    dragOverItem.current = null
+  }
+
   const handleSetOutputItem = (item) => {
     setOutputItem({
       itemId: item.id,
@@ -318,10 +421,11 @@ export default function RecipeCreationModal({ opened, onClose, onSuccess, items 
       outputItemId: outputItem.itemId,
       outputItemName: outputItem.itemName,
       conversionCost: conversionCost || 0,
-      ingredients: ingredients.map(ing => ({
+      ingredients: ingredients.map((ing, index) => ({
         itemId: ing.itemId,
         itemName: ing.itemName,
-        quantity: ing.quantity
+        quantity: ing.quantity,
+        sortOrder: index
       }))
     })
   }
@@ -341,14 +445,14 @@ export default function RecipeCreationModal({ opened, onClose, onSuccess, items 
       sum + (ing.low * ing.quantity), 0
     )
     const sellPrice = outputItem.high || 0
-    const grossProfit = sellPrice - totalCost
-    const netProfit = Math.floor(grossProfit * 0.99) // 1% GE tax
+    const tax = calculateGETax(sellPrice)
+    const netProfit = sellPrice - totalCost - tax
 
     return {
       totalCost,
       sellPrice,
       netProfit,
-      marginPercentage: totalCost > 0 ? (grossProfit / totalCost) * 100 : 0
+      marginPercentage: totalCost > 0 ? (netProfit / totalCost) * 100 : 0
     }
   }
 
@@ -359,29 +463,40 @@ export default function RecipeCreationModal({ opened, onClose, onSuccess, items 
       opened={opened}
       onClose={onClose}
       title="Create New Recipe"
-      size="lg"
+      size="xl"
       centered
+      styles={{
+        modal: {
+          minHeight: '600px',
+          maxHeight: '90vh'
+        },
+        body: {
+          minHeight: '500px',
+          maxHeight: '80vh',
+          overflowY: 'auto'
+        }
+      }}
     >
       <Stack spacing="md">
         {/* Step Indicator */}
         <div>
           <Text size="sm" weight={500} color="dimmed" mb="xs">
-            Step {ingredients.length === 0 ? '1' : outputItem ? '3' : '2'} of 3
+            Step {!outputItem ? '1' : ingredients.length === 0 ? '2' : '3'} of 3
           </Text>
           <Group spacing="xs">
             <Badge 
-              color={ingredients.length > 0 ? 'green' : 'blue'}
-              variant={ingredients.length > 0 ? 'filled' : 'light'}
-              size="sm"
-            >
-              Add Ingredients
-            </Badge>
-            <Badge 
-              color={ingredients.length > 0 && outputItem ? 'green' : ingredients.length > 0 ? 'blue' : 'gray'}
-              variant={ingredients.length > 0 && outputItem ? 'filled' : ingredients.length > 0 ? 'light' : 'outline'}
+              color={outputItem ? 'green' : 'blue'}
+              variant={outputItem ? 'filled' : 'light'}
               size="sm"
             >
               Choose Output
+            </Badge>
+            <Badge 
+              color={outputItem && ingredients.length > 0 ? 'green' : outputItem ? 'blue' : 'gray'}
+              variant={outputItem && ingredients.length > 0 ? 'filled' : outputItem ? 'light' : 'outline'}
+              size="sm"
+            >
+              Add Ingredients
             </Badge>
             <Badge 
               color={outputItem && ingredients.length > 0 ? 'blue' : 'gray'}
@@ -393,104 +508,157 @@ export default function RecipeCreationModal({ opened, onClose, onSuccess, items 
           </Group>
         </div>
 
-        {/* Ingredients First */}
+        {/* Output Item Selection First */}
         <div>
           <Text size="sm" weight={500} mb="xs">
-            Ingredients * {ingredients.length === 0 && <Text span color="dimmed">(Start by adding ingredients)</Text>}
+            Output Item * <Text span color="dimmed">(What item do you want to create?)</Text>
           </Text>
-          
-          {/* Add Ingredient */}
-          <ItemSearchInput
-            onItemSelect={handleAddIngredient}
-            placeholder="Search and add ingredients..."
-            excludeItemIds={getUsedItemIds()}
-            items={items}
-          />
-
-          {/* Current Ingredients */}
-          {ingredients.length > 0 && (
-            <Stack spacing="xs" mt="sm">
-              {ingredients.map((ingredient) => (
-                <Paper key={ingredient.itemId} withBorder p="sm">
-                  <Group spacing="sm" position="apart">
-                    <Group spacing="sm">
-                      <Image
-                        src={ingredient.img}
-                        width={32}
-                        height={32}
-                        fit="contain"
-                        withPlaceholder
-                        style={{ imageRendering: 'pixelated' }}
-                      />
-                      <div>
-                        <Text size="sm" weight={500}>{ingredient.itemName}</Text>
-                        <Text size="xs" color="dimmed">
-                          Buy: {ingredient.low?.toLocaleString() || 'N/A'} GP each
-                        </Text>
-                      </div>
-                    </Group>
-                    <Group spacing="sm">
-                      <NumberInput
-                        value={ingredient.quantity}
-                        onChange={(value) => handleUpdateQuantity(ingredient.itemId, value)}
-                        min={1}
-                        max={1000000}
-                        style={{ width: 80 }}
-                      />
-                      <ActionIcon 
-                        color="red" 
-                        onClick={() => handleRemoveIngredient(ingredient.itemId)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Group>
-                  </Group>
-                </Paper>
-              ))}
-            </Stack>
+          {outputItem ? (
+            <Paper withBorder p="sm" style={{ backgroundColor: 'rgba(0, 255, 0, 0.1)' }}>
+              <Group spacing="sm" position="apart">
+                <Group spacing="sm">
+                  <Image
+                    src={outputItem.img}
+                    width={40}
+                    height={40}
+                    fit="contain"
+                    withPlaceholder
+                    style={{ 
+                      imageRendering: 'pixelated',
+                      minWidth: '40px',
+                      minHeight: '40px'
+                    }}
+                  />
+                  <div>
+                    <Text size="sm" weight={500}>{outputItem.itemName}</Text>
+                    <Text size="xs" color="dimmed">
+                      Sell: {outputItem.high?.toLocaleString() || 'N/A'} GP
+                    </Text>
+                  </div>
+                </Group>
+                <ActionIcon color="red" onClick={() => setOutputItem(null)}>
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Group>
+            </Paper>
+          ) : (
+            <ItemSearchInput
+              onItemSelect={handleSetOutputItem}
+              placeholder="Search for the item you want to create..."
+              excludeItemIds={getUsedItemIds()}
+              items={items}
+            />
           )}
+          <Text size="xs" color="dimmed" mt="xs">
+            💡 Tip: Start by choosing the final item you want to create
+          </Text>
         </div>
 
-        {/* Output Item Selection (Only show after ingredients are added) */}
-        {ingredients.length > 0 && (
+        {/* Ingredients Section (Only show after output is selected) */}
+        {outputItem && (
           <div>
             <Text size="sm" weight={500} mb="xs">
-              Output Item * <Text span color="dimmed">(What do these ingredients create?)</Text>
+              Ingredients * <Text span color="dimmed">(What items are needed to create {outputItem.itemName}?)</Text>
             </Text>
-            {outputItem ? (
-              <Paper withBorder p="sm" style={{ backgroundColor: 'rgba(0, 255, 0, 0.1)' }}>
-                <Group spacing="sm" position="apart">
-                  <Group spacing="sm">
-                    <Image
-                      src={outputItem.img}
-                      width={32}
-                      height={32}
-                      fit="contain"
-                      withPlaceholder
-                      style={{ imageRendering: 'pixelated' }}
-                    />
-                    <div>
-                      <Text size="sm" weight={500}>{outputItem.itemName}</Text>
-                      <Text size="xs" color="dimmed">
-                        Sell: {outputItem.high?.toLocaleString() || 'N/A'} GP
-                      </Text>
-                    </div>
-                  </Group>
-                  <ActionIcon color="red" onClick={() => setOutputItem(null)}>
-                    <IconTrash size={16} />
-                  </ActionIcon>
-                </Group>
-              </Paper>
-            ) : (
-              <ItemSearchInput
-                onItemSelect={handleSetOutputItem}
-                placeholder="Search for what these ingredients create..."
-                excludeItemIds={getUsedItemIds()}
-                items={items}
-              />
+            
+            {/* Add Ingredient */}
+            <ItemSearchInput
+              onItemSelect={handleAddIngredient}
+              placeholder="Search and add ingredients..."
+              excludeItemIds={getUsedItemIds()}
+              items={items}
+              multiSelect={true}
+              clearAfterSelect={false}
+            />
+
+            {/* Current Ingredients */}
+            {ingredients.length > 0 && (
+              <Stack spacing="xs" mt="sm">
+                {ingredients.map((ingredient, index) => (
+                  <Paper 
+                    key={ingredient.itemId} 
+                    withBorder 
+                    p="sm"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnter={(e) => handleDragEnter(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                    style={{ cursor: 'move' }}
+                  >
+                    <Group spacing="sm" position="apart">
+                      <Group spacing="sm" style={{ flex: 1 }}>
+                        {/* Drag Handle */}
+                        <Group spacing="xs" noWrap>
+                          <IconGripVertical 
+                            size={16} 
+                            color="#666" 
+                            style={{ cursor: 'grab' }}
+                          />
+                          <Stack spacing={0}>
+                            <ActionIcon
+                              size="xs"
+                              variant="subtle"
+                              color="gray"
+                              onClick={() => handleMoveIngredientUp(index)}
+                              disabled={index === 0}
+                            >
+                              <IconChevronUp size={12} />
+                            </ActionIcon>
+                            <ActionIcon
+                              size="xs"
+                              variant="subtle"
+                              color="gray"
+                              onClick={() => handleMoveIngredientDown(index)}
+                              disabled={index === ingredients.length - 1}
+                            >
+                              <IconChevronDown size={12} />
+                            </ActionIcon>
+                          </Stack>
+                        </Group>
+                        
+                        <Image
+                          src={ingredient.img}
+                          width={40}
+                          height={40}
+                          fit="contain"
+                          withPlaceholder
+                          style={{ 
+                            imageRendering: 'pixelated',
+                            minWidth: '40px',
+                            minHeight: '40px'
+                          }}
+                        />
+                        <div>
+                          <Text size="sm" weight={500}>{ingredient.itemName}</Text>
+                          <Text size="xs" color="dimmed">
+                            Buy: {ingredient.low?.toLocaleString() || 'N/A'} GP each
+                          </Text>
+                        </div>
+                      </Group>
+                      
+                      <Group spacing="sm">
+                        <NumberInput
+                          value={ingredient.quantity}
+                          onChange={(value) => handleUpdateQuantity(ingredient.itemId, value)}
+                          min={1}
+                          max={1000000}
+                          style={{ width: 80 }}
+                        />
+                        <ActionIcon 
+                          color="red" 
+                          onClick={() => handleRemoveIngredient(ingredient.itemId)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Group>
+                    </Group>
+                  </Paper>
+                ))}
+              </Stack>
             )}
             <Text size="xs" color="dimmed" mt="xs">
-              💡 Tip: Select the item that your ingredients combine to create
+              💡 Tip: Add multiple ingredients by searching and selecting them. Search stays open for easy multi-selection.
             </Text>
           </div>
         )}

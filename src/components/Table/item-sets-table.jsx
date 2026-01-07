@@ -224,11 +224,25 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                                   : item.name
                             } position="left">
                                 <div>
-                                <Image fit="contain" width={25} height={25} src={item.img}
-                                       style={{ marginRight: '8px' }}></Image>
+                                <Image 
+                                    fit="contain" 
+                                    width={25} 
+                                    height={25} 
+                                    src={item.img}
+                                    style={{ 
+                                        marginRight: '8px',
+                                        imageRendering: 'pixelated',
+                                        objectFit: 'contain'
+                                    }}
+                                />
                                 </div>
                             </Tooltip>
-                            <div>{new Intl.NumberFormat().format(item.low)}</div>
+                            <div>
+                              {new Intl.NumberFormat().format(item.low)}
+                              {item.qty > 1 && (
+                                <Text component="span" size="xs" color="dimmed" style={{ marginLeft: '4px' }}>({item.qty})</Text>
+                              )}
+                            </div>
                         </Flex>
                     ))}
                 </td>

@@ -36,6 +36,12 @@ export const formatPercentage = (value) => {
   return `${value.toFixed(2)}%`
 }
 
+export const calculateGETax = (price) => {
+  if (price === null || price === undefined || isNaN(price)) return 0
+  const tax = Math.floor(price * 0.01)
+  return Math.min(tax, 5000000)
+}
+
 export const allItems = (mapItems, pricesById, volumesById = {}) => {
   const allItems = mapItems.reduce((accumulated, item) => {
     const priceById = pricesById?.[item.id] || {}
@@ -44,9 +50,10 @@ export const allItems = (mapItems, pricesById, volumesById = {}) => {
     const highPrice = safeParseFloat(priceById.high, 0)
     const lowPrice = safeParseFloat(priceById.low, 0)
 
+    const tax = calculateGETax(highPrice)
     const profit = (highPrice && lowPrice)
       ? new Intl.NumberFormat().format(
-        Math.floor(highPrice * 0.98 - lowPrice)
+        Math.floor(highPrice - lowPrice - tax)
       )
       : '0'
 
@@ -148,6 +155,7 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems, it
   if (item) {
     const setName = itemsToCreateSet.length > 1 ? `${item.name} (set)` : item.name
 
+    const tax = calculateGETax(highPrice)
     return {
       id: item.id,
       background: true,
@@ -156,7 +164,7 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems, it
       img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_'),
       high: formatter.format(highPrice),
       sellPrice: highPrice, // Use the highest price for the item set
-      profit: Math.floor(highPrice * 0.98 - totalPrice)
+      profit: Math.floor(highPrice - totalPrice - tax)
     }
   }
 

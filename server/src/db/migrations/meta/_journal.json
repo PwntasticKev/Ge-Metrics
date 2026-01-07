@@ -5,33 +5,26 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1759296929370,
-      "tag": "0000_amusing_star_brand",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
       "when": 1759469935707,
       "tag": "0001_lovely_sprite",
       "breakpoints": true
     },
     {
-      "idx": 2,
+      "idx": 1,
       "version": "7",
       "when": 1759865180066,
       "tag": "0002_polite_ezekiel",
       "breakpoints": true
     },
     {
-      "idx": 3,
+      "idx": 2,
       "version": "7",
       "when": 1761890476256,
       "tag": "0003_tough_thundra",
       "breakpoints": true
     },
     {
-      "idx": 4,
+      "idx": 3,
       "version": "7",
       "when": 1761978357385,
       "tag": "0004_round_loners",
