@@ -69,80 +69,43 @@ export default function Contact() {
     <Box
       sx={(theme) => ({
         minHeight: '100vh',
-        background: `
-          radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%),
-          linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[9]} 100%)
-        `,
+        backgroundColor: theme.colors.dark[8],
         padding: 0
       })}
     >
       <Container size="lg" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <Stack spacing="xl">
-          {/* Header Card */}
+          {/* Header */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`,
               transition: 'all 0.2s ease-out',
               '&:hover': {
-                boxShadow: '0 8px 32px rgba(120, 119, 198, 0.2)',
-                borderColor: theme.colors.dark[4]
+                backgroundColor: theme.colors.dark[6]
               }
             })}
           >
-            <Group position="apart" mb="md">
-              <Group spacing="md">
-                <ThemeIcon
-                  size={50}
-                  radius="md"
-                  variant="gradient"
-                  gradient={{ from: 'violet', to: 'pink' }}
-                  sx={{
-                    transition: 'all 0.2s ease',
-                    '&:hover': { transform: 'scale(1.05)' }
-                  }}
-                >
-                  <IconMail size={26} />
-                </ThemeIcon>
-                <Box>
-                  <Title order={1} style={{ 
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                  }}>
-                    Get in Touch
-                  </Title>
-                  <Text color="dimmed" size="sm">
-                    We'd love to hear from you! Send us a message and we'll respond within 24 hours.
-                  </Text>
-                </Box>
-              </Group>
+            <Group position="apart" align="center">
+              <Box>
+                <Title order={1} color="white" mb="xs">
+                  Contact Us
+                </Title>
+                <Text color="dimmed" size="sm">
+                  Send us a message and we'll respond within 24 hours.
+                </Text>
+              </Box>
               <Button
                 component={Link}
                 to="/all-items"
                 variant="subtle"
                 leftIcon={<IconArrowLeft size={16} />}
-                sx={(theme) => ({
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: theme.colors.dark[5],
-                    transform: 'translateX(-2px)',
-                    boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)'
-                  }
-                })}
+                color="gray"
               >
                 Back
               </Button>
-            </Group>
-            <Group spacing="xs">
-              <Badge variant="dot" color="violet" size="sm">Super Responsive</Badge>
-              <Badge variant="dot" color="pink" size="sm">Friendly Team</Badge>
-              <Badge variant="dot" color="blue" size="sm">24hr Response</Badge>
             </Group>
           </Card>
 
@@ -151,14 +114,13 @@ export default function Contact() {
             <Box style={{ flex: 2 }}>
               <Card
                 padding="xl"
-                radius="lg"
+                radius="md"
                 sx={(theme) => ({
-                  background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                  border: `1px solid ${theme.colors.dark[5]}`,
+                  backgroundColor: theme.colors.dark[7],
+                  border: `1px solid ${theme.colors.dark[3]}`,
                   transition: 'all 0.2s ease-out',
                   '&:hover': {
-                    boxShadow: '0 8px 32px rgba(120, 219, 255, 0.15)',
-                    borderColor: theme.colors.dark[4]
+                    backgroundColor: theme.colors.dark[6]
                   }
                 })}
               >
@@ -282,31 +244,20 @@ export default function Contact() {
                 {/* Discord Card */}
                 <Card
                   padding="lg"
-                  radius="lg"
+                  radius="md"
                   sx={(theme) => ({
-                    background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                    border: `1px solid ${theme.colors.dark[5]}`,
+                    backgroundColor: theme.colors.dark[7],
+                    border: `1px solid ${theme.colors.dark[3]}`,
                     transition: 'all 0.2s ease-out',
                     cursor: 'pointer',
                     '&:hover': {
-                      boxShadow: '0 8px 32px rgba(114, 137, 218, 0.3)',
-                      borderColor: '#7289da',
-                      transform: 'translateY(-2px)'
+                      backgroundColor: theme.colors.dark[6]
                     }
                   })}
                   onClick={() => window.open('https://discord.gg/BdDfzg4ZMQ', '_blank')}
                 >
                   <Group spacing="md" noWrap>
-                    <ThemeIcon
-                      size={40}
-                      radius="md"
-                      sx={{
-                        backgroundColor: '#7289da',
-                        '&:hover': { transform: 'scale(1.1)' }
-                      }}
-                    >
-                      <IconBrandDiscord size={20} />
-                    </ThemeIcon>
+                    <IconBrandDiscord size={20} color="#228be6" />
                     <div>
                       <Text weight={600} size="sm" color="white">Join our Discord</Text>
                       <Text size="xs" color="dimmed">Get instant help from our community</Text>
@@ -315,37 +266,37 @@ export default function Contact() {
                 </Card>
 
                 {/* Response Time Info */}
-                <Alert
-                  icon={<IconInfoCircle size={16} />}
-                  title="Quick Response"
-                  color="blue"
-                  variant="outline"
-                  styles={(theme) => ({
-                    root: {
-                      background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                      border: `1px solid ${theme.colors.blue[8]}`,
-                    }
+                <Card
+                  padding="lg"
+                  radius="md"
+                  sx={(theme) => ({
+                    backgroundColor: theme.colors.dark[7],
+                    border: `1px solid ${theme.colors.dark[3]}`
                   })}
                 >
-                  <Text size="sm">
-                    We typically respond within <Text component="span" weight={600} color="blue">2-4 hours</Text> during business hours,
-                    and within <Text component="span" weight={600} color="blue">24 hours</Text> on weekends.
+                  <Group spacing="xs" mb="xs">
+                    <IconInfoCircle size={16} color="#228be6" />
+                    <Text weight={600} size="sm" color="white">Quick Response</Text>
+                  </Group>
+                  <Text size="sm" color="dimmed">
+                    We typically respond within 2-4 hours during business hours,
+                    and within 24 hours on weekends.
                   </Text>
-                </Alert>
+                </Card>
 
                 {/* Contact Tips */}
                 <Card
                   padding="lg"
-                  radius="lg"
+                  radius="md"
                   sx={(theme) => ({
-                    background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                    border: `1px solid ${theme.colors.dark[5]}`,
+                    backgroundColor: theme.colors.dark[7],
+                    border: `1px solid ${theme.colors.dark[3]}`
                   })}
                 >
                   <Stack spacing="sm">
                     <Group spacing="xs">
-                      <IconBulb size={16} color="#f59e0b" />
-                      <Text weight={600} size="sm" color="orange">Pro Tips</Text>
+                      <IconBulb size={16} color="#228be6" />
+                      <Text weight={600} size="sm" color="white">Pro Tips</Text>
                     </Group>
                     <Text size="xs" color="dimmed">
                       • Include screenshots for technical issues
@@ -364,23 +315,23 @@ export default function Contact() {
 
           {/* Success Message */}
           {submitted && (
-            <Alert
-              icon={<IconCheck size={16} />}
-              title="Message Sent Successfully!"
-              color="green"
-              variant="outline"
-              styles={(theme) => ({
-                root: {
-                  background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                  border: `1px solid ${theme.colors.green[8]}`,
-                }
+            <Card
+              padding="lg"
+              radius="md"
+              sx={(theme) => ({
+                backgroundColor: theme.colors.dark[7],
+                border: `1px solid ${theme.colors.dark[3]}`
               })}
             >
-              <Text>
+              <Group spacing="xs" mb="xs">
+                <IconCheck size={16} color="#228be6" />
+                <Text weight={600} size="sm" color="white">Message Sent Successfully!</Text>
+              </Group>
+              <Text size="sm" color="dimmed">
                 Thanks for reaching out! We've received your message and will get back to you soon. 
-                Check our <Anchor component={Link} to="/" color="green">Discord</Anchor> for immediate community support.
+                Check our <Anchor component={Link} to="/" color="#228be6">Discord</Anchor> for immediate community support.
               </Text>
-            </Alert>
+            </Card>
           )}
         </Stack>
       </Container>

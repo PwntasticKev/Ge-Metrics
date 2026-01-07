@@ -8,110 +8,67 @@ export default function TermsAndConditions() {
     <Box
       sx={(theme) => ({
         minHeight: '100vh',
-        background: `linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[9]} 100%)`,
+        backgroundColor: theme.colors.dark[8],
         padding: 0
       })}
     >
       <Container size="lg" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <Stack spacing="xl">
-          {/* Header Card */}
+          {/* Header */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`,
               transition: 'all 0.2s ease-out',
               '&:hover': {
-                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.15)',
-                borderColor: theme.colors.dark[4]
+                backgroundColor: theme.colors.dark[6]
               }
             })}
           >
-            <Group position="apart" mb="md">
-              <Group spacing="md">
-                <ThemeIcon
-                  size={50}
-                  radius="md"
-                  variant="gradient"
-                  gradient={{ from: 'blue', to: 'cyan' }}
-                  sx={{
-                    transition: 'all 0.2s ease',
-                    '&:hover': { transform: 'scale(1.05)' }
-                  }}
-                >
-                  <IconScale size={26} />
-                </ThemeIcon>
-                <Box>
-                  <Title order={1} style={{ 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                  }}>
+            <Group position="apart" align="center">
+              <Box>
+                <Group spacing="md" align="center">
+                  <IconScale size={24} color="#228be6" />
+                  <Title order={1} color="white">
                     Terms & Privacy Policy
                   </Title>
-                  <Text color="dimmed" size="sm">
-                    Last updated: {new Date().toLocaleDateString()}
-                  </Text>
-                </Box>
-              </Group>
+                </Group>
+                <Text color="dimmed" size="sm" mt="xs">
+                  Last updated: {new Date().toLocaleDateString()}
+                </Text>
+              </Box>
               <ActionIcon
                 component={Link}
                 to="/all-items"
                 variant="subtle"
                 size="lg"
-                sx={(theme) => ({
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: theme.colors.dark[5],
-                    transform: 'scale(1.1)',
-                    boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)'
-                  }
-                })}
+                color="gray"
               >
                 <IconArrowLeft size={20} />
               </ActionIcon>
             </Group>
-            <Group spacing="xs">
-              <Badge variant="dot" color="green" size="sm">Legal Protection</Badge>
-              <Badge variant="dot" color="blue" size="sm">Data Privacy</Badge>
-              <Badge variant="dot" color="orange" size="sm">User Rights</Badge>
-            </Group>
           </Card>
 
-          {/* Terms of Service Card */}
+          {/* Terms of Service */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
-              transition: 'all 0.2s ease-out',
-              '&:hover': {
-                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.12)',
-                borderColor: theme.colors.dark[4]
-              }
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`
             })}
           >
-            <Group mb="xl" spacing="md">
-              <ThemeIcon size={40} radius="md" variant="gradient" gradient={{ from: 'orange', to: 'red' }}>
-                <IconScale size={20} />
-              </ThemeIcon>
-              <Title order={2} style={{
-                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Terms of Service
-              </Title>
+            <Group spacing="xs" mb="lg">
+              <IconScale size={20} color="#228be6" />
+              <Title order={2} color="white">Terms of Service</Title>
             </Group>
             
             <Stack spacing="lg">
               <Box>
-                <Title order={3} mb="sm" color="blue.4">1. Acceptance of Terms</Title>
-                <Text mb="md" color="gray.3">
+                <Title order={3} mb="sm" color="white" size="md">1. Acceptance of Terms</Title>
+                <Text mb="md" color="dimmed" size="sm">
                   By accessing and using GE-Metrics, you accept and agree to be bound by these terms 
                   and conditions. If you do not agree to these terms, please do not use our service.
                 </Text>
@@ -119,7 +76,7 @@ export default function TermsAndConditions() {
 
               <Box>
                 <Title order={3} mb="sm" color="blue.4">2. User Accounts</Title>
-                <List mb="md" sx={{ '& li': { marginBottom: '8px', color: '#C1C2C5' } }}>
+                <List mb="md" sx={{ '& li': { marginBottom: '8px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>You are limited to one account per person</List.Item>
                   <List.Item>You must be at least 16 years of age to create an account</List.Item>
                   <List.Item>You are responsible for maintaining the security of your account</List.Item>
@@ -129,7 +86,7 @@ export default function TermsAndConditions() {
 
               <Box>
                 <Title order={3} mb="sm" color="blue.4">3. Prohibited Activities</Title>
-                <List mb="md" sx={{ '& li': { marginBottom: '8px', color: '#C1C2C5' } }}>
+                <List mb="md" sx={{ '& li': { marginBottom: '8px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>Using automated tools, robots, spiders, or scrapers to extract data</List.Item>
                   <List.Item>Creating competing services using our API or data</List.Item>
                   <List.Item>Attempting to reverse engineer or disassemble our software</List.Item>
@@ -165,46 +122,32 @@ export default function TermsAndConditions() {
             </Stack>
           </Card>
 
-          {/* Privacy Policy Card */}
+          {/* Privacy Policy */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
-              transition: 'all 0.2s ease-out',
-              '&:hover': {
-                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.12)',
-                borderColor: theme.colors.dark[4]
-              }
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`
             })}
           >
-            <Group mb="xl" spacing="md">
-              <ThemeIcon size={40} radius="md" variant="gradient" gradient={{ from: 'violet', to: 'blue' }}>
-                <IconShield size={20} />
-              </ThemeIcon>
-              <Title order={2} style={{
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Privacy Policy
-              </Title>
+            <Group spacing="xs" mb="lg">
+              <IconShield size={20} color="#228be6" />
+              <Title order={2} color="white">Privacy Policy</Title>
             </Group>
             
             <Stack spacing="lg">
               <Box>
                 <Title order={3} mb="sm" color="blue.4">1. Information We Collect</Title>
-                <Text mb="sm" weight={500} color="orange.4">Personal Information:</Text>
-                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: '#C1C2C5' } }}>
+                <Text mb="sm" weight={500} color="white" size="sm">Personal Information:</Text>
+                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>Email address and username for account creation</List.Item>
                   <List.Item>Encrypted passwords using bcrypt security</List.Item>
                   <List.Item>Profile information you choose to provide</List.Item>
                 </List>
 
                 <Text mb="sm" weight={500} color="orange.4">Technical Information:</Text>
-                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: '#C1C2C5' } }}>
+                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>IP addresses for security and anti-abuse systems</List.Item>
                   <List.Item>Browser User Agent for optimal experience delivery</List.Item>
                   <List.Item>Session data and login activity for security monitoring</List.Item>
@@ -214,7 +157,7 @@ export default function TermsAndConditions() {
 
               <Box>
                 <Title order={3} mb="sm" color="blue.4">2. How We Use Your Information</Title>
-                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: '#C1C2C5' } }}>
+                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>Provide and maintain our market tracking services</List.Item>
                   <List.Item>Authenticate users and prevent unauthorized access</List.Item>
                   <List.Item>Improve user experience and service functionality</List.Item>
@@ -225,7 +168,7 @@ export default function TermsAndConditions() {
 
               <Box>
                 <Title order={3} mb="sm" color="blue.4">3. Data Protection</Title>
-                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: '#C1C2C5' } }}>
+                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>All sensitive data is encrypted using industry-standard methods</List.Item>
                   <List.Item>We use SSL/TLS encryption for data transmission</List.Item>
                   <List.Item>Passwords are encrypted using bcrypt hashing</List.Item>
@@ -260,7 +203,7 @@ export default function TermsAndConditions() {
 
               <Box>
                 <Title order={3} mb="sm" color="blue.4">7. Your Rights</Title>
-                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: '#C1C2C5' } }}>
+                <List mb="md" sx={{ '& li': { marginBottom: '6px', color: 'dimmed', fontSize: '14px' } }}>
                   <List.Item>Access and review your personal information</List.Item>
                   <List.Item>Request correction of inaccurate data</List.Item>
                   <List.Item>Request deletion of your account and data</List.Item>
@@ -271,32 +214,18 @@ export default function TermsAndConditions() {
             </Stack>
           </Card>
 
-          {/* Legal & Contact Card */}
+          {/* Legal & Contact */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
-              transition: 'all 0.2s ease-out',
-              '&:hover': {
-                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.12)',
-                borderColor: theme.colors.dark[4]
-              }
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`
             })}
           >
-            <Group mb="xl" spacing="md">
-              <ThemeIcon size={40} radius="md" variant="gradient" gradient={{ from: 'red', to: 'orange' }}>
-                <IconScale size={20} />
-              </ThemeIcon>
-              <Title order={2} style={{
-                background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Legal & Contact
-              </Title>
+            <Group spacing="xs" mb="lg">
+              <IconScale size={20} color="#228be6" />
+              <Title order={2} color="white">Legal & Contact</Title>
             </Group>
             
             <Stack spacing="lg">
@@ -351,14 +280,7 @@ export default function TermsAndConditions() {
                   <Anchor 
                     href="https://discord.gg/BdDfzg4ZMQ" 
                     target="_blank"
-                    sx={{
-                      color: '#667eea',
-                      transition: 'color 0.2s ease',
-                      '&:hover': { 
-                        color: '#5a67d8',
-                        textDecoration: 'none'
-                      }
-                    }}
+                    color="#228be6"
                   >
                     Discord server <IconExternalLink size={14} style={{ display: 'inline', marginLeft: '2px' }} />
                   </Anchor>
@@ -366,10 +288,10 @@ export default function TermsAndConditions() {
                 </Text>
                 
                 <Group mt="md">
-                  <Badge variant="outline" color="blue" size="lg">
+                  <Badge variant="outline" color="blue" size="sm">
                     Need Help?
                   </Badge>
-                  <Badge variant="outline" color="green" size="lg">
+                  <Badge variant="outline" color="blue" size="sm">
                     24/7 Discord Support
                   </Badge>
                 </Group>

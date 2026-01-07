@@ -112,152 +112,89 @@ export default function Affiliate() {
     <Box
       sx={(theme) => ({
         minHeight: '100vh',
-        background: `
-          radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.08) 0%, transparent 50%),
-          linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[9]} 100%)
-        `,
+        backgroundColor: theme.colors.dark[8],
         padding: 0
       })}
     >
       <Container size="xl" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <Stack spacing="xl">
-          {/* Hero Header */}
+          {/* Header */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`,
               transition: 'all 0.2s ease-out',
               '&:hover': {
-                boxShadow: '0 12px 40px rgba(255, 215, 0, 0.2)',
-                borderColor: theme.colors.dark[4]
+                backgroundColor: theme.colors.dark[6]
               }
             })}
           >
-            <Group position="apart" mb="lg">
-              <Group spacing="md">
-                <ThemeIcon
-                  size={60}
-                  radius="md"
-                  variant="gradient"
-                  gradient={{ from: 'orange', to: 'red' }}
-                  sx={{
-                    transition: 'all 0.2s ease',
-                    '&:hover': { transform: 'scale(1.05) rotate(5deg)' }
-                  }}
-                >
-                  <IconRocket size={32} />
-                </ThemeIcon>
-                <Box>
-                  <Title order={1} style={{ 
-                    background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    fontSize: '2.5rem'
-                  }}>
+            <Group position="apart" align="center">
+              <Box>
+                <Group spacing="md" align="center">
+                  <IconRocket size={24} color="#228be6" />
+                  <Title order={1} color="white">
                     Partner with GE-Metrics
                   </Title>
-                  <Text size="lg" color="dimmed" mt="xs">
-                    Join our creator program and earn while helping the OSRS community make smarter trades
-                  </Text>
-                </Box>
-              </Group>
+                </Group>
+                <Text color="dimmed" size="sm" mt="xs">
+                  Join our creator program and earn commission on referrals
+                </Text>
+              </Box>
               <Button
                 component={Link}
                 to="/all-items"
                 variant="subtle"
                 leftIcon={<IconArrowLeft size={16} />}
-                sx={(theme) => ({
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: theme.colors.dark[5],
-                    transform: 'translateX(-4px)',
-                    boxShadow: '0 4px 16px rgba(255, 140, 0, 0.3)'
-                  }
-                })}
+                color="gray"
               >
-                Back to App
+                Back
               </Button>
-            </Group>
-
-            <Group spacing="xs">
-              <Badge 
-                variant="gradient" 
-                gradient={{ from: 'orange', to: 'red' }} 
-                size="lg"
-                leftSection={<IconSparkles size={14} />}
-              >
-                Earn Real Money
-              </Badge>
-              <Badge variant="dot" color="green" size="md">Growing Platform</Badge>
-              <Badge variant="dot" color="blue" size="md">Active Community</Badge>
-              <Badge variant="dot" color="violet" size="md">Fair Commissions</Badge>
             </Group>
           </Card>
 
-          {/* Benefits Section */}
+          {/* Benefits */}
           <Card
-            padding="xl"
-            radius="lg"
+            padding="lg"
+            radius="md"
             sx={(theme) => ({
-              background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-              border: `1px solid ${theme.colors.dark[5]}`,
+              backgroundColor: theme.colors.dark[7],
+              border: `1px solid ${theme.colors.dark[3]}`
             })}
           >
-            <Group mb="xl" spacing="md">
-              <ThemeIcon size={40} radius="md" variant="gradient" gradient={{ from: 'violet', to: 'pink' }}>
-                <IconTarget size={20} />
-              </ThemeIcon>
-              <Title order={2} style={{
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Why Partner with Us?
-              </Title>
+            <Group spacing="xs" mb="lg">
+              <IconTarget size={20} color="#228be6" />
+              <Title order={2} color="white">Partner Benefits</Title>
             </Group>
 
-            <SimpleGrid cols={2} spacing="xl" breakpoints={[{ maxWidth: 'md', cols: 1 }]}>
+            <SimpleGrid cols={2} spacing="lg" breakpoints={[{ maxWidth: 'md', cols: 1 }]}>
               {benefits.map((benefit, index) => (
-                <Card
+                <Box
                   key={index}
-                  padding="lg"
-                  radius="md"
+                  p="md"
                   sx={(theme) => ({
-                    background: theme.colors.dark[6],
-                    border: `1px solid ${theme.colors.dark[4]}`,
+                    backgroundColor: theme.colors.dark[6],
+                    borderRadius: theme.radius.sm,
                     transition: 'all 0.2s ease',
                     '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(139, 92, 246, 0.15)',
-                      borderColor: theme.colors[benefit.color][6]
+                      backgroundColor: theme.colors.dark[5]
                     }
                   })}
                 >
                   <Group spacing="md" noWrap>
-                    <ThemeIcon
-                      size={50}
-                      radius="md"
-                      color={benefit.color}
-                      variant="light"
-                    >
-                      <benefit.icon size={26} />
-                    </ThemeIcon>
+                    <benefit.icon size={20} color="#228be6" />
                     <Box style={{ flex: 1 }}>
-                      <Text weight={600} size="lg" color="white" mb="xs">
+                      <Text weight={600} size="sm" color="white" mb="xs">
                         {benefit.title}
                       </Text>
-                      <Text size="sm" color="dimmed">
+                      <Text size="xs" color="dimmed">
                         {benefit.description}
                       </Text>
                     </Box>
                   </Group>
-                </Card>
+                </Box>
               ))}
             </SimpleGrid>
           </Card>
@@ -266,22 +203,16 @@ export default function Affiliate() {
             {/* Application Form */}
             <Grid.Col span={8}>
               <Card
-                padding="xl"
-                radius="lg"
+                padding="lg"
+                radius="md"
                 sx={(theme) => ({
-                  background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                  border: `1px solid ${theme.colors.dark[5]}`,
-                  transition: 'all 0.2s ease-out',
-                  '&:hover': {
-                    boxShadow: '0 8px 32px rgba(120, 219, 255, 0.15)',
-                  }
+                  backgroundColor: theme.colors.dark[7],
+                  border: `1px solid ${theme.colors.dark[3]}`
                 })}
               >
-                <Group mb="xl" spacing="md">
-                  <ThemeIcon size={40} radius="md" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
-                    <IconUserCheck size={20} />
-                  </ThemeIcon>
-                  <Title order={2} color="blue.4">Apply to Become a Partner</Title>
+                <Group spacing="xs" mb="lg">
+                  <IconUserCheck size={20} color="#228be6" />
+                  <Title order={2} color="white">Apply to Become a Partner</Title>
                 </Group>
 
                 <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -296,8 +227,8 @@ export default function Affiliate() {
                             background: theme.colors.dark[6],
                             border: `1px solid ${theme.colors.dark[5]}`,
                             '&:focus': {
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                              borderColor: '#228be6',
+                              boxShadow: '0 0 0 2px rgba(34, 139, 230, 0.2)'
                             }
                           }
                         })}
@@ -311,8 +242,8 @@ export default function Affiliate() {
                             background: theme.colors.dark[6],
                             border: `1px solid ${theme.colors.dark[5]}`,
                             '&:focus': {
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                              borderColor: '#228be6',
+                              boxShadow: '0 0 0 2px rgba(34, 139, 230, 0.2)'
                             }
                           }
                         })}
@@ -330,8 +261,8 @@ export default function Affiliate() {
                             background: theme.colors.dark[6],
                             border: `1px solid ${theme.colors.dark[5]}`,
                             '&:focus': {
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                              borderColor: '#228be6',
+                              boxShadow: '0 0 0 2px rgba(34, 139, 230, 0.2)'
                             }
                           }
                         })}
@@ -346,8 +277,8 @@ export default function Affiliate() {
                             background: theme.colors.dark[6],
                             border: `1px solid ${theme.colors.dark[5]}`,
                             '&:focus': {
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                              borderColor: '#228be6',
+                              boxShadow: '0 0 0 2px rgba(34, 139, 230, 0.2)'
                             }
                           }
                         })}
@@ -389,17 +320,9 @@ export default function Affiliate() {
 
                     <Button
                       type="submit"
-                      size="lg"
-                      leftIcon={<IconSend size={18} />}
-                      variant="gradient"
-                      gradient={{ from: 'blue', to: 'cyan' }}
-                      sx={{
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4)'
-                        }
-                      }}
+                      size="md"
+                      leftIcon={<IconSend size={16} />}
+                      color="blue"
                     >
                       Submit Partnership Application
                     </Button>
@@ -414,35 +337,35 @@ export default function Affiliate() {
                 {/* Current Partners */}
                 <Card
                   padding="lg"
-                  radius="lg"
+                  radius="md"
                   sx={(theme) => ({
-                    background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                    border: `1px solid ${theme.colors.dark[5]}`,
+                    backgroundColor: theme.colors.dark[7],
+                    border: `1px solid ${theme.colors.dark[3]}`
                   })}
                 >
-                  <Group mb="md" spacing="sm">
-                    <IconUsers size={20} color="#8b5cf6" />
-                    <Text weight={600} color="violet.4">Our Partners</Text>
+                  <Group spacing="xs" mb="md">
+                    <IconUsers size={16} color="#228be6" />
+                    <Text weight={600} size="sm" color="white">Our Partners</Text>
                   </Group>
-                  <Stack spacing="sm">
+                  <Stack spacing="xs">
                     {partners.map((partner, index) => (
                       <Box
                         key={index}
                         p="xs"
                         sx={(theme) => ({
-                          background: theme.colors.dark[6],
+                          backgroundColor: theme.colors.dark[6],
                           borderRadius: theme.radius.sm,
                           transition: 'all 0.2s ease',
                           '&:hover': {
-                            background: theme.colors.dark[5],
-                            transform: 'translateX(4px)'
+                            backgroundColor: theme.colors.dark[5]
                           }
                         })}
                       >
-                        <Text size="sm" weight={600} color="white">{partner.name}</Text>
+                        <Text size="xs" weight={600} color="white">{partner.name}</Text>
                         <Group spacing="xs" mt={2}>
-                          <Badge size="xs" color="blue">{partner.platform}</Badge>
-                          <Badge size="xs" color="orange">{partner.followers}</Badge>
+                          <Text size="xs" color="dimmed">{partner.platform}</Text>
+                          <Text size="xs" color="dimmed">•</Text>
+                          <Text size="xs" color="dimmed">{partner.followers}</Text>
                         </Group>
                         <Text size="xs" color="dimmed" mt={2}>{partner.specialty}</Text>
                       </Box>
@@ -450,82 +373,79 @@ export default function Affiliate() {
                   </Stack>
                 </Card>
 
-                {/* Quick Stats */}
+                {/* Platform Stats */}
                 <Card
                   padding="lg"
-                  radius="lg"
+                  radius="md"
                   sx={(theme) => ({
-                    background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                    border: `1px solid ${theme.colors.dark[5]}`,
+                    backgroundColor: theme.colors.dark[7],
+                    border: `1px solid ${theme.colors.dark[3]}`
                   })}
                 >
-                  <Group mb="md" spacing="sm">
-                    <IconTrendingUp size={20} color="#10b981" />
-                    <Text weight={600} color="green.4">Platform Stats</Text>
+                  <Group spacing="xs" mb="md">
+                    <IconTrendingUp size={16} color="#228be6" />
+                    <Text weight={600} size="sm" color="white">Platform Stats</Text>
                   </Group>
                   <Stack spacing="xs">
                     <Group position="apart">
-                      <Text size="sm" color="dimmed">Active Users</Text>
-                      <Text size="sm" weight={600} color="white">2,500+</Text>
+                      <Text size="xs" color="dimmed">Active Users</Text>
+                      <Text size="xs" weight={600} color="white">2,500+</Text>
                     </Group>
                     <Group position="apart">
-                      <Text size="sm" color="dimmed">Premium Members</Text>
-                      <Text size="sm" weight={600} color="white">380+</Text>
+                      <Text size="xs" color="dimmed">Premium Members</Text>
+                      <Text size="xs" weight={600} color="white">380+</Text>
                     </Group>
                     <Group position="apart">
-                      <Text size="sm" color="dimmed">Items Tracked</Text>
-                      <Text size="sm" weight={600} color="white">4,300+</Text>
+                      <Text size="xs" color="dimmed">Items Tracked</Text>
+                      <Text size="xs" weight={600} color="white">4,300+</Text>
                     </Group>
                     <Group position="apart">
-                      <Text size="sm" color="dimmed">Data Updates</Text>
-                      <Text size="sm" weight={600} color="green">Real-time</Text>
+                      <Text size="xs" color="dimmed">Data Updates</Text>
+                      <Text size="xs" weight={600} color="white">Real-time</Text>
                     </Group>
                   </Stack>
                 </Card>
 
                 {/* Contact for Questions */}
-                <Alert
-                  icon={<IconMail size={16} />}
-                  title="Questions?"
-                  color="blue"
-                  variant="outline"
-                  styles={(theme) => ({
-                    root: {
-                      background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                      border: `1px solid ${theme.colors.blue[8]}`,
-                    }
+                <Card
+                  padding="lg"
+                  radius="md"
+                  sx={(theme) => ({
+                    backgroundColor: theme.colors.dark[7],
+                    border: `1px solid ${theme.colors.dark[3]}`
                   })}
                 >
-                  <Text size="sm">
-                    Need help with your application? 
-                    <Anchor component={Link} to="/contact" color="blue" ml={4}>
-                      Contact us
-                    </Anchor> or join our <Anchor href="https://discord.gg/BdDfzg4ZMQ" target="_blank" color="blue">Discord</Anchor>.
+                  <Group spacing="xs" mb="xs">
+                    <IconMail size={16} color="#228be6" />
+                    <Text weight={600} size="sm" color="white">Questions?</Text>
+                  </Group>
+                  <Text size="xs" color="dimmed">
+                    Need help with your application? <Anchor component={Link} to="/contact" color="#228be6">Contact us</Anchor> or join our <Anchor href="https://discord.gg/BdDfzg4ZMQ" target="_blank" color="#228be6">Discord</Anchor>.
                   </Text>
-                </Alert>
+                </Card>
               </Stack>
             </Grid.Col>
           </Grid>
 
           {/* Success Message */}
           {submitted && (
-            <Alert
-              icon={<IconCheck size={16} />}
-              title="Application Submitted Successfully! 🎉"
-              color="green"
-              variant="outline"
-              styles={(theme) => ({
-                root: {
-                  background: `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[8]} 100%)`,
-                  border: `1px solid ${theme.colors.green[8]}`,
-                }
+            <Card
+              padding="lg"
+              radius="md"
+              sx={(theme) => ({
+                backgroundColor: theme.colors.dark[7],
+                border: `1px solid ${theme.colors.dark[3]}`
               })}
             >
-              <Text>
+              <Group spacing="xs" mb="xs">
+                <IconCheck size={16} color="#228be6" />
+                <Text weight={600} size="sm" color="white">Application Submitted Successfully!</Text>
+              </Group>
+              <Text size="sm" color="dimmed">
                 Thank you for your interest in partnering with GE-Metrics! We'll review your application and 
                 get back to you within 48 hours. Keep an eye on your email for next steps.
               </Text>
-            </Alert>
+            </Card>
           )}
         </Stack>
       </Container>

@@ -9,7 +9,7 @@ export const recipesRouter = router({
   // Get user's recipes with pagination
   getUserRecipes: protectedProcedure
     .input(z.object({
-      limit: z.number().min(1).max(1000).default(50),
+      limit: z.number().min(1).max(100).default(50), // Reverted max limit to 100 for safety
       offset: z.number().min(0).default(0)
     }))
     .query(async ({ ctx, input }) => {
@@ -274,7 +274,7 @@ export const recipesRouter = router({
   // Get global recipes (public view)
   getGlobalRecipes: protectedProcedure
     .input(z.object({
-      limit: z.number().min(1).max(1000).default(50),
+      limit: z.number().min(1).max(100).default(50), // Reverted max limit to 100 for safety
       offset: z.number().min(0).default(0),
       sortBy: z.enum(['createdAt', 'outputItemName', 'username', 'profit']).default('createdAt'),
       sortOrder: z.enum(['asc', 'desc']).default('desc')
@@ -334,7 +334,7 @@ export const recipesRouter = router({
   // Get all recipes (admin only)
   getAllRecipes: adminProcedure
     .input(z.object({
-      limit: z.number().min(1).max(1000).default(50),
+      limit: z.number().min(1).max(100).default(50), // Reverted max limit to 100 for safety
       offset: z.number().min(0).default(0),
       sortBy: z.enum(['createdAt', 'outputItemName', 'username']).default('createdAt'),
       sortOrder: z.enum(['asc', 'desc']).default('desc')
