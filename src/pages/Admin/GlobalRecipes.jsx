@@ -33,7 +33,7 @@ export default function GlobalRecipes() {
     error, 
     refetch: refetchRecipes 
   } = trpc.recipes.getAllRecipes.useQuery({
-    limit: 1000, // Fetch more since we do client side sorting now
+    limit: 30, // Optimized from 1000
     offset: 0
   })
 

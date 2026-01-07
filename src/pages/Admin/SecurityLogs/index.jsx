@@ -254,7 +254,7 @@ export default function SecurityLogs () {
   
   const { data: auditLogData, isLoading: auditLoading, refetch: refetchAudit } = trpc.adminSecurity.getAuditLog.useQuery({
     page: 1,
-    limit: 100,
+    limit: 30, // Optimized from 100
     action: undefined,
     userId: undefined,
     startDate: undefined,
@@ -263,7 +263,7 @@ export default function SecurityLogs () {
   
   const { data: securityEventsData, isLoading: eventsLoading, refetch: refetchEvents } = trpc.adminSecurity.getSecurityEvents.useQuery({
     page: 1,
-    limit: 100,
+    limit: 30, // Optimized from 100
     severity: undefined,
     resolved: false
   })

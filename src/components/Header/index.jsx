@@ -19,7 +19,7 @@ import {
   Paper
 } from '@mantine/core'
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { IconCoins, IconBrandDiscord, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-react'
+import { IconCoins, IconBrandDiscord, IconBrandYoutube, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-react'
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
 import { Link, useNavigate } from 'react-router-dom'
@@ -57,7 +57,12 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   }
 
   const handleDiscordClick = () => {
-    window.open('https://discord.gg/your-discord-server', '_blank')
+    window.open('https://discord.gg/BdDfzg4ZMQ', '_blank')
+  }
+
+  const handleYouTubeClick = () => {
+    // Placeholder for future YouTube link
+    console.log('YouTube link coming soon!')
   }
 
   // Helper function to get proper image URL (matches AllItems pattern)
@@ -483,6 +488,54 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
           >
             <IconCreditCard size={18} />
           </ActionIcon>
+
+          {/* Social Icons */}
+          <Group spacing={4}>
+            {/* Discord Icon */}
+            <ActionIcon
+              onClick={handleDiscordClick}
+              variant="subtle"
+              color="gray"
+              size={36}
+              style={{
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(114, 137, 218, 0.6))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+            >
+              <IconBrandDiscord size={18} />
+            </ActionIcon>
+
+            {/* YouTube Icon */}
+            <ActionIcon
+              onClick={handleYouTubeClick}
+              variant="subtle"
+              color="gray"
+              size={36}
+              style={{
+                transition: 'all 0.2s ease',
+                opacity: 0.5,
+                cursor: 'not-allowed'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(255, 0, 0, 0.3))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+              title="YouTube link coming soon!"
+            >
+              <IconBrandYoutube size={18} />
+            </ActionIcon>
+          </Group>
 
           {/* Avatar Menu */}
           <Box

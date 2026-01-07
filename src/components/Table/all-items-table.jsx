@@ -298,7 +298,7 @@ export function AllItemsTable ({
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 100
+  const itemsPerPage = 30
 
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage

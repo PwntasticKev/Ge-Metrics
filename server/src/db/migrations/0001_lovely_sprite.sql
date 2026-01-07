@@ -1,2 +1,2 @@
-ALTER TABLE "user_settings" ADD COLUMN "role" text DEFAULT 'user' NOT NULL;--> statement-breakpoint
-ALTER TABLE "user_settings" ADD COLUMN "permissions" jsonb;
+ALTER TABLE "user_settings" ADD COLUMN IF NOT EXISTS "role" text DEFAULT 'user' NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_settings" ADD COLUMN IF NOT EXISTS "permissions" jsonb;

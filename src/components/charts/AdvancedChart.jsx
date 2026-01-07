@@ -9,16 +9,13 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
-  ReferenceArea,
-  Brush,
   BarChart,
   Bar,
   ComposedChart,
   Area,
   AreaChart,
-  Scatter,
-  ScatterChart,
-  Cell
+  ReferenceArea,
+  Scatter
 } from 'recharts'
 import {
   Card,
@@ -29,7 +26,6 @@ import {
   Text,
   ActionIcon,
   Menu,
-  Popover,
   TextInput,
   ColorPicker,
   Switch,
@@ -37,487 +33,679 @@ import {
   Divider,
   Tooltip as MantineTooltip,
   Modal,
-  NumberInput,
-  Textarea
+  Textarea,
+  Box,
+  Flex,
+  Checkbox,
+  Popover
 } from '@mantine/core'
 import {
   IconSettings,
   IconTag,
-  IconTrendingUp,
-  IconTrendingDown,
-  IconVolume,
-  IconCalendarEvent,
-  IconPlus,
-  IconEdit,
-  IconTrash,
-  IconEye,
-  IconEyeOff,
   IconDownload,
   IconMaximize,
+  IconRefresh,
   IconZoomIn,
   IconZoomOut,
-  IconRefresh
+  IconFilter
 } from '@tabler/icons-react'
 import { useQuery } from 'react-query'
 import { getItemHistoryById } from '../../api/rs-wiki-api.jsx'
-import { getItemById, getRelativeTime } from '../../utils/utils.jsx'
+import { getItemById } from '../../utils/utils.jsx'
+import { calculateSMA, calculateEMA } from '../../utils/indicators.js'
+import { trpc } from '../../utils/trpc.jsx'
 
-const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
-  const [timeframe, setTimeframe] = useState('24h')
-  const [chartType, setChartType] = useState('candlestick')
-  const [showVolume, setShowVolume] = useState(true)
-  const [showGameUpdates, setShowGameUpdates] = useState(true)
+// Color Constants
+const COLORS = {
+  sell: '#f59e0b', // Orange (High Price / Sell Volume)
+  buy: '#3b82f6',  // Blue (Low Price / Buy Volume)
+  sma: '#22d3ee',  // Cyan
+  ema: '#a78bfa',  // Purple
+  grid: 'rgba(55, 65, 81, 0.1)', 
+  crosshair: '#6B7280',
+  text: '#C1C2C5',
+  blog: '#3b82f6', // Blue for blogs
+  update: '#f59e0b' // Orange for updates
+}
+
+const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showControls = true }) => {
+  const [timeframe, setTimeframe] = useState('24h') // API Timestep
+  const [range, setRange] = useState('1D') // View Range
+  const [chartType, setChartType] = useState('line')
+  
+  // Visibility State
+  const [seriesVisibility, setSeriesVisibility] = useState({
+    highPrice: true,
+    lowPrice: true,
+    buyVolume: true,
+    sellVolume: true,
+    sma20: false,
+    ema20: false,
+    updates: true
+  })
+
+  // Zoom State
+  const [left, setLeft] = useState('dataMin')
+  const [right, setRight] = useState('dataMax')
+  const [refAreaLeft, setRefAreaLeft] = useState('')
+  const [refAreaRight, setRefAreaRight] = useState('')
+  const [top, setTop] = useState('auto')
+  const [bottom, setBottom] = useState('auto')
+  
+  // Hover State for Info Panel
+  const [hoverData, setHoverData] = useState(null)
+
   const [annotations, setAnnotations] = useState([])
   const [selectedAnnotation, setSelectedAnnotation] = useState(null)
   const [annotationModalOpen, setAnnotationModalOpen] = useState(false)
-  const [zoomDomain, setZoomDomain] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const chartRef = useRef(null)
-  const item = getItemById(Number(itemId))
+  
+  // Resolve item
+  const item = useMemo(() => {
+    if (itemProp) return itemProp;
+    if (itemId && items) return getItemById(Number(itemId), items);
+    return { name: 'Unknown Item', id: itemId };
+  }, [itemId, items, itemProp]);
 
-  // Mock game updates data - in real app, this would come from your database
-  const gameUpdates = [
-    {
-      id: 'update_1',
-      date: new Date('2024-01-15'),
-      title: 'Mining & Smithing Rework',
-      description: 'Major update affecting metal prices',
-      type: 'major',
-      color: '#ff6b6b'
-    },
-    {
-      id: 'update_2',
-      date: new Date('2024-01-20'),
-      title: 'Double XP Weekend',
-      description: 'Increased demand for training items',
-      type: 'event',
-      color: '#4ecdc4'
-    },
-    {
-      id: 'update_3',
-      date: new Date('2024-01-25'),
-      title: 'Boss Drop Rate Changes',
-      description: 'Adjusted rare drop rates',
-      type: 'minor',
-      color: '#45b7d1'
-    }
-  ]
-
-  const { data: historyData, isLoading, refetch } = useQuery({
+  // Fetch History Data
+  const { data: historyData, isLoading } = useQuery({
     queryKey: ['advancedChart', itemId, timeframe],
     queryFn: async () => {
+      if (!itemId) return []
       const result = await getItemHistoryById(timeframe, itemId)
       return result?.data?.data || []
     },
     enabled: !!itemId,
-    refetchInterval: 30000 // Refetch every 30 seconds
+    refetchInterval: 30000
   })
+
+  // Fetch Game Updates (Blogs/Updates)
+  const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
+    startDate: historyData?.length > 0 
+      ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
+      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), 
+    endDate: new Date()
+  }, {
+    enabled: !!historyData && seriesVisibility.updates,
+    staleTime: 5 * 60 * 1000
+  })
+
+  const gameUpdates = useMemo(() => {
+    const blogs = blogsQuery.data?.data?.blogs || []
+    const updates = blogsQuery.data?.data?.updates || []
+    
+    const combined = [
+        ...blogs.map(b => ({
+            id: `blog_${b.date}`,
+            date: new Date(b.date),
+            title: b.title || 'Developer Blog',
+            description: 'Read more on the OSRS homepage',
+            type: 'blog',
+            color: COLORS.blog
+        })),
+        ...updates.map(u => ({
+            id: `update_${u.updateDate || u.date}`,
+            date: new Date(u.updateDate || u.date),
+            title: u.title || 'Game Update',
+            description: u.category || 'Game Update',
+            type: 'update',
+            color: COLORS.update
+        }))
+    ]
+    
+    // Sort by date
+    return combined.sort((a, b) => a.date - b.date)
+  }, [blogsQuery.data])
+
+  // Map Range to Timestep
+  useEffect(() => {
+    switch (range) {
+      case '1D': setTimeframe('5m'); break;
+      case '1W': setTimeframe('1h'); break;
+      case '1M': setTimeframe('1h'); break;
+      case '3M': setTimeframe('6h'); break;
+      case '6M': setTimeframe('6h'); break;
+      case '1Y': setTimeframe('24h'); break;
+      case 'All': setTimeframe('24h'); break;
+      default: setTimeframe('24h');
+    }
+    zoomOut()
+  }, [range])
 
   // Process data for chart
   const chartData = useMemo(() => {
     if (!historyData || historyData.length === 0) return []
 
-    return historyData
-      .filter(item => item.timestamp && (item.avgHighPrice !== null || item.avgLowPrice !== null))
+    const now = Date.now();
+    let cutoff = 0;
+    switch (range) {
+      case '1D': cutoff = now - 24 * 60 * 60 * 1000; break;
+      case '1W': cutoff = now - 7 * 24 * 60 * 60 * 1000; break;
+      case '1M': cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+      case '3M': cutoff = now - 90 * 24 * 60 * 60 * 1000; break;
+      case '6M': cutoff = now - 180 * 24 * 60 * 60 * 1000; break;
+      case '1Y': cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+      default: cutoff = 0;
+    }
+
+    // Filter and basic mapping
+    let processed = historyData
+      .filter(d => {
+        const ts = d.timestamp * 1000;
+        return ts >= cutoff && (d.avgHighPrice !== null || d.avgLowPrice !== null);
+      })
       .sort((a, b) => a.timestamp - b.timestamp)
-      .map((item, index) => {
-        const date = new Date(item.timestamp * 1000)
-        const high = item.avgHighPrice || item.avgLowPrice || 0
-        const low = item.avgLowPrice || item.avgHighPrice || 0
-        const volume = item.highPriceVolume || item.lowPriceVolume || 0
+      .map(d => {
+        const date = new Date(d.timestamp * 1000)
+        const high = d.avgHighPrice || d.avgLowPrice || 0
+        const low = d.avgLowPrice || d.avgHighPrice || 0
+        
+        // Find update (snap to nearest day/hour within reasonable window)
+        // Since chart points are discrete, we associate the update with the closest point
+        // Or we just find if an update occurred on this "day" or timeframe bucket.
+        const update = gameUpdates.find(u => {
+             // Match strictly by date for daily data, or within window for others
+             const diff = Math.abs(u.date.getTime() - date.getTime())
+             // If timeframe is 24h, match same day. If 5m, match within an hour?
+             // Simple approach: within 12 hours for daily, or match closest point.
+             // Let's use 12h window.
+             return diff < 12 * 60 * 60 * 1000
+        })
 
         return {
-          timestamp: item.timestamp,
+          timestamp: d.timestamp,
+          time: d.timestamp, // for indicators
+          value: high,       // for indicators (using high price)
           date: date.toISOString(),
-          dateFormatted: formatDateForTimeframe(date, timeframe),
+          dateObj: date,
+          dateFormatted: formatDateForTimeframe(date, range),
           high,
           low,
-          close: high, // Use high as close for now
-          open: index > 0 ? chartData[index - 1]?.high || high : high,
-          volume,
-          avgPrice: (high + low) / 2,
-          spread: high - low,
-          spreadPercent: low > 0 ? ((high - low) / low) * 100 : 0
+          buyVolume: d.lowPriceVolume || 0,
+          sellVolume: d.highPriceVolume || 0,
+          update: update ? 1 : null, // Marker value for Y-axis
+          updateData: update
         }
       })
-  }, [historyData, timeframe])
 
-  // Format date based on timeframe
-  const formatDateForTimeframe = (date, tf) => {
-    switch (tf) {
-      case '5m':
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      case '1h':
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      case '6h':
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' })
-      case '24h':
-      default:
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    // Calculate Indicators
+    if (processed.length > 0) {
+        const sma20 = calculateSMA(processed, 20)
+        const ema20 = calculateEMA(processed, 20)
+
+        // Merge indicators back
+        processed = processed.map(p => {
+            const smaPoint = sma20.find(s => s.time === p.time)
+            const emaPoint = ema20.find(e => e.time === p.time)
+            return {
+                ...p,
+                sma20: smaPoint ? smaPoint.value : null,
+                ema20: emaPoint ? emaPoint.value : null
+            }
+        })
+    }
+
+    return processed
+  }, [historyData, range, timeframe, gameUpdates])
+
+  // Update hover data
+  useEffect(() => {
+    if (chartData.length > 0 && !hoverData) {
+      setHoverData(chartData[chartData.length - 1])
+    }
+  }, [chartData])
+
+  function formatDateForTimeframe(date, rng) {
+    switch (rng) {
+      case '1D': return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      case '1W': return date.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit' })
+      case '1M': case '3M': return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      default: return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
     }
   }
 
-  // Add annotation
-  const addAnnotation = (x, y, type = 'note') => {
-    const newAnnotation = {
-      id: `annotation_${Date.now()}`,
-      x,
-      y,
-      type,
-      title: 'New Annotation',
-      description: '',
-      color: '#339af0',
-      visible: true,
-      createdAt: new Date()
+  // Zoom Logic
+  const zoom = () => {
+    if (refAreaLeft === refAreaRight || refAreaRight === '') {
+      setRefAreaLeft('')
+      setRefAreaRight('')
+      return
     }
-    setAnnotations([...annotations, newAnnotation])
-    setSelectedAnnotation(newAnnotation)
-    setAnnotationModalOpen(true)
+
+    let leftX = refAreaLeft
+    let rightX = refAreaRight
+    if (leftX > rightX) [leftX, rightX] = [rightX, leftX]
+
+    const zoomedData = chartData.filter(d => d.timestamp >= leftX && d.timestamp <= rightX)
+    if (zoomedData.length > 0) {
+        // Calculate new Y domain based on visible lines
+        const activeValues = []
+        zoomedData.forEach(d => {
+            if (seriesVisibility.highPrice) activeValues.push(d.high)
+            if (seriesVisibility.lowPrice) activeValues.push(d.low)
+            if (seriesVisibility.sma20 && d.sma20) activeValues.push(d.sma20)
+            if (seriesVisibility.ema20 && d.ema20) activeValues.push(d.ema20)
+        })
+        
+        if (activeValues.length > 0) {
+            const minP = Math.min(...activeValues)
+            const maxP = Math.max(...activeValues)
+            const padding = (maxP - minP) * 0.1
+            setBottom(minP - padding)
+            setTop(maxP + padding)
+        }
+    }
+
+    setLeft(leftX)
+    setRight(rightX)
+    setRefAreaLeft('')
+    setRefAreaRight('')
   }
 
-  // Update annotation
-  const updateAnnotation = (id, updates) => {
-    setAnnotations(annotations.map(ann =>
-      ann.id === id ? { ...ann, ...updates } : ann
-    ))
+  const zoomOut = () => {
+    setLeft('dataMin')
+    setRight('dataMax')
+    setTop('auto')
+    setBottom('auto')
+    setRefAreaLeft('')
+    setRefAreaRight('')
   }
 
-  // Delete annotation
-  const deleteAnnotation = (id) => {
-    setAnnotations(annotations.filter(ann => ann.id !== id))
+  const commonChartProps = {
+    data: chartData,
+    margin: { top: 10, right: 0, left: 0, bottom: 0 },
+    onMouseDown: (e) => setRefAreaLeft(e?.activePayload?.[0]?.payload?.timestamp),
+    onMouseMove: (e) => refAreaLeft && setRefAreaRight(e?.activePayload?.[0]?.payload?.timestamp),
+    onMouseUp: zoom,
+    onMouseLeave: () => {}
   }
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload || payload.length === 0) return null
+  const handleMouseMove = (e) => {
+    if (e?.activePayload?.[0]?.payload) {
+        setHoverData(e.activePayload[0].payload)
+        if (refAreaLeft) setRefAreaRight(e.activePayload[0].payload.timestamp)
+    }
+  }
 
-    const data = payload[0].payload
-    const gameUpdate = gameUpdates.find(update =>
-      Math.abs(new Date(update.date).getTime() - new Date(data.date).getTime()) < 24 * 60 * 60 * 1000
-    )
+  // Controls UI
+  const renderControls = () => (
+    <Group spacing="md" noWrap>
+        <Popover position="bottom" withArrow shadow="md">
+            <Popover.Target>
+                <Button variant="subtle" size="xs" leftIcon={<IconFilter size={14} />} compact>
+                    Indicators
+                </Button>
+            </Popover.Target>
+            <Popover.Dropdown>
+                <Stack spacing="xs">
+                    <Checkbox 
+                        label={<Text size="sm" color={COLORS.sell}>Sell Price</Text>}
+                        checked={seriesVisibility.highPrice}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, highPrice: e.currentTarget.checked }))}
+                    />
+                    <Checkbox 
+                        label={<Text size="sm" color={COLORS.buy}>Buy Price</Text>}
+                        checked={seriesVisibility.lowPrice}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, lowPrice: e.currentTarget.checked }))}
+                    />
+                    <Divider my={4} />
+                    <Checkbox 
+                        label={<Text size="sm" color={COLORS.sma}>SMA (20)</Text>}
+                        checked={seriesVisibility.sma20}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, sma20: e.currentTarget.checked }))}
+                    />
+                    <Checkbox 
+                        label={<Text size="sm" color={COLORS.ema}>EMA (20)</Text>}
+                        checked={seriesVisibility.ema20}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, ema20: e.currentTarget.checked }))}
+                    />
+                    <Divider my={4} />
+                    <Checkbox 
+                        label={<Text size="sm" color={COLORS.buy}>Buy Volume</Text>}
+                        checked={seriesVisibility.buyVolume}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, buyVolume: e.currentTarget.checked }))}
+                    />
+                    <Checkbox 
+                        label={<Text size="sm" color={COLORS.sell}>Sell Volume</Text>}
+                        checked={seriesVisibility.sellVolume}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, sellVolume: e.currentTarget.checked }))}
+                    />
+                    <Divider my={4} />
+                    <Checkbox 
+                        label={<Text size="sm">Game Updates</Text>}
+                        checked={seriesVisibility.updates}
+                        onChange={(e) => setSeriesVisibility(p => ({ ...p, updates: e.currentTarget.checked }))}
+                    />
+                </Stack>
+            </Popover.Dropdown>
+        </Popover>
+    </Group>
+  )
+
+  const renderMainChart = () => {
+    const yDomain = [bottom === 'auto' ? 'dataMin' : bottom, top === 'auto' ? 'dataMax' : top]
 
     return (
-      <Card shadow="md" p="sm" style={{ minWidth: 200 }}>
-        <Text size="sm" weight={500} mb="xs">
-          {data.dateFormatted}
-        </Text>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart {...commonChartProps} onMouseMove={handleMouseMove}>
+            <defs>
+              <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={COLORS.sell} stopOpacity={0.1} />
+                <stop offset="95%" stopColor={COLORS.sell} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke={COLORS.grid} vertical={false} />
+            <XAxis
+                dataKey="timestamp" 
+                type="number" 
+                domain={[left, right]} 
+                hide 
+                allowDataOverflow
+            />
+            <YAxis
+              orientation="right" 
+              domain={yDomain} 
+              tick={{ fontSize: 10, fill: COLORS.crosshair }}
+              tickFormatter={(value) => new Intl.NumberFormat('en', { notation: 'compact' }).format(value)}
+              axisLine={false}
+              tickLine={false}
+              padding={{ top: 20, bottom: 20 }}
+              allowDataOverflow
+            />
+            <Tooltip content={<></>} cursor={{ stroke: COLORS.crosshair, strokeWidth: 1, strokeDasharray: '4 4' }} />
 
-        <Stack spacing={4}>
-          <Group position="apart">
-            <Text size="xs" color="dimmed">High:</Text>
-            <Text size="xs" weight={500} color="green">
-              {new Intl.NumberFormat().format(data.high)}
-            </Text>
-          </Group>
+            {/* High Price (Sell) */}
+            {seriesVisibility.highPrice && (
+            <Line
+              type="monotone"
+              dataKey="high"
+                    stroke={COLORS.sell}
+              strokeWidth={2}
+              dot={false}
+                    activeDot={{ r: 4, stroke: COLORS.sell, fill: '#1A1B1E' }}
+                    isAnimationActive={false}
+            />
+            )}
 
-          <Group position="apart">
-            <Text size="xs" color="dimmed">Low:</Text>
-            <Text size="xs" weight={500} color="blue">
-              {new Intl.NumberFormat().format(data.low)}
-            </Text>
-          </Group>
+            {/* Low Price (Buy) */}
+            {seriesVisibility.lowPrice && (
+            <Line
+              type="monotone"
+              dataKey="low"
+                    stroke={COLORS.buy}
+              strokeWidth={2}
+              dot={false}
+                    activeDot={{ r: 4, stroke: COLORS.buy, fill: '#1A1B1E' }}
+                    isAnimationActive={false}
+                />
+            )}
 
-          <Group position="apart">
-            <Text size="xs" color="dimmed">Volume:</Text>
-            <Text size="xs" weight={500}>
-              {new Intl.NumberFormat().format(data.volume)}
-            </Text>
-          </Group>
+            {/* SMA 20 */}
+            {seriesVisibility.sma20 && (
+                <Line
+                    type="monotone"
+                    dataKey="sma20"
+                    stroke={COLORS.sma}
+                    strokeWidth={1.5}
+                    dot={false}
+                    activeDot={false}
+                    isAnimationActive={false}
+                />
+            )}
 
-          <Group position="apart">
-            <Text size="xs" color="dimmed">Spread:</Text>
-            <Text size="xs" weight={500}>
-              {data.spreadPercent.toFixed(2)}%
-            </Text>
-          </Group>
+            {/* EMA 20 */}
+            {seriesVisibility.ema20 && (
+                <Line
+                    type="monotone"
+                    dataKey="ema20"
+                    stroke={COLORS.ema}
+                    strokeWidth={1.5}
+                    dot={false}
+                    activeDot={false}
+                    isAnimationActive={false}
+                />
+            )}
+
+             {/* Game Updates (Dots at bottom) */}
+             {seriesVisibility.updates && (
+                <Scatter 
+                    dataKey="update" 
+                    fill="#fff"
+                    shape={(props) => {
+                        const { cx, cy, payload } = props
+                        if (!payload.updateData) return null
+        return (
+                            <circle 
+                                cx={cx} 
+                                cy={cy} 
+                                r={4} 
+                                fill={payload.updateData.color} 
+                                stroke="#1A1B1E"
+                                strokeWidth={1}
+                            />
+                        )
+                    }}
+                    yAxisId="updates"
+                />
+            )}
+            
+            {/* Hidden Y-Axis for Updates to keep them fixed at the bottom */}
+            {/* Domain [0, 10], update=1, so it plots at bottom 10% */}
+            <YAxis yAxisId="updates" domain={[0, 10]} hide />
+
+            {refAreaLeft && refAreaRight ? (
+              <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#3B82F6" fillOpacity={0.1} />
+            ) : null}
+          </ComposedChart>
+      </ResponsiveContainer>
+        )
+  }
+
+  const renderVolumeChart = () => {
+        return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart {...commonChartProps} onMouseMove={handleMouseMove}>
+          <CartesianGrid stroke={COLORS.grid} vertical={false} />
+            <XAxis
+            dataKey="timestamp" 
+            type="number"
+            domain={[left, right]}
+            tick={{ fontSize: 10, fill: COLORS.crosshair }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(unix) => formatDateForTimeframe(new Date(unix * 1000), range)}
+            allowDataOverflow
+            minTickGap={30}
+            />
+            <YAxis
+            orientation="right" 
+            tick={{ fontSize: 10, fill: COLORS.crosshair }}
+            tickFormatter={(value) => new Intl.NumberFormat('en', { notation: 'compact' }).format(value)}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip content={<></>} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+          
+          {seriesVisibility.sellVolume && (
+            <Bar dataKey="sellVolume" fill={COLORS.sell} stackId="a" opacity={0.8} />
+          )}
+          {seriesVisibility.buyVolume && (
+            <Bar dataKey="buyVolume" fill={COLORS.buy} stackId="a" opacity={0.8} />
+          )}
+        </BarChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  // Info Panel
+  const InfoPanel = ({ data }) => {
+    if (!data) return (
+        <Stack spacing="xs" p="md" align="center" justify="center" h="100%">
+            <Text color="dimmed" size="sm">Hover chart for details</Text>
         </Stack>
-
-        {gameUpdate && (
-          <>
-            <Divider my="xs" />
-            <Badge
-              color={gameUpdate.type === 'major' ? 'red' : gameUpdate.type === 'event' ? 'green' : 'blue'}
-              variant="light"
-              size="sm"
-              fullWidth
-            >
-              {gameUpdate.title}
-            </Badge>
-            <Text size="xs" color="dimmed" mt={4}>
-              {gameUpdate.description}
-            </Text>
-          </>
-        )}
-      </Card>
     )
-  }
-
-  // Custom dot for game updates
-  const GameUpdateDot = ({ cx, cy, payload }) => {
-    const gameUpdate = gameUpdates.find(update =>
-      Math.abs(new Date(update.date).getTime() - new Date(payload.date).getTime()) < 24 * 60 * 60 * 1000
-    )
-
-    if (!gameUpdate || !showGameUpdates) return null
 
     return (
-      <MantineTooltip label={gameUpdate.title} position="top">
-        <circle
-          cx={cx}
-          cy={cy - 20}
-          r={6}
-          fill={gameUpdate.color}
-          stroke="#fff"
-          strokeWidth={2}
-          style={{ cursor: 'pointer' }}
-        />
-      </MantineTooltip>
+      <Stack spacing="md" p="md" h="100%" style={{ borderLeft: '1px solid rgba(255,255,255,0.05)', overflowY: 'auto' }}>
+        <div>
+            <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Date</Text>
+            <Text size="lg" weight={600} color="white">{data.dateFormatted}</Text>
+            <Text size="xs" color="dimmed">{data.dateObj.toLocaleTimeString()}</Text>
+        </div>
+
+        <div>
+            <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Price</Text>
+            <Stack spacing={4}>
+                {seriesVisibility.highPrice && (
+                    <Group position="apart">
+                        <Text size="sm" color={COLORS.sell}>Sell:</Text>
+                        <Text size="sm" weight={700} color={COLORS.sell}>
+                            {new Intl.NumberFormat().format(data.high)}
+                        </Text>
+                    </Group>
+                )}
+                {seriesVisibility.lowPrice && (
+                    <Group position="apart">
+                        <Text size="sm" color={COLORS.buy}>Buy:</Text>
+                        <Text size="sm" weight={700} color={COLORS.buy}>
+                            {new Intl.NumberFormat().format(data.low)}
+                        </Text>
+                    </Group>
+                )}
+            </Stack>
+        </div>
+
+        {(seriesVisibility.sma20 || seriesVisibility.ema20) && (
+            <div>
+                <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Indicators</Text>
+                <Stack spacing={4}>
+                    {seriesVisibility.sma20 && data.sma20 && (
+                        <Group position="apart">
+                            <Text size="sm" color={COLORS.sma}>SMA(20):</Text>
+                            <Text size="sm" weight={600} color="white">
+                                {new Intl.NumberFormat().format(Math.round(data.sma20))}
+                            </Text>
+                        </Group>
+                    )}
+                    {seriesVisibility.ema20 && data.ema20 && (
+                        <Group position="apart">
+                            <Text size="sm" color={COLORS.ema}>EMA(20):</Text>
+                            <Text size="sm" weight={600} color="white">
+                                {new Intl.NumberFormat().format(Math.round(data.ema20))}
+                            </Text>
+                        </Group>
+                    )}
+                </Stack>
+            </div>
+        )}
+
+        <div>
+            <Text size="xs" color="dimmed" transform="uppercase" weight={700} spacing={1}>Volume</Text>
+             <Stack spacing={4}>
+                {seriesVisibility.sellVolume && (
+                    <Group position="apart">
+                        <Text size="sm" color={COLORS.sell}>Sell Vol:</Text>
+                        <Text size="sm" weight={600} color="white">
+                            {new Intl.NumberFormat().format(data.sellVolume)}
+                        </Text>
+                    </Group>
+                )}
+                {seriesVisibility.buyVolume && (
+                    <Group position="apart">
+                        <Text size="sm" color={COLORS.buy}>Buy Vol:</Text>
+                        <Text size="sm" weight={600} color="white">
+                            {new Intl.NumberFormat().format(data.buyVolume)}
+                        </Text>
+                    </Group>
+                )}
+            </Stack>
+        </div>
+
+        {data.updateData && (
+            <Box mt="sm" p="xs" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>
+                <Badge 
+                    color={data.updateData.color === COLORS.blog ? 'blue' : 'orange'} 
+                    variant="filled" 
+                    size="sm" 
+                    mb={4}
+                >
+                    {data.updateData.type}
+                </Badge>
+                <Text size="sm" weight={600} color="white">{data.updateData.title}</Text>
+                <Text size="xs" color="dimmed" mt={2}>{data.updateData.description}</Text>
+            </Box>
+        )}
+      </Stack>
     )
   }
 
-  // Render different chart types
-  const renderChart = () => {
-    const commonProps = {
-      data: chartData,
-      margin: { top: 20, right: 30, left: 20, bottom: 20 }
-    }
-
-    switch (chartType) {
-      case 'line':
-        return (
-          <ComposedChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis
-              dataKey="dateFormatted"
-              stroke="#9CA3AF"
-              fontSize={12}
-            />
-            <YAxis
-              stroke="#9CA3AF"
-              fontSize={12}
-              tickFormatter={(value) => new Intl.NumberFormat().format(value)}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-
-            <Line
-              type="monotone"
-              dataKey="high"
-              stroke="#10B981"
-              strokeWidth={2}
-              dot={false}
-              name="High Price"
-            />
-            <Line
-              type="monotone"
-              dataKey="low"
-              stroke="#3B82F6"
-              strokeWidth={2}
-              dot={false}
-              name="Low Price"
-            />
-
-            {showVolume && (
-              <Bar
-                dataKey="volume"
-                fill="#6B7280"
-                opacity={0.3}
-                yAxisId="volume"
-                name="Volume"
-              />
-            )}
-
-            {/* Game update markers */}
-            {chartData.map((entry, index) => (
-              <GameUpdateDot key={index} cx={index} cy={entry.high} payload={entry} />
-            ))}
-
-            {/* Annotations */}
-            {annotations.filter(ann => ann.visible).map(annotation => (
-              <ReferenceLine
-                key={annotation.id}
-                x={annotation.x}
-                stroke={annotation.color}
-                strokeDasharray="5 5"
-                label={{ value: annotation.title, position: 'top' }}
-              />
-            ))}
-          </ComposedChart>
-        )
-
-      case 'area':
-        return (
-          <ComposedChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis
-              dataKey="dateFormatted"
-              stroke="#9CA3AF"
-              fontSize={12}
-            />
-            <YAxis
-              stroke="#9CA3AF"
-              fontSize={12}
-              tickFormatter={(value) => new Intl.NumberFormat().format(value)}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-
-            <Area
-              type="monotone"
-              dataKey="high"
-              stackId="1"
-              stroke="#10B981"
-              fill="#10B981"
-              fillOpacity={0.6}
-              name="High Price"
-            />
-            <Area
-              type="monotone"
-              dataKey="low"
-              stackId="1"
-              stroke="#3B82F6"
-              fill="#3B82F6"
-              fillOpacity={0.4}
-              name="Low Price"
-            />
-
-            {showVolume && (
-              <Bar
-                dataKey="volume"
-                fill="#6B7280"
-                opacity={0.3}
-                yAxisId="volume"
-                name="Volume"
-              />
-            )}
-          </ComposedChart>
-        )
-
-      case 'candlestick':
-      default:
-        return (
-          <ComposedChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis
-              dataKey="dateFormatted"
-              stroke="#9CA3AF"
-              fontSize={12}
-            />
-            <YAxis
-              stroke="#9CA3AF"
-              fontSize={12}
-              tickFormatter={(value) => new Intl.NumberFormat().format(value)}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-
-            {/* Candlestick representation using areas */}
-            <Area
-              type="monotone"
-              dataKey="high"
-              stroke="#10B981"
-              fill="transparent"
-              strokeWidth={2}
-              name="High Price"
-            />
-            <Area
-              type="monotone"
-              dataKey="low"
-              stroke="#EF4444"
-              fill="transparent"
-              strokeWidth={2}
-              name="Low Price"
-            />
-
-            {showVolume && (
-              <Bar
-                dataKey="volume"
-                fill="#6B7280"
-                opacity={0.3}
-                yAxisId="volume"
-                name="Volume"
-              />
-            )}
-          </ComposedChart>
-        )
-    }
-  }
-
-  const timeframeOptions = [
-    { value: '5m', label: '5 Min' },
-    { value: '1h', label: '1 Hour' },
-    { value: '6h', label: '6 Hours' },
-    { value: '24h', label: '24 Hours' }
-  ]
-
-  const chartTypeOptions = [
-    { value: 'candlestick', label: 'Candlestick' },
-    { value: 'line', label: 'Line Chart' },
-    { value: 'area', label: 'Area Chart' }
+  const rangeOptions = [
+    { value: '1D', label: '1D' },
+    { value: '1W', label: '1W' },
+    { value: '1M', label: '1M' },
+    { value: '3M', label: '3M' },
+    { value: '6M', label: '6M' },
+    { value: '1Y', label: '1Y' },
+    { value: 'All', label: 'All' }
   ]
 
   return (
-    <Card shadow="sm" p="md" style={{ height: isFullscreen ? '100vh' : 'auto' }}>
-      {/* Chart Controls */}
+    <Card shadow="sm" p={0} style={{ height: isFullscreen ? '100vh' : height, backgroundColor: '#1A1B1E' }}>
+      <Stack spacing={0} h="100%">
+        {/* Header / Controls */}
       {showControls && (
-        <Group position="apart" mb="md">
-          <Group>
-            <Select
-              data={timeframeOptions}
-              value={timeframe}
-              onChange={(value) => setTimeframe(value ?? '1d')}
-              size="sm"
-              style={{ width: 100 }}
-            />
-
-            <Select
-              data={chartTypeOptions}
-              value={chartType}
-              onChange={(value) => setChartType(value ?? 'line')}
-              size="sm"
-              style={{ width: 130 }}
-            />
-
-            <ActionIcon onClick={refetch} size="sm" variant="light">
-              <IconRefresh size={16} />
-            </ActionIcon>
+            <Group position="apart" p="xs" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <Group spacing="xs">
+                <Text size="sm" weight={600} color="white" mr="xs">
+                {item?.name || 'Loading...'}
+                </Text>
+                {left !== 'dataMin' && (
+                    <Button 
+                        leftIcon={<IconZoomOut size={12} />} 
+                        size="xs" 
+                        variant="light" 
+                        color="orange" 
+                        compact 
+                        onClick={zoomOut}
+                    >
+                        Reset
+                    </Button>
+                )}
           </Group>
 
-          <Group>
-            <Switch
-              label="Volume"
-              checked={showVolume}
-              onChange={(e) => setShowVolume(e.currentTarget.checked)}
-              size="sm"
-            />
+            <Group spacing={4}>
+                {rangeOptions.map((opt) => (
+                <Button 
+                    key={opt.value}
+                    size="xs" 
+                    variant={range === opt.value ? 'filled' : 'subtle'} 
+                    color={range === opt.value ? 'blue' : 'gray'}
+                    compact
+                    onClick={() => setRange(opt.value)}
+                    styles={{ root: { padding: '0 8px', height: 24 } }}
+                >
+                    {opt.label}
+                </Button>
+                ))}
+                
+                <Divider orientation="vertical" h={20} mx={4} />
+                
+                {renderControls()}
 
-            <Switch
-              label="Game Updates"
-              checked={showGameUpdates}
-              onChange={(e) => setShowGameUpdates(e.currentTarget.checked)}
-              size="sm"
-            />
-
-            <Menu shadow="md" width={200}>
+                <Menu shadow="md" width={150} position="bottom-end">
               <Menu.Target>
-                <ActionIcon size="sm" variant="light">
+                    <ActionIcon size="sm" variant="subtle" color="gray">
                   <IconSettings size={16} />
                 </ActionIcon>
               </Menu.Target>
-
               <Menu.Dropdown>
                 <Menu.Item
                   icon={<IconTag size={14} />}
                   onClick={() => setAnnotationModalOpen(true)}
                 >
                   Add Annotation
-                </Menu.Item>
-                <Menu.Item
-                  icon={<IconDownload size={14} />}
-                  onClick={() => { /* Export chart */ }}
-                >
-                  Export Chart
                 </Menu.Item>
                 <Menu.Item
                   icon={<IconMaximize size={14} />}
@@ -531,143 +719,65 @@ const AdvancedChart = ({ itemId, height = 500, showControls = true }) => {
         </Group>
       )}
 
-      {/* Chart Title */}
-      <Group position="apart" align="center" mb="md">
-        <div>
-          <Text size="lg" weight={500}>
-            {item?.name || 'Loading...'}
-          </Text>
-          <Group spacing="xs">
-            <Badge color="blue" variant="light" size="sm">
-              {timeframe}
-            </Badge>
-            <Badge color="green" variant="light" size="sm">
-              Live Data
-            </Badge>
-            {chartData.length > 0 && (
-              <Text size="xs" color="dimmed">
-                {chartData.length} data points
-              </Text>
-            )}
-          </Group>
+        {/* Charts Area with Side Panel */}
+        <Flex style={{ flex: 1, minHeight: 0 }}>
+            {/* Charts Column */}
+            <Stack spacing={0} style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+                {/* Price Chart (Top) */}
+                <div style={{ flex: 3, width: '100%', minHeight: 0, padding: '10px 0 0 0' }}>
+                    {isLoading ? (
+                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text size="xs" color="dimmed">Loading data...</Text>
         </div>
-
-        {/* Price Summary */}
-        {chartData.length > 0 && (
-          <div style={{ textAlign: 'right' }}>
-            <Text size="xl" weight={700} color="green">
-              {new Intl.NumberFormat().format(chartData[chartData.length - 1]?.high || 0)}
-            </Text>
-            <Text size="sm" color="dimmed">
-              Latest High Price
-            </Text>
+                    ) : historyData.length === 0 ? (
+                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text size="xs" color="dimmed">No data available</Text>
           </div>
-        )}
-      </Group>
-
-      {/* Chart Container */}
-      <div style={{ height, width: '100%' }} ref={chartRef}>
-        {isLoading
-          ? (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%'
-          }}>
-            <Text>Loading chart data...</Text>
-          </div>
-            )
-          : chartData.length === 0
-            ? (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%'
-          }}>
-            <Text color="dimmed">No data available for this timeframe</Text>
-          </div>
-              )
-            : (
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart()}
-          </ResponsiveContainer>
+                    ) : (
+                        renderMainChart()
               )}
       </div>
 
-      {/* Game Updates Legend */}
-      {showGameUpdates && gameUpdates.length > 0 && (
-        <Group mt="md" spacing="xs">
-          <Text size="xs" color="dimmed">Game Updates:</Text>
-          {gameUpdates.map(update => (
-            <Badge
-              key={update.id}
-              color={update.type === 'major' ? 'red' : update.type === 'event' ? 'green' : 'blue'}
-              variant="dot"
-              size="sm"
-            >
-              {update.title}
-            </Badge>
-          ))}
-        </Group>
-      )}
+                {/* Volume Chart (Bottom) */}
+                <div style={{ flex: 1, width: '100%', minHeight: 0, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    {isLoading ? null : renderVolumeChart()}
+                </div>
+            </Stack>
 
-      {/* Annotation Modal */}
+            {/* Side Info Panel (Fixed Width) */}
+            <Box w={200} style={{ flexShrink: 0, backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                <InfoPanel data={hoverData || (chartData.length > 0 ? chartData[chartData.length - 1] : null)} />
+            </Box>
+        </Flex>
+      </Stack>
+
       <Modal
         opened={annotationModalOpen}
         onClose={() => setAnnotationModalOpen(false)}
         title="Add Annotation"
-        size="md"
+        size="sm"
+        zIndex={200}
       >
-        <Stack spacing="md">
+        <Stack spacing="sm">
           <TextInput
             label="Title"
             placeholder="Annotation title"
-            value={selectedAnnotation?.title  ??  ''}
-            onChange={(e) => setSelectedAnnotation({
-              ...selectedAnnotation,
-              title: e.target.value
-            })}
+            value={selectedAnnotation?.title ?? ''}
+            onChange={(e) => setSelectedAnnotation({ ...selectedAnnotation, title: e.target.value })}
           />
-
           <Textarea
             label="Description"
-            placeholder="Add description..."
-            value={selectedAnnotation?.description  ??  ''}
-            onChange={(e) => setSelectedAnnotation({
-              ...selectedAnnotation,
-              description: e.target.value
-            })}
+            placeholder="Details..."
+            value={selectedAnnotation?.description ?? ''}
+            onChange={(e) => setSelectedAnnotation({ ...selectedAnnotation, description: e.target.value })}
           />
-
-          <Group>
             <ColorPicker
-              value={selectedAnnotation?.color  ??  '#339af0'}
-              onChange={(color) => setSelectedAnnotation({
-                ...selectedAnnotation,
-                color
-              })}
-            />
-          </Group>
-
+            value={selectedAnnotation?.color ?? '#339af0'}
+            onChange={(color) => setSelectedAnnotation({ ...selectedAnnotation, color })}
+          />
           <Group position="right">
-            <Button
-              variant="default"
-              onClick={() => setAnnotationModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedAnnotation) {
-                  updateAnnotation(selectedAnnotation.id, selectedAnnotation)
-                }
-                setAnnotationModalOpen(false)
-              }}
-            >
-              Save
-            </Button>
+            <Button variant="default" onClick={() => setAnnotationModalOpen(false)}>Cancel</Button>
+            <Button onClick={() => setAnnotationModalOpen(false)}>Save</Button>
           </Group>
         </Stack>
       </Modal>

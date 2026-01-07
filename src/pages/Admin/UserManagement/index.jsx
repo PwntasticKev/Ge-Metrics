@@ -223,7 +223,7 @@ const UserManagement = () => {
 
   const { data: securityEventsData, isLoading: securityEventsLoading } = trpc.adminSecurity.getSecurityEvents.useQuery({
     page: 1,
-    limit: 100,
+    limit: 30, // Optimized from 100
     severity: undefined,
     resolved: false
   })

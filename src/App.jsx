@@ -9,6 +9,7 @@ import { Notifications } from '@mantine/notifications'
 import { getTheme } from './theme/index.js'
 import HeaderNav from './components/Header'
 import NavMenu from './components/NavBar/nav-bar.jsx'
+import Footer from './components/Footer'
 import { useMediaQuery } from '@mantine/hooks'
 import { useAuth } from './hooks/useAuth'
 import { TRPCProvider } from './utils/trpc.jsx' // Import the central provider
@@ -78,6 +79,7 @@ const SuggestedItems = lazy(() => import('./pages/SuggestedItems/index.jsx'))
 const Recipes = lazy(() => import('./pages/Recipes/index.jsx'))
 const GlobalRecipes = lazy(() => import('./pages/GlobalRecipes/index.jsx'))
 const AdminGlobalRecipes = lazy(() => import('./pages/Admin/GlobalRecipes.jsx'))
+const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -150,7 +152,7 @@ function AppLayout ({ children }) {
   const mainClasses = `${classes.main} ${!isMobile && expanded ? classes.mainExpanded : ''}`
 
   return (
-    <Box className={mainClasses}>
+    <Box className={mainClasses} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <TrialProtectedContent>
         <Suspense fallback={
           <div style={{
@@ -164,9 +166,12 @@ function AppLayout ({ children }) {
             Loading...
           </div>
         }>
-          {children}
+          <div style={{ flex: 1 }}>
+            {children}
+          </div>
         </Suspense>
       </TrialProtectedContent>
+      <Footer />
     </Box>
   )
 }
@@ -282,6 +287,7 @@ function AppContent () {
             <Route path="/signup/success" element={<SignupSuccess />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/email-verified" element={<EmailVerifiedPage />} />
+            <Route path="/terms" element={<TermsAndConditions />} />
             <Route path="/" element={<Navigate to="/all-items" />} />
 
             {/* Protected routes */}

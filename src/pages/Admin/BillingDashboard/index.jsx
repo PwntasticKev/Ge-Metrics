@@ -89,7 +89,7 @@ export default function BillingDashboard () {
   const { data: billingOverview, isLoading: overviewLoading } = trpc.adminBilling.getBillingOverview.useQuery()
   const { data: subscriptionsData, isLoading: subscriptionsLoading, refetch: refetchSubscriptions } = trpc.adminBilling.getAllSubscriptions.useQuery({
     page: 1,
-    limit: 100,
+    limit: 30, // Optimized from 100
     search: searchQuery || undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     plan: planFilter !== 'all' ? planFilter : undefined

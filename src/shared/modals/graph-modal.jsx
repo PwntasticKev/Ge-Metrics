@@ -1,6 +1,6 @@
 import { Box, Container, Modal, Group, Avatar, Title } from '@mantine/core'
 import { useEffect, useState } from 'react'
-import LineChart from '../../shared/line-chart.jsx'
+import AdvancedChart from '../../components/charts/AdvancedChart.jsx'
 
 export default function GraphModal ({ opened, setOpened, onClose, item, id, items }) {
   const [mounted, setMounted] = useState(false)
@@ -34,7 +34,7 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
       opened={opened}
       onClose={handleClose}
       centered
-      size="95%"
+      size="90%"
       closeOnEscape={true}
       closeOnClickOutside={false}
       withCloseButton={true}
@@ -52,22 +52,24 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
       styles={{
         body: {
           maxHeight: '90vh',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          padding: 0
+        },
+        root: {
+            padding: 0
         }
       }}
     >
-      <Box style={{ padding: '1rem', width: '100%' }}>
-        <Container px={0} style={{ width: '100%' }}>
+      <Box style={{ width: '100%', height: '80vh', backgroundColor: '#1A1B1E' }}>
           {mounted && chartId ? (
-            <div style={{ width: '100%', minHeight: '520px' }}>
-              <LineChart id={chartId} items={items || item?.items} item={item} height={520} />
+            <div style={{ width: '100%', height: '100%' }}>
+              <AdvancedChart itemId={chartId} item={item} items={items} height="100%" />
             </div>
           ) : (
-            <div style={{ width: '100%', minHeight: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div>Loading chart...</div>
             </div>
           )}
-        </Container>
       </Box>
     </Modal>
   )

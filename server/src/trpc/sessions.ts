@@ -1,10 +1,31 @@
 import { z } from 'zod'
-import { protectedProcedure, router } from './trpc.js'
+import { protectedProcedure, publicProcedure, router } from './trpc.js'
 import { db, userSessions, loginHistory } from '../db/index.js'
-import { eq, desc, and, gte, ne } from 'drizzle-orm'
+import { eq, desc, and, gte, ne, countDistinct } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 
 export const sessionsRouter = router({
+  // Get count of active users (public endpoint for footer)
+  getActiveUsersCount: publicProcedure.query(async () => {
+    // Get users active in the last 15 minutes
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
+    
+    const result = await db
+      .select({
+        count: countDistinct(userSessions.userId)
+      })
+      .from(userSessions)
+      .where(and(
+        eq(userSessions.isActive, true),
+        gte(userSessions.lastActivity, fifteenMinutesAgo)
+      ))
+    
+    return {
+      activeUsers: result[0]?.count || 0,
+      lastUpdated: new Date().toISOString()
+    }
+  }),
+
   // Get active sessions for current user
   getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.user.id

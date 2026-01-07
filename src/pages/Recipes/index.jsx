@@ -39,7 +39,7 @@ export default function UserRecipes() {
     error, 
     refetch: refetchRecipes 
   } = trpc.recipes.getUserRecipes.useQuery({
-    limit: 100,
+    limit: 30, // Optimized limit from 100 to 30
     offset: 0
   })
 
