@@ -51,7 +51,14 @@ ALTER TABLE user_achievements ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFA
 -- Note: PostgreSQL uses SERIAL which is auto-incrementing
 
 -- Add any missing constraints
-ALTER TABLE clans ADD CONSTRAINT IF NOT EXISTS clans_name_unique UNIQUE (name);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'clans_name_unique'
+    ) THEN
+        ALTER TABLE clans ADD CONSTRAINT clans_name_unique UNIQUE (name);
+    END IF;
+END $$;
 
 -- Verify the schema
 SELECT 
