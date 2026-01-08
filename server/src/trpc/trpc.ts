@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
-import { eq } from 'drizzle-orm'
-import { db, userSettings } from '../db/index.js'
+import { eq, and, gte } from 'drizzle-orm'
+import { db, userSettings, userSessions } from '../db/index.js'
 import * as AuthModule from '../utils/auth.js'
 
 // Context creation
@@ -46,13 +46,69 @@ export const t = initTRPC.context<Context>().create()
 export const router = t.router
 export const publicProcedure = t.procedure
 
-// Auth middleware
-const isAuthed = t.middleware(({ ctx, next }) => {
+// Auth middleware with session activity tracking
+const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'No authorization token provided or token is invalid'
     })
+  }
+
+  // Update session activity (throttled to once per 5 minutes per user)
+  try {
+    const authHeader = ctx.req.headers.authorization
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Extract the refresh token from localStorage or request context if available
+      // For now, we'll update based on user ID and IP address
+      const ipAddress = ctx.req.ip || ctx.req.connection.remoteAddress || 'unknown'
+      const userAgent = ctx.req.headers['user-agent'] || 'unknown'
+      
+      // Only update if last activity was more than 5 minutes ago
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+      
+      const existingSessions = await db
+        .select({ id: userSessions.id, lastActivity: userSessions.lastActivity })
+        .from(userSessions)
+        .where(and(
+          eq(userSessions.userId, ctx.user.id),
+          eq(userSessions.isActive, true)
+        ))
+        .limit(1)
+      
+      const existingSession = existingSessions[0]
+      
+      if (existingSession && existingSession.lastActivity < fiveMinutesAgo) {
+        // Update existing session activity
+        await db
+          .update(userSessions)
+          .set({ 
+            lastActivity: new Date(),
+            ipAddress,
+            userAgent
+          })
+          .where(eq(userSessions.id, existingSession.id))
+      } else if (!existingSession) {
+        // Create new session if none exists (fallback)
+        try {
+          await db.insert(userSessions).values({
+            userId: ctx.user.id,
+            token: `api_session_${Date.now()}`,
+            ipAddress,
+            userAgent,
+            deviceInfo: null,
+            lastActivity: new Date(),
+            isActive: true
+          })
+        } catch (error) {
+          // Ignore session creation errors to prevent API failures
+          console.warn('Failed to create session:', error)
+        }
+      }
+    }
+  } catch (error) {
+    // Log session update errors but don't fail the API request
+    console.warn('Failed to update session activity:', error)
   }
 
   return next({

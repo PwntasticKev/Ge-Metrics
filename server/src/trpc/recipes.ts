@@ -15,44 +15,88 @@ export const recipesRouter = router({
     .query(async ({ ctx, input }) => {
       const userId = ctx.user.id
       
-      const userRecipes = await db
-        .select({
-          id: recipes.id,
-          outputItemId: recipes.outputItemId,
-          outputItemName: recipes.outputItemName,
-          conversionCost: recipes.conversionCost,
-          createdAt: recipes.createdAt,
-          updatedAt: recipes.updatedAt,
-          ingredients: sql<any[]>`
-            COALESCE(
-              JSON_AGG(
-                JSON_BUILD_OBJECT(
-                  'itemId', ${recipeIngredients.itemId},
-                  'itemName', ${recipeIngredients.itemName},
-                  'quantity', ${recipeIngredients.quantity}
-                )
-                ORDER BY ${recipeIngredients.sortOrder}, ${recipeIngredients.createdAt}
-              ) FILTER (WHERE ${recipeIngredients.id} IS NOT NULL),
-              '[]'::json
-            )
-          `
-        })
-        .from(recipes)
-        .leftJoin(recipeIngredients, eq(recipes.id, recipeIngredients.recipeId))
-        .where(eq(recipes.userId, userId))
-        .groupBy(
-          recipes.id,
-          recipes.outputItemId, 
-          recipes.outputItemName,
-          recipes.conversionCost,
-          recipes.createdAt,
-          recipes.updatedAt
-        )
-        .orderBy(desc(recipes.createdAt))
-        .limit(input.limit)
-        .offset(input.offset)
+      try {
+        const userRecipes = await db
+          .select({
+            id: recipes.id,
+            outputItemId: recipes.outputItemId,
+            outputItemName: recipes.outputItemName,
+            conversionCost: recipes.conversionCost,
+            createdAt: recipes.createdAt,
+            updatedAt: recipes.updatedAt,
+            ingredients: sql<any[]>`
+              COALESCE(
+                JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'itemId', ${recipeIngredients.itemId},
+                    'itemName', ${recipeIngredients.itemName},
+                    'quantity', ${recipeIngredients.quantity}
+                  )
+                  ORDER BY ${recipeIngredients.sortOrder}, ${recipeIngredients.createdAt}
+                ) FILTER (WHERE ${recipeIngredients.id} IS NOT NULL),
+                '[]'::json
+              )
+            `
+          })
+          .from(recipes)
+          .leftJoin(recipeIngredients, eq(recipes.id, recipeIngredients.recipeId))
+          .where(eq(recipes.userId, userId))
+          .groupBy(
+            recipes.id,
+            recipes.outputItemId, 
+            recipes.outputItemName,
+            recipes.conversionCost,
+            recipes.createdAt,
+            recipes.updatedAt
+          )
+          .orderBy(desc(recipes.createdAt))
+          .limit(input.limit)
+          .offset(input.offset)
 
-      return userRecipes
+        return userRecipes
+      } catch (error) {
+        // Fallback query without sort_order if column doesn't exist
+        console.warn('Recipe query failed, trying fallback without sort_order:', error)
+        
+        const userRecipesFallback = await db
+          .select({
+            id: recipes.id,
+            outputItemId: recipes.outputItemId,
+            outputItemName: recipes.outputItemName,
+            conversionCost: recipes.conversionCost,
+            createdAt: recipes.createdAt,
+            updatedAt: recipes.updatedAt,
+            ingredients: sql<any[]>`
+              COALESCE(
+                JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'itemId', ${recipeIngredients.itemId},
+                    'itemName', ${recipeIngredients.itemName},
+                    'quantity', ${recipeIngredients.quantity}
+                  )
+                  ORDER BY ${recipeIngredients.createdAt}
+                ) FILTER (WHERE ${recipeIngredients.id} IS NOT NULL),
+                '[]'::json
+              )
+            `
+          })
+          .from(recipes)
+          .leftJoin(recipeIngredients, eq(recipes.id, recipeIngredients.recipeId))
+          .where(eq(recipes.userId, userId))
+          .groupBy(
+            recipes.id,
+            recipes.outputItemId, 
+            recipes.outputItemName,
+            recipes.conversionCost,
+            recipes.createdAt,
+            recipes.updatedAt
+          )
+          .orderBy(desc(recipes.createdAt))
+          .limit(input.limit)
+          .offset(input.offset)
+
+        return userRecipesFallback
+      }
     }),
 
   // Get user's recipe count (for limit checking)
