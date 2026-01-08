@@ -25,6 +25,10 @@ import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
 import HerbCleaning from './pages/HerbCleaning/index.jsx'
 
+// Music player imports
+import { MusicPlayerProvider } from './contexts/MusicPlayerContext'
+import { MusicPlayerKeyboardHandler } from './components/MusicPlayer'
+
 // Lazy load all protected routes to improve initial load performance
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AllItems = lazy(() => import('./pages/AllItems'))
@@ -282,7 +286,9 @@ function AppContent () {
       <Notifications />
       <TrialProvider>
         <FavoritesProvider itemType="item">
-          <Routes>
+          <MusicPlayerProvider>
+            <MusicPlayerKeyboardHandler />
+            <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -373,6 +379,7 @@ function AppContent () {
               <Route path="*" element={<ErrorPage />} />
             </Route>
           </Routes>
+          </MusicPlayerProvider>
         </FavoritesProvider>
       </TrialProvider>
     </MantineProvider>

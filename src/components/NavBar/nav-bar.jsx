@@ -21,6 +21,7 @@ import {
 } from '@tabler/icons-react'
 import { MainLinks } from './components/main-links.jsx'
 import { UserButton } from './components/user-button.jsx'
+import { MusicPlayer } from '../MusicPlayer'
 import { useLocation } from 'react-router-dom'
 
 const useStyles = createStyles((theme) => ({
@@ -92,15 +93,23 @@ export default function NavMenu ({ user, isMobile }) {
     localStorage.setItem('navbarExpanded', JSON.stringify(newExpanded))
   }
 
+  const sidebarWidth = expanded ? 240 : 80
+
   return (
     <Navbar
-      width={{ sm: expanded ? 240 : 80 }}
+      width={{ sm: sidebarWidth }}
       p="md"
       className={!isMobile ? classes.navbar : ''}
     >
       <Navbar.Section grow>
         <MainLinks expanded={expanded} />
       </Navbar.Section>
+      
+      {/* Music Player Section */}
+      <Navbar.Section>
+        <MusicPlayer sidebarWidth={sidebarWidth} />
+      </Navbar.Section>
+      
       <Navbar.Section>
         {!isMobile && (
           <UnstyledButton className={classes.expandButton} onClick={toggleNavbar}>
