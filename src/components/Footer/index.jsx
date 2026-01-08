@@ -1,11 +1,24 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Text, Box, ActionIcon, Anchor } from '@mantine/core'
-import { IconUsers, IconExternalLink, IconBrandDiscord, IconBrandYoutube, IconMail } from '@tabler/icons-react'
+import { IconUsers, IconExternalLink, IconBrandDiscord, IconBrandYoutube, IconMail, IconBrandSpotify } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { trpc } from '../../utils/trpc.jsx'
+import { FooterMusicPlayer } from '../MusicPlayer'
+import { useMusicPlayer } from '../../contexts/MusicPlayerContext'
 
 export default function Footer() {
   const [activeUsers, setActiveUsers] = useState(0)
+  
+  // Music player integration
+  const { isVisible: isMusicPlayerVisible, showPlayer, hidePlayer } = useMusicPlayer()
+
+  const toggleMusicPlayer = () => {
+    if (isMusicPlayerVisible) {
+      hidePlayer()
+    } else {
+      showPlayer()
+    }
+  }
   
   // Query active users count
   const { data: activeUsersData, refetch } = trpc.sessions.getActiveUsersCount.useQuery(
@@ -36,13 +49,17 @@ export default function Footer() {
       sx={(theme) => ({
         background: `linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[9]} 100%)`,
         borderTop: `1px solid ${theme.colors.dark[5]}`,
-        padding: '12px 20px',
         marginTop: 'auto',
         position: 'sticky',
         bottom: 0,
         zIndex: 100
       })}
     >
+      {/* Music Player Section */}
+      <FooterMusicPlayer />
+      
+      {/* Original Footer Content */}
+      <Box sx={{ padding: '12px 20px' }}>
       <Group position="apart" spacing="sm" noWrap>
         {/* Active Users Counter */}
         <Group spacing={6} noWrap>
@@ -130,6 +147,30 @@ export default function Footer() {
           {/* Social Icons */}
           <Group spacing={8} noWrap>
             <ActionIcon
+              onClick={toggleMusicPlayer}
+              variant={isMusicPlayerVisible ? 'filled' : 'subtle'}
+              color={isMusicPlayerVisible ? 'green' : 'gray'}
+              size={32}
+              style={{
+                transition: 'all 0.2s ease',
+                backgroundColor: isMusicPlayerVisible 
+                  ? '#1db954' 
+                  : 'transparent'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'rotate(-5deg) scale(1.1)'
+                e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(29, 185, 84, 0.6))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'rotate(0deg) scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+              title={isMusicPlayerVisible ? 'Hide music player' : 'Show music player'}
+            >
+              <IconBrandSpotify size={16} color={isMusicPlayerVisible ? 'white' : undefined} />
+            </ActionIcon>
+
+            <ActionIcon
               onClick={() => window.open('https://discord.gg/BdDfzg4ZMQ', '_blank')}
               variant="subtle"
               color="gray"
@@ -174,7 +215,7 @@ export default function Footer() {
           </Group>
         </Group>
       </Group>
-
+      </Box>
     </Box>
   )
 }

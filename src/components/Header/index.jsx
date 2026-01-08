@@ -20,12 +20,11 @@ import {
   Tooltip
 } from '@mantine/core'
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { IconCoins, IconCrown, IconCreditCard, IconSearch, IconBrandSpotify } from '@tabler/icons-react'
+import { IconCoins, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-react'
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
 import { Link, useNavigate } from 'react-router-dom'
 import { trpc } from '../../utils/trpc.jsx'
-import { useMusicPlayer } from '../../contexts/MusicPlayerContext'
 
 export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const theme = useMantineTheme()
@@ -40,16 +39,6 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const isSubscribed = subscription && subscription.status === 'active'
   const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
 
-  // Music player integration
-  const { isVisible: isMusicPlayerVisible, showPlayer, hidePlayer } = useMusicPlayer()
-
-  const toggleMusicPlayer = () => {
-    if (isMusicPlayerVisible) {
-      hidePlayer()
-    } else {
-      showPlayer()
-    }
-  }
 
   // Fetch items for search
   const { data: itemMapping } = trpc.items.getItemMapping.useQuery()
@@ -472,31 +461,6 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
             </>
               )}
 
-          {/* Music Player Toggle Icon */}
-          <Tooltip label={isMusicPlayerVisible ? 'Hide music player' : 'Show music player'} position="bottom">
-            <ActionIcon
-              onClick={toggleMusicPlayer}
-              variant={isMusicPlayerVisible ? 'filled' : 'subtle'}
-              color={isMusicPlayerVisible ? 'green' : 'gray'}
-              size={36}
-              style={{
-                transition: 'all 0.2s ease',
-                backgroundColor: isMusicPlayerVisible 
-                  ? (theme.colorScheme === 'dark' ? theme.colors.green[8] : theme.colors.green[6])
-                  : 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'rotate(-5deg) scale(1.1)'
-                e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(29, 185, 84, 0.6))'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'rotate(0deg) scale(1)'
-                e.currentTarget.style.filter = 'none'
-              }}
-            >
-              <IconBrandSpotify size={18} />
-            </ActionIcon>
-          </Tooltip>
 
           {/* Billing Icon */}
           <ActionIcon

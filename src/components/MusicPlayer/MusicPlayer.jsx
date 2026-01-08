@@ -71,11 +71,6 @@ export function MusicPlayer({ sidebarWidth = 240 }) {
     return null
   }
 
-  // Don't render if no track is available
-  if (!currentTrack) {
-    return null
-  }
-
   return (
     <Box className={classes.musicPlayerContainer}>
       <Box className={classes.playerWrapper}>

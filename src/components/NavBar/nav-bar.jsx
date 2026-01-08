@@ -21,7 +21,6 @@ import {
 } from '@tabler/icons-react'
 import { MainLinks } from './components/main-links.jsx'
 import { UserButton } from './components/user-button.jsx'
-import { MusicPlayer } from '../MusicPlayer'
 import { useLocation } from 'react-router-dom'
 
 const useStyles = createStyles((theme) => ({
@@ -103,11 +102,6 @@ export default function NavMenu ({ user, isMobile }) {
     >
       <Navbar.Section grow>
         <MainLinks expanded={expanded} />
-      </Navbar.Section>
-      
-      {/* Music Player Section */}
-      <Navbar.Section>
-        <MusicPlayer sidebarWidth={sidebarWidth} />
       </Navbar.Section>
       
       <Navbar.Section>

@@ -15,8 +15,27 @@ export const playlists = {
         duration: 120,
         spotifyUrl: 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC',
         youtubeUrl: 'https://www.youtube.com/watch?v=RH5rEvxFLvM',
-        audioUrl: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3', // Demo audio file
-        thumbnail: 'https://i.ytimg.com/vi/RH5rEvxFLvM/maxresdefault.jpg'
+        thumbnail: 'https://i.ytimg.com/vi/RH5rEvxFLvM/maxresdefault.jpg',
+        audioSources: [
+          {
+            type: 'mp3',
+            url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
+            quality: 'medium',
+            description: 'Demo audio - Sea Shanty 2 style'
+          },
+          {
+            type: 'backup',
+            url: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3',
+            quality: 'medium', 
+            description: 'Demo audio (fallback)'
+          },
+          {
+            type: 'backup2',
+            url: 'https://file-examples.com/storage/fe68c1b7a9e87d2d317cd0b/2017/11/file_example_MP3_700KB.mp3',
+            quality: 'low',
+            description: 'Backup demo track'
+          }
+        ]
       },
       {
         id: 'mm-2',
@@ -25,8 +44,21 @@ export const playlists = {
         duration: 180,
         spotifyUrl: 'https://open.spotify.com/track/3ZKvEQWJkjrxAz3I2rNHfX',
         youtubeUrl: 'https://www.youtube.com/watch?v=V_DIFYjg7N0',
-        audioUrl: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3', // Demo audio file
-        thumbnail: 'https://i.ytimg.com/vi/V_DIFYjg7N0/maxresdefault.jpg'
+        thumbnail: 'https://i.ytimg.com/vi/V_DIFYjg7N0/maxresdefault.jpg',
+        audioSources: [
+          {
+            type: 'mp3',
+            url: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3',
+            quality: 'medium',
+            description: 'Demo audio - Autumn Voyage style'
+          },
+          {
+            type: 'backup',
+            url: 'https://file-examples.com/storage/fe68c1b7a9e87d2d317cd0b/2017/11/file_example_MP3_700KB.mp3',
+            quality: 'low',
+            description: 'Backup demo track'
+          }
+        ]
       },
       {
         id: 'mm-3',
@@ -35,8 +67,21 @@ export const playlists = {
         duration: 156,
         spotifyUrl: 'https://open.spotify.com/track/1A7YJHtkj5s5M2nv5c8fXZ',
         youtubeUrl: 'https://www.youtube.com/watch?v=V9CJ7rLPmNs',
-        audioUrl: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3', // Demo audio file
-        thumbnail: 'https://i.ytimg.com/vi/V9CJ7rLPmNs/maxresdefault.jpg'
+        thumbnail: 'https://i.ytimg.com/vi/V9CJ7rLPmNs/maxresdefault.jpg',
+        audioSources: [
+          {
+            type: 'mp3', 
+            url: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3',
+            quality: 'medium',
+            description: 'Demo audio - Medieval style'
+          },
+          {
+            type: 'backup',
+            url: 'https://file-examples.com/storage/fe68c1b7a9e87d2d317cd0b/2017/11/file_example_MP3_700KB.mp3',
+            quality: 'low',
+            description: 'Backup demo track'
+          }
+        ]
       }
     ]
   },

@@ -227,7 +227,7 @@ export function MiniPlayer() {
             </>
           ) : (
             <Text className={classes.trackTitle} color="dimmed">
-              No track selected
+              {currentPlaylistData ? 'Select a track from playlist' : 'Select playlist to start'}
             </Text>
           )}
         </Box>
@@ -238,7 +238,7 @@ export function MiniPlayer() {
             <ActionIcon
               className={classes.controlButton}
               onClick={previousTrack}
-              disabled={!currentTrack}
+              disabled={!currentTrack || !currentPlaylistData}
               variant="subtle"
               size="sm"
             >
@@ -262,7 +262,7 @@ export function MiniPlayer() {
             <ActionIcon
               className={classes.controlButton}
               onClick={nextTrack}
-              disabled={!currentTrack}
+              disabled={!currentTrack || !currentPlaylistData}
               variant="subtle"
               size="sm"
             >

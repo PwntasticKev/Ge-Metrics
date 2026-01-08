@@ -75,7 +75,15 @@ const ACTION_TYPES = {
 function musicPlayerReducer(state, action) {
   switch (action.type) {
     case ACTION_TYPES.SHOW_PLAYER:
-      return { ...state, isVisible: true }
+      // Auto-load default playlist and track when showing player
+      const defaultPlaylist = getPlaylist(DEFAULT_PLAYLIST)
+      return { 
+        ...state, 
+        isVisible: true,
+        currentPlaylist: DEFAULT_PLAYLIST,
+        currentTrack: defaultPlaylist?.tracks[0]?.id || null,
+        error: null
+      }
       
     case ACTION_TYPES.HIDE_PLAYER:
       return { ...state, isVisible: false, playerState: PLAYER_STATES.STOPPED }
@@ -119,7 +127,8 @@ function musicPlayerReducer(state, action) {
         ...state,
         currentTrack: action.payload,
         currentTime: 0,
-        playerState: PLAYER_STATES.STOPPED
+        playerState: PLAYER_STATES.PLAYING, // Auto-play when track is selected
+        error: null
       }
       
     case ACTION_TYPES.NEXT_TRACK:
@@ -245,13 +254,35 @@ export function MusicPlayerProvider({ children }) {
         }
       })
       
-      audioRef.current.addEventListener('error', (e) => {
-        console.warn('Audio playback error (this is expected for demo/missing files):', e.target?.error || e)
-        dispatch({ type: ACTION_TYPES.SET_ERROR, payload: 'Audio file not available (demo mode)' })
-        // Auto-skip to next track after 2 seconds if there's an error
+      audioRef.current.addEventListener('error', async (e) => {
+        console.warn('Audio playback error:', e.target?.error || e)
+        
+        // Try fallback audio sources
+        const track = getTrack(state.currentPlaylist, state.currentTrack)
+        if (track && track.audioSources && track.audioSources.length > 1) {
+          const currentSrc = audioRef.current.src
+          const currentSourceIndex = track.audioSources.findIndex(source => 
+            currentSrc.includes(source.url || source.audioUrl || ''))
+          
+          if (currentSourceIndex >= 0 && currentSourceIndex < track.audioSources.length - 1) {
+            // Try next audio source
+            const nextSource = track.audioSources[currentSourceIndex + 1]
+            const nextUrl = nextSource.url || nextSource.audioUrl
+            if (nextUrl) {
+              console.log(`Trying fallback audio source: ${nextUrl}`)
+              audioRef.current.src = nextUrl
+              audioRef.current.load()
+              return // Don't show error yet, try the fallback
+            }
+          }
+        }
+        
+        dispatch({ type: ACTION_TYPES.SET_ERROR, payload: 'Audio not available (trying fallbacks...)' })
+        // Auto-skip to next track after 3 seconds if all sources fail
         setTimeout(() => {
           dispatch({ type: ACTION_TYPES.NEXT_TRACK })
-        }, 2000)
+          dispatch({ type: ACTION_TYPES.CLEAR_ERROR })
+        }, 3000)
       })
       
       audioRef.current.addEventListener('canplay', () => {
@@ -278,14 +309,31 @@ export function MusicPlayerProvider({ children }) {
       if (track) {
         dispatch({ type: ACTION_TYPES.SET_LOADING, payload: true })
         
-        // Use audioUrl for custom MP3s, otherwise use a placeholder for Spotify tracks
-        if (track.audioUrl) {
-          audioRef.current.src = track.audioUrl
+        // Try audio sources in priority order
+        let audioUrl = null
+        
+        if (track.audioSources && track.audioSources.length > 0) {
+          // Use the first available source from audioSources array
+          audioUrl = track.audioSources[0].url || track.audioSources[0].audioUrl
+        } else if (track.audioUrl) {
+          // Fallback to legacy audioUrl field
+          audioUrl = track.audioUrl
+        } else if (track.youtubeUrl) {
+          // Try YouTube as a last resort (won't work directly, but shows intent)
+          console.warn('YouTube URL detected, direct playback not supported:', track.youtubeUrl)
+          dispatch({ type: ACTION_TYPES.SET_ERROR, payload: 'YouTube playback not yet implemented' })
+          return
         } else {
-          // For Spotify tracks, we'd need to implement Spotify Web Playback SDK
-          // For now, we'll use a placeholder or YouTube audio
-          console.warn('Spotify track detected, would need Web Playback SDK implementation')
-          dispatch({ type: ACTION_TYPES.SET_ERROR, payload: 'Spotify playback not yet implemented' })
+          console.warn('No audio source available for track:', track.title)
+          dispatch({ type: ACTION_TYPES.SET_ERROR, payload: 'No audio source available' })
+          return
+        }
+        
+        if (audioUrl) {
+          console.log(`Loading audio from: ${audioUrl}`)
+          audioRef.current.src = audioUrl
+        } else {
+          dispatch({ type: ACTION_TYPES.SET_ERROR, payload: 'No valid audio URL found' })
           return
         }
         
