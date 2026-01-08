@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Text, Box, ActionIcon, Anchor } from '@mantine/core'
-import { IconUsers, IconExternalLink, IconBrandDiscord, IconBrandYoutube, IconMail, IconBrandSpotify } from '@tabler/icons-react'
+import { IconUsers, IconExternalLink, IconBrandDiscord, IconBrandYoutube, IconMail, IconMusic } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { trpc } from '../../utils/trpc.jsx'
 import { FooterMusicPlayer } from '../MusicPlayer'
@@ -167,7 +167,7 @@ export default function Footer() {
               }}
               title={isMusicPlayerVisible ? 'Hide music player' : 'Show music player'}
             >
-              <IconBrandSpotify size={16} color={isMusicPlayerVisible ? 'white' : undefined} />
+              <IconMusic size={16} color={isMusicPlayerVisible ? 'white' : undefined} />
             </ActionIcon>
 
             <ActionIcon

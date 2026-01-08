@@ -88,16 +88,32 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
           
           const existingSession = existingSessions[0]
           
-          if (existingSession && existingSession.lastActivity < fiveMinutesAgo) {
-            // Update existing session activity
+          if (existingSession) {
+            // Update existing session if it's been more than 5 minutes
+            if (existingSession.lastActivity < fiveMinutesAgo) {
+              await db
+                .update(userSessions)
+                .set({ 
+                  lastActivity: new Date(),
+                  ipAddress,
+                  userAgent
+                })
+                .where(eq(userSessions.id, existingSession.id))
+            }
+          } else {
+            // No active session found, create a new one
+            const token = authHeader.substring(7) // Remove 'Bearer ' prefix
             await db
-              .update(userSessions)
-              .set({ 
-                lastActivity: new Date(),
+              .insert(userSessions)
+              .values({
+                userId: ctx.user.id,
+                token: token,
                 ipAddress,
-                userAgent
+                userAgent,
+                isActive: true,
+                lastActivity: new Date(),
+                createdAt: new Date()
               })
-              .where(eq(userSessions.id, existingSession.id))
           }
         } catch (sessionError) {
           // Silently fail session updates - don't break API requests
