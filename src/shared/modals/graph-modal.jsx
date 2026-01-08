@@ -7,8 +7,14 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
 
   useEffect(() => {
     if (opened) {
-      // Small delay to ensure modal is fully rendered before mounting chart
-      const timer = setTimeout(() => setMounted(true), 100)
+      // Increased delay to ensure modal is fully rendered before mounting chart
+      const timer = setTimeout(() => {
+        setMounted(true)
+        // Trigger resize after chart component mounts to ensure container has dimensions
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'))
+        }, 50)
+      }, 200)
       return () => clearTimeout(timer)
     } else {
       setMounted(false)
@@ -62,7 +68,7 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
     >
       <Box style={{ width: '100%', height: '80vh', backgroundColor: '#1A1B1E' }}>
           {mounted && chartId ? (
-            <div style={{ width: '100%', height: '100%' }}>
+            <div style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 0 }}>
               <AdvancedChart itemId={chartId} item={item} items={items} height="100%" />
             </div>
           ) : (

@@ -70,7 +70,8 @@ const COLORS = {
 
 const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showControls = true }) => {
   const [timeframe, setTimeframe] = useState('24h') // API Timestep
-  const [range, setRange] = useState('1D') // View Range
+  const [range, setRange] = useState('1W') // View Range - default to 1 week
+  const chartContainerRef = useRef(null)
   
   // Visibility State
   const [seriesVisibility, setSeriesVisibility] = useState({
@@ -115,35 +116,114 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
       return result?.data?.data || []
     },
     enabled: !!itemId,
-    refetchInterval: 30000
+    refetchInterval: 30000,
+    keepPreviousData: true // Keep data while fetching new timeframe to prevent blinking
   })
 
   // Fetch Game Updates (Blogs/Updates)
-  const startDate = useMemo(() => {
-    return historyData?.length > 0 
+  // Calculate date range based on the selected range, memoized to prevent infinite loops
+  const dateRange = useMemo(() => {
+    const now = new Date()
+    // Extend endDate into the future to catch any future-dated events (for testing)
+    const endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000) // 1 year in future
+    let startDate = new Date()
+    
+    switch (range) {
+      case '1D':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        break
+      case '1W':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case '1M':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case '3M':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case '6M':
+        startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000)
+        break
+      case '1Y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+        break
+      case 'All':
+        startDate = new Date(0) // Start from epoch to get all data
+        break
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // Default to week
+    }
+    
+    // Add 30-day buffer before startDate to catch events just outside the range
+    const bufferedStartDate = new Date(startDate.getTime() - 30 * 24 * 60 * 60 * 1000)
+    
+    return { startDate: bufferedStartDate, endDate }
+  }, [range])
+
+  // Also consider historyData range if it extends further back
+  const queryStartDate = useMemo(() => {
+    const historyDataStart = historyData?.length > 0 
       ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-  }, [historyData])
+      : null
+    
+    // Use the wider range to ensure we get all events
+    return historyDataStart && historyDataStart < dateRange.startDate 
+      ? historyDataStart 
+      : dateRange.startDate
+  }, [historyData, dateRange.startDate])
 
   const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
-    startDate, 
-    endDate: new Date()
+    startDate: queryStartDate, 
+    endDate: dateRange.endDate
   }, {
-    enabled: !!historyData && seriesVisibility.updates,
+    enabled: !!itemId, // Enable as soon as we have an item ID
     staleTime: 5 * 60 * 1000,
+    keepPreviousData: true, // Prevent blinking updates
     onSuccess: (data) => {
-        console.log('AdvancedChart: Updates fetched', data)
+        console.log('AdvancedChart: Updates fetched', {
+          blogs: data?.data?.blogs?.length || 0,
+          updates: data?.data?.updates?.length || 0,
+          dateRange: {
+            start: queryStartDate.toISOString(),
+            end: dateRange.endDate.toISOString()
+          },
+          rawData: data
+        })
     },
     onError: (err) => {
         console.error('AdvancedChart: Updates fetch error', err)
     }
   })
 
+  // Debug query status (only log when status changes)
+  useEffect(() => {
+    if (blogsQuery.status !== 'pending') {
+      console.log('AdvancedChart: Query status', {
+        status: blogsQuery.status,
+        isLoading: blogsQuery.isLoading,
+        isError: blogsQuery.isError,
+        error: blogsQuery.error,
+        enabled: !!itemId,
+        itemId,
+        queryStartDate: queryStartDate.toISOString(),
+        queryEndDate: dateRange.endDate.toISOString(),
+        range
+      })
+    }
+  }, [blogsQuery.status, blogsQuery.isLoading, blogsQuery.isError, itemId, queryStartDate, dateRange.endDate, range])
+
   const gameUpdates = useMemo(() => {
     const blogs = blogsQuery.data?.data?.blogs || []
     const updates = blogsQuery.data?.data?.updates || []
     
     console.log(`AdvancedChart: Processing ${blogs.length} blogs and ${updates.length} updates`)
+    console.log('AdvancedChart: Raw query data:', {
+      hasData: !!blogsQuery.data,
+      dataStructure: blogsQuery.data,
+      blogsArray: blogs,
+      updatesArray: updates,
+      queryStatus: blogsQuery.status
+    })
 
     const combined = [
         ...blogs.map(b => ({
@@ -255,20 +335,59 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   }, [historyData, range, timeframe])
 
   // Prepare Scatter Data for Updates (Exact Positioning)
+  // Must match chartData timestamp format exactly for Recharts to calculate coordinates
   const updatesData = useMemo(() => {
-    if (!gameUpdates.length) return []
+    if (!gameUpdates.length || !chartData.length) {
+      return []
+    }
     
-    const mapped = gameUpdates.map(u => ({
-        x: u.date.getTime() / 1000, // Exact timestamp
-        y: 0.5,                     // Fixed Y position (center of bottom track)
+    // Get the actual visible timestamp range from chartData
+    const chartTimestamps = chartData.map(d => d.timestamp)
+    const minTimestamp = Math.min(...chartTimestamps)
+    const maxTimestamp = Math.max(...chartTimestamps)
+    
+    // Calculate the actual domain bounds (accounting for left/right zoom state)
+    let domainMin = minTimestamp
+    let domainMax = maxTimestamp
+    
+    if (left !== 'dataMin' && typeof left === 'number') {
+      domainMin = left
+    }
+    if (right !== 'dataMax' && typeof right === 'number') {
+      domainMax = right
+    }
+    
+    // Filter updates to only those within the visible chart range (with buffer)
+    const buffer = 30 * 24 * 60 * 60 // 30 days buffer to ensure we catch nearby events
+    const filteredUpdates = gameUpdates.filter(u => {
+      const updateTimestamp = Math.floor(u.date.getTime() / 1000)
+      return updateTimestamp >= (domainMin - buffer) && updateTimestamp <= (domainMax + buffer)
+    })
+    
+    const mapped = filteredUpdates.map(u => {
+      const updateTimestamp = Math.floor(u.date.getTime() / 1000)
+      return {
+        x: updateTimestamp, // Must match chartData timestamp format exactly (Unix seconds)
+        y: 0.5,             // Fixed Y position (center of bottom track)
         updateData: u,
         dateFormatted: formatDateForTimeframe(u.date, range),
         dateObj: u.date
-    }))
+      }
+    })
     
-    console.log(`AdvancedChart: Mapped ${mapped.length} updates for visualization`)
+    console.log(`AdvancedChart: Mapped ${mapped.length} updates for visualization`, {
+      totalUpdates: gameUpdates.length,
+      filteredUpdates: filteredUpdates.length,
+      chartRange: { min: minTimestamp, max: maxTimestamp },
+      domainRange: { min: domainMin, max: domainMax },
+      chartDataLength: chartData.length,
+      left,
+      right,
+      sampleUpdate: mapped[0] ? { x: mapped[0].x, title: mapped[0].updateData.title } : null,
+      sampleChartData: chartData[0] ? { timestamp: chartData[0].timestamp } : null
+    })
     return mapped
-  }, [gameUpdates, range])
+  }, [gameUpdates, chartData, range, left, right])
 
   // Update hover data
   useEffect(() => {
@@ -276,6 +395,37 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
       setHoverData(chartData[chartData.length - 1])
     }
   }, [chartData])
+
+  // Force chart resize on mount/update to fix rendering issue (lines not showing until scroll)
+  useEffect(() => {
+    // Basic fallback: Trigger resize event when data loads
+    const triggerResize = () => {
+      window.dispatchEvent(new Event('resize'))
+    }
+    
+    // Trigger immediately and after delays to ensure DOM is ready
+    triggerResize()
+    const timeout1 = setTimeout(triggerResize, 50)
+    const timeout2 = setTimeout(triggerResize, 150)
+    const timeout3 = setTimeout(triggerResize, 300)
+    
+    // Setup ResizeObserver to handle container size changes robustly
+    let resizeObserver = null
+    if (chartContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        // Debounce slightly if needed, but for now direct trigger is fine for ResponsiveContainer
+        triggerResize()
+      })
+      resizeObserver.observe(chartContainerRef.current)
+    }
+    
+    return () => {
+      clearTimeout(timeout1)
+      clearTimeout(timeout2)
+      clearTimeout(timeout3)
+      if (resizeObserver) resizeObserver.disconnect()
+    }
+  }, [chartData.length, isLoading, range]) // Re-trigger when data/range changes or container ref is ready
 
   // Zoom Logic
   const zoom = () => {
@@ -508,6 +658,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                 domain={[left, right]} 
                 hide 
                 allowDataOverflow
+                scale="linear"
             />
             <YAxis
               orientation="right" 
@@ -578,31 +729,59 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
             )}
 
              {/* Game Updates (Dots at bottom with precise X) */}
-             {seriesVisibility.updates && updatesData.length > 0 && (
+             {seriesVisibility.updates && updatesData.length > 0 && chartData.length > 0 && (
                 <Scatter 
+                    key={`scatter-${updatesData.length}-${range}`}
                     data={updatesData}
+                    dataKey="x"
+                    name="Game Updates"
                     fill="#fff"
+                    line={false}
                     shape={(props) => {
                         const { cx, cy, payload } = props
-                        if (!payload.updateData) return null
-        return (
-                            <circle 
-                                cx={cx} 
-                                cy={cy} 
-                                r={4} 
-                                fill={payload.updateData.color} 
-                                stroke="#1A1B1E"
-                                strokeWidth={1}
-                            />
+                        if (!payload || !payload.updateData) {
+                          return null
+                        }
+                        // Only render if coordinates are valid numbers
+                        if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy) || cx === null || cy === null) {
+                          return null
+                        }
+                        const color = payload.updateData.color || (payload.updateData.type === 'blog' ? COLORS.blog : COLORS.update)
+                        return (
+                            <g>
+                                <circle 
+                                    cx={cx} 
+                                    cy={cy} 
+                                    r={6} 
+                                    fill={color}
+                                    stroke="#1A1B1E"
+                                    strokeWidth={2}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <circle 
+                                    cx={cx} 
+                                    cy={cy} 
+                                    r={4} 
+                                    fill={color}
+                                    opacity={0.9}
+                                />
+                            </g>
                         )
                     }}
                     yAxisId="updates"
                     onMouseEnter={(e) => {
                         // When hovering the dot, force the info panel to show update data
-                        if (e.payload) setHoverData(e.payload)
+                        if (e && e.payload && e.payload.updateData) {
+                            setHoverData({
+                                ...e.payload,
+                                high: e.payload.updateData.title,
+                                low: e.payload.updateData.description || e.payload.updateData.type || 'Game Update',
+                                date: e.payload.updateData.date
+                            })
+                        }
                     }}
                     onMouseLeave={() => {
-                        // Optional: reset or leave as is (next mouse move on chart will fix it)
+                        // Keep hover data visible for a moment
                     }}
                     isAnimationActive={false}
                 />
@@ -847,6 +1026,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
             <Stack spacing={0} style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
                 {/* Price Chart (Top) */}
                 <div 
+                    ref={chartContainerRef}
                     style={{ flex: 3, width: '100%', minHeight: 0, padding: '10px 0 0 0', touchAction: 'none' }}
                     onWheel={handleWheel}
                 >

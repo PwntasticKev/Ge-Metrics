@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import { 
   Container, Title, Text, Box, Card, Stack, Group, ThemeIcon, 
   Button, Badge, Grid, Anchor, TextInput, Textarea, NumberInput,
-  Select, Alert, Image, SimpleGrid, Center, Divider
+  Select, Alert, Image, SimpleGrid, Center, Divider, Tooltip, ActionIcon
 } from '@mantine/core'
 import { 
-  IconRocket, IconUsers, IconTrendingUp, IconArrowLeft, IconMail, 
-  IconBrandYoutube, IconBrandTwitch, IconBrandDiscord, IconCoins, 
-  IconCrown, IconStar, IconUserCheck, IconGift, IconCheck, IconSend,
-  IconSparkles, IconTarget, IconChartBar
+  IconRocket, IconUsers, IconArrowLeft, IconMail, 
+  IconBrandYoutube, IconBrandTwitch, IconBrandDiscord, IconBrandTwitter, IconCoins, 
+  IconCrown, IconUserCheck, IconGift, IconCheck, IconSend,
+  IconTarget, IconChartBar, IconWorld
 } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { useForm } from '@mantine/form'
@@ -102,10 +102,58 @@ export default function Affiliate() {
   ]
 
   const partners = [
-    { name: 'OSRS Content Creator', platform: 'YouTube', followers: '15K', specialty: 'PVM Guides' },
-    { name: 'FlipMaster Discord', platform: 'Discord', followers: '8K', specialty: 'Trading Community' },
-    { name: 'GP Hunter Stream', platform: 'Twitch', followers: '3K', specialty: 'Live Trading' },
-    { name: 'RuneScape Analytics', platform: 'Website', followers: '25K', specialty: 'Market Analysis' }
+    { 
+      name: 'OSRS Content Creator', 
+      realName: 'Alex Thompson',
+      platform: 'YouTube', 
+      followers: '15K', 
+      specialty: 'PVM Guides',
+      logoUrl: 'https://yt3.ggpht.com/ytc/AIdro_kKXga-3H9jLbTn7vE4BM9-2sUhUIrFH9zX5HdgCOhC8Q=s176-c-k-c0x00ffffff-no-rj',
+      socials: {
+        youtube: 'https://youtube.com/@osrspvm',
+        discord: 'https://discord.gg/osrspvm',
+        twitter: 'https://twitter.com/osrspvm'
+      }
+    },
+    { 
+      name: 'FlipMaster Discord', 
+      realName: 'Sarah Chen',
+      platform: 'Discord', 
+      followers: '8K', 
+      specialty: 'Trading Community',
+      logoUrl: 'https://cdn.discordapp.com/avatars/123456789/a_1234567890abcdef.png',
+      socials: {
+        discord: 'https://discord.gg/flipmaster',
+        youtube: 'https://youtube.com/@flipmaster',
+        twitch: 'https://twitch.tv/flipmaster'
+      }
+    },
+    { 
+      name: 'GP Hunter Stream', 
+      realName: 'Mike Rodriguez',
+      platform: 'Twitch', 
+      followers: '3K', 
+      specialty: 'Live Trading',
+      logoUrl: 'https://static-cdn.jtvnw.net/jtv_user_pictures/gphunter-profile_image-1234567890abcdef-300x300.png',
+      socials: {
+        twitch: 'https://twitch.tv/gphunter',
+        youtube: 'https://youtube.com/@gphunter',
+        discord: 'https://discord.gg/gphunter'
+      }
+    },
+    { 
+      name: 'RuneScape Analytics', 
+      realName: 'David Kim',
+      platform: 'Website', 
+      followers: '25K', 
+      specialty: 'Market Analysis',
+      logoUrl: 'https://www.gravatar.com/avatar/1234567890abcdef?s=200&d=identicon',
+      socials: {
+        website: 'https://runescapeanalytics.com',
+        youtube: 'https://youtube.com/@rsanalytics',
+        twitter: 'https://twitter.com/rsanalytics'
+      }
+    }
   ]
 
   return (
@@ -347,64 +395,129 @@ export default function Affiliate() {
                     <IconUsers size={16} color="#228be6" />
                     <Text weight={600} size="sm" color="white">Our Partners</Text>
                   </Group>
-                  <Stack spacing="xs">
+                  <Stack spacing="md">
                     {partners.map((partner, index) => (
-                      <Box
+                      <Card
                         key={index}
-                        p="xs"
+                        p="md"
+                        radius="sm"
                         sx={(theme) => ({
                           backgroundColor: theme.colors.dark[6],
-                          borderRadius: theme.radius.sm,
+                          border: `1px solid ${theme.colors.dark[5]}`,
                           transition: 'all 0.2s ease',
                           '&:hover': {
-                            backgroundColor: theme.colors.dark[5]
+                            backgroundColor: theme.colors.dark[5],
+                            borderColor: '#228be6'
                           }
                         })}
                       >
-                        <Text size="xs" weight={600} color="white">{partner.name}</Text>
-                        <Group spacing="xs" mt={2}>
-                          <Text size="xs" color="dimmed">{partner.platform}</Text>
-                          <Text size="xs" color="dimmed">•</Text>
-                          <Text size="xs" color="dimmed">{partner.followers}</Text>
+                        <Group spacing="sm" noWrap>
+                          {/* Partner Logo */}
+                          <Image
+                            src={partner.logoUrl}
+                            width={40}
+                            height={40}
+                            radius="xl"
+                            alt={partner.realName}
+                            withPlaceholder
+                            placeholder={
+                              <Box
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#228be6',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <Text size="sm" color="white" weight={600}>
+                                  {partner.realName.split(' ').map(n => n[0]).join('')}
+                                </Text>
+                              </Box>
+                            }
+                          />
+                          
+                          {/* Partner Info */}
+                          <Box style={{ flex: 1 }}>
+                            <Text size="sm" weight={600} color="white">
+                              {partner.realName}
+                            </Text>
+                            <Text size="xs" color="dimmed">
+                              {partner.name} • {partner.followers} • {partner.specialty}
+                            </Text>
+                            
+                            {/* Social Links */}
+                            <Group spacing={4} mt="xs">
+                              {partner.socials.youtube && (
+                                <Tooltip label="YouTube">
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="red"
+                                    onClick={() => window.open(partner.socials.youtube, '_blank')}
+                                  >
+                                    <IconBrandYoutube size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                              {partner.socials.twitch && (
+                                <Tooltip label="Twitch">
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="violet"
+                                    onClick={() => window.open(partner.socials.twitch, '_blank')}
+                                  >
+                                    <IconBrandTwitch size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                              {partner.socials.discord && (
+                                <Tooltip label="Discord">
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="blue"
+                                    onClick={() => window.open(partner.socials.discord, '_blank')}
+                                  >
+                                    <IconBrandDiscord size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                              {partner.socials.twitter && (
+                                <Tooltip label="Twitter">
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="blue"
+                                    onClick={() => window.open(partner.socials.twitter, '_blank')}
+                                  >
+                                    <IconBrandTwitter size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                              {partner.socials.website && (
+                                <Tooltip label="Website">
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => window.open(partner.socials.website, '_blank')}
+                                  >
+                                    <IconWorld size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                            </Group>
+                          </Box>
                         </Group>
-                        <Text size="xs" color="dimmed" mt={2}>{partner.specialty}</Text>
-                      </Box>
+                      </Card>
                     ))}
                   </Stack>
                 </Card>
 
-                {/* Platform Stats */}
-                <Card
-                  padding="lg"
-                  radius="md"
-                  sx={(theme) => ({
-                    backgroundColor: theme.colors.dark[7],
-                    border: `1px solid ${theme.colors.dark[3]}`
-                  })}
-                >
-                  <Group spacing="xs" mb="md">
-                    <IconTrendingUp size={16} color="#228be6" />
-                    <Text weight={600} size="sm" color="white">Platform Stats</Text>
-                  </Group>
-                  <Stack spacing="xs">
-                    <Group position="apart">
-                      <Text size="xs" color="dimmed">Active Users</Text>
-                      <Text size="xs" weight={600} color="white">2,500+</Text>
-                    </Group>
-                    <Group position="apart">
-                      <Text size="xs" color="dimmed">Premium Members</Text>
-                      <Text size="xs" weight={600} color="white">380+</Text>
-                    </Group>
-                    <Group position="apart">
-                      <Text size="xs" color="dimmed">Items Tracked</Text>
-                      <Text size="xs" weight={600} color="white">4,300+</Text>
-                    </Group>
-                    <Group position="apart">
-                      <Text size="xs" color="dimmed">Data Updates</Text>
-                      <Text size="xs" weight={600} color="white">Real-time</Text>
-                    </Group>
-                  </Stack>
-                </Card>
 
                 {/* Contact for Questions */}
                 <Card

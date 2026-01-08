@@ -45,6 +45,13 @@ export const gameEventsRouter = router({
           throw new Error('Invalid date values provided')
         }
 
+        console.log('[GameEventsRouter] Querying events:', {
+          startDate: input.startDate.toISOString(),
+          endDate: input.endDate.toISOString(),
+          startDateType: typeof input.startDate,
+          endDateType: typeof input.endDate
+        })
+
         const [blogsData, updatesData] = await Promise.all([
           db
             .select()
@@ -67,6 +74,13 @@ export const gameEventsRouter = router({
             )
             .orderBy(desc(gameUpdates.updateDate))
         ])
+
+        console.log('[GameEventsRouter] Query results:', {
+          blogsCount: blogsData.length,
+          updatesCount: updatesData.length,
+          sampleBlog: blogsData[0] ? { title: blogsData[0].title, date: blogsData[0].date } : null,
+          sampleUpdate: updatesData[0] ? { title: updatesData[0].title, updateDate: updatesData[0].updateDate } : null
+        })
 
         return {
           success: true,

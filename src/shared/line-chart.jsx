@@ -13,8 +13,8 @@ import IndicatorPanel from '../components/charts/IndicatorPanel.jsx'
 import logoImage from '../assets/highalch.png'
 
 export default function LineChart ({ id, items, height = 600 }) {
-  // Default chart to month
-  const [timeframe, setTimeframe] = useState('month')
+  // Default chart to week
+  const [timeframe, setTimeframe] = useState('week')
   const [historyData, setHistoryData] = useState([])
   const [historyStatus, setHistoryStatus] = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
   const [lastUpdateTime, setLastUpdateTime] = useState(null)
@@ -271,16 +271,18 @@ export default function LineChart ({ id, items, height = 600 }) {
           setHoveredPrices(null)
         }
 
-        // Handle game events tooltip
-        const items = eventsByTimeRef.current.get(t)
-        if (items && items.length > 0) {
-          setHoveredEvents({
-            x: param.point.x,
-            y: param.point.y,
-            items
-          })
-        } else {
-          setHoveredEvents(null)
+        // Handle game events tooltip (only if not hovering over a dot)
+        if (!hoveredDotId) {
+          const items = eventsByTimeRef.current.get(t)
+          if (items && items.length > 0) {
+            setHoveredEvents({
+              x: param.point.x,
+              y: param.point.y,
+              items
+            })
+          } else {
+            setHoveredEvents(null)
+          }
         }
       })
 
@@ -381,20 +383,71 @@ export default function LineChart ({ id, items, height = 600 }) {
     }
   }, [])
 
+  // Calculate date range based on timeframe (not just historyData range)
+  // Add buffer to ensure we catch all events that might be visible
+  const getDateRangeForTimeframe = (timeframe) => {
+    const now = new Date()
+    // Extend endDate into the future to catch any future-dated events (for testing)
+    const endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000) // 1 year in future
+    let startDate = new Date()
+    
+    switch (timeframe) {
+      case 'day':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        break
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case 'quarter':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+        break
+      case 'alltime':
+        startDate = new Date(0) // Start from epoch to get all data
+        break
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // Default to week
+    }
+    
+    // Add 30-day buffer before startDate to catch events just outside the range
+    const bufferedStartDate = new Date(startDate.getTime() - 30 * 24 * 60 * 60 * 1000)
+    
+    return { startDate: bufferedStartDate, endDate }
+  }
+
   // Fetch blogs for annotations (load in parallel with chart data)
+  // Use timeframe-based date range, but also consider historyData range for better coverage
+  const dateRange = getDateRangeForTimeframe(timeframe)
+  const historyDataStart = historyData.length > 0 
+    ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
+    : null
+  const historyDataEnd = historyData.length > 0
+    ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
+    : null
+  
+  // Use the wider range to ensure we get all events that might be visible
+  // Always use the timeframe-based range, but extend if historyData goes further
+  const queryStartDate = historyDataStart && historyDataStart < dateRange.startDate 
+    ? historyDataStart 
+    : dateRange.startDate
+  const queryEndDate = historyDataEnd && historyDataEnd > dateRange.endDate
+    ? historyDataEnd
+    : dateRange.endDate
+
   const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
-    startDate: historyData.length > 0 
-      ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default to 30 days for better coverage
-    endDate: historyData.length > 0
-      ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
-      : new Date()
+    startDate: queryStartDate,
+    endDate: queryEndDate
   }, {
-    enabled: id && (historyStatus === 'loading' || historyStatus === 'success'), // Enable during loading for parallel fetch
+    enabled: !!id, // Enable as soon as we have an item ID
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: true, // Enable mount fetching for immediate loading
-    retry: 1, // Allow one retry for better reliability
+    refetchOnMount: true,
+    retry: 1,
     staleTime: 5 * 60 * 1000 // Cache for 5 minutes
   })
 
@@ -403,8 +456,40 @@ export default function LineChart ({ id, items, height = 600 }) {
   
   // Debug blog/update data
   console.log('LineChart: Blog/update query status:', blogsQuery.status)
-  if (blogsQuery.error) console.log('LineChart: Blog/update query error:', blogsQuery.error)
+  if (blogsQuery.error) {
+    console.error('LineChart: Blog/update query error:', blogsQuery.error)
+  }
   console.log('LineChart: Blogs fetched:', blogs.length, 'Updates fetched:', updates.length)
+  console.log('LineChart: Date range query:', {
+    startDate: queryStartDate.toISOString(),
+    endDate: queryEndDate.toISOString(),
+    timeframe,
+    historyDataRange: historyData.length > 0 ? {
+      start: historyDataStart?.toISOString(),
+      end: historyDataEnd?.toISOString()
+    } : null
+  })
+  console.log('LineChart: Query status:', {
+    status: blogsQuery.status,
+    isLoading: blogsQuery.isLoading,
+    isError: blogsQuery.isError,
+    error: blogsQuery.error,
+    data: blogsQuery.data
+  })
+  if (blogs.length > 0) {
+    console.log('LineChart: Sample blog:', {
+      title: blogs[0].title,
+      date: blogs[0].date,
+      dateType: typeof blogs[0].date
+    })
+  }
+  if (updates.length > 0) {
+    console.log('LineChart: Sample update:', {
+      title: updates[0].title,
+      updateDate: updates[0].updateDate,
+      dateType: typeof updates[0].updateDate
+    })
+  }
 
   const normalizedEvents = useMemo(() => {
     const normalizeDateToUnixSec = (value) => {
@@ -449,7 +534,16 @@ export default function LineChart ({ id, items, height = 600 }) {
       deduped.push(e)
     }
 
-    return deduped.sort((a, b) => a.time - b.time)
+    const sorted = deduped.sort((a, b) => a.time - b.time)
+    
+    console.log('LineChart: Normalized events:', {
+      total: sorted.length,
+      blogs: sorted.filter(e => e.kind === 'blog').length,
+      updates: sorted.filter(e => e.kind === 'update').length,
+      sample: sorted.slice(0, 3).map(e => ({ title: e.title, time: e.time, date: e.date }))
+    })
+    
+    return sorted
   }, [blogs, updates])
 
   // Update chart data when historyData changes
@@ -630,34 +724,50 @@ export default function LineChart ({ id, items, height = 600 }) {
       if (highPriceSeriesRef.current?.setMarkers) highPriceSeriesRef.current.setMarkers(allMarkers)
       if (lowPriceSeriesRef.current?.setMarkers) lowPriceSeriesRef.current.setMarkers(allMarkers)
 
-      // Build overlay dots (two per event time, one for each series)
+      // Build overlay dots - positioned at bottom of chart (not at price level)
+      // Use a single dot per event time, positioned at the bottom of the chart area
       const dots = []
-      for (const time of markerTimes) {
-        const meta = eventMap.get(time) || []
-        const highVal = highByTime.get(time)
-        const lowVal = lowByTime.get(time)
-        if (typeof highVal === 'number') {
+      if (markerTimes.length > 0 && highPriceData.length > 0 && lowPriceData.length > 0) {
+        // Get the actual price range from the data
+        const allPrices = [...highPriceData.map(p => p.value), ...lowPriceData.map(p => p.value)]
+        const minPrice = Math.min(...allPrices)
+        const maxPrice = Math.max(...allPrices)
+        const priceRange = maxPrice - minPrice
+        
+        // Position dots at bottom 5% of the price range (visible at bottom of chart)
+        // Use a small offset from minimum to ensure visibility
+        const bottomValue = minPrice + (priceRange * 0.05)
+        
+        console.log('LineChart: Creating event dots', {
+          markerTimesCount: markerTimes.length,
+          minPrice,
+          maxPrice,
+          bottomValue,
+          priceRange
+        })
+        
+        for (const time of markerTimes) {
+          const meta = eventMap.get(time) || []
+          
           dots.push({
-            id: `high-${time}`,
+            id: `event-${time}`,
             time,
-            series: 'high',
-            value: highVal,
+            series: 'bottom',
+            value: bottomValue,
             title: meta[0]?.title ?? 'Event',
             kind: meta[0]?.kind ?? 'event',
-            date: meta[0]?.date
+            date: meta[0]?.date,
+            items: meta // Store all events for this time
           })
         }
-        if (typeof lowVal === 'number') {
-          dots.push({
-            id: `low-${time}`,
-            time,
-            series: 'low',
-            value: lowVal,
-            title: meta[0]?.title ?? 'Event',
-            kind: meta[0]?.kind ?? 'event',
-            date: meta[0]?.date
-          })
-        }
+        
+        console.log('LineChart: Created', dots.length, 'event dots')
+      } else {
+        console.log('LineChart: Skipping dot creation', {
+          markerTimesLength: markerTimes.length,
+          highPriceDataLength: highPriceData.length,
+          lowPriceDataLength: lowPriceData.length
+        })
       }
       setEventDots(dots)
 
@@ -878,49 +988,235 @@ export default function LineChart ({ id, items, height = 600 }) {
       </Stack>
 
       {/* Chart Container (always mounted so the chart can initialize reliably, incl. inside modals) */}
-      <div style={{ position: 'relative', width: '100%', height }}>
+      <div style={{ position: 'relative', width: '100%', height, display: 'flex', gap: '1rem' }}>
         <div
           ref={chartContainerRef}
           style={{
-            width: '100%',
+            flex: 1,
             height: '100%',
             position: 'relative'
           }}
         />
+        
+        {/* Game Updates Side Panel */}
+        {historyStatus === 'success' && normalizedEvents.length > 0 && (
+          <Box
+            style={{
+              width: 280,
+              maxHeight: height,
+              overflowY: 'auto',
+              background: 'rgba(26,27,30,0.8)',
+              border: '1px solid rgba(55,58,64,0.4)',
+              borderRadius: 8,
+              padding: '12px',
+              position: 'sticky',
+              top: 0
+            }}
+          >
+            <Text size="sm" weight={600} mb="md" style={{ color: '#C1C2C5' }}>
+              Game Events ({normalizedEvents.length})
+            </Text>
+            <Stack spacing="xs">
+              {normalizedEvents.map((event, idx) => {
+                const eventDate = event.date instanceof Date ? event.date : new Date(event.date)
+                return (
+                  <Box
+                    key={`${event.kind}-${event.time}-${idx}`}
+                    style={{
+                      padding: '8px',
+                      borderRadius: 6,
+                      background: event.kind === 'blog' 
+                        ? 'rgba(59, 130, 246, 0.1)' 
+                        : 'rgba(245, 158, 11, 0.1)',
+                      border: `1px solid ${event.kind === 'blog' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={() => {
+                      // Highlight corresponding dot on chart
+                      const dot = eventDots.find(d => d.time === event.time)
+                      if (dot) {
+                        setHoveredDotId(dot.id)
+                        setHoveredEvents({
+                          x: chartRef.current?.timeScale()?.timeToCoordinate?.(event.time) || 0,
+                          y: 0,
+                          items: [{ title: event.title, kind: event.kind, date: event.date }]
+                        })
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredDotId(null)
+                      setTimeout(() => setHoveredEvents(null), 100)
+                    }}
+                  >
+                    <Group spacing={6} align="flex-start" noWrap>
+                      <Box
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: event.kind === 'blog' ? '#3b82f6' : '#f59e0b',
+                          marginTop: 4,
+                          flexShrink: 0
+                        }}
+                      />
+                      <Stack spacing={2} style={{ flex: 1, minWidth: 0 }}>
+                        <Text 
+                          size="xs" 
+                          weight={500} 
+                          style={{ 
+                            color: '#C1C2C5',
+                            lineHeight: 1.3,
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {event.title}
+                        </Text>
+                        <Text size="xs" color="dimmed">
+                          {eventDate.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </Text>
+                      </Stack>
+                    </Group>
+                  </Box>
+                )
+              })}
+            </Stack>
+          </Box>
+        )}
 
-        {/* Event dots overlay (visible circles on both High + Low series). */}
+        {/* Event dots overlay - positioned at bottom of chart, interactive */}
         {historyStatus === 'success' && chartRef.current && eventDots.length > 0 && (
           <Box
             style={{
               position: 'absolute',
               inset: 0,
-              zIndex: 4,
+              zIndex: 10,
               pointerEvents: 'none'
             }}
           >
             {eventDots.map((d) => {
-              const x = chartRef.current?.timeScale()?.timeToCoordinate?.(d.time)
-              const series = d.series === 'high' ? highPriceSeriesRef.current : lowPriceSeriesRef.current
-              const y = series?.priceToCoordinate?.(d.value)
-              if (typeof x !== 'number' || typeof y !== 'number') return null
+              try {
+                const x = chartRef.current?.timeScale()?.timeToCoordinate?.(d.time)
+                // Use high price series for coordinate conversion, but position at bottom
+                const series = highPriceSeriesRef.current
+                let y = series?.priceToCoordinate?.(d.value)
+                
+                const containerHeight = chartContainerRef.current?.clientHeight || height
+                const containerWidth = chartContainerRef.current?.clientWidth || 800
+                
+                // Debug logging
+                console.log('Event dot rendering:', {
+                  id: d.id,
+                  time: d.time,
+                  value: d.value,
+                  x,
+                  y,
+                  title: d.title,
+                  chartExists: !!chartRef.current,
+                  seriesExists: !!series,
+                  containerHeight,
+                  containerWidth
+                })
+                
+                if (typeof x !== 'number' || isNaN(x) || x < 0 || x > containerWidth) {
+                  console.warn('LineChart: Invalid X coordinate for dot', d.id, { x, time: d.time, containerWidth })
+                  return null
+                }
+                
+                // If Y coordinate is invalid, position at bottom of chart (accounting for volume chart if visible)
+                if (typeof y !== 'number' || isNaN(y)) {
+                  console.warn('LineChart: Invalid Y coordinate, using bottom position', d.id, { y, value: d.value })
+                  // Position at bottom 15% of chart height (above volume chart area)
+                  y = containerHeight * 0.85
+                }
+                
+                // Ensure Y is within bounds
+                if (y < 0) y = containerHeight * 0.85
+                if (y > containerHeight) y = containerHeight * 0.85
 
-              return (
-                <Box
-                  key={d.id}
-                  style={{
-                    position: 'absolute',
-                    left: x - 4,
-                    top: y - 4,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: d.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
-                    boxShadow: '0 0 0 2px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none'
-                  }}
-                />
-              )
+                const isHovered = hoveredDotId === d.id
+                
+                // Final Y position for the dot
+                const dotY = y
+
+                return (
+                  <Box
+                    key={d.id}
+                    onMouseEnter={() => {
+                      setHoveredDotId(d.id)
+                      // Show tooltip with event details
+                      const items = d.items || [{ title: d.title, kind: d.kind, date: d.date }]
+                      setHoveredEvents({
+                        x: x + 4, // Offset from dot center
+                        y: dotY - 20, // Position above dot
+                        items
+                      })
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredDotId(null)
+                      // Only clear if not hovering over another event via crosshair
+                      setTimeout(() => {
+                        if (hoveredDotId !== d.id) {
+                          setHoveredEvents(null)
+                        }
+                      }, 100)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: x - 6,
+                      top: dotY - 6,
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      background: d.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
+                      boxShadow: isHovered 
+                        ? '0 0 0 3px rgba(255,255,255,0.3), 0 0 0 2px rgba(0,0,0,0.5)' 
+                        : '0 0 0 2px rgba(255,255,255,0.5), 0 0 0 1px rgba(0,0,0,0.8)',
+                      pointerEvents: 'auto',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      transform: isHovered ? 'scale(1.5)' : 'scale(1)',
+                      zIndex: isHovered ? 15 : 10
+                    }}
+                    title={d.title} // Native tooltip fallback
+                  />
+                )
+              } catch (error) {
+                console.error('LineChart: Error rendering event dot', d.id, error)
+                return null
+              }
             })}
+          </Box>
+        )}
+        
+        {/* Debug info - show if no events found */}
+        {historyStatus === 'success' && (
+          <Box
+            style={{
+              position: 'absolute',
+              bottom: 10,
+              right: 10,
+              padding: '8px 12px',
+              background: normalizedEvents.length === 0 
+                ? 'rgba(245, 158, 11, 0.2)' 
+                : 'rgba(34, 197, 94, 0.2)',
+              border: normalizedEvents.length === 0
+                ? '1px solid rgba(245, 158, 11, 0.4)'
+                : '1px solid rgba(34, 197, 94, 0.4)',
+              borderRadius: 6,
+              zIndex: 5,
+              pointerEvents: 'none'
+            }}
+          >
+            <Text size="xs" color={normalizedEvents.length === 0 ? 'dimmed' : '#10b981'}>
+              {normalizedEvents.length === 0 
+                ? `No game events found (Blogs: ${blogs.length}, Updates: ${updates.length})`
+                : `${normalizedEvents.length} game events loaded (${eventDots.length} dots)`}
+            </Text>
           </Box>
         )}
 

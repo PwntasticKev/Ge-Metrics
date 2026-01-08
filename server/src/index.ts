@@ -12,6 +12,7 @@ import { csrfProtection, rateLimit } from './middleware/security.js'
 import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import blogCronRoutes from './routes/blogCron.js'
+import gameUpdatesCronRoutes from './routes/gameUpdatesCron.js'
 import stripeRoutes from './routes/stripe.js'
 // import { scheduleVolumeUpdates } from './tasks/updateVolumes.js' - This is no longer needed
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
@@ -90,6 +91,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/cron/blogs', blogCronRoutes)
+app.use('/api/cron/game-updates', gameUpdatesCronRoutes)
 
 // tRPC middleware
 app.use('/trpc', createExpressMiddleware({ router: appRouter, createContext }))
