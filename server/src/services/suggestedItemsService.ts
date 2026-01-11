@@ -26,6 +26,12 @@ export interface SuggestedItemsFilters {
   volumeType?: 'global' | 'high' | 'low'
 }
 
+// Helper function to calculate tax with 5M cap
+function calculateTax(price: number): number {
+  const tax = Math.floor(price * 0.02)
+  return Math.min(tax, 5000000)
+}
+
 // Calculate suggestion score: 70% profit focus + 30% volume stability  
 function calculateSuggestionScore(
   volume24h: number,
@@ -237,7 +243,8 @@ export async function getSuggestedItems(filters: SuggestedItemsFilters = {}): Pr
       // Calculate profit metrics
       const margin = highPrice - lowPrice
       const marginPercentage = (margin / lowPrice) * 100
-      const profitPerFlip = Math.floor(margin * 0.98) // Account for 2% GE tax
+      const tax = calculateTax(highPrice)
+      const profitPerFlip = Math.floor(highPrice - lowPrice - tax) // Account for capped GE tax
       
       // Skip items with negative or zero margins
       if (margin <= 0 || marginPercentage < 0.1) {

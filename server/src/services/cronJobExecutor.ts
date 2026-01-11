@@ -11,6 +11,7 @@ import gameUpdatesScraper from './gameUpdatesScraperCheerio.js'
 import { PriceCacheService } from './priceCacheService.js'
 import { HistoricalDataService } from './historicalDataService.js'
 import { updateAllItemVolumes } from './itemVolumeService.js'
+import SubscriptionManagementService from './subscriptionManagementService.js'
 
 interface JobExecutionResult {
   success: boolean
@@ -49,6 +50,11 @@ const JOB_EXECUTORS: Record<string, () => Promise<any>> = {
   'update-item-volumes': async () => {
     await updateAllItemVolumes()
     return { success: true }
+  },
+  'check-trial-expirations': async () => {
+    const service = new SubscriptionManagementService()
+    const result = await service.checkTrialExpirationsAndNotify()
+    return result
   }
 }
 

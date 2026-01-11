@@ -7,7 +7,7 @@ import { CalculationExplainer } from './CalculationExplainer'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import { trpc } from '../../utils/trpc'
 import { processPotionData } from '../../utils/potion-calculation'
-import { getRelativeTime } from '../../utils/utils'
+import { getRelativeTime, calculateGETax } from '../../utils/utils'
 
 export default function PotionCombinations () {
   // TRPC Data Fetching.
@@ -181,9 +181,9 @@ export default function PotionCombinations () {
       if (item3 && item3.high != null) {
         const high3 = Number(String(item3.high).replace(/,/g, ''))
         // For each (4) bought, you get (4/3) × (3) doses = 1.333... × (3) potions
-        // Revenue per (4): (4/3) × high3 × 0.98
+        // Revenue per (4): (4/3) × (high3 - tax)
         // Cost per (4): low4
-        const revenuePer4 = (4 / 3) * Math.floor(high3 * 0.98)
+        const revenuePer4 = (4 / 3) * Math.floor(high3 - calculateGETax(high3))
         const profitPerPotion = Math.floor(revenuePer4 - low4)
         
         combinations.push({
@@ -207,9 +207,9 @@ export default function PotionCombinations () {
       if (item2 && item2.high != null) {
         const high2 = Number(String(item2.high).replace(/,/g, ''))
         // For each (4) bought, you get (4/2) × (2) doses = 2 × (2) potions
-        // Revenue per (4): 2 × high2 × 0.98
+        // Revenue per (4): 2 × (high2 - tax)
         // Cost per (4): low4
-        const revenuePer4 = 2 * Math.floor(high2 * 0.98)
+        const revenuePer4 = 2 * Math.floor(high2 - calculateGETax(high2))
         const profitPerPotion = Math.floor(revenuePer4 - low4)
         
         combinations.push({
@@ -233,9 +233,9 @@ export default function PotionCombinations () {
       if (item1 && item1.high != null) {
         const high1 = Number(String(item1.high).replace(/,/g, ''))
         // For each (4) bought, you get (4/1) × (1) doses = 4 × (1) potions
-        // Revenue per (4): 4 × high1 × 0.98
+        // Revenue per (4): 4 × (high1 - tax)
         // Cost per (4): low4
-        const revenuePer4 = 4 * Math.floor(high1 * 0.98)
+        const revenuePer4 = 4 * Math.floor(high1 - calculateGETax(high1))
         const profitPerPotion = Math.floor(revenuePer4 - low4)
         
         combinations.push({

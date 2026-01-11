@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
 import { eq, and, gte, sql } from 'drizzle-orm'
-import { db, userSettings, userSessions } from '../db/index.js'
+import { db, userSettings, userSessions, subscriptions } from '../db/index.js'
 import * as AuthModule from '../utils/auth.js'
 
 // Context creation
@@ -137,6 +137,39 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
 
 // Protected procedure
 export const protectedProcedure = t.procedure.use(isAuthed)
+
+// Subscription middleware
+const isSubscribed = isAuthed.unstable_pipe(async ({ ctx, next }) => {
+  // 1. Check if user is admin or moderator (bypass subscription)
+  const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, ctx.user.id)).limit(1)
+  const role = settings?.role || 'user'
+  if (role === 'admin' || role === 'moderator') {
+    return next({ ctx })
+  }
+
+  // 2. Check subscription status
+  const subscription = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.userId, ctx.user.id)
+  })
+
+  const isActive = subscription?.status === 'active'
+  // Check if trial is valid (isTrialing AND trialEnd is in the future)
+  const isTrialValid = subscription?.status === 'trialing' && 
+                       subscription?.isTrialing && 
+                       subscription?.trialEnd && 
+                       new Date(subscription.trialEnd) > new Date()
+
+  if (isActive || isTrialValid) {
+    return next({ ctx })
+  }
+
+  throw new TRPCError({
+    code: 'FORBIDDEN',
+    message: 'Active subscription or trial required.'
+  })
+})
+
+export const subscribedProcedure = t.procedure.use(isSubscribed)
 
 const isAdmin = isAuthed.unstable_pipe(async ({ ctx, next }) => {
   // Get user settings from database to check admin role

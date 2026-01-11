@@ -4,7 +4,7 @@ import {
   getMappingData,
   getVolumeData
 } from '../api/rs-wiki-api'
-import { allItems, getItemSetProfit, safeParseFloat } from '../utils/utils.jsx'
+import { allItems, getItemSetProfit, safeParseFloat, calculateGETax } from '../utils/utils.jsx'
 import { itemRecipes } from '../components/Table/data/item-set-filters.jsx'
 import { saplingRecipes } from '../components/Table/data/sapling-filters.jsx'
 import { herbCleaningRecipes } from '../components/Table/data/herb-cleaning-filters.jsx'
@@ -48,7 +48,7 @@ const ItemData = () => {
             low: lowPrice,
             lowTime: priceData ? priceData.lowTime : null,
             volume: volumeData || 0,
-            profit: Math.floor(highPrice * 0.99 - lowPrice), // 1% tax
+            profit: Math.floor(highPrice - lowPrice - calculateGETax(highPrice)),
             examine: item.examine || 'No examine text available.'
           }
         })

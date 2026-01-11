@@ -123,10 +123,29 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
                 >
                   <Group position="apart">
                     <Stack spacing={0}>
-                      <Text size="xs" weight={isBest ? 700 : 400}>
-                        Sell ({combo.dose}): {combo.high !== null && combo.high !== undefined ? Number(combo.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
-                      </Text>
-                      <Text size="xs" color="dimmed">
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <Text size="xs" weight={isBest ? 700 : 400}>
+                          Sell ({combo.dose}): {combo.high !== null && combo.high !== undefined ? Number(combo.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
+                        </Text>
+                        {combo.high && (
+                          <Text 
+                            size="xs" 
+                            color="red" 
+                            style={{ 
+                              position: 'absolute', 
+                              top: '100%', 
+                              left: '0', 
+                              whiteSpace: 'nowrap', 
+                              fontSize: '8px', 
+                              pointerEvents: 'none',
+                              marginTop: '-2px'
+                            }}
+                          >
+                            (-{new Intl.NumberFormat().format(Math.floor(Number(combo.high.toString().replace(/,/g, '')) * 0.02))} tax)
+                          </Text>
+                        )}
+                      </div>
+                      <Text size="xs" color="dimmed" mt={combo.high ? 8 : 0}>
                         Vol 24h: {totalVolumeDisplay}
                       </Text>
                     </Stack>
@@ -193,9 +212,27 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
             {/* (4) dose sell price - show actual high price to match All Items page */}
             <Group position="apart" py={4}>
               <Text size="xs" weight={500}>Sell (4):</Text>
-              <Text size="xs" weight={500} color="green">
-                {item4.high ? Number(item4.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
-              </Text>
+              <div style={{ position: 'relative', display: 'inline-block', textAlign: 'right' }}>
+                <Text size="xs" weight={500} color="green">
+                  {item4.high ? Number(item4.high.toString().replace(/,/g, '')).toLocaleString() : 'N/A'}
+                </Text>
+                {item4.high && (
+                  <Text 
+                    size="xs" 
+                    color="red" 
+                    style={{ 
+                      position: 'absolute', 
+                      top: '100%', 
+                      right: '0', 
+                      whiteSpace: 'nowrap', 
+                      fontSize: '8px', 
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    (-{new Intl.NumberFormat().format(Math.floor(Number(item4.high.toString().replace(/,/g, '')) * 0.02))} tax)
+                  </Text>
+                )}
+              </div>
             </Group>
           </>
         )}

@@ -461,6 +461,71 @@ export class SubscriptionManagementService {
   }
 
   /**
+   * Check for expiring trials and send notifications
+   */
+  async checkTrialExpirationsAndNotify (): Promise<{ processed: number; emailsSent: number }> {
+    try {
+      const now = new Date()
+      // Look for trials ending in 3 days (between 2.5 and 3.5 days from now)
+      const targetStart = new Date(now.getTime() + 2.5 * 24 * 60 * 60 * 1000)
+      const targetEnd = new Date(now.getTime() + 3.5 * 24 * 60 * 60 * 1000)
+
+      const expiringTrials = await db.select().from(schema.subscriptions)
+        .where(
+          and(
+            eq(schema.subscriptions.status, 'trialing'),
+            eq(schema.subscriptions.isTrialing, true),
+            gte(schema.subscriptions.trialEnd, targetStart),
+            lte(schema.subscriptions.trialEnd, targetEnd)
+          )
+        )
+
+      console.log(`[SubscriptionService] Found ${expiringTrials.length} trials ending soon (3 days)`)
+
+      let emailsSent = 0
+      const { sendEmail } = await import('./emailService.js')
+
+      for (const sub of expiringTrials) {
+        try {
+          const [user] = await db.select().from(schema.users).where(eq(schema.users.id, sub.userId)).limit(1)
+          
+          if (!user) continue
+
+          const trialEndDate = sub.trialEnd ? new Date(sub.trialEnd).toLocaleDateString() : 'soon'
+          
+          await sendEmail({
+            to: user.email,
+            subject: 'Your Trial is Ending Soon!',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #667eea;">Don't Lose Your Edge!</h2>
+                <p>Hey ${user.username},</p>
+                <p>Just a heads up that your Ge-Metrics free trial is ending on <strong>${trialEndDate}</strong>.</p>
+                <p>You've had access to premium features like advanced flip tracking, volume analysis, and more. To keep maximizing your profits, upgrade to the full Premium plan now.</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${process.env.FRONTEND_URL}/billing" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Upgrade to Premium ($3/mo)</a>
+                </div>
+                <p>It's just $3/month - less than a bond for way more value.</p>
+                <p>Cheers,<br>The Ge-Metrics Team</p>
+              </div>
+            `,
+            text: `Hey ${user.username}, your Ge-Metrics free trial is ending on ${trialEndDate}. Upgrade now to keep your premium access: ${process.env.FRONTEND_URL}/billing`
+          })
+          
+          emailsSent++
+        } catch (err) {
+          console.error(`Failed to send trial expiry email to user ${sub.userId}:`, err)
+        }
+      }
+
+      return { processed: expiringTrials.length, emailsSent }
+    } catch (error) {
+      console.error('Error checking trial expirations:', error)
+      throw error
+    }
+  }
+
+  /**
    * Calculate period end date based on interval
    */
   private calculatePeriodEnd (interval: string): Date {

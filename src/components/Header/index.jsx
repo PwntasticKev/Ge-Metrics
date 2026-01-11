@@ -24,6 +24,7 @@ import { IconCoins, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
 import { Link, useNavigate } from 'react-router-dom'
+import { calculateGETax } from '../../utils/utils.jsx'
 import { trpc } from '../../utils/trpc.jsx'
 
 export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
@@ -98,8 +99,9 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
       const priceData = allItems[item.id]
       const highPrice = priceData?.high ? Number(priceData.high) : 0
       const lowPrice = priceData?.low ? Number(priceData.low) : 0
-      // Calculate profit: high * 0.99 (1% tax) - low
-      const profit = highPrice && lowPrice ? Math.floor(highPrice * 0.99 - lowPrice) : 0
+      // Calculate profit: high - tax - low
+      const tax = calculateGETax(highPrice)
+      const profit = highPrice && lowPrice ? Math.floor(highPrice - lowPrice - tax) : 0
       return {
         ...item,
         img: getItemImageUrl(item),
@@ -328,9 +330,24 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
                                   Buy: {item.low?.toLocaleString() || 'N/A'} GP
                                 </Text>
                                 <Text size="xs" color="dimmed">|</Text>
-                                <Text size="xs" color="dimmed">
-                                  Sell: {item.high?.toLocaleString() || 'N/A'} GP
-                                </Text>
+                                <div style={{ position: 'relative' }}>
+                                  <Text size="xs" color="dimmed">
+                                    Sell: {item.high?.toLocaleString() || 'N/A'} GP
+                                  </Text>
+                                  <Text 
+                                    size="7px" 
+                                    color="red" 
+                                    style={{ 
+                                      position: 'absolute', 
+                                      top: '100%', 
+                                      right: 0, 
+                                      whiteSpace: 'nowrap',
+                                      pointerEvents: 'none'
+                                    }}
+                                  >
+                                    (-{new Intl.NumberFormat().format(calculateGETax(item.high || 0))} tax)
+                                  </Text>
+                                </div>
                                 {item.profit !== undefined && (
                                   <>
                                     <Text size="xs" color="dimmed">|</Text>

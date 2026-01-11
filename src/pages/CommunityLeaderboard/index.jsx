@@ -666,9 +666,32 @@ export default function CommunityLeaderboard () {
                         />
                         <div style={{ flex: 1, textAlign: 'left' }}>
                           <Text size="sm" weight={500}>{item.name}</Text>
-                          <Text size="xs" color="dimmed">
-                            ID: {item.id} | Current Price: {item.high ? `${item.high.toLocaleString()} GP` : 'N/A'}
-                          </Text>
+                          <Group spacing={4} noWrap>
+                            <Text size="xs" color="dimmed">
+                              ID: {item.id} | Current Price: 
+                            </Text>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <Text size="xs" color="dimmed">
+                                {item.high ? `${item.high.toLocaleString()} GP` : 'N/A'}
+                              </Text>
+                              {item.high && (
+                                <Text 
+                                  size="xs" 
+                                  color="red" 
+                                  style={{ 
+                                    position: 'absolute', 
+                                    top: '100%', 
+                                    left: '0', 
+                                    whiteSpace: 'nowrap', 
+                                    fontSize: '8px', 
+                                    pointerEvents: 'none' 
+                                  }}
+                                >
+                                  (-{new Intl.NumberFormat().format(Math.floor((item.high || 0) * 0.02))} tax)
+                                </Text>
+                              )}
+                            </div>
+                          </Group>
                         </div>
                       </Group>
                     </UnstyledButton>

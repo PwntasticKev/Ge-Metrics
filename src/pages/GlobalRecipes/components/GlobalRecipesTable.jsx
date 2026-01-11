@@ -25,7 +25,7 @@ import {
 } from '@tabler/icons-react'
 import MiniChart from '../../../components/charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
-import { formatNumber } from '../../../utils/utils.jsx'
+import { formatNumber, calculateGETax } from '../../../../utils/utils.jsx'
 import { trpc } from '../../../utils/trpc.jsx'
 
 const useStyles = createStyles((theme) => ({
@@ -183,9 +183,10 @@ export function GlobalRecipesTable({ data, items, setGraphInfo, onEdit }) {
     const outputItem = allItems[recipe.outputItemId]
     const sellPrice = outputItem?.high || 0
     
-    // Calculate profit after 1% GE tax
+    // Calculate profit after GE tax
+    const tax = calculateGETax(sellPrice)
     const grossProfit = sellPrice - totalCost
-    const netProfit = Math.floor(grossProfit * 0.99) // 1% GE tax
+    const netProfit = grossProfit - tax
     
     return {
       profit: netProfit,
@@ -298,7 +299,23 @@ export function GlobalRecipesTable({ data, items, setGraphInfo, onEdit }) {
           </td>
 
           <td style={{ verticalAlign: 'middle', padding: '8px' }}>
-            {new Intl.NumberFormat().format(allItems?.[recipe.outputItemId]?.high || 0)}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              {new Intl.NumberFormat().format(allItems?.[recipe.outputItemId]?.high || 0)}
+              <Text 
+                size="xs" 
+                color="red" 
+                style={{ 
+                  position: 'absolute', 
+                  top: '100%', 
+                  left: '0', 
+                  whiteSpace: 'nowrap',
+                  fontSize: '9px',
+                  pointerEvents: 'none'
+                }}
+              >
+                (-{new Intl.NumberFormat().format(calculateGETax(allItems?.[recipe.outputItemId]?.high || 0))} tax)
+              </Text>
+            </div>
           </td>
 
           <td style={{

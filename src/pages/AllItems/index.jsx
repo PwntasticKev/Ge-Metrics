@@ -3,7 +3,7 @@ import { Badge, Box, Card, Center, Group, Loader, Text } from '@mantine/core'
 import { IconClock } from '@tabler/icons-react'
 import { useState, useEffect } from 'react'
 import ItemData from '../../utils/item-data.jsx'
-import { getRelativeTime } from '../../utils/utils.jsx'
+import { getRelativeTime, calculateGETax } from '../../utils/utils.jsx'
 import { trpc } from '../../utils/trpc.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 
@@ -47,7 +47,7 @@ export default function AllItems () {
     .map(item => {
       const highPrice = item.high ? Number(item.high) : 0
       const lowPrice = item.low ? Number(item.low) : 0
-      const profit = highPrice && lowPrice ? Math.floor(highPrice * 0.99 - lowPrice) : 0
+      const profit = highPrice && lowPrice ? Math.floor(highPrice - lowPrice - calculateGETax(highPrice)) : 0
       return {
         ...item,
         profit,
@@ -100,6 +100,7 @@ export default function AllItems () {
                       showFavoriteColumn={true}
                       volumeMap={volumeMap}
                       defaultVolumeWindow="1h"
+                      // Pass tax info to table if it supports it, or modify table component
                     />
                 </Box>
             )}

@@ -4,13 +4,13 @@
 export const playlists = {
   'mr-mammal': {
     id: 'mr-mammal',
-    name: 'Mr Mammal',
-    description: 'Curated OSRS content creator playlist',
+    name: 'GE Metrics',
+    description: 'Curated OSRS trading music playlist',
     thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
     tracks: [
       {
         id: 'mm-1',
-        title: 'Sea Shanty 2',
+        title: 'Shanty of the Second Tide',
         artist: 'RuneScape Soundtrack',
         duration: 120,
         spotifyUrl: 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC',
@@ -19,7 +19,7 @@ export const playlists = {
         audioSources: [
           {
             type: 'mp3',
-            url: '/src/assets/audio/sea-shanty-2.mp3',
+            url: '/audio/Shanty%20of%20the%20Second%20Tide%20-%20AI%20Music.mp3',
             quality: 'high',
             description: 'Sea Shanty 2'
           },
@@ -33,7 +33,7 @@ export const playlists = {
       },
       {
         id: 'mm-2',
-        title: 'Autumn Voyage',
+        title: 'Tick-Perfect Massacre',
         artist: 'RuneScape Soundtrack',
         duration: 180,
         spotifyUrl: 'https://open.spotify.com/track/3ZKvEQWJkjrxAz3I2rNHfX',
@@ -42,9 +42,9 @@ export const playlists = {
         audioSources: [
           {
             type: 'mp3',
-            url: '/src/assets/audio/autumn-voyage.mp3',
+            url: '/audio/Tick-Perfect%20Massacre.mp3',
             quality: 'high',
-            description: 'Autumn Voyage'
+            description: 'Tick-Perfect Massacre'
           },
           {
             type: 'backup',
@@ -54,108 +54,8 @@ export const playlists = {
           }
         ]
       },
-      {
-        id: 'mm-3',
-        title: 'Medieval',
-        artist: 'RuneScape Soundtrack',
-        duration: 156,
-        spotifyUrl: 'https://open.spotify.com/track/1A7YJHtkj5s5M2nv5c8fXZ',
-        youtubeUrl: 'https://www.youtube.com/watch?v=V9CJ7rLPmNs',
-        thumbnail: 'https://i.ytimg.com/vi/V9CJ7rLPmNs/maxresdefault.jpg',
-        audioSources: [
-          {
-            type: 'mp3', 
-            url: '/src/assets/audio/medieval.mp3',
-            quality: 'high',
-            description: 'Medieval'
-          },
-          {
-            type: 'backup',
-            url: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3',
-            quality: 'medium',
-            description: 'Demo audio (fallback)'
-          }
-        ]
-      }
     ]
   },
-  
-  'custom-mix': {
-    id: 'custom-mix',
-    name: 'GE Metrics Mix',
-    description: 'Custom curated tracks for trading',
-    thumbnail: '/images/playlists/custom-mix.jpg',
-    tracks: [
-      {
-        id: 'custom-1',
-        title: 'Focus Flow',
-        artist: 'Lo-Fi Beats',
-        duration: 200,
-        spotifyUrl: null,
-        youtubeUrl: null,
-        audioUrl: '/src/assets/audio/focus-flow.mp3',
-        thumbnail: '/images/tracks/focus-flow.jpg'
-      },
-      {
-        id: 'custom-2',
-        title: 'Trading Zone',
-        artist: 'Ambient Mix',
-        duration: 240,
-        spotifyUrl: null,
-        youtubeUrl: null,
-        audioUrl: '/src/assets/audio/trading-zone.mp3',
-        thumbnail: '/images/tracks/trading-zone.jpg'
-      }
-    ]
-  },
-
-  'boaty': {
-    id: 'boaty',
-    name: 'B0aty',
-    description: 'B0aty\'s favorite RuneScape tracks',
-    thumbnail: 'https://i.ytimg.com/vi/bIgBj-G1Vj0/maxresdefault.jpg',
-    tracks: [
-      {
-        id: 'boaty-1',
-        title: 'Flute Salad',
-        artist: 'RuneScape Soundtrack',
-        duration: 90,
-        spotifyUrl: 'https://open.spotify.com/track/2ZUQMVdrZEpGqIgVgKHEeR',
-        youtubeUrl: 'https://www.youtube.com/watch?v=Jq3y8bOlgpY',
-        audioUrl: null,
-        thumbnail: 'https://i.ytimg.com/vi/Jq3y8bOlgpY/maxresdefault.jpg'
-      },
-      {
-        id: 'boaty-2',
-        title: 'Harmony',
-        artist: 'RuneScape Soundtrack',
-        duration: 165,
-        spotifyUrl: 'https://open.spotify.com/track/5mKHz5MbpnFRxBCWJ3PBrK',
-        youtubeUrl: 'https://www.youtube.com/watch?v=JkR7zClEkAo',
-        audioUrl: null,
-        thumbnail: 'https://i.ytimg.com/vi/JkR7zClEkAo/maxresdefault.jpg'
-      }
-    ]
-  },
-
-  'torvesta': {
-    id: 'torvesta',
-    name: 'Torvesta',
-    description: 'PKing vibes with Torvesta',
-    thumbnail: 'https://i.ytimg.com/vi/C_n_qtfjbqA/maxresdefault.jpg',
-    tracks: [
-      {
-        id: 'torv-1',
-        title: 'Scape Main',
-        artist: 'RuneScape Soundtrack',
-        duration: 134,
-        spotifyUrl: 'https://open.spotify.com/track/1tP5DKw6hElKNvQAdP3qKz',
-        youtubeUrl: 'https://www.youtube.com/watch?v=C_n_qtfjbqA',
-        audioUrl: null,
-        thumbnail: 'https://i.ytimg.com/vi/C_n_qtfjbqA/maxresdefault.jpg'
-      }
-    ]
-  }
 }
 
 // Helper functions for playlist management

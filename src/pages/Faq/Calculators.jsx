@@ -17,7 +17,7 @@ import { IconCalculator, IconCoins, IconTrendingUp, IconFlame } from '@tabler/ic
 import ItemData from '../../utils/item-data'
 
 // Grand Exchange Tax Rate
-const GE_TAX_RATE = 0.01
+const GE_TAX_RATE = 0.02
 
 // Nature Rune Price (use live data if available, otherwise estimate)
 const NATURE_RUNE_PRICE = 150

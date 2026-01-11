@@ -1,5 +1,6 @@
 // This utility processes raw item mapping, price, and volume data to identify potion families
 // and calculate their combination profits.
+import { calculateGETax } from './utils.jsx'
 
 const POTION_DOSES = ['(1)', '(2)', '(3)', '(4)']
 
@@ -86,7 +87,8 @@ export function processPotionData (itemMapping, allItems, itemVolumes) {
         return { ...family, combinations: [], bestProfitPerPotion: -Infinity, bestMethodDose: null }
       }
 
-      const sellPrice = parseFloat(item4.high.toString().replace(/,/g, '')) * 0.98 // Apply 2% tax
+      const sellPriceRaw = parseFloat(item4.high.toString().replace(/,/g, ''))
+      const sellPrice = sellPriceRaw - calculateGETax(sellPriceRaw) // Apply tax with cap
       const combinations = []
       let bestProfitPerPotion = -Infinity
       let bestMethodDose = null

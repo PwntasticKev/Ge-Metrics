@@ -51,8 +51,8 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
       title={null}
       styles={{
         body: {
-          maxHeight: '90vh',
-          overflowY: 'auto',
+          height: '80vh',
+          overflow: 'hidden',
           padding: 0
         },
         root: {
@@ -60,7 +60,7 @@ export default function GraphModal ({ opened, setOpened, onClose, item, id, item
         }
       }}
     >
-      <Box style={{ width: '100%', height: '80vh', backgroundColor: '#1A1B1E' }}>
+      <Box style={{ width: '100%', height: '100%', backgroundColor: '#1A1B1E' }}>
           {mounted && chartId ? (
             <div style={{ width: '100%', height: '100%' }}>
               <AdvancedChart itemId={chartId} item={item} items={items} height="100%" />

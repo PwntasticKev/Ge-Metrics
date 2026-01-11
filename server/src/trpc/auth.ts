@@ -62,10 +62,10 @@ export const authRouter = router({
       // Create user settings
       await db.insert(userSettings).values({ userId: createdUser.id })
 
-      // Create a 14-day trial subscription for the new user
+      // Create a 30-day trial subscription for the new user
       const trialStartDate = new Date()
       const trialEndDate = new Date()
-      trialEndDate.setDate(trialEndDate.getDate() + 14)
+      trialEndDate.setDate(trialEndDate.getDate() + 30)
 
       await db.insert(subscriptions).values({
         userId: createdUser.id,
@@ -75,7 +75,7 @@ export const authRouter = router({
         currentPeriodEnd: trialEndDate,
         trialStart: trialStartDate,
         trialEnd: trialEndDate,
-        trialDays: 14,
+        trialDays: 30,
         isTrialing: true
       })
 

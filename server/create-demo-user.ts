@@ -75,17 +75,25 @@ async function createDemoUser () {
     const userId = newUser[0].id
     logTest('Demo User - Create User', true, `Created user: ${userId}`)
 
-    // Create subscription
+    // Create subscription (30-day trial)
+    const trialStartDate = new Date()
+    const trialEndDate = new Date()
+    trialEndDate.setDate(trialEndDate.getDate() + 30)
+
     const subscription = await db.insert(schema.subscriptions).values({
       userId,
-      status: 'active',
+      status: 'trialing',
       plan: 'premium',
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      currentPeriodStart: trialStartDate,
+      currentPeriodEnd: trialEndDate,
+      trialStart: trialStartDate,
+      trialEnd: trialEndDate,
+      trialDays: 30,
+      isTrialing: true,
       cancelAtPeriodEnd: false
     }).returning()
 
-    logTest('Demo User - Create Subscription', subscription.length > 0, 'Premium subscription created')
+    logTest('Demo User - Create Subscription', subscription.length > 0, 'Trial subscription created')
 
     // Create sample watchlist items
     const watchlistItems = await db.insert(schema.userWatchlists).values([

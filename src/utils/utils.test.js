@@ -106,8 +106,8 @@ describe('Utils', () => {
     it('should handle custom tax rates', () => {
       const buyPrice = 1000
       const sellPrice = 1200
-      const customTax = 0.01 // 1%
-      const expectedProfit = 1200 - 1000 - (1200 * 0.01) // 200 - 12 = 188
+      const customTax = 0.02 // 2%
+      const expectedProfit = 1200 - 1000 - (1200 * 0.02) // 200 - 24 = 176
       expect(calculateProfit(buyPrice, sellPrice, customTax)).toBe(188)
     })
 

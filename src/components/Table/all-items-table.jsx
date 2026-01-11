@@ -39,6 +39,7 @@ import GraphModal from '../../shared/modals/graph-modal.jsx'
 import MiniChart from '../charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
 import LazyLoad from '../LazyLoad/index.jsx'
+import { calculateGETax } from '../../utils/utils.jsx'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -401,7 +402,26 @@ export function AllItemsTable ({
           </Link>
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{new Intl.NumberFormat().format(row.low)}</td>
-        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{new Intl.NumberFormat().format(row.high)}</td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+                {new Intl.NumberFormat().format(row.high)}
+                <Text 
+                    size="xs" 
+                    color="red" 
+                    style={{ 
+                        position: 'absolute', 
+                        top: '100%', 
+                        left: '50%', 
+                        transform: 'translateX(-50%)', 
+                        whiteSpace: 'nowrap',
+                        fontSize: '9px',
+                        pointerEvents: 'none'
+                    }}
+                >
+                    (-{new Intl.NumberFormat().format(calculateGETax(row.high || 0))} tax)
+                </Text>
+            </div>
+        </td>
         <td style={{
           color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
           fontWeight: 'bold',

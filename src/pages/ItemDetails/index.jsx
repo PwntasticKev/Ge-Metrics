@@ -158,9 +158,28 @@ export default function ItemDetails () {
         {
           title: 'Buy Price',
           data: new Intl.NumberFormat().format(buyPrice)
-        }, {
+        },         {
           title: 'Sell Price',
-          data: new Intl.NumberFormat().format(sellPrice)
+          data: (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              {new Intl.NumberFormat().format(sellPrice)}
+              <Text 
+                size="xs" 
+                color="red" 
+                style={{ 
+                  position: 'absolute', 
+                  top: '100%', 
+                  left: '50%', 
+                  transform: 'translateX(-50%)', 
+                  whiteSpace: 'nowrap',
+                  fontSize: '10px',
+                  marginTop: '2px'
+                }}
+              >
+                (-{new Intl.NumberFormat().format(taxes)} tax)
+              </Text>
+            </div>
+          )
         },
         {
           title: 'After Tax (2%)',

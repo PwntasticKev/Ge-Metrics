@@ -1,13 +1,21 @@
 import { z } from 'zod'
-import { publicProcedure, router } from './trpc.js'
+import { publicProcedure, router, subscribedProcedure } from './trpc.js'
 import { db, itemVolumes, itemMapping, connection } from '../db/index.js'
 import { NewItemVolume } from '../db/schema.js'
 import { eq, desc } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 
+// Cache for getAllItems to prevent excessive RSWiki API calls
+let itemsCache: {
+  data: any
+  timestamp: number
+} | null = null
+
+const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes - matches price update cycle
+
 export const itemsRouter = router({
   // Get all cached item volumes
-  getAllVolumes: publicProcedure
+  getAllVolumes: subscribedProcedure
     .query(async () => {
       try {
         console.log('[getAllVolumes] Fetching item volumes from database...')
@@ -37,7 +45,7 @@ export const itemsRouter = router({
     }),
 
   // Get all item mappings
-  getItemMapping: publicProcedure
+  getItemMapping: subscribedProcedure
     .query(async () => {
       try {
         console.log('[getItemMapping] Fetching item mappings from database...')
@@ -144,12 +152,19 @@ export const itemsRouter = router({
       }
     }),
 
-  // This endpoint is effectively replaced by getItemMapping and client-side logic
-  // We can add a dedicated price fetcher here later if needed.
-  getAllItems: publicProcedure
+  // This endpoint fetches latest prices with caching to prevent RSWiki API rate limiting
+  getAllItems: subscribedProcedure
     .query(async () => {
       try {
-        console.log('[getAllItems] Fetching from OSRS Wiki API...')
+        const now = Date.now()
+        
+        // Check if we have valid cached data
+        if (itemsCache && (now - itemsCache.timestamp < CACHE_DURATION_MS)) {
+          console.log(`[getAllItems] Returning cached data (age: ${Math.round((now - itemsCache.timestamp) / 1000)}s)`)
+          return itemsCache.data
+        }
+        
+        console.log('[getAllItems] Cache miss or expired, fetching from OSRS Wiki API...')
         const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest', {
           headers: {
             'User-Agent': 'GE-Metrics/1.0 (https://ge-metrics.com)'
@@ -158,17 +173,39 @@ export const itemsRouter = router({
         
         if (!response.ok) {
           console.error(`[getAllItems] Failed to fetch latest prices from OSRS Wiki API: ${response.status} ${response.statusText}`)
+          
+          // If we have stale cached data, return it as fallback
+          if (itemsCache) {
+            console.log('[getAllItems] Returning stale cached data as fallback due to API error')
+            return itemsCache.data
+          }
+          
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: `OSRS Wiki API returned ${response.status}: ${response.statusText}`
           })
         }
         
-        const data = await response.json()
-        console.log(`[getAllItems] Successfully fetched ${Object.keys(data.data || {}).length} items`)
-        return data.data || {} // The actual item data is in the 'data' property
+        const apiResponse = await response.json()
+        const itemData = apiResponse.data || {}
+        
+        // Cache the response
+        itemsCache = {
+          data: itemData,
+          timestamp: now
+        }
+        
+        console.log(`[getAllItems] Successfully fetched and cached ${Object.keys(itemData).length} items`)
+        return itemData
       } catch (error) {
         console.error('[getAllItems] Error fetching or parsing latest prices:', error)
+        
+        // If we have any cached data, return it as fallback
+        if (itemsCache) {
+          console.log('[getAllItems] Returning cached data as fallback due to error')
+          return itemsCache.data
+        }
+        
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch price data from OSRS Wiki API',
@@ -177,7 +214,7 @@ export const itemsRouter = router({
       }
     }),
 
-  getVolumesLastUpdated: publicProcedure
+  getVolumesLastUpdated: subscribedProcedure
     .query(async () => {
       try {
         const latestUpdate = await db.select({ lastUpdatedAt: itemVolumes.lastUpdatedAt })
@@ -194,7 +231,7 @@ export const itemsRouter = router({
     }),
 
   // Get potion families (client-side processing will handle this for now)
-  getPotionFamilies: publicProcedure
+  getPotionFamilies: subscribedProcedure
     .query(async () => {
       // This is a placeholder. The actual logic is in `processPotionData` on the client.
       // We could move that logic here in the future if needed.
@@ -202,7 +239,7 @@ export const itemsRouter = router({
     }),
 
   // Manually populate item mapping (useful for admin or when auto-population fails)
-  populateItemMapping: publicProcedure
+  populateItemMapping: subscribedProcedure
     .mutation(async () => {
       try {
         console.log('[populateItemMapping] Starting manual population...')

@@ -184,27 +184,30 @@ function AppLayout ({ children }) {
 
 // Component that protects content based on trial status
 function TrialProtectedContent ({ children }) {
-  const {
-    trialStatus,
-    isTrialExpired,
-    showExpiredModal,
-    setShowExpiredModal
-  } = useTrialContext()
+  const { isSubscribed, user } = useAuth()
+  const location = useLocation()
+  
+  // Allow access if:
+  // 1. User is not logged in (RequireAuth handles that)
+  // 2. User is admin/moderator
+  // 3. User is subscribed (or has valid trial)
+  // 4. Path is in allowed list (billing, profile, settings)
+  
+  const isAdmin = user?.role === 'admin' || user?.role === 'moderator'
+  const allowedPaths = ['/billing', '/profile', '/settings']
+  const isAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path))
+
+  if (user && !isAdmin && !isSubscribed && !isAllowedPath) {
+    return <Navigate to="/billing" replace />
+  }
 
   return (
     <>
-      {/* Show trial banner if user has active trial */}
-      {trialStatus && trialStatus.isActive && <TrialBanner />}
-
-      {/* Show expired modal if trial has expired */}
-      <TrialExpiredModal
-        opened={showExpiredModal}
-        onClose={() => setShowExpiredModal(false)}
-        trialData={trialStatus}
-      />
-
-      {/* Show content only if trial is active or user is premium */}
-      {!isTrialExpired ? children : null}
+      {/* Show trial banner if user has active trial - logic moved here if needed or kept in TrialContext */}
+      {/* For now, we assume TrialBanner handles its own visibility or we remove it if we rely purely on backend status */}
+      {/* We can keep TrialBanner if it correctly detects trial status */}
+      
+      {children}
     </>
   )
 }

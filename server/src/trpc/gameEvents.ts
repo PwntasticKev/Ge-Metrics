@@ -1,4 +1,4 @@
-import { router, publicProcedure } from './trpc.js'
+import { router, subscribedProcedure } from './trpc.js'
 import { z } from 'zod'
 import { db } from '../db/index.js'
 import { blogs, gameUpdates } from '../db/schema.js'
@@ -8,7 +8,7 @@ export const gameEventsRouter = router({
   /**
    * Get blogs and updates within a date range (for chart markers)
    */
-  getByDateRange: publicProcedure
+  getByDateRange: subscribedProcedure
     .input(
       z.object({
         startDate: z.union([z.date(), z.string()]).transform((val) => {
@@ -45,18 +45,44 @@ export const gameEventsRouter = router({
           throw new Error('Invalid date values provided')
         }
 
-        const [blogsData, updatesData] = await Promise.all([
-          db
-            .select()
-            .from(blogs)
-            .where(
-              and(
-                gte(blogs.date, input.startDate),
-                lte(blogs.date, input.endDate)
-              )
+        console.log('[GameEventsRouter] Query date range:', { 
+          startDate: input.startDate, 
+          endDate: input.endDate 
+        })
+
+        const blogsData = await db
+          .select()
+          .from(blogs)
+          .where(
+            and(
+              gte(blogs.date, input.startDate),
+              lte(blogs.date, input.endDate)
             )
-            .orderBy(desc(blogs.date)),
-          db
+          )
+          .orderBy(desc(blogs.date))
+
+        console.log('[GameEventsRouter] Blogs query result:', blogsData.length)
+
+        let updatesData = []
+        try {
+          console.log('[GameEventsRouter] Executing updates query...')
+          console.log('[GameEventsRouter] Date params:', {
+            startDate: input.startDate.toISOString(),
+            endDate: input.endDate.toISOString(),
+            startDateType: typeof input.startDate,
+            endDateType: typeof input.endDate
+          })
+          
+          // Test simpler query first
+          const allUpdates = await db.select().from(gameUpdates).limit(5)
+          console.log('[GameEventsRouter] All updates count:', allUpdates.length)
+          console.log('[GameEventsRouter] Sample update dates:', allUpdates.map(u => ({
+            title: u.title,
+            updateDate: u.updateDate,
+            updateDateType: typeof u.updateDate
+          })))
+          
+          updatesData = await db
             .select()
             .from(gameUpdates)
             .where(
@@ -66,7 +92,19 @@ export const gameEventsRouter = router({
               )
             )
             .orderBy(desc(gameUpdates.updateDate))
-        ])
+          console.log('[GameEventsRouter] Updates query result:', updatesData.length)
+        } catch (updatesError) {
+          console.error('[GameEventsRouter] Updates query failed:', updatesError)
+          console.error('[GameEventsRouter] Error details:', {
+            message: updatesError instanceof Error ? updatesError.message : 'Unknown error',
+            stack: updatesError instanceof Error ? updatesError.stack : 'No stack trace'
+          })
+        }
+
+        console.log('[GameEventsRouter] Returning data:', { 
+          blogsCount: blogsData.length, 
+          updatesCount: updatesData.length 
+        })
 
         return {
           success: true,
@@ -94,7 +132,7 @@ export const gameEventsRouter = router({
   /**
    * Get latest events (blogs and updates)
    */
-  getLatest: publicProcedure
+  getLatest: subscribedProcedure
     .input(
       z.object({
         limit: z.number().optional().default(10)
@@ -144,7 +182,7 @@ export const gameEventsRouter = router({
   /**
    * Get events by category/type
    */
-  getByCategory: publicProcedure
+  getByCategory: subscribedProcedure
     .input(
       z.object({
         category: z.string(),

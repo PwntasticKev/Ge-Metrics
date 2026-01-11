@@ -93,6 +93,8 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   
   // Hover State for Info Panel
   const [hoverData, setHoverData] = useState(null)
+  // Synchronized crosshair state
+  const [activeTimestamp, setActiveTimestamp] = useState(null)
 
   const [annotations, setAnnotations] = useState([])
   const [selectedAnnotation, setSelectedAnnotation] = useState(null)
@@ -118,33 +120,43 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     refetchInterval: 30000
   })
 
-  // Fetch Game Updates (Blogs/Updates)
+  // Fetch Game Updates (Blogs/Updates) - Use wider range for events
   const startDate = useMemo(() => {
-    return historyData?.length > 0 
-      ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+    if (!historyData?.length) return new Date('2024-01-01')
+    
+    // Use a wider range for events - go back 6 months from earliest chart data
+    const chartStartTime = Math.min(...historyData.map(d => d.timestamp * 1000))
+    const chartStart = new Date(chartStartTime)
+    const eventStart = new Date(chartStart)
+    eventStart.setMonth(chartStart.getMonth() - 6)
+    
+    return eventStart
+  }, [historyData])
+
+  const endDate = useMemo(() => {
+    if (!historyData?.length) return new Date('2025-12-31')
+    
+    // Use a wider range for events - go forward 1 month from latest chart data
+    const chartEndTime = Math.max(...historyData.map(d => d.timestamp * 1000))
+    const chartEnd = new Date(chartEndTime)
+    const eventEnd = new Date(chartEnd)
+    eventEnd.setMonth(chartEnd.getMonth() + 1)
+    
+    return eventEnd
   }, [historyData])
 
   const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
     startDate, 
-    endDate: new Date()
+    endDate
   }, {
     enabled: !!historyData && seriesVisibility.updates,
-    staleTime: 5 * 60 * 1000,
-    onSuccess: (data) => {
-        console.log('AdvancedChart: Updates fetched', data)
-    },
-    onError: (err) => {
-        console.error('AdvancedChart: Updates fetch error', err)
-    }
+    staleTime: 5 * 60 * 1000
   })
 
   const gameUpdates = useMemo(() => {
     const blogs = blogsQuery.data?.data?.blogs || []
     const updates = blogsQuery.data?.data?.updates || []
     
-    console.log(`AdvancedChart: Processing ${blogs.length} blogs and ${updates.length} updates`)
-
     const combined = [
         ...blogs.map(b => ({
             id: `blog_${b.date}`,
@@ -254,21 +266,55 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     return processed
   }, [historyData, range, timeframe])
 
-  // Prepare Scatter Data for Updates (Exact Positioning)
+  // Prepare Scatter Data for Updates (For events mini chart)
   const updatesData = useMemo(() => {
-    if (!gameUpdates.length) return []
+    if (!gameUpdates.length || !chartData.length) return []
+    
+    // Calculate visible price range to position dots at bottom
+    const visibleData = chartData.filter(d => {
+      const timestamp = d.timestamp
+      const leftBound = left === 'dataMin' ? chartData[0]?.timestamp : left
+      const rightBound = right === 'dataMax' ? chartData[chartData.length - 1]?.timestamp : right
+      return timestamp >= leftBound && timestamp <= rightBound
+    })
+    
+    if (!visibleData.length) return []
+    
+    // Get min/max prices from visible data for positioning
+    const prices = visibleData.flatMap(d => [
+      seriesVisibility.highPrice ? d.high : null,
+      seriesVisibility.lowPrice ? d.low : null,
+      seriesVisibility.sma20 ? d.sma20 : null,
+      seriesVisibility.ema20 ? d.ema20 : null
+    ].filter(p => p !== null && p > 0))
+    
+    if (prices.length === 0) {
+      // Fallback to all data if no prices found
+      const allPrices = visibleData.flatMap(d => [d.high, d.low].filter(p => p !== null && p > 0))
+      prices.push(...allPrices)
+    }
+    
+    const minPrice = Math.min(...prices)
+    const maxPrice = Math.max(...prices)
+    
+    // Use the Y domain from the chart (check if we can access it)
+    const yDomainMin = bottom === 'auto' ? minPrice : bottom
+    const yDomainMax = top === 'auto' ? maxPrice : top
+    
+    // Position dots at the very bottom - use a very low value for testing
+    // This should put the dots near the bottom of the chart
+    const dotY = Math.min(...prices) * 0.1
     
     const mapped = gameUpdates.map(u => ({
-        x: u.date.getTime() / 1000, // Exact timestamp
-        y: 0.5,                     // Fixed Y position (center of bottom track)
+        timestamp: u.date.getTime() / 1000, // Match chartData timestamp format (seconds)
+        y: dotY,                            // Position at bottom of visible chart
         updateData: u,
         dateFormatted: formatDateForTimeframe(u.date, range),
         dateObj: u.date
     }))
     
-    console.log(`AdvancedChart: Mapped ${mapped.length} updates for visualization`)
     return mapped
-  }, [gameUpdates, range])
+  }, [gameUpdates, range, chartData, left, right, seriesVisibility])
 
   // Update hover data
   useEffect(() => {
@@ -422,16 +468,22 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
       data: chartData,
     margin: { top: 10, right: 0, left: 0, bottom: 0 },
     onMouseDown: (e) => setRefAreaLeft(e?.activePayload?.[0]?.payload?.timestamp),
-    onMouseMove: (e) => refAreaLeft && setRefAreaRight(e?.activePayload?.[0]?.payload?.timestamp),
     onMouseUp: zoom,
     onMouseLeave: () => {}
   }
 
   const handleMouseMove = (e) => {
     if (e?.activePayload?.[0]?.payload) {
-        setHoverData(e.activePayload[0].payload)
-        if (refAreaLeft) setRefAreaRight(e.activePayload[0].payload.timestamp)
+        const payload = e.activePayload[0].payload
+        setHoverData(payload)
+        setActiveTimestamp(payload.timestamp)
+        if (refAreaLeft) setRefAreaRight(payload.timestamp)
+        
     }
+  }
+
+  const handleMouseLeave = () => {
+    setActiveTimestamp(null)
   }
 
   // Controls UI
@@ -494,7 +546,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
 
         return (
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart {...commonChartProps} onMouseMove={handleMouseMove}>
+        <ComposedChart {...commonChartProps} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
             <defs>
               <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COLORS.sell} stopOpacity={0.1} />
@@ -520,6 +572,11 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
               allowDataOverflow
             />
             <Tooltip content={<></>} cursor={{ stroke: COLORS.crosshair, strokeWidth: 1, strokeDasharray: '4 4' }} />
+            
+            {/* Synchronized crosshair */}
+            {activeTimestamp && (
+              <ReferenceLine x={activeTimestamp} stroke={COLORS.crosshair} strokeWidth={1} strokeDasharray="2 2" />
+            )}
 
             {/* High Price (Sell) */}
             {seriesVisibility.highPrice && (
@@ -577,39 +634,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                 />
             )}
 
-             {/* Game Updates (Dots at bottom with precise X) */}
-             {seriesVisibility.updates && updatesData.length > 0 && (
-                <Scatter 
-                    data={updatesData}
-                    fill="#fff"
-                    shape={(props) => {
-                        const { cx, cy, payload } = props
-                        if (!payload.updateData) return null
-        return (
-                            <circle 
-                                cx={cx} 
-                                cy={cy} 
-                                r={4} 
-                                fill={payload.updateData.color} 
-                                stroke="#1A1B1E"
-                                strokeWidth={1}
-                            />
-                        )
-                    }}
-                    yAxisId="updates"
-                    onMouseEnter={(e) => {
-                        // When hovering the dot, force the info panel to show update data
-                        if (e.payload) setHoverData(e.payload)
-                    }}
-                    onMouseLeave={() => {
-                        // Optional: reset or leave as is (next mouse move on chart will fix it)
-                    }}
-                    isAnimationActive={false}
-                />
-            )}
             
-            {/* Hidden Y-Axis for Updates to keep them fixed at the bottom (y=0.5 in [0, 1]) */}
-            <YAxis yAxisId="updates" domain={[0, 1]} hide />
 
             {refAreaLeft && refAreaRight ? (
               <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#3B82F6" fillOpacity={0.1} />
@@ -622,7 +647,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   const renderVolumeChart = () => {
         return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart {...commonChartProps} onMouseMove={handleMouseMove}>
+        <BarChart {...commonChartProps} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
           <CartesianGrid stroke={COLORS.grid} vertical={false} />
             <XAxis
             dataKey="timestamp" 
@@ -644,11 +669,107 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
           />
           <Tooltip content={<></>} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
           
+          {/* Synchronized crosshair */}
+          {activeTimestamp && (
+            <ReferenceLine x={activeTimestamp} stroke={COLORS.crosshair} strokeWidth={1} strokeDasharray="2 2" />
+          )}
+          
           {seriesVisibility.sellVolume && (
             <Bar dataKey="sellVolume" fill={COLORS.sell} stackId="a" opacity={0.8} />
           )}
           {seriesVisibility.buyVolume && (
             <Bar dataKey="buyVolume" fill={COLORS.buy} stackId="a" opacity={0.8} />
+          )}
+        </BarChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  const renderEventsChart = () => {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart 
+          data={chartData}
+          margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <CartesianGrid stroke={COLORS.grid} vertical={false} />
+          <XAxis
+            dataKey="timestamp" 
+            type="number"
+            domain={[left, right]}
+            tick={{ fontSize: 10, fill: COLORS.crosshair }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(unix) => formatDateForTimeframe(new Date(unix * 1000), range)}
+            allowDataOverflow
+            minTickGap={30}
+          />
+          <YAxis 
+            orientation="right" 
+            domain={[0, 1]} 
+            tick={false}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip content={<></>} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+          
+          {/* Synchronized crosshair */}
+          {activeTimestamp && (
+            <ReferenceLine x={activeTimestamp} stroke={COLORS.crosshair} strokeWidth={1} strokeDasharray="2 2" />
+          )}
+          
+          {/* Event dots positioned at Y=0.5 */}
+          {seriesVisibility.updates && updatesData.length > 0 && (
+            <Scatter 
+              data={updatesData.map(u => ({ ...u, y: 0.5 }))}
+              fill="#fff"
+              shape={(props) => {
+                const { cx, cy, payload } = props
+                if (!payload || !payload.updateData) return null
+                return (
+                  <circle 
+                    cx={cx} 
+                    cy={cy} 
+                    r={6} 
+                    fill={payload.updateData.color || COLORS.update}
+                    stroke="#1A1B1E"
+                    strokeWidth={1}
+                  />
+                )
+              }}
+              onMouseEnter={(e) => {
+                // When hovering the dot, show both price data and update data
+                if (e.payload && e.payload.updateData) {
+                  const eventTimestamp = e.payload.timestamp
+                  
+                  // Find closest price data point to this event
+                  let closestPriceData = null
+                  let minDiff = Infinity
+                  
+                  chartData.forEach(dataPoint => {
+                    const diff = Math.abs(dataPoint.timestamp - eventTimestamp)
+                    if (diff < minDiff) {
+                      minDiff = diff
+                      closestPriceData = dataPoint
+                    }
+                  })
+                  
+                  // Combine price data with event data
+                  const combinedData = {
+                    ...closestPriceData,
+                    updateData: e.payload.updateData,
+                    eventTimestamp: eventTimestamp,
+                    isEventHover: true
+                  }
+                  
+                  
+                  setHoverData(combinedData)
+                }
+              }}
+              isAnimationActive={false}
+            />
           )}
         </BarChart>
       </ResponsiveContainer>
@@ -863,7 +984,14 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
               )}
       </div>
 
-                {/* Volume Chart (Bottom) */}
+                {/* Events Chart (Game Updates & Blogs) */}
+                {(seriesVisibility.updates || updatesData.length > 0) && (
+                  <div style={{ height: 25, width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      {isLoading ? null : renderEventsChart()}
+                  </div>
+                )}
+
+                {/* Volume Chart */}
                 <div style={{ flex: 1, width: '100%', minHeight: 0, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     {isLoading ? null : renderVolumeChart()}
                 </div>

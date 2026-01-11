@@ -2,11 +2,11 @@ import { z } from 'zod'
 import { db } from '../db/index.js'
 import { favorites } from '../db/schema.js'
 import { eq, and } from 'drizzle-orm'
-import { protectedProcedure, router } from './trpc.js'
+import { router, subscribedProcedure } from './trpc.js'
 
 export const favoritesRouter = router({
   // Get all favorites for the logged-in user
-  getAll: protectedProcedure
+  getAll: subscribedProcedure
     .input(z.object({
       itemType: z.string().optional()
     }).optional())
@@ -29,7 +29,7 @@ export const favoritesRouter = router({
     }),
 
   // Add a new favorite
-  add: protectedProcedure
+  add: subscribedProcedure
     .input(z.object({
       itemId: z.number(),
       itemType: z.string()
@@ -74,7 +74,7 @@ export const favoritesRouter = router({
     }),
 
   // Remove a favorite
-  remove: protectedProcedure
+  remove: subscribedProcedure
     .input(z.object({
       itemId: z.number(),
       itemType: z.string()

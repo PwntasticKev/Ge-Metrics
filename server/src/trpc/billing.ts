@@ -233,7 +233,6 @@ const billingRouter = router({
         customer_email: userEmail,
         line_items: [{ price, quantity: 1 }],
         subscription_data: {
-          trial_period_days: 14,
           metadata: { userId: String(userId) }
         },
         metadata: { userId: String(userId) }

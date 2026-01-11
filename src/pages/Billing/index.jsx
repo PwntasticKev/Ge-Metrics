@@ -14,7 +14,11 @@ import {
   ActionIcon,
   Table,
   Box,
-  Group
+  Group,
+  SimpleGrid,
+  Paper,
+  ThemeIcon,
+  Grid
 } from '@mantine/core'
 import { 
   IconCrown, 
@@ -25,7 +29,10 @@ import {
   IconCreditCard,
   IconReceipt,
   IconDownload,
-  IconCalendar
+  IconCalendar,
+  IconClock,
+  IconCurrencyDollar,
+  IconBolt
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc.jsx'
 import { useAuth } from '../../hooks/useAuth'
@@ -45,18 +52,6 @@ const BillingPage = () => {
 
   // Pricing IDs
   const MONTHLY = import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY
-  const [plan, setPlan] = useState('monthly')
-
-  useEffect(() => {
-    // Add entrance animations
-    const cards = document.querySelectorAll('.billing-card')
-    cards.forEach((card, index) => {
-      setTimeout(() => {
-        card.style.opacity = '1'
-        card.style.transform = 'translateY(0)'
-      }, index * 100)
-    })
-  }, [subscription])
 
   const handleSubscribe = async () => {
     setIsLoading(true)
@@ -88,16 +83,47 @@ const BillingPage = () => {
     }
   }
 
+  const handleDownloadInvoice = async (invoiceId) => {
+    try {
+      const result = await downloadInvoice.mutateAsync({ invoiceId })
+      if (result.url) {
+        window.open(result.url, '_blank')
+      }
+    } catch (err) {
+      setError('Failed to download invoice. Please try again.')
+    }
+  }
+
   if (isUserLoading || isSubscriptionLoading) {
     return (
       <Center h={300}><Loader /></Center>
     )
   }
 
+  // --- State Logic Refactor ---
+  // 1. Subscription Active: 'active' status from Stripe
   const isSubscribed = subscription && subscription.status === 'active'
-  const isTrial = subscription && subscription.status === 'trialing'
-  const isPremiumUser = user?.role === 'premium' || user?.role === 'admin'
   
+  // 2. Trial Status: 'trialing' or isTrialing flag
+  const isTrial = subscription && (subscription.status === 'trialing' || subscription.isTrialing)
+  const trialEndDate = subscription?.trialEnd ? new Date(subscription.trialEnd) : null
+  const daysRemaining = trialEndDate ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // 3. Trial Expired: Is trial but time is up
+  const isTrialExpired = isTrial && daysRemaining <= 0
+  
+  // 4. Trial Active: Is trial and time remains
+  const isTrialActive = isTrial && !isTrialExpired
+
+  // Determine user state for UI
+  let userState = 'unknown'
+  if (user?.role === 'admin') userState = 'admin'
+  else if (isSubscribed) userState = 'subscribed'
+  else if (isTrialActive) userState = 'trial_active'
+  else if (isTrialExpired) userState = 'trial_expired'
+  else userState = 'inactive' // Should not typically happen with auto-trial
+
+  // Formatters
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -108,14 +134,6 @@ const BillingPage = () => {
   }
 
   const formatCurrency = (amount, currency = 'usd') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency.toUpperCase()
-    }).format(amount / 100) // Stripe amounts are in cents
-  }
-
-  const formatPrice = (amount, currency = 'usd') => {
-    if (!amount) return '$3.00'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency.toUpperCase()
@@ -135,7 +153,7 @@ const BillingPage = () => {
   }
 
   const formatPaymentMethod = () => {
-    if (!paymentMethod) return 'No payment method on file'
+    if (!paymentMethod) return 'No payment method'
     const brand = getCardBrandName(paymentMethod.brand)
     const last4 = paymentMethod.last4 || '****'
     const expMonth = paymentMethod.expMonth?.toString().padStart(2, '0') || '**'
@@ -143,515 +161,253 @@ const BillingPage = () => {
     return `${brand} •••• ${last4} (Expires ${expMonth}/${expYear})`
   }
 
-  const handleDownloadInvoice = async (invoiceId) => {
-    try {
-      const result = await downloadInvoice.mutateAsync({ invoiceId })
-      if (result.url) {
-        window.open(result.url, '_blank')
-      }
-    } catch (err) {
-      setError('Failed to download invoice. Please try again.')
+  // UI Components
+  const StatusBadge = () => {
+    switch (userState) {
+      case 'admin':
+        return <Badge size="lg" color="blue" variant="filled">Admin Access</Badge>
+      case 'subscribed':
+        return <Badge size="lg" color="green" variant="filled">Active Premium</Badge>
+      case 'trial_active':
+        return <Badge size="lg" color="orange" variant="filled">Free Trial ({daysRemaining} days left)</Badge>
+      case 'trial_expired':
+        return <Badge size="lg" color="red" variant="filled">Trial Expired</Badge>
+      default:
+        return <Badge size="lg" color="gray" variant="filled">Inactive</Badge>
     }
   }
 
-  const renderSubscriberContent = () => (
-    <Stack spacing="lg">
-      {/* Current Plan Status */}
-      <Card 
-        className="billing-card"
-        withBorder 
-        p="xl" 
-        radius="md"
-        style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          border: 'none',
-          opacity: 0,
-          transform: 'translateY(20px)',
-          transition: 'all 0.6s ease-out',
-          boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
-        }}
-      >
-        <Group position="apart" mb="md">
-          <Group spacing="sm">
-            <IconShield size={32} color="#ffd700" />
-            <div>
-              <Text weight={700} size="xl" color="white">
-                Premium Plan
-              </Text>
-              <Text size="sm" color="rgba(255, 255, 255, 0.8)">
-                You're all set, bro! Full access unlocked
-              </Text>
-            </div>
-          </Group>
-          <Badge 
-            size="lg" 
-            variant="filled"
-            style={{
-              background: 'rgba(255, 215, 0, 0.2)',
-              color: '#ffd700',
-              border: '1px solid rgba(255, 215, 0, 0.3)'
-            }}
-          >
-            {isSubscribed ? 'Active' : isTrial ? 'Trial' : 'Inactive'}
-          </Badge>
-        </Group>
-        
-        {(subscription?.nextBillingDate || subscription?.currentPeriodEnd) && (
-          <Group spacing="xs" mb="md">
-            <IconCalendar size={18} color="rgba(255, 255, 255, 0.9)" />
-            <Text size="sm" color="rgba(255, 255, 255, 0.9)">
-              {isSubscribed ? 'Renews on' : 'Expires on'} {formatDate(subscription.nextBillingDate || subscription.currentPeriodEnd)}
-            </Text>
-          </Group>
+  return (
+    <Container size="xl" py="xl">
+      <Stack spacing="xl">
+        {/* Header Section */}
+        <Box>
+          <Title order={2} mb="xs" style={{ color: 'var(--mantine-color-gray-0)' }}>Subscription & Billing</Title>
+          <Text color="dimmed">Manage your plan, payment methods, and view invoices.</Text>
+        </Box>
+
+        {error && (
+          <Alert icon={<IconAlertCircle size={16} />} color="red" withCloseButton onClose={() => setError('')}>
+            {error}
+          </Alert>
         )}
-        
-        <Group spacing="md">
-          <Button
-            leftIcon={<IconSettings size={18} />}
-            onClick={handleManageSubscription}
-            loading={isLoading}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'
-              e.currentTarget.style.transform = 'translateY(-2px)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
-              e.currentTarget.style.transform = 'translateY(0)'
-            }}
-          >
-            Manage your plan
-          </Button>
-          <Button
-            variant="light"
-            leftIcon={<IconCreditCard size={18} />}
-            onClick={handleManageSubscription}
-            loading={isLoading}
-            style={{
-              background: 'rgba(255, 215, 0, 0.2)',
-              color: '#ffd700',
-              border: '1px solid rgba(255, 215, 0, 0.3)'
-            }}
-          >
-            Update payment method
-          </Button>
-        </Group>
-      </Card>
-      
-      {/* Billing Information */}
-      <Card 
-        className="billing-card"
-        withBorder 
-        p="lg" 
-        radius="md"
-        style={{
-          opacity: 0,
-          transform: 'translateY(20px)',
-          transition: 'all 0.6s ease-out 0.1s',
-          border: '1px solid #e9ecef'
-        }}
-      >
-        <Group spacing="sm" mb="md">
-          <IconCreditCard size={20} color="#667eea" />
-          <Text weight={600} size="md" style={{ color: 'var(--mantine-color-gray-0)' }}>
-            Your billing deets
-          </Text>
-        </Group>
-        
-        <Stack spacing="md">
-          <Group position="apart">
-            <Text size="sm" style={{ color: 'var(--mantine-color-gray-4)' }}>Email</Text>
-            <Text size="sm" weight={500} style={{ color: 'var(--mantine-color-gray-0)' }}>{user?.email}</Text>
-          </Group>
-          <Group position="apart">
-            <Text size="sm" style={{ color: 'var(--mantine-color-gray-4)' }}>Plan Price</Text>
-            <Text size="sm" weight={600} color="#667eea">
-              {subscription?.currentPrice 
-                ? `${formatPrice(subscription.currentPrice, subscription.currency)} / ${subscription.billingCycle || 'month'}`
-                : '$3.00 / month'}
-            </Text>
-          </Group>
-          <Group position="apart">
-            <Text size="sm" style={{ color: 'var(--mantine-color-gray-4)' }}>Payment Method</Text>
-            {isPaymentMethodLoading ? (
-              <Loader size="xs" />
-            ) : (
-              <Text size="sm" weight={500} style={{ color: 'var(--mantine-color-gray-0)' }}>
-                {formatPaymentMethod()}
+
+        {isSuccess && (
+          <Alert icon={<IconCheck size={16} />} color="green" title="Subscription Active">
+            Your subscription has been successfully activated. Thank you for supporting Ge-Metrics!
+          </Alert>
+        )}
+
+        {/* Overview Grid */}
+        <SimpleGrid cols={3} breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
+          {/* Status Card */}
+          <Paper withBorder p="md" radius="md">
+            <Group position="apart" mb="xs">
+              <Text size="xs" color="dimmed" transform="uppercase" weight={700}>Current Status</Text>
+              <ThemeIcon color={userState === 'subscribed' ? 'green' : userState === 'trial_active' ? 'orange' : 'gray'} variant="light" size="sm">
+                <IconShield size={14} />
+              </ThemeIcon>
+            </Group>
+            <Group spacing="xs" mb="xs">
+              <Text weight={700} size="xl">{userState === 'trial_active' ? 'Free Trial' : 'Premium Plan'}</Text>
+              <StatusBadge />
+            </Group>
+            {userState === 'trial_active' && (
+              <Text size="sm" color="dimmed">
+                Enjoy full access to all features during your trial period.
               </Text>
             )}
-          </Group>
-        </Stack>
-      </Card>
-      
-      {/* Invoice History */}
-      <Card 
-        className="billing-card"
-        withBorder 
-        p="lg" 
-        radius="md"
-        style={{
-          opacity: 0,
-          transform: 'translateY(20px)',
-          transition: 'all 0.6s ease-out 0.2s',
-          border: '1px solid #e9ecef'
-        }}
-      >
-        <Group spacing="sm" mb="md">
-          <IconReceipt size={20} color="#667eea" />
-          <Text weight={600} size="md" style={{ color: 'var(--mantine-color-gray-0)' }}>
-            Your payment history
-          </Text>
-        </Group>
-        
-        {isInvoicesLoading ? (
-          <Center p="xl">
-            <Loader size="sm" />
-          </Center>
-        ) : (
-          <Table striped highlightOnHover>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(invoices || []).map((invoice) => (
-                <tr key={invoice.id}>
-                  <td>{formatDate(invoice.date)}</td>
-                  <td>{invoice.description}</td>
-                  <td>{formatCurrency(invoice.amount, invoice.currency)}</td>
-                  <td>
-                    <Badge 
-                      color={invoice.status === 'paid' ? 'green' : 'orange'} 
-                      size="sm"
-                      variant="light"
-                    >
-                      {invoice.status.toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td>
-                    <ActionIcon 
-                      variant="light" 
-                      size="sm"
-                      onClick={() => handleDownloadInvoice(invoice.id)}
-                      loading={downloadInvoice.isLoading}
-                      color="blue"
-                    >
-                      <IconDownload size={14} />
-                    </ActionIcon>
-                  </td>
-                </tr>
-              ))}
-              {(!invoices || invoices.length === 0) && (
-                <tr>
-                  <td colSpan={5}>
-                    <Center p="md">
-                      <Text color="dimmed">No invoices found</Text>
-                    </Center>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        )}
-      </Card>
-    </Stack>
-  )
-  
-  const renderNonSubscriberContent = () => (
-    <Stack spacing="lg">
-      {/* Pricing Card */}
-      <Card 
-        className="billing-card"
-        withBorder 
-        p="xl" 
-        radius="md" 
-        style={{ 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          border: 'none',
-          opacity: 0,
-          transform: 'translateY(20px)',
-          transition: 'all 0.6s ease-out',
-          boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Shimmer effect */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: '-100%',
-          width: '100%',
-          height: '100%',
-          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
-          animation: 'shimmer 3s infinite'
-        }} />
-        <style>{`
-          @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-          }
-        `}</style>
+            {userState === 'trial_expired' && (
+              <Text size="sm" color="red">
+                Your trial has ended. Please subscribe to restore access.
+              </Text>
+            )}
+          </Paper>
 
-        <Stack align="center" spacing="md">
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: 'rgba(255, 215, 0, 0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '2px solid rgba(255, 215, 0, 0.4)',
-            animation: 'pulse 2s ease-in-out infinite'
-          }}>
-            <IconCrown size={48} color="#ffd700" />
-          </div>
-          <style>{`
-            @keyframes pulse {
-              0%, 100% { transform: scale(1); opacity: 0.8; }
-              50% { transform: scale(1.05); opacity: 1; }
-            }
-          `}</style>
-          
-          <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-            <Text size="xl" weight={700} color="white" mb="xs">
-              Let's get you premium, bro
-            </Text>
-            <Text size="md" color="rgba(255, 255, 255, 0.9)">
-              Unlock all features and start maximizing those profits
-            </Text>
-          </div>
-        </Stack>
-        
-        <Divider my="xl" color="rgba(255, 255, 255, 0.2)" style={{ position: 'relative', zIndex: 1 }} />
-        
-        <Group position="center" mb="xl" style={{ position: 'relative', zIndex: 1 }}>
-          <Text 
-            size="4rem" 
-            weight={700} 
-            color="white"
-            style={{
-              background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              lineHeight: 1
-            }}
-          >
-            $3
-          </Text>
-          <div>
-            <Text size="lg" color="rgba(255, 255, 255, 0.9)" weight={500}>
-              per month
-            </Text>
-            <Text size="xs" color="rgba(255, 255, 255, 0.7)">
-              Cancel anytime, no questions asked
-            </Text>
-          </div>
-        </Group>
-        
-        <Button
-          fullWidth
-          size="lg"
-          leftIcon={<IconCrown size={20} />}
-          onClick={handleSubscribe}
-          loading={isLoading}
-          style={{
-            background: 'rgba(255, 215, 0, 0.9)',
-            color: '#1a1b1e',
-            border: 'none',
-            fontWeight: 600,
-            fontSize: '16px',
-            position: 'relative',
-            zIndex: 1,
-            transition: 'all 0.3s ease',
-            boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#ffd700'
-            e.currentTarget.style.transform = 'translateY(-2px)'
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.5)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 215, 0, 0.9)'
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.4)'
-          }}
-        >
-          Start Your Premium Journey
-        </Button>
-      </Card>
-      
-      {/* Features List */}
-      <Card 
-        className="billing-card"
-        withBorder 
-        p="lg" 
-        radius="md"
-        style={{
-          opacity: 0,
-          transform: 'translateY(20px)',
-          transition: 'all 0.6s ease-out 0.1s',
-          border: '1px solid #e9ecef'
-        }}
-      >
-        <Text weight={600} size="lg" mb="md" style={{ color: 'var(--mantine-color-gray-0)' }}>
-          What you get
-        </Text>
-        
-        <Stack spacing="sm">
-          {[
-            'Advanced flip tracking and analytics',
-            'Real-time profit calculations',
-            'Unlimited watchlist items',
-            'Priority data updates',
-            'Export trading history',
-            'Advanced filtering and search',
-            'Email notifications for opportunities',
-            'Mobile app access'
-          ].map((feature, index) => (
-            <Group key={index} spacing="sm">
-              <IconCheck size={18} color="#51cf66" />
-              <Text size="sm" color="#495057">{feature}</Text>
+          {/* Billing Cycle Card */}
+          <Paper withBorder p="md" radius="md">
+            <Group position="apart" mb="xs">
+              <Text size="xs" color="dimmed" transform="uppercase" weight={700}>
+                {userState === 'subscribed' ? 'Next Billing' : 'Expiration'}
+              </Text>
+              <ThemeIcon color="blue" variant="light" size="sm">
+                <IconCalendar size={14} />
+              </ThemeIcon>
             </Group>
-          ))}
-        </Stack>
-      </Card>
-      
-      {/* Previous Billing History for Former Subscribers */}
-      {invoices && invoices.length > 0 && (
-        <Card 
-          className="billing-card"
-          withBorder 
-          p="lg" 
-          radius="md"
-          style={{
-            opacity: 0,
-            transform: 'translateY(20px)',
-            transition: 'all 0.6s ease-out 0.2s',
-            border: '1px solid #e9ecef'
-          }}
-        >
-          <Text weight={600} size="md" mb="md" style={{ color: 'var(--mantine-color-gray-0)' }}>
-            Previous payment history
-          </Text>
-          
-          {isInvoicesLoading ? (
-            <Center p="xl">
-              <Loader size="sm" />
-            </Center>
-          ) : (
-            <Table striped>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.slice(0, 3).map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td>{formatDate(invoice.date)}</td>
-                    <td>{invoice.description}</td>
-                    <td>{formatCurrency(invoice.amount, invoice.currency)}</td>
-                    <td>
-                      <ActionIcon 
-                        variant="light" 
-                        size="sm"
-                        onClick={() => handleDownloadInvoice(invoice.id)}
-                        loading={downloadInvoice.isLoading}
-                        color="blue"
-                      >
-                        <IconDownload size={14} />
-                      </ActionIcon>
-                    </td>
-                  </tr>
+            <Text weight={700} size="xl">
+              {formatDate(subscription?.nextBillingDate || subscription?.currentPeriodEnd || trialEndDate)}
+            </Text>
+            <Text size="sm" color="dimmed">
+              {userState === 'subscribed' ? 'Your card will be charged on this date.' : 'Your access ends on this date.'}
+            </Text>
+          </Paper>
+
+          {/* Price Card */}
+          <Paper withBorder p="md" radius="md">
+            <Group position="apart" mb="xs">
+              <Text size="xs" color="dimmed" transform="uppercase" weight={700}>Plan Cost</Text>
+              <ThemeIcon color="green" variant="light" size="sm">
+                <IconCurrencyDollar size={14} />
+              </ThemeIcon>
+            </Group>
+            <Group align="baseline" spacing={4}>
+              <Text weight={700} size="xl">$3.00</Text>
+              <Text size="sm" color="dimmed">/ month</Text>
+            </Group>
+            <Text size="sm" color="dimmed">
+              Simple, transparent pricing.
+            </Text>
+          </Paper>
+        </SimpleGrid>
+
+        {/* Main Content Grid */}
+        <Grid gutter="xl">
+          <Grid.Col md={8}>
+            <Stack spacing="xl">
+              {/* Plan Details & Actions */}
+              <Paper withBorder p="lg" radius="md">
+                <Group position="apart" mb="md">
+                  <Title order={4}>Plan Management</Title>
+                  {userState !== 'admin' && (
+                    <Group>
+                      {(userState === 'trial_active' || userState === 'trial_expired' || userState === 'inactive') && (
+                        <Button 
+                          leftIcon={<IconCrown size={16} />} 
+                          color={userState === 'trial_active' ? 'blue' : 'green'}
+                          onClick={handleSubscribe}
+                          loading={isLoading}
+                        >
+                          {userState === 'trial_active' ? 'Upgrade to Premium' : 'Subscribe Now'}
+                        </Button>
+                      )}
+                      {userState === 'subscribed' && (
+                        <Button 
+                          variant="light" 
+                          leftIcon={<IconSettings size={16} />} 
+                          onClick={handleManageSubscription}
+                          loading={isLoading}
+                        >
+                          Manage Subscription
+                        </Button>
+                      )}
+                    </Group>
+                  )}
+                </Group>
+                
+                <Divider mb="md" />
+                
+                <Stack spacing="md">
+                  <Group position="apart">
+                    <Text size="sm" color="dimmed">Current Plan</Text>
+                    <Text weight={500}>Ge-Metrics Premium</Text>
+                  </Group>
+                  <Group position="apart">
+                    <Text size="sm" color="dimmed">Billing Interval</Text>
+                    <Text weight={500}>Monthly</Text>
+                  </Group>
+                  <Group position="apart">
+                    <Text size="sm" color="dimmed">Payment Method</Text>
+                    {isPaymentMethodLoading ? <Loader size="xs" /> : <Text weight={500}>{formatPaymentMethod()}</Text>}
+                  </Group>
+                </Stack>
+              </Paper>
+
+              {/* Invoice History */}
+              <Paper withBorder p="lg" radius="md">
+                <Group position="apart" mb="md">
+                  <Title order={4}>Billing History</Title>
+                  <ActionIcon variant="subtle" color="gray"><IconDownload size={16} /></ActionIcon>
+                </Group>
+                
+                {isInvoicesLoading ? (
+                  <Center p="xl"><Loader /></Center>
+                ) : ( invoices && invoices.length > 0 ? (
+                  <Table verticalSpacing="sm" highlightOnHover>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Invoice</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((invoice) => (
+                        <tr key={invoice.id}>
+                          <td>{formatDate(invoice.date)}</td>
+                          <td>{formatCurrency(invoice.amount, invoice.currency)}</td>
+                          <td>
+                            <Badge 
+                              color={invoice.status === 'paid' ? 'green' : 'gray'} 
+                              size="sm" 
+                              variant="dot"
+                            >
+                              {invoice.status}
+                            </Badge>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <Button 
+                              variant="subtle" 
+                              size="xs" 
+                              compact 
+                              leftIcon={<IconDownload size={12} />}
+                              onClick={() => handleDownloadInvoice(invoice.id)}
+                              loading={downloadInvoice.isLoading && downloadInvoice.variables?.invoiceId === invoice.id}
+                            >
+                              Download
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <Center p="xl">
+                    <Stack align="center" spacing="xs">
+                      <ThemeIcon color="gray" variant="light" size="xl" radius="xl">
+                        <IconReceipt size={24} />
+                      </ThemeIcon>
+                      <Text color="dimmed" size="sm">No invoices found</Text>
+                    </Stack>
+                  </Center>
                 ))}
-              </tbody>
-            </Table>
-          )}
-        </Card>
-      )}
-    </Stack>
-  )
-  
-  return (
-    <Container size="md" py="xl">
-      <Box mb="xl">
-        <Group spacing="sm" mb="sm">
-          {isPremiumUser ? (
-            <IconShield size={32} color="#667eea" />
-          ) : (
-            <IconCrown size={32} color="#ffd700" />
-          )}
-          <Title order={1} style={{ color: 'var(--mantine-color-gray-0)' }}>
-            {isPremiumUser ? 'Billing & Subscription' : 'Upgrade to Premium'}
-          </Title>
-        </Group>
-        
-        <Text style={{ color: 'var(--mantine-color-gray-4)' }} size="md">
-          {isPremiumUser 
-            ? 'Manage your subscription, view invoices, and update your billing info.'
-            : 'Join thousands of traders maximizing their profits with our premium features.'}
-        </Text>
-      </Box>
+              </Paper>
+            </Stack>
+          </Grid.Col>
 
-      {error && (
-        <Alert 
-          icon={<IconAlertCircle size={16} />} 
-          color="red" 
-          mb="lg"
-          style={{
-            borderRadius: '8px',
-            border: '1px solid #fa5252'
-          }}
-        >
-          {error}
-        </Alert>
-      )}
-
-      {isSuccess && (
-        <Alert 
-          icon={<IconCheck size={16} />} 
-          color="green" 
-          title="Welcome to Premium!" 
-          mb="lg"
-          style={{
-            borderRadius: '8px',
-            border: '1px solid #51cf66'
-          }}
-        >
-          Your subscription is now active. You can access all premium features.
-          <Button 
-            component={Link} 
-            to="/all-items" 
-            fullWidth 
-            mt="md"
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none'
-            }}
-          >
-            Explore Premium Features
-          </Button>
-        </Alert>
-      )}
-      
-      {isPremiumUser ? renderSubscriberContent() : renderNonSubscriberContent()}
+          {/* Sidebar / Features */}
+          <Grid.Col md={4}>
+            <Paper withBorder p="lg" radius="md" h="100%">
+              <Title order={4} mb="md">Premium Features</Title>
+              <Stack spacing="sm">
+                {[
+                  'Advanced Flip Tracking',
+                  'Real-time Profit Calculator',
+                  'Unlimited Watchlist',
+                  'Whale Activity Tracking',
+                  'AI Price Predictions',
+                  'Priority Support'
+                ].map((feature, i) => (
+                  <Group key={i} spacing="sm" noWrap>
+                    <ThemeIcon color="green" variant="light" size="sm" radius="xl">
+                      <IconCheck size={12} />
+                    </ThemeIcon>
+                    <Text size="sm">{feature}</Text>
+                  </Group>
+                ))}
+              </Stack>
+              
+              <Divider my="xl" />
+              
+              <Alert icon={<IconBolt size={16} />} color="blue" variant="light">
+                <Text size="xs">
+                  Need help with your subscription? Contact our support team for assistance.
+                </Text>
+              </Alert>
+            </Paper>
+          </Grid.Col>
+        </Grid>
+      </Stack>
     </Container>
   )
 }

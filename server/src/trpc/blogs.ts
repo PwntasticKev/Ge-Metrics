@@ -1,4 +1,4 @@
-import { router, publicProcedure } from './trpc.js'
+import { router, subscribedProcedure } from './trpc.js'
 import { z } from 'zod'
 import { db } from '../db/index.js'
 import { blogs } from '../db/schema.js'
@@ -8,7 +8,7 @@ export const blogsRouter = router({
   /**
    * Get all blogs, optionally filtered by date range
    */
-  getAll: publicProcedure
+  getAll: subscribedProcedure
     .input(
       z.object({
         startDate: z.date().optional(),
@@ -64,7 +64,7 @@ export const blogsRouter = router({
   /**
    * Get blogs within a date range (for chart markers)
    */
-  getByDateRange: publicProcedure
+  getByDateRange: subscribedProcedure
     .input(
       z.object({
         startDate: z.date(),
@@ -101,7 +101,7 @@ export const blogsRouter = router({
   /**
    * Get latest blogs
    */
-  getLatest: publicProcedure
+  getLatest: subscribedProcedure
     .input(
       z.object({
         limit: z.number().optional().default(10)

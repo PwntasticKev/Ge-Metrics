@@ -29,6 +29,7 @@ import {
 import MiniChart from '../charts/MiniChart.jsx'
 import { Link, useLocation } from 'react-router-dom'
 import { useMediaQuery } from '@mantine/hooks'
+import { calculateGETax } from '../../utils/utils.jsx'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -247,7 +248,26 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                     ))}
                 </td>
 
-                <td style={{ verticalAlign: 'middle' }}>{new Intl.NumberFormat().format(row.sellPrice)}</td>
+                <td style={{ verticalAlign: 'middle' }}>
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                        {new Intl.NumberFormat().format(row.sellPrice)}
+                        <Text 
+                            size="xs" 
+                            color="red" 
+                            style={{ 
+                                position: 'absolute', 
+                                top: '100%', 
+                                left: '50%', 
+                                transform: 'translateX(-50%)', 
+                                whiteSpace: 'nowrap',
+                                fontSize: '9px',
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            (-{new Intl.NumberFormat().format(calculateGETax(row.sellPrice || 0))} tax)
+                        </Text>
+                    </div>
+                </td>
                 <td style={{
                   color: profitValue > 0 ? theme.colors.green[7] : theme.colors.red[9],
                   fontWeight: 'bold',

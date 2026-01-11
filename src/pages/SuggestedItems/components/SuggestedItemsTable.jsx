@@ -255,7 +255,24 @@ export default function SuggestedItemsTable({
       </td>
       <td style={{ textAlign: 'center' }}>
         <Group spacing="xs" justify="center">
-          <Text>{new Intl.NumberFormat().format(row.sellPrice)}</Text>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <Text>{new Intl.NumberFormat().format(row.sellPrice)}</Text>
+            <Text 
+              size="xs" 
+              color="red" 
+              style={{ 
+                position: 'absolute', 
+                top: '100%', 
+                left: '50%', 
+                transform: 'translateX(-50%)', 
+                whiteSpace: 'nowrap', 
+                fontSize: '9px', 
+                pointerEvents: 'none' 
+              }}
+            >
+              (-{new Intl.NumberFormat().format(Math.floor((row.sellPrice || 0) * 0.02))} tax)
+            </Text>
+          </div>
           {row.manipulationWarning && (
             <Tooltip label="⚠️ High Risk - Possible market manipulation detected. Volume spike or unusual price spread detected.">
               <Badge color="red" variant="light" size="xs">

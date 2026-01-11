@@ -203,8 +203,25 @@ function RecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems, items, onTo
         ))}
       </td>
 
-      <td style={{ verticalAlign: 'middle', padding: '8px' }}>
-        {new Intl.NumberFormat().format(allItems?.[recipe.outputItemId]?.high || 0)}
+      <td style={{ verticalAlign: 'middle', padding: '8px', textAlign: 'center' }}>
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {new Intl.NumberFormat().format(allItems?.[recipe.outputItemId]?.high || 0)}
+          <Text 
+            size="xs" 
+            color="red" 
+            style={{ 
+              position: 'absolute', 
+              top: '100%', 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              whiteSpace: 'nowrap',
+              fontSize: '9px', 
+              pointerEvents: 'none' 
+            }}
+          >
+            (-{new Intl.NumberFormat().format(Math.floor((allItems?.[recipe.outputItemId]?.high || 0) * 0.02))} tax)
+          </Text>
+        </div>
       </td>
 
       <td style={{

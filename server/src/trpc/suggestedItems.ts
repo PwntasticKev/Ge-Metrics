@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { publicProcedure, router } from './trpc.js'
+import { router, subscribedProcedure } from './trpc.js'
 import { TRPCError } from '@trpc/server'
 import { getSuggestedItems, getSuggestedItemsStats } from '../services/suggestedItemsService.js'
 
 export const suggestedItemsRouter = router({
   // Get suggested items with optional filters
-  getItems: publicProcedure
+  getItems: subscribedProcedure
     .input(z.object({
       capital: z.number().optional(),
       volumeType: z.enum(['global', 'high', 'low']).optional().default('global')
@@ -32,7 +32,7 @@ export const suggestedItemsRouter = router({
     }),
 
   // Get statistics about suggested items
-  getStats: publicProcedure
+  getStats: subscribedProcedure
     .query(async () => {
       try {
         console.log('[getStats] Fetching suggested items statistics')

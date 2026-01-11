@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { protectedProcedure, router } from './trpc.js'
+import { router, subscribedProcedure } from './trpc.js'
 import { db } from '../db/index.js'
 import { userTransactions } from '../db/schema.js'
 import { eq, desc, sql, and, gte } from 'drizzle-orm'
 
 export const flipsRouter = router({
   // Get user's flips with pagination
-  getFlips: protectedProcedure
+  getFlips: subscribedProcedure
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
       offset: z.number().min(0).default(0)
@@ -26,7 +26,7 @@ export const flipsRouter = router({
     }),
 
   // Get user's flipping stats
-  getFlipStats: protectedProcedure
+  getFlipStats: subscribedProcedure
     .query(async ({ ctx }) => {
       const userId = ctx.user.userId
       
@@ -53,7 +53,7 @@ export const flipsRouter = router({
     }),
 
   // Get profit over time for charts
-  getProfitOverTime: protectedProcedure
+  getProfitOverTime: subscribedProcedure
     .input(z.object({
       days: z.number().min(7).max(365).default(30)
     }))
@@ -80,7 +80,7 @@ export const flipsRouter = router({
     }),
 
   // Add a new flip
-  addFlip: protectedProcedure
+  addFlip: subscribedProcedure
     .input(z.object({
       itemId: z.string(),
       itemName: z.string(),
@@ -111,7 +111,7 @@ export const flipsRouter = router({
     }),
 
   // Update a flip
-  updateFlip: protectedProcedure
+  updateFlip: subscribedProcedure
     .input(z.object({
       id: z.string(),
       itemId: z.string().optional(),
@@ -146,7 +146,7 @@ export const flipsRouter = router({
     }),
 
   // Delete a flip
-  deleteFlip: protectedProcedure
+  deleteFlip: subscribedProcedure
     .input(z.object({
       id: z.string()
     }))
@@ -164,7 +164,7 @@ export const flipsRouter = router({
     }),
 
   // Get recent flips for dashboard
-  getRecentFlips: protectedProcedure
+  getRecentFlips: subscribedProcedure
     .input(z.object({
       limit: z.number().min(1).max(20).default(5)
     }))

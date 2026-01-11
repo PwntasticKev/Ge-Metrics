@@ -38,7 +38,7 @@ export const formatPercentage = (value) => {
 
 export const calculateGETax = (price) => {
   if (price === null || price === undefined || isNaN(price)) return 0
-  const tax = Math.floor(price * 0.01)
+  const tax = Math.floor(price * 0.02) // 2% tax
   return Math.min(tax, 5000000)
 }
 
