@@ -22,6 +22,7 @@ import { runeliteTradesRouter } from './runelite-trades.js'
 import { gameEventsRouter } from './gameEvents.js'
 import { suggestedItemsRouter } from './suggestedItems.js'
 import { recipesRouter } from './recipes.js'
+import { moneyMakingMethodsRouter } from './money-making-methods.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -46,7 +47,8 @@ export const appRouter = router({
   runelite: runeliteTradesRouter,
   gameEvents: gameEventsRouter,
   suggestedItems: suggestedItemsRouter,
-  recipes: recipesRouter
+  recipes: recipesRouter,
+  moneyMakingMethods: moneyMakingMethodsRouter
 })
 
 export type AppRouter = typeof appRouter

@@ -892,3 +892,95 @@ export type Recipe = typeof recipes.$inferSelect;
 export type NewRecipe = typeof recipes.$inferInsert;
 export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
 export type NewRecipeIngredient = typeof recipeIngredients.$inferInsert;
+
+// --- MONEY MAKING METHODS SYSTEM ---
+
+// Money making methods - User-generated profit methods
+export const moneyMakingMethods = pgTable('money_making_methods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  methodName: text('method_name').notNull(),
+  description: text('description').notNull(),
+  category: text('category').notNull(), // 'skilling', 'pvm', 'merching'
+  difficulty: text('difficulty').notNull(), // 'easy', 'medium', 'hard', 'elite'
+  profitPerHour: integer('profit_per_hour').notNull(), // Calculated automatically
+  
+  // Approval system
+  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
+  isGlobal: boolean('is_global').default(false).notNull(), // Admin approved for global viewing
+  rejectionReason: text('rejection_reason'), // Admin feedback for rejected methods
+  approvedBy: integer('approved_by').references(() => users.id), // Admin who approved
+  approvedAt: timestamp('approved_at'),
+  
+  // Requirements - stored as JSON for flexibility
+  requirements: jsonb('requirements').notNull().default('{}'), // {skills: {attack: 70}, quests: ["Dragon Slayer"], items: ["Whip"]}
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('money_making_methods_user_id_idx').on(table.userId),
+  statusIdx: index('money_making_methods_status_idx').on(table.status),
+  isGlobalIdx: index('money_making_methods_is_global_idx').on(table.isGlobal),
+  categoryIdx: index('money_making_methods_category_idx').on(table.category),
+  profitPerHourIdx: index('money_making_methods_profit_per_hour_idx').on(table.profitPerHour),
+  createdAtIdx: index('money_making_methods_created_at_idx').on(table.createdAt)
+}))
+
+// Method Items - Items involved in the money making method (buy/sell)
+export const methodItems = pgTable('method_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  methodId: uuid('method_id').notNull().references(() => moneyMakingMethods.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id').notNull(), // Links to OSRS items
+  itemName: text('item_name').notNull(),
+  type: text('type').notNull(), // 'input' (buy), 'output' (sell), 'requirement' (need to have)
+  quantity: integer('quantity').default(1).notNull(),
+  priceType: text('price_type').notNull().default('market'), // 'market', 'npc', 'custom'
+  customPrice: integer('custom_price'), // For NPC prices or fixed costs
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  methodIdIdx: index('method_items_method_id_idx').on(table.methodId),
+  itemIdIdx: index('method_items_item_id_idx').on(table.itemId),
+  typeIdx: index('method_items_type_idx').on(table.type),
+  sortOrderIdx: index('method_items_sort_order_idx').on(table.methodId, table.sortOrder)
+}))
+
+// Validation schemas for money making methods
+export const insertMoneyMakingMethodSchema = createInsertSchema(moneyMakingMethods, {
+  methodName: (schema) => schema.min(1).max(255),
+  description: (schema) => schema.min(1).max(2000),
+  category: (schema) => schema.refine((val) => ['skilling', 'pvm', 'merching'].includes(val), {
+    message: "Category must be 'skilling', 'pvm', or 'merching'"
+  }),
+  difficulty: (schema) => schema.refine((val) => ['easy', 'medium', 'hard', 'elite'].includes(val), {
+    message: "Difficulty must be 'easy', 'medium', 'hard', or 'elite'"
+  }),
+  profitPerHour: (schema) => schema.nonnegative(),
+  status: (schema) => schema.refine((val) => ['pending', 'approved', 'rejected'].includes(val), {
+    message: "Status must be 'pending', 'approved', or 'rejected'"
+  }),
+  requirements: (schema) => schema.optional()
+})
+
+export const selectMoneyMakingMethodSchema = createSelectSchema(moneyMakingMethods)
+
+export const insertMethodItemSchema = createInsertSchema(methodItems, {
+  itemId: (schema) => schema.positive(),
+  itemName: (schema) => schema.min(1).max(255),
+  type: (schema) => schema.refine((val) => ['input', 'output', 'requirement'].includes(val), {
+    message: "Type must be 'input', 'output', or 'requirement'"
+  }),
+  quantity: (schema) => schema.positive(),
+  priceType: (schema) => schema.refine((val) => ['market', 'npc', 'custom'].includes(val), {
+    message: "Price type must be 'market', 'npc', or 'custom'"
+  }),
+  customPrice: (schema) => schema.nonnegative().optional()
+})
+
+export const selectMethodItemSchema = createSelectSchema(methodItems)
+
+// Type exports for money making methods system
+export type MoneyMakingMethod = typeof moneyMakingMethods.$inferSelect;
+export type NewMoneyMakingMethod = typeof moneyMakingMethods.$inferInsert;
+export type MethodItem = typeof methodItems.$inferSelect;
+export type NewMethodItem = typeof methodItems.$inferInsert;

@@ -529,6 +529,30 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
           hasAccess={hasAccess}
         />
 
+        <MainLink
+          icon={<IconCoins size="1rem"/>}
+          color="yellow"
+          label="Money Making Methods"
+          link="/money-making-methods"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+
+        <MainLink
+          icon={<IconUsers size="1rem"/>}
+          color="cyan"
+          label="Global Money Methods"
+          link="/global-money-making-methods"
+          expanded={expanded}
+          isMobile={isMobile}
+          onNavigate={onNavigate}
+          isPremium={true}
+          hasAccess={hasAccess}
+        />
+
         {/* Global Recipes removed from public menu */}
         {/*
         <MainLink
@@ -1053,6 +1077,15 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
               color="orange"
               label="Global Recipes"
               link="/admin/global-recipes"
+              expanded={expanded}
+              isMobile={isMobile}
+              onNavigate={onNavigate}
+            />
+            <SubmenuItem
+              icon={<IconCoins size="0.8rem"/>}
+              color="yellow"
+              label="Money Making Methods"
+              link="/admin/money-making-methods"
               expanded={expanded}
               isMobile={isMobile}
               onNavigate={onNavigate}

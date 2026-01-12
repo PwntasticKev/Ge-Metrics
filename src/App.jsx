@@ -83,6 +83,9 @@ const SuggestedItems = lazy(() => import('./pages/SuggestedItems/index.jsx'))
 const Recipes = lazy(() => import('./pages/Recipes/index.jsx'))
 const GlobalRecipes = lazy(() => import('./pages/GlobalRecipes/index.jsx'))
 const AdminGlobalRecipes = lazy(() => import('./pages/Admin/GlobalRecipes.jsx'))
+const AdminMoneyMakingMethods = lazy(() => import('./pages/Admin/MoneyMakingMethods.jsx'))
+const MoneyMakingMethods = lazy(() => import('./pages/MoneyMakingMethods/index.jsx'))
+const GlobalMoneyMakingMethods = lazy(() => import('./pages/GlobalMoneyMakingMethods/index.jsx'))
 import TermsAndConditions from './pages/TermsAndConditions/index.jsx'
 import Contact from './pages/Contact/index.jsx'
 import Affiliate from './pages/Affiliate/index.jsx'
@@ -336,6 +339,8 @@ function AppContent () {
               <Route path="/combination-items" element={<CombinationItems />} />
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/global-recipes" element={<GlobalRecipes />} />
+              <Route path="/money-making-methods" element={<MoneyMakingMethods />} />
+              <Route path="/global-money-making-methods" element={<GlobalMoneyMakingMethods />} />
               <Route path="/potion-combinations" element={<PotionCombinations />} />
               <Route path="/herbs" element={<Herbs />} />
               <Route path="/nightmare-zone" element={<NightmareZone />} />
@@ -376,6 +381,7 @@ function AppContent () {
               <Route path="/admin/formulas" element={<AdminRoute><FormulaDocumentation /></AdminRoute>} />
               <Route path="/admin/cron-jobs" element={<AdminRoute><CronJobs /></AdminRoute>} />
               <Route path="/admin/global-recipes" element={<AdminRoute><AdminGlobalRecipes /></AdminRoute>} />
+              <Route path="/admin/money-making-methods" element={<AdminRoute><AdminMoneyMakingMethods /></AdminRoute>} />
               <Route path="/admin/api-status" element={<AdminRoute><ApiStatus /></AdminRoute>} />
               {/* Legacy routes for backwards compatibility */}
               <Route path="/access-denied" element={<AccessDenied />} />

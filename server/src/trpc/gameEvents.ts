@@ -63,7 +63,7 @@ export const gameEventsRouter = router({
 
         console.log('[GameEventsRouter] Blogs query result:', blogsData.length)
 
-        let updatesData = []
+        let updatesData: any[] = []
         try {
           console.log('[GameEventsRouter] Executing updates query...')
           console.log('[GameEventsRouter] Date params:', {
