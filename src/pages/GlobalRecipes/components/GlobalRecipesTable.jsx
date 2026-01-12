@@ -25,7 +25,7 @@ import {
 } from '@tabler/icons-react'
 import MiniChart from '../../../components/charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
-import { formatNumber, calculateGETax } from '../../../../utils/utils.jsx'
+import { formatNumber, calculateGETax } from '../../../utils/utils.jsx'
 import { trpc } from '../../../utils/trpc.jsx'
 
 const useStyles = createStyles((theme) => ({
