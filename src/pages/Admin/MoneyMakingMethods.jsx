@@ -26,7 +26,6 @@ import {
   IconX,
   IconEye,
   IconUsers,
-  IconPending,
   IconShield
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc.jsx'
@@ -263,7 +262,7 @@ export default function AdminMoneyMakingMethods() {
         <Group>
           <Card withBorder>
             <Group spacing="xs">
-              <IconPending size={20} color="orange" />
+              <IconClock size={20} color="orange" />
               <div>
                 <Text size="sm" color="dimmed">Pending Review</Text>
                 <Text weight={600} size="lg">{pendingCount}</Text>
@@ -305,7 +304,7 @@ export default function AdminMoneyMakingMethods() {
         {/* Tabs for different views */}
         <Tabs value={activeTab} onTabChange={setActiveTab}>
           <Tabs.List>
-            <Tabs.Tab value="pending" icon={<IconPending size={14} />}>
+            <Tabs.Tab value="pending" icon={<IconClock size={14} />}>
               Pending Review ({pendingCount})
             </Tabs.Tab>
             <Tabs.Tab value="all" icon={<IconEye size={14} />}>
