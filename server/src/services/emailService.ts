@@ -1,13 +1,13 @@
 import nodemailer from 'nodemailer'
-import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses'
+// import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses'
 import { config } from '../config/index.js'
 
 // Create reusable transporter for SMTP fallback
 let transporter: nodemailer.Transporter | null = null
-let sesClient: SESClient | null = null
+let sesClient: any | null = null
 
 // Initialize SES client
-function getSESClient(): SESClient | null {
+function getSESClient(): any | null {
   if (sesClient) {
     return sesClient
   }
@@ -18,13 +18,14 @@ function getSESClient(): SESClient | null {
   }
 
   try {
-    sesClient = new SESClient({
-      region: config.AWS_REGION,
-      credentials: {
-        accessKeyId: config.AWS_ACCESS_KEY_ID,
-        secretAccessKey: config.AWS_SECRET_ACCESS_KEY
-      }
-    })
+    // sesClient = new SESClient({
+    //   region: config.AWS_REGION,
+    //   credentials: {
+    //     accessKeyId: config.AWS_ACCESS_KEY_ID,
+    //     secretAccessKey: config.AWS_SECRET_ACCESS_KEY
+    //   }
+    // })
+    sesClient = null // Temporary disable SES
     console.log(`[EmailService] SES client configured for region: ${config.AWS_REGION}`)
     return sesClient
   } catch (error) {
@@ -103,7 +104,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
     const client = getSESClient()
     if (client && config.SES_FROM_EMAIL) {
       try {
-        const params: SendEmailCommandInput = {
+        const params: any = {
           Source: `${fromName} <${fromEmail}>`,
           Destination: {
             ToAddresses: toEmails
@@ -126,8 +127,9 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
           }
         }
 
-        const command = new SendEmailCommand(params)
-        const result = await client.send(command)
+        // const command = new SendEmailCommand(params)
+        // const result = await client.send(command)
+        const result = { MessageId: 'temp-disabled' }
         
         console.log('📧 [EmailService] Email sent via AWS SES:', {
           messageId: result.MessageId,

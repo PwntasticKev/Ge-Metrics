@@ -20,7 +20,7 @@ export const moneyMakingMethodsRouter = router({
         let whereClause = eq(moneyMakingMethods.userId, userId)
         
         if (input.status !== 'all') {
-          whereClause = and(whereClause, eq(moneyMakingMethods.status, input.status))
+          whereClause = and(whereClause, eq(moneyMakingMethods.status, input.status)) ?? whereClause
         }
         
         const userMethods = await db
@@ -208,14 +208,7 @@ export const moneyMakingMethodsRouter = router({
         quests: z.array(z.string()).optional(),
         items: z.array(z.string()).optional(),
         other: z.string().optional()
-      }).optional(),
-      itemDependencies: z.array(z.object({
-        itemId: z.number(),
-        itemName: z.string(),
-        quantity: z.number().positive(),
-        priceHigh: z.number().nonnegative().optional(),
-        priceLow: z.number().nonnegative().optional()
-      })).optional()
+      }).optional()
     }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user.id
@@ -233,7 +226,6 @@ export const moneyMakingMethodsRouter = router({
               difficulty: input.difficulty,
               profitPerHour: input.profitPerHour,
               requirements: input.requirements || {},
-              itemDependencies: input.itemDependencies || [],
               status: 'pending'
             })
             .returning()
@@ -266,14 +258,7 @@ export const moneyMakingMethodsRouter = router({
         quests: z.array(z.string()).optional(),
         items: z.array(z.string()).optional(),
         other: z.string().optional()
-      }).optional(),
-      itemDependencies: z.array(z.object({
-        itemId: z.number(),
-        itemName: z.string(),
-        quantity: z.number().positive(),
-        priceHigh: z.number().nonnegative().optional(),
-        priceLow: z.number().nonnegative().optional()
-      })).optional()
+      }).optional()
     }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user.id
@@ -307,7 +292,6 @@ export const moneyMakingMethodsRouter = router({
               difficulty: input.difficulty,
               profitPerHour: input.profitPerHour,
               requirements: input.requirements || {},
-              itemDependencies: input.itemDependencies || [],
               status: 'pending', // Reset to pending when updated
               isGlobal: false,   // Remove from global when updated
               rejectionReason: null,
@@ -622,7 +606,9 @@ export const moneyMakingMethodsRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        let query = db
+        let whereCondition = input.status ? eq(moneyMakingMethods.status, input.status) : undefined
+
+        const query = db
           .select({
             id: moneyMakingMethods.id,
             userId: moneyMakingMethods.userId,
@@ -642,12 +628,11 @@ export const moneyMakingMethodsRouter = router({
           })
           .from(moneyMakingMethods)
           .leftJoin(users, eq(moneyMakingMethods.userId, users.id))
+          .$dynamic()
 
-        if (input.status) {
-          query = query.where(eq(moneyMakingMethods.status, input.status))
-        }
-
-        const methods = await query
+        const methods = await (whereCondition 
+          ? query.where(whereCondition) 
+          : query)
           .orderBy(desc(moneyMakingMethods.createdAt))
           .limit(input.limit)
           .offset(input.offset)

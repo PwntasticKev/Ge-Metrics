@@ -23,6 +23,8 @@ import { gameEventsRouter } from './gameEvents.js'
 import { suggestedItemsRouter } from './suggestedItems.js'
 import { recipesRouter } from './recipes.js'
 import { moneyMakingMethodsRouter } from './money-making-methods.js'
+import { notificationsRouter } from './notifications.js'
+import { messagesRouter } from './messages.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -48,7 +50,9 @@ export const appRouter = router({
   gameEvents: gameEventsRouter,
   suggestedItems: suggestedItemsRouter,
   recipes: recipesRouter,
-  moneyMakingMethods: moneyMakingMethodsRouter
+  moneyMakingMethods: moneyMakingMethodsRouter,
+  notifications: notificationsRouter,
+  messages: messagesRouter
 })
 
 export type AppRouter = typeof appRouter

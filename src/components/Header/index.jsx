@@ -23,6 +23,8 @@ import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { IconCoins, IconCrown, IconCreditCard, IconSearch } from '@tabler/icons-react'
 import AvatarMenu from './components/avatar-menu.jsx'
 import SubscriptionModal, { useSubscription } from '../Subscription/index.jsx'
+import NotificationBell from '../NotificationBell/index.jsx'
+import MessagesButton from '../Messages/MessagesButton.jsx'
 import { Link, useNavigate } from 'react-router-dom'
 import { calculateGETax } from '../../utils/utils.jsx'
 import { trpc } from '../../utils/trpc.jsx'
@@ -478,6 +480,16 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
             </>
               )}
 
+
+          {/* Notifications */}
+          {user && (
+            <NotificationBell />
+          )}
+
+          {/* Messages */}
+          {user && (
+            <MessagesButton />
+          )}
 
           {/* Billing Icon */}
           <ActionIcon
