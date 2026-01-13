@@ -30,6 +30,7 @@ import MiniChart from '../charts/MiniChart.jsx'
 import { Link, useLocation } from 'react-router-dom'
 import { useMediaQuery } from '@mantine/hooks'
 import { calculateGETax } from '../../utils/utils.jsx'
+import { useSearchState } from '../../hooks/useSearchState.js'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -150,7 +151,9 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   const { classes, cx } = useStyles()
-  const [search, setSearch] = useState('')
+  
+  // Smart search state with URL and localStorage persistence
+  const { search, setSearch, debouncedSearch } = useSearchState()
   const [sortedData, setSortedData] = useState(data)
   const [sortBy, setSortBy] = useState(null)
   const [reverseSortDirection, setReverseSortDirection] = useState(false)
@@ -163,22 +166,22 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
   const currentPageData = sortedData.slice(startIndex, endIndex)
 
   useEffect(() => {
-    // Keep the search term intact when new data is grabbed
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search }))
-  }, [data, sortBy, reverseSortDirection, search])
+    // Keep the search term intact when new data is grabbed  
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: debouncedSearch }))
+  }, [data, sortBy, reverseSortDirection, debouncedSearch])
 
   const setSorting = (field) => {
     const reversed = field === sortBy ? !reverseSortDirection : field !== 'profit'
     setReverseSortDirection(reversed)
     setSortBy(field)
-    setSortedData(sortData(sortedData, { sortBy: field, reversed, search }))
+    setSortedData(sortData(sortedData, { sortBy: field, reversed, search: debouncedSearch }))
   }
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget
     const searchValue = value || ''
     setSearch(searchValue)
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }))
+    // Immediate sorting will be handled by the useEffect with debounced search
   }
 
   const shouldResetField = () => {

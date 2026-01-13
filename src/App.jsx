@@ -187,7 +187,7 @@ function AppLayout ({ children }) {
 
 // Component that protects content based on trial status
 function TrialProtectedContent ({ children }) {
-  const { isSubscribed, user } = useAuth()
+  const { isSubscribed, user, isCheckingSubscription, subscriptionError } = useAuth()
   const location = useLocation()
   
   // Allow access if:
@@ -195,11 +195,25 @@ function TrialProtectedContent ({ children }) {
   // 2. User is admin/moderator
   // 3. User is subscribed (or has valid trial)
   // 4. Path is in allowed list (billing, profile, settings)
+  // 5. Still checking subscription (prevent premature redirects)
+  // 6. Subscription check failed (fail-open for better UX)
   
   const isAdmin = user?.role === 'admin' || user?.role === 'moderator'
   const allowedPaths = ['/billing', '/profile', '/settings']
   const isAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path))
 
+  // Don't redirect during subscription loading
+  if (isCheckingSubscription) {
+    return children
+  }
+
+  // Don't redirect if subscription check failed (fail-open)
+  if (subscriptionError) {
+    console.warn('Subscription check failed, allowing access to prevent blocking user')
+    return children
+  }
+
+  // Only redirect authenticated non-admin users without subscription on protected pages
   if (user && !isAdmin && !isSubscribed && !isAllowedPath) {
     return <Navigate to="/billing" replace />
   }

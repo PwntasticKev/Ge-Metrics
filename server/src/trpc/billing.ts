@@ -7,6 +7,15 @@ import { stripe } from '../services/stripe.js'
 import { absoluteUrl } from '../utils/utils.js'
 import { config } from '../config/index.js'
 
+// Utility function to wrap Stripe API calls with timeout
+async function withStripeTimeout<T>(stripePromise: Promise<T>, timeoutMs = 8000): Promise<T> {
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Stripe API timeout')), timeoutMs)
+  )
+  
+  return Promise.race([stripePromise, timeoutPromise])
+}
+
 const billingRouter = router({
   getSubscription: protectedProcedure
     .query(async ({ ctx }) => {
@@ -29,9 +38,13 @@ const billingRouter = router({
       } = { ...subscription }
       
       try {
-        // If we have a Stripe subscription ID, fetch fresh data
+        // If we have a Stripe subscription ID, fetch fresh data with timeout
         if (subscription.stripeSubscriptionId) {
-          const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId)
+          const stripeSubscription = await withStripeTimeout(
+            stripe.subscriptions.retrieve(subscription.stripeSubscriptionId, {
+              timeout: 7000 // Stripe client timeout
+            })
+          )
           
           // Get price details
           if (stripeSubscription.items.data[0]?.price) {
@@ -45,10 +58,13 @@ const billingRouter = router({
           if (stripeSubscription.current_period_end) {
             enrichedSubscription.nextBillingDate = new Date(stripeSubscription.current_period_end * 1000).toISOString()
           }
+          
+          console.log('Successfully enriched subscription with Stripe data')
         }
       } catch (error) {
-        console.error('Error fetching Stripe subscription details:', error)
-        // Continue with DB data if Stripe fetch fails
+        console.warn('Failed to fetch Stripe subscription details, using DB data only:', error.message)
+        // Continue with DB data if Stripe fetch fails - this prevents 504 errors
+        // The subscription from DB is still valid, we just don't have enriched Stripe data
       }
 
       return enrichedSubscription
@@ -67,8 +83,10 @@ const billingRouter = router({
       }
 
       try {
-        // Get customer's default payment method
-        const customer = await stripe.customers.retrieve(subscription.stripeCustomerId)
+        // Get customer's default payment method with timeout
+        const customer = await withStripeTimeout(
+          stripe.customers.retrieve(subscription.stripeCustomerId)
+        )
         
         // Check if customer is deleted
         if (customer.deleted) {
@@ -80,7 +98,9 @@ const billingRouter = router({
           const defaultPaymentMethod = customer.invoice_settings?.default_payment_method
           
           if (defaultPaymentMethod && typeof defaultPaymentMethod === 'string') {
-            const pm = await stripe.paymentMethods.retrieve(defaultPaymentMethod)
+            const pm = await withStripeTimeout(
+              stripe.paymentMethods.retrieve(defaultPaymentMethod)
+            )
             if (pm.type === 'card' && pm.card) {
               return {
                 brand: pm.card.brand,
@@ -92,11 +112,13 @@ const billingRouter = router({
           }
         }
         
-        // Fallback: Try to get payment methods list
-        const paymentMethods = await stripe.paymentMethods.list({
-          customer: subscription.stripeCustomerId,
-          type: 'card'
-        })
+        // Fallback: Try to get payment methods list with timeout
+        const paymentMethods = await withStripeTimeout(
+          stripe.paymentMethods.list({
+            customer: subscription.stripeCustomerId,
+            type: 'card'
+          })
+        )
 
         if (paymentMethods.data.length === 0) {
           return null
@@ -132,10 +154,12 @@ const billingRouter = router({
       }
 
       try {
-        const invoices = await stripe.invoices.list({
-          customer: subscription.stripeCustomerId,
-          limit: 10
-        })
+        const invoices = await withStripeTimeout(
+          stripe.invoices.list({
+            customer: subscription.stripeCustomerId,
+            limit: 10
+          })
+        )
 
         return invoices.data.map(invoice => ({
           id: invoice.id,
@@ -170,7 +194,9 @@ const billingRouter = router({
       }
 
       try {
-        const invoice = await stripe.invoices.retrieve(input.invoiceId)
+        const invoice = await withStripeTimeout(
+          stripe.invoices.retrieve(input.invoiceId)
+        )
         if (invoice.customer !== subscription.stripeCustomerId) {
           throw new Error('Access denied')
         }
@@ -205,10 +231,12 @@ const billingRouter = router({
 
       // If already has a customer, open the billing portal
       if (current && current.stripeCustomerId) {
-        const stripeSession = await stripe.billingPortal.sessions.create({
-          customer: current.stripeCustomerId,
-          return_url: billingUrl
-        })
+        const stripeSession = await withStripeTimeout(
+          stripe.billingPortal.sessions.create({
+            customer: current.stripeCustomerId,
+            return_url: billingUrl
+          })
+        )
         return { url: stripeSession.url }
       }
 
@@ -224,19 +252,21 @@ const billingRouter = router({
         throw new Error('Invalid price ID: Product IDs (prod_*) cannot be used. Please use a price ID (price_*).')
       }
 
-      const stripeSession = await stripe.checkout.sessions.create({
-        success_url: billingUrl,
-        cancel_url: billingUrl,
-        payment_method_types: ['card'],
-        mode: 'subscription',
-        billing_address_collection: 'auto',
-        customer_email: userEmail,
-        line_items: [{ price, quantity: 1 }],
-        subscription_data: {
+      const stripeSession = await withStripeTimeout(
+        stripe.checkout.sessions.create({
+          success_url: billingUrl,
+          cancel_url: billingUrl,
+          payment_method_types: ['card'],
+          mode: 'subscription',
+          billing_address_collection: 'auto',
+          customer_email: userEmail,
+          line_items: [{ price, quantity: 1 }],
+          subscription_data: {
+            metadata: { userId: String(userId) }
+          },
           metadata: { userId: String(userId) }
-        },
-        metadata: { userId: String(userId) }
-      })
+        })
+      )
 
       return { url: stripeSession.url }
     })

@@ -13,9 +13,15 @@ const AuthProvider = ({ children }) => {
     { enabled: false, retry: false }
   )
 
-  const { data: subscription, isLoading: isSubscriptionLoading } = trpc.billing.getSubscription.useQuery(undefined, {
+  const { data: subscription, isLoading: isSubscriptionLoading, error: subscriptionError } = trpc.billing.getSubscription.useQuery(undefined, {
     enabled: !!user, // Only run when user is set.
-    retry: false
+    retry: 1, // Allow one retry for network issues
+    retryDelay: 1000, // Wait 1 second before retry
+    staleTime: 300000, // Cache for 5 minutes to reduce API calls
+    cacheTime: 600000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnReconnect: true, // Refetch on network reconnect
+    timeout: 10000 // 10 second timeout to prevent long hangs
   })
 
   
@@ -92,19 +98,52 @@ const AuthProvider = ({ children }) => {
     navigate('/login')
   }, [navigate])
 
-  const value = useMemo(() => ({
-    user,
-    subscription,
-    isAuthenticated: !!user,
-    isSubscribed: subscription && ['active', 'trialing'].includes(subscription.status) && !(subscription?.status === 'trialing' && new Date(subscription.currentPeriodEnd) < new Date()),
-    isLoading,
-    isLoggingIn: loginMutation.isLoading || otpLoginMutation.isLoading,
-    isRegistering: registerMutation.isLoading,
-    login,
-    register,
-    loginWithOtp,
-    logout
-  }), [user, subscription, isLoading, isSubscriptionLoading, loginMutation.isLoading, registerMutation.isLoading, otpLoginMutation.isLoading, login, register, loginWithOtp, logout])
+  const value = useMemo(() => {
+    // Determine subscription status with proper loading state handling
+    const getSubscriptionStatus = () => {
+      // If user is not authenticated, they don't need a subscription
+      if (!user) return { isSubscribed: true, isCheckingSubscription: false }
+      
+      // If still loading subscription data, don't block access
+      if (isSubscriptionLoading) return { isSubscribed: true, isCheckingSubscription: true }
+      
+      // If there was an error loading subscription, assume subscribed to prevent blocking
+      if (subscriptionError) {
+        console.warn('Subscription check failed, allowing access:', subscriptionError)
+        return { isSubscribed: true, isCheckingSubscription: false }
+      }
+      
+      // No subscription found
+      if (!subscription) return { isSubscribed: false, isCheckingSubscription: false }
+      
+      // Valid subscription check
+      const isActive = ['active', 'trialing'].includes(subscription.status)
+      const isTrialExpired = subscription?.status === 'trialing' && new Date(subscription.currentPeriodEnd) < new Date()
+      
+      return { 
+        isSubscribed: isActive && !isTrialExpired, 
+        isCheckingSubscription: false 
+      }
+    }
+    
+    const subscriptionStatus = getSubscriptionStatus()
+    
+    return {
+      user,
+      subscription,
+      isAuthenticated: !!user,
+      isSubscribed: subscriptionStatus.isSubscribed,
+      isCheckingSubscription: subscriptionStatus.isCheckingSubscription,
+      isLoading,
+      isLoggingIn: loginMutation.isLoading || otpLoginMutation.isLoading,
+      isRegistering: registerMutation.isLoading,
+      subscriptionError,
+      login,
+      register,
+      loginWithOtp,
+      logout
+    }
+  }, [user, subscription, isLoading, isSubscriptionLoading, subscriptionError, loginMutation.isLoading, registerMutation.isLoading, otpLoginMutation.isLoading, login, register, loginWithOtp, logout])
 
   return (
     <AuthContext.Provider value={value}>

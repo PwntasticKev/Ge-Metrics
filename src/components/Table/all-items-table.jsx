@@ -40,6 +40,7 @@ import MiniChart from '../charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
 import LazyLoad from '../LazyLoad/index.jsx'
 import { calculateGETax } from '../../utils/utils.jsx'
+import { useSearchState } from '../../hooks/useSearchState.js'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -275,7 +276,9 @@ export function AllItemsTable ({
   const { classes, cx } = useStyles()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [scrolled, setScrolled] = useState(false)
-  const [search, setSearch] = useState('')
+  
+  // Smart search state with URL and localStorage persistence
+  const { search, setSearch, debouncedSearch } = useSearchState()
   const [sortedData, setSortedData] = useState(data)
   const [graphModal, setGraphModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
@@ -306,7 +309,7 @@ export function AllItemsTable ({
   const currentPageData = sortedData.slice(startIndex, endIndex)
 
   const filters = {
-    search,
+    search: debouncedSearch, // Use debounced search for filtering
     thirdAge,
     volumeFilter,
     volumeRankFilter,
@@ -331,6 +334,8 @@ export function AllItemsTable ({
     localStorage.setItem('showId', JSON.stringify(showId))
   }, [showId])
 
+  // Search persistence is handled by useSearchState hook
+
   useEffect(() => {
     setSortedData(sortData(data, {
       sortBy,
@@ -338,7 +343,7 @@ export function AllItemsTable ({
       filters
     }))
     setCurrentPage(1) // Reset to first page when filters change
-  }, [data, sortBy, reverseSortDirection, search, thirdAge, volumeFilter, volumeRankFilter, riskFilter, raidsItems, priceMin, priceMax, profitMin, profitMax])
+  }, [data, sortBy, reverseSortDirection, debouncedSearch, thirdAge, volumeFilter, volumeRankFilter, riskFilter, raidsItems, priceMin, priceMax, profitMin, profitMax])
 
   const setGraphInfo = (id) => {
     setGraphModal(true)
@@ -346,7 +351,8 @@ export function AllItemsTable ({
   }
 
   const handleSearchChange = (event) => {
-    setSearch(event.currentTarget.value)
+    const newValue = event.currentTarget.value
+    setSearch(newValue)
   }
 
   const clearFilters = () => {

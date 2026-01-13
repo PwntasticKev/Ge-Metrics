@@ -809,40 +809,32 @@ export const authRouter = router({
         set: { token: refreshToken, expiresAt: authUtils.getRefreshTokenExpiration() }
       })
       
-      // Create session (only if table exists)
+      // Create or update session for session tracking
       try {
-        // Check if session already exists for this refresh token
-        const existingSessions = await db.select().from(userSessions).where(eq(userSessions.token, refreshToken)).limit(1)
-        const existingSession = existingSessions[0]
+        // Deactivate any existing sessions for this user
+        await db
+          .update(userSessions)
+          .set({ isActive: false })
+          .where(and(
+            eq(userSessions.userId, user.id),
+            eq(userSessions.isActive, true)
+          ))
         
-        if (existingSession) {
-          // Update existing session
-          await db.update(userSessions)
-            .set({ 
-              lastActivity: new Date(),
-              isActive: true,
-              ipAddress,
-              userAgent,
-              deviceInfo: parseUserAgent(userAgent)
-            })
-            .where(eq(userSessions.id, existingSession.id))
-        } else {
-          // Create new session
-          await db.insert(userSessions).values({
-            userId: user.id,
-            token: refreshToken,
-            ipAddress,
-            userAgent,
-            deviceInfo: parseUserAgent(userAgent),
-            lastActivity: new Date(),
-            isActive: true
-          })
-        }
+        // Create new active session
+        await db.insert(userSessions).values({
+          userId: user.id,
+          token: refreshToken,
+          ipAddress,
+          userAgent,
+          deviceInfo: parseUserAgent(userAgent),
+          lastActivity: new Date(),
+          isActive: true
+        })
+        
+        console.log(`[SESSION] Created session for user: ${user.id}`)
       } catch (error: any) {
-        // Table might not exist yet - that's okay, don't fail login
-        if (error?.code !== '42P01') { // 42P01 is "relation does not exist"
-          console.error('[AUTH] Failed to create session:', error)
-        }
+        console.error('[AUTH] Failed to create session:', error)
+        // Don't fail login on session errors, but log them for debugging
       }
       
       // Log successful login
@@ -999,6 +991,18 @@ export const authRouter = router({
     }))
     .mutation(async ({ input }) => {
       const { refreshToken } = input
+
+      // Deactivate session if it exists
+      try {
+        await db
+          .update(userSessions)
+          .set({ isActive: false })
+          .where(eq(userSessions.token, refreshToken))
+        
+        console.log('[SESSION] Session deactivated on logout')
+      } catch (error) {
+        console.error('[AUTH] Failed to deactivate session on logout:', error)
+      }
 
       // Delete refresh token from database
       await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken))

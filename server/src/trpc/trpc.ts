@@ -55,75 +55,90 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
     })
   }
 
-  // Update session activity only if the table exists (graceful degradation)
+  // Update session activity to track active users
   try {
-    // Check if user_sessions table exists before attempting to use it
-    const tableExists = await db.execute(sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'user_sessions'
-      ) as exists;
-    `)
-    
-    if (tableExists && tableExists[0]?.exists) {
-      const authHeader = ctx.req.headers.authorization
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const ipAddress = ctx.req.ip || ctx.req.connection.remoteAddress || 'unknown'
-        const userAgent = ctx.req.headers['user-agent'] || 'unknown'
-        
-        // Only update if last activity was more than 5 minutes ago (throttling)
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-        
-        try {
-          // Try to find existing active session
-          const existingSessions = await db
-            .select({ id: userSessions.id, lastActivity: userSessions.lastActivity })
-            .from(userSessions)
-            .where(and(
-              eq(userSessions.userId, ctx.user.id),
-              eq(userSessions.isActive, true)
-            ))
-            .limit(1)
-          
-          const existingSession = existingSessions[0]
-          
-          if (existingSession) {
-            // Update existing session if it's been more than 5 minutes
-            if (existingSession.lastActivity < fiveMinutesAgo) {
-              await db
-                .update(userSessions)
-                .set({ 
-                  lastActivity: new Date(),
-                  ipAddress,
-                  userAgent
-                })
-                .where(eq(userSessions.id, existingSession.id))
-            }
-          } else {
-            // No active session found, create a new one
-            const token = authHeader.substring(7) // Remove 'Bearer ' prefix
-            await db
-              .insert(userSessions)
-              .values({
-                userId: ctx.user.id,
-                token: token,
-                ipAddress,
-                userAgent,
-                isActive: true,
-                lastActivity: new Date(),
-                createdAt: new Date()
-              })
-          }
-        } catch (sessionError) {
-          // Silently fail session updates - don't break API requests
-          // console.warn('Session tracking failed:', sessionError.message)
+    const authHeader = ctx.req.headers.authorization
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const ipAddress = ctx.req.ip || 
+                       (ctx.req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+                       ctx.req.connection.remoteAddress || 
+                       'unknown'
+      const userAgent = ctx.req.headers['user-agent'] || 'unknown'
+      const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+      
+      // Helper to parse device info
+      const parseUserAgent = (ua: string) => {
+        const browser = ua.includes('Chrome') ? 'Chrome' : 
+                       ua.includes('Firefox') ? 'Firefox' :
+                       ua.includes('Safari') ? 'Safari' :
+                       ua.includes('Edge') ? 'Edge' : 'Unknown'
+        const os = ua.includes('Windows') ? 'Windows' :
+                  ua.includes('Macintosh') ? 'macOS' :
+                  ua.includes('Linux') ? 'Linux' :
+                  ua.includes('Android') ? 'Android' :
+                  ua.includes('iPhone') ? 'iOS' : 'Unknown'
+        const deviceType = ua.includes('Mobile') || ua.includes('Android') || ua.includes('iPhone') ? 'Mobile' :
+                          ua.includes('Tablet') || ua.includes('iPad') ? 'Tablet' : 'Desktop'
+        return { browser, os, deviceType, rawUserAgent: ua }
+      }
+      
+      // Only update if last activity was more than 1 minute ago (reduced throttling)
+      const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000)
+      
+      // Try to find existing session by token
+      const existingSessions = await db
+        .select({ id: userSessions.id, lastActivity: userSessions.lastActivity })
+        .from(userSessions)
+        .where(and(
+          eq(userSessions.userId, ctx.user.id),
+          eq(userSessions.token, token),
+          eq(userSessions.isActive, true)
+        ))
+        .limit(1)
+      
+      const existingSession = existingSessions[0]
+      
+      if (existingSession) {
+        // Update existing session if it's been more than 1 minute
+        if (existingSession.lastActivity < oneMinuteAgo) {
+          await db
+            .update(userSessions)
+            .set({ 
+              lastActivity: new Date(),
+              ipAddress,
+              userAgent,
+              deviceInfo: parseUserAgent(userAgent)
+            })
+            .where(eq(userSessions.id, existingSession.id))
         }
+      } else {
+        // No session found for this token, create a new one
+        // First deactivate any other active sessions for this user
+        await db
+          .update(userSessions)
+          .set({ isActive: false })
+          .where(and(
+            eq(userSessions.userId, ctx.user.id),
+            eq(userSessions.isActive, true)
+          ))
+        
+        // Create new session
+        await db
+          .insert(userSessions)
+          .values({
+            userId: ctx.user.id,
+            token: token,
+            ipAddress,
+            userAgent,
+            deviceInfo: parseUserAgent(userAgent),
+            isActive: true,
+            lastActivity: new Date()
+          })
       }
     }
   } catch (error) {
-    // Silently fail session checks - don't break API requests
-    // console.warn('Session table check failed:', error.message)
+    console.error('[SESSION] Failed to track session activity:', error)
+    // Don't break API requests on session errors
   }
 
   return next({
