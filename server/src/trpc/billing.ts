@@ -62,7 +62,7 @@ const billingRouter = router({
           console.log('Successfully enriched subscription with Stripe data')
         }
       } catch (error) {
-        console.warn('Failed to fetch Stripe subscription details, using DB data only:', error.message)
+        console.warn('Failed to fetch Stripe subscription details, using DB data only:', error instanceof Error ? error.message : 'Unknown error')
         // Continue with DB data if Stripe fetch fails - this prevents 504 errors
         // The subscription from DB is still valid, we just don't have enriched Stripe data
       }
