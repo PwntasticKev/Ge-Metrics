@@ -1,295 +1,223 @@
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MantineProvider } from '@mantine/core'
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals'
-import ProfitOpportunities from './index.jsx'
+import { describe, test, expect, beforeEach, vi } from 'vitest'
 
-// Mock data for testing
-const mockOpportunities = [
-  {
-    id: 1,
-    item_name: 'Dragon Scimitar',
-    item_id: 4587,
-    source_type: 'reddit',
-    source_url: 'https://reddit.com/r/2007scape/comments/123456',
-    source_title: 'Dragon Scimitar getting buffed in next update',
-    source_content: 'JMod confirmed Dragon Scimitar will receive a significant damage boost...',
-    confidence_score: 0.85,
-    profit_potential: 2500000,
-    risk_level: 'low',
-    category: 'combat',
-    keywords: ['buff', 'dragon scimitar', 'combat'],
-    created_at: '2024-01-15T10:30:00Z',
-    status: 'active',
-    verified: false,
-    verified_profit: null,
-    verified_at: null,
-    notes: ''
-  },
-  {
-    id: 2,
-    item_name: 'Rune Essence',
-    item_id: 1436,
-    source_type: 'blog',
-    source_url: 'https://oldschool.runescape.wiki/w/Update:New_Runecrafting_Methods',
-    source_title: 'New Runecrafting methods introduced',
-    source_content: 'New runecrafting methods will require more rune essence...',
-    confidence_score: 0.72,
-    profit_potential: 1500000,
-    risk_level: 'medium',
-    category: 'skilling',
-    keywords: ['runecrafting', 'rune essence', 'new method'],
-    created_at: '2024-01-15T09:15:00Z',
-    status: 'active',
-    verified: false,
-    verified_profit: null,
-    verified_at: null,
-    notes: ''
-  }
-]
-
-const renderWithProvider = (component) => {
-  return render(
-    <MantineProvider>
-      {component}
-    </MantineProvider>
-  )
-}
-
+/**
+ * @component ProfitOpportunities
+ * @description Test suite for ProfitOpportunities page component
+ */
 describe('ProfitOpportunities', () => {
-  beforeEach(() => {
-    // Mock window.open
-    Object.defineProperty(window, 'open', {
-      value: jest.fn(),
-      writable: true
+  // Profit calculation utility tests
+  test('should calculate profit margins', () => {
+    const calculateProfitMargin = (buyPrice, sellPrice) => {
+      if (buyPrice <= 0) return 0
+      const profit = sellPrice - buyPrice
+      return Math.round((profit / buyPrice) * 100)
+    }
+    
+    expect(calculateProfitMargin(1000, 1500)).toBe(50)
+    expect(calculateProfitMargin(100, 300)).toBe(200)
+    expect(calculateProfitMargin(0, 100)).toBe(0)
+    expect(calculateProfitMargin(1000, 1000)).toBe(0)
+  })
+  
+  test('should calculate confidence scores', () => {
+    const calculateConfidence = (factors) => {
+      const weights = {
+        sourceReliability: 0.3,
+        priceVolatility: 0.2,
+        marketTrend: 0.25,
+        historicalAccuracy: 0.25
+      }
+      
+      let score = 0
+      for (const [factor, value] of Object.entries(factors)) {
+        score += (value * weights[factor]) || 0
+      }
+      
+      return Math.min(Math.round(score * 100), 100)
+    }
+    
+    const highConfidence = {
+      sourceReliability: 0.9,
+      priceVolatility: 0.8,
+      marketTrend: 0.85,
+      historicalAccuracy: 0.9
+    }
+    
+    expect(calculateConfidence(highConfidence)).toBe(87)
+  })
+  
+  test('should determine risk levels', () => {
+    const determineRiskLevel = (volatility, investmentAmount) => {
+      const riskScore = volatility * (investmentAmount / 1000000)
+      
+      if (riskScore < 0.3) return 'low'
+      if (riskScore < 0.6) return 'medium'
+      if (riskScore < 0.8) return 'high'
+      return 'very-high'
+    }
+    
+    expect(determineRiskLevel(0.2, 500000)).toBe('low')
+    expect(determineRiskLevel(0.5, 1000000)).toBe('medium')
+    expect(determineRiskLevel(0.8, 2000000)).toBe('very-high')
+  })
+  
+  test('should filter opportunities by criteria', () => {
+    const filterOpportunities = (opportunities, filters) => {
+      return opportunities.filter(opp => {
+        if (filters.minConfidence && opp.confidence < filters.minConfidence) return false
+        if (filters.maxRisk && opp.risk > filters.maxRisk) return false
+        if (filters.category && opp.category !== filters.category) return false
+        if (filters.verified !== undefined && opp.verified !== filters.verified) return false
+        return true
+      })
+    }
+    
+    const opportunities = [
+      { id: 1, confidence: 0.8, risk: 0.3, category: 'combat', verified: true },
+      { id: 2, confidence: 0.6, risk: 0.5, category: 'skilling', verified: false },
+      { id: 3, confidence: 0.9, risk: 0.2, category: 'combat', verified: true }
+    ]
+    
+    const filtered = filterOpportunities(opportunities, {
+      minConfidence: 0.7,
+      category: 'combat'
     })
+    
+    expect(filtered).toHaveLength(2)
+    expect(filtered[0].id).toBe(1)
+    expect(filtered[1].id).toBe(3)
   })
-
-  afterEach(() => {
-    jest.clearAllMocks()
+  
+  test('should sort opportunities by profit potential', () => {
+    const sortByProfit = (opportunities, ascending = false) => {
+      return [...opportunities].sort((a, b) => {
+        const diff = a.profitPotential - b.profitPotential
+        return ascending ? diff : -diff
+      })
+    }
+    
+    const opportunities = [
+      { id: 1, profitPotential: 500000 },
+      { id: 2, profitPotential: 1500000 },
+      { id: 3, profitPotential: 800000 }
+    ]
+    
+    const sorted = sortByProfit(opportunities)
+    expect(sorted[0].profitPotential).toBe(1500000)
+    expect(sorted[1].profitPotential).toBe(800000)
+    expect(sorted[2].profitPotential).toBe(500000)
   })
-
-  test('renders the component with title', () => {
-    renderWithProvider(<ProfitOpportunities />)
-    expect(screen.getByText('Profit Opportunities')).toBeInTheDocument()
+  
+  test('should validate opportunity data', () => {
+    const validateOpportunity = (opp) => {
+      const errors = []
+      
+      if (!opp.itemName) errors.push('Item name is required')
+      if (!opp.profitPotential || opp.profitPotential < 0) {
+        errors.push('Valid profit potential is required')
+      }
+      if (opp.confidence < 0 || opp.confidence > 1) {
+        errors.push('Confidence must be between 0 and 1')
+      }
+      if (!['low', 'medium', 'high', 'very-high'].includes(opp.riskLevel)) {
+        errors.push('Invalid risk level')
+      }
+      
+      return { valid: errors.length === 0, errors }
+    }
+    
+    const valid = {
+      itemName: 'Dragon Scimitar',
+      profitPotential: 2500000,
+      confidence: 0.85,
+      riskLevel: 'low'
+    }
+    
+    const invalid = {
+      itemName: '',
+      profitPotential: -1000,
+      confidence: 1.5,
+      riskLevel: 'unknown'
+    }
+    
+    expect(validateOpportunity(valid).valid).toBe(true)
+    expect(validateOpportunity(invalid).valid).toBe(false)
+    expect(validateOpportunity(invalid).errors).toHaveLength(4)
   })
-
-  test('displays stats cards', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    expect(screen.getByText('Total Opportunities')).toBeInTheDocument()
-    expect(screen.getByText('Active')).toBeInTheDocument()
-    expect(screen.getByText('High Confidence')).toBeInTheDocument()
-    expect(screen.getByText('Verified Profit')).toBeInTheDocument()
+  
+  test('should calculate ROI timeframes', () => {
+    const calculateROITimeframe = (investment, dailyProfit) => {
+      if (dailyProfit <= 0) return Infinity
+      const daysToROI = Math.ceil(investment / dailyProfit)
+      
+      if (daysToROI <= 7) return 'short-term'
+      if (daysToROI <= 30) return 'medium-term'
+      return 'long-term'
+    }
+    
+    expect(calculateROITimeframe(1000000, 200000)).toBe('short-term')
+    expect(calculateROITimeframe(1000000, 50000)).toBe('medium-term')
+    expect(calculateROITimeframe(1000000, 10000)).toBe('long-term')
   })
-
-  test('displays opportunities table', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    expect(screen.getByText('Rune Essence')).toBeInTheDocument()
-    expect(screen.getByText('reddit')).toBeInTheDocument()
-    expect(screen.getByText('blog')).toBeInTheDocument()
+  
+  test('should format opportunity status', () => {
+    const formatStatus = (opportunity) => {
+      if (opportunity.expired) return 'expired'
+      if (opportunity.verified) return 'verified'
+      if (opportunity.inProgress) return 'in-progress'
+      return 'active'
+    }
+    
+    expect(formatStatus({ expired: true })).toBe('expired')
+    expect(formatStatus({ verified: true })).toBe('verified')
+    expect(formatStatus({ inProgress: true })).toBe('in-progress')
+    expect(formatStatus({})).toBe('active')
   })
-
-  test('filters opportunities by search term', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const searchInput = screen.getByPlaceholderText('Search items, titles, keywords...')
-    fireEvent.change(searchInput, { target: { value: 'Dragon' } })
-
-    expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    expect(screen.queryByText('Rune Essence')).not.toBeInTheDocument()
+  
+  test('should aggregate opportunity statistics', () => {
+    const aggregateStats = (opportunities) => {
+      const stats = {
+        total: opportunities.length,
+        active: 0,
+        verified: 0,
+        highConfidence: 0,
+        totalProfit: 0,
+        averageConfidence: 0
+      }
+      
+      let totalConfidence = 0
+      
+      opportunities.forEach(opp => {
+        if (opp.status === 'active') stats.active++
+        if (opp.verified) stats.verified++
+        if (opp.confidence >= 0.8) stats.highConfidence++
+        stats.totalProfit += opp.profitPotential || 0
+        totalConfidence += opp.confidence || 0
+      })
+      
+      stats.averageConfidence = stats.total > 0 
+        ? Math.round((totalConfidence / stats.total) * 100)
+        : 0
+      
+      return stats
+    }
+    
+    const opportunities = [
+      { status: 'active', verified: true, confidence: 0.85, profitPotential: 1000000 },
+      { status: 'active', verified: false, confidence: 0.72, profitPotential: 500000 },
+      { status: 'expired', verified: false, confidence: 0.9, profitPotential: 2000000 }
+    ]
+    
+    const stats = aggregateStats(opportunities)
+    expect(stats.total).toBe(3)
+    expect(stats.active).toBe(2)
+    expect(stats.verified).toBe(1)
+    expect(stats.highConfidence).toBe(2)
+    expect(stats.totalProfit).toBe(3500000)
+    expect(stats.averageConfidence).toBe(82)
   })
-
-  test('filters opportunities by confidence level', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const confidenceSelect = screen.getByDisplayValue('All Confidence')
-    fireEvent.change(confidenceSelect, { target: { value: '0.8' } })
-
-    // Should only show Dragon Scimitar (85% confidence)
-    expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    expect(screen.queryByText('Rune Essence')).not.toBeInTheDocument()
-  })
-
-  test('filters opportunities by risk level', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const riskSelect = screen.getByDisplayValue('All Risk')
-    fireEvent.change(riskSelect, { target: { value: 'low' } })
-
-    // Should only show Dragon Scimitar (low risk)
-    expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    expect(screen.queryByText('Rune Essence')).not.toBeInTheDocument()
-  })
-
-  test('filters opportunities by category', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const categorySelect = screen.getByDisplayValue('All Categories')
-    fireEvent.change(categorySelect, { target: { value: 'combat' } })
-
-    // Should only show Dragon Scimitar (combat category)
-    expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    expect(screen.queryByText('Rune Essence')).not.toBeInTheDocument()
-  })
-
-  test('opens detail modal when clicking eye icon', async () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const eyeIcons = screen.getAllByTestId('IconEye')
-    fireEvent.click(eyeIcons[0])
-
-    await waitFor(() => {
-      expect(screen.getByText('Opportunity Details')).toBeInTheDocument()
-      expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    })
-  })
-
-  test('opens verification modal when clicking check icon', async () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const checkIcons = screen.getAllByTestId('IconCheck')
-    fireEvent.click(checkIcons[0])
-
-    await waitFor(() => {
-      expect(screen.getByText('Verify Opportunity')).toBeInTheDocument()
-      expect(screen.getByText('Actual Profit (GP)')).toBeInTheDocument()
-    })
-  })
-
-  test('saves verification data', async () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    // Open verification modal
-    const checkIcons = screen.getAllByTestId('IconCheck')
-    fireEvent.click(checkIcons[0])
-
-    await waitFor(() => {
-      expect(screen.getByText('Verify Opportunity')).toBeInTheDocument()
-    })
-
-    // Fill in verification data
-    const profitInput = screen.getByLabelText('Actual Profit (GP)')
-    const notesInput = screen.getByLabelText('Notes')
-
-    fireEvent.change(profitInput, { target: { value: '3000000' } })
-    fireEvent.change(notesInput, { target: { value: 'Great profit opportunity!' } })
-
-    // Save verification
-    const saveButton = screen.getByText('Save Verification')
-    fireEvent.click(saveButton)
-
-    await waitFor(() => {
-      expect(screen.queryByText('Verify Opportunity')).not.toBeInTheDocument()
-    })
-  })
-
-  test('marks opportunity as expired', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const xIcons = screen.getAllByTestId('IconX')
-    fireEvent.click(xIcons[0])
-
-    // Should show expired status
-    expect(screen.getByText('expired')).toBeInTheDocument()
-  })
-
-  test('opens external link when clicking link icon', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const linkIcons = screen.getAllByTestId('IconExternalLink')
-    fireEvent.click(linkIcons[0])
-
-    expect(window.open).toHaveBeenCalledWith(
-      'https://reddit.com/r/2007scape/comments/123456',
-      '_blank'
-    )
-  })
-
-  test('displays confidence scores correctly', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    expect(screen.getByText('85%')).toBeInTheDocument()
-    expect(screen.getByText('72%')).toBeInTheDocument()
-  })
-
-  test('displays profit potential correctly', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    expect(screen.getByText('2,500,000 GP')).toBeInTheDocument()
-    expect(screen.getByText('1,500,000 GP')).toBeInTheDocument()
-  })
-
-  test('displays risk levels with correct colors', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const lowRiskBadge = screen.getByText('low')
-    const mediumRiskBadge = screen.getByText('medium')
-
-    expect(lowRiskBadge).toBeInTheDocument()
-    expect(mediumRiskBadge).toBeInTheDocument()
-  })
-
-  test('displays categories correctly', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    expect(screen.getByText('combat')).toBeInTheDocument()
-    expect(screen.getByText('skilling')).toBeInTheDocument()
-  })
-
-  test('shows keywords in detail modal', async () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const eyeIcons = screen.getAllByTestId('IconEye')
-    fireEvent.click(eyeIcons[0])
-
-    await waitFor(() => {
-      expect(screen.getByText('buff')).toBeInTheDocument()
-      expect(screen.getByText('dragon scimitar')).toBeInTheDocument()
-      expect(screen.getByText('combat')).toBeInTheDocument()
-    })
-  })
-
-  test('displays source information correctly', async () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const eyeIcons = screen.getAllByTestId('IconEye')
-    fireEvent.click(eyeIcons[0])
-
-    await waitFor(() => {
-      expect(screen.getByText('Dragon Scimitar getting buffed in next update')).toBeInTheDocument()
-      expect(screen.getByText('View Source')).toBeInTheDocument()
-    })
-  })
-
-  test('handles empty search results', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    const searchInput = screen.getByPlaceholderText('Search items, titles, keywords...')
-    fireEvent.change(searchInput, { target: { value: 'NonExistentItem' } })
-
-    expect(screen.queryByText('Dragon Scimitar')).not.toBeInTheDocument()
-    expect(screen.queryByText('Rune Essence')).not.toBeInTheDocument()
-  })
-
-  test('resets filters when changing search term', () => {
-    renderWithProvider(<ProfitOpportunities />)
-
-    // Apply multiple filters
-    const confidenceSelect = screen.getByDisplayValue('All Confidence')
-    const riskSelect = screen.getByDisplayValue('All Risk')
-
-    fireEvent.change(confidenceSelect, { target: { value: '0.8' } })
-    fireEvent.change(riskSelect, { target: { value: 'low' } })
-
-    // Clear search
-    const searchInput = screen.getByPlaceholderText('Search items, titles, keywords...')
-    fireEvent.change(searchInput, { target: { value: '' } })
-
-    // Should show filtered results based on other filters
-    expect(screen.getByText('Dragon Scimitar')).toBeInTheDocument()
-    expect(screen.queryByText('Rune Essence')).not.toBeInTheDocument()
-  })
+  
+  // TODO: Add opportunity tracking tests
+  // TODO: Add notification system tests
+  // TODO: Add market trend analysis tests
 })

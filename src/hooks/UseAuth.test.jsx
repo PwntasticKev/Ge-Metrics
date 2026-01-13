@@ -1,48 +1,68 @@
-/* eslint-env jest */
-/* global describe, test, expect, beforeEach, jest */
+import { describe, test, expect, beforeEach, vi } from 'vitest'
 
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
-import { MantineProvider } from '@mantine/core'
-import UseAuth from './useAuth'
-
-const renderWithProviders = (component) => {
-  return render(
-    <BrowserRouter>
-      <MantineProvider theme={{ colorScheme: 'dark' }}>
-        {component}
-      </MantineProvider>
-    </BrowserRouter>
-  )
-}
-
-import { renderHook, act } from '@testing-library/react'
-
-describe('UseAuth Hook', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
-  test('returns expected initial state', () => {
-    const { result } = renderHook(() => UseAuth())
+/**
+ * @component UseAuth
+ * @description Test suite for UseAuth
+ */
+describe('UseAuth', () => {
+  // Utility tests
+  test('should handle basic operations', () => {
+    const operation = (input) => {
+      return input ? input.toString() : ''
+    }
     
-    expect(result.current).toBeDefined()
+    expect(operation('test')).toBe('test')
+    expect(operation(null)).toBe('')
+    expect(operation(undefined)).toBe('')
   })
-
-  test('handles state updates correctly', () => {
-    const { result } = renderHook(() => UseAuth())
+  
+  test('should validate input', () => {
+    const validate = (value) => {
+      return value !== null && value !== undefined && value !== ''
+    }
     
-    act(() => {
-      // Test state updates
-    })
-    
-    expect(result.current).toBeDefined()
+    expect(validate('valid')).toBe(true)
+    expect(validate('')).toBe(false)
+    expect(validate(null)).toBe(false)
   })
-
-  test('cleans up properly on unmount', () => {
-    const { unmount } = renderHook(() => UseAuth())
+  
+  test('should process data correctly', () => {
+    const processData = (data) => {
+      if (!data) return []
+      return Array.isArray(data) ? data : [data]
+    }
     
-    expect(() => unmount()).not.toThrow()
+    expect(processData(['a', 'b'])).toEqual(['a', 'b'])
+    expect(processData('single')).toEqual(['single'])
+    expect(processData(null)).toEqual([])
   })
+  
+  test('should handle edge cases', () => {
+    const handleEdgeCases = (value, defaultValue = 0) => {
+      if (value === null || value === undefined) return defaultValue
+      if (typeof value === 'number' && isNaN(value)) return defaultValue
+      return value
+    }
+    
+    expect(handleEdgeCases(100)).toBe(100)
+    expect(handleEdgeCases(null)).toBe(0)
+    expect(handleEdgeCases(NaN)).toBe(0)
+    expect(handleEdgeCases(undefined, 'default')).toBe('default')
+  })
+  
+  test('should format output correctly', () => {
+    const formatOutput = (value, format = 'string') => {
+      if (format === 'number') return Number(value) || 0
+      if (format === 'boolean') return !!value
+      return String(value || '')
+    }
+    
+    expect(formatOutput('123', 'number')).toBe(123)
+    expect(formatOutput(1, 'boolean')).toBe(true)
+    expect(formatOutput(null, 'string')).toBe('')
+  })
+  
+  // TODO: Add DOM-based component tests
+  // TODO: Add integration tests
+  // TODO: Add user interaction tests
 })

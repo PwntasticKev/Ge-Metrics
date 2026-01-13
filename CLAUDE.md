@@ -253,25 +253,177 @@ npm install
 
 ---
 
+## 🧪 Testing Strategy
+
+### Test Types & Commands
+```bash
+npm run test:unit        # Run unit tests with Vitest
+npm run test:e2e         # Run E2E tests with Playwright
+npm run test:coverage    # Generate coverage report
+npm run test:watch       # Watch mode for TDD
+npm run test:all         # Run all test suites
+```
+
+### 🚨 MANDATORY Testing Requirements - NO EXCEPTIONS 🚨
+**CRITICAL**: Test-Driven Development (TDD) is REQUIRED for ALL changes:
+
+#### The ONLY Acceptable Development Process:
+1. **WRITE TEST FIRST** - Before ANY implementation code
+2. **RUN TEST** - Watch it fail (Red phase)
+3. **WRITE CODE** - Minimum code to pass test
+4. **RUN TEST** - Watch it pass (Green phase)
+5. **REFACTOR** - Improve code while keeping tests green
+6. **MARK COMPLETE** - ONLY when all tests pass
+
+#### Absolute Requirements:
+- **100% Component Coverage** - EVERY component MUST have a test file
+- **NO CODE WITHOUT TESTS** - Zero tolerance policy
+- **Tests Must Pass Before Commit** - Pre-commit hooks enforce this
+- **Integration Tests with Real TRPC** - Test actual API calls and database operations
+- **Coverage Thresholds**: 100% components, 80% lines, 70% branches
+
+### Test Structure
+```
+src/
+├── test/
+│   ├── setup.ts           # Test configuration
+│   ├── utils/             # Test utilities
+│   └── factories/         # Data factories
+├── **/*.test.{ts,tsx}     # Unit tests (co-located)
+└── **/*.spec.{ts,tsx}     # Integration tests
+
+e2e/
+├── auth.spec.ts           # Authentication flows
+├── flips.spec.ts          # Flip tracking tests
+└── fixtures/              # Test data & helpers
+```
+
+### Writing Tests - MANDATORY for Every Component
+```typescript
+// EVERY component test MUST include ALL of these test cases:
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, waitFor, fireEvent } from '@/test/utils/test-utils'
+import { ComponentName } from './ComponentName'
+
+describe('ComponentName', () => {
+  // 1. REQUIRED: Component renders
+  it('renders without crashing', () => {})
+  
+  // 2. REQUIRED: Data display
+  it('displays all data correctly', async () => {})
+  
+  // 3. REQUIRED: Loading state
+  it('shows loading state while fetching', () => {})
+  
+  // 4. REQUIRED: Error handling
+  it('handles and displays errors gracefully', () => {})
+  
+  // 5. REQUIRED: User interactions
+  it('handles all user interactions (clicks, inputs)', async () => {})
+  
+  // 6. REQUIRED: Accessibility
+  it('is fully keyboard navigable', () => {})
+  it('has proper ARIA labels', () => {})
+  
+  // 7. REQUIRED: Mobile responsiveness
+  it('renders correctly on mobile devices', () => {})
+})
+```
+
+#### Test Coverage Requirements Per Component:
+- ✅ Rendering without errors
+- ✅ All props handled correctly
+- ✅ Loading states displayed
+- ✅ Error states displayed
+- ✅ User interactions work
+- ✅ Form validations work
+- ✅ Accessibility compliant
+- ✅ Mobile responsive
+- ✅ Real TRPC calls succeed
+- ✅ Database operations verified
+
+### CI/CD Pipeline
+Every push/PR triggers:
+1. **Linting & TypeScript** checks
+2. **Unit tests** with coverage
+3. **Integration tests** with test database
+4. **E2E tests** across browsers
+5. **Performance tests** with Lighthouse
+6. **Security scanning** with Trivy
+
+### Pre-commit Hooks
+Automatic checks before commit:
+- TypeScript compilation
+- ESLint validation
+- Unit test execution
+- Coverage thresholds
+
+## 🤖 MANDATORY Rules for AI Assistants (Claude, GitHub Copilot, etc.)
+
+### YOU MUST FOLLOW THESE RULES - NO EXCEPTIONS:
+1. **ALWAYS write test FIRST** - Never write implementation before test
+2. **ALWAYS run test after writing it** - Verify it fails (Red phase)
+3. **ONLY THEN write implementation** - Minimum code to pass test
+4. **ALWAYS run test after implementation** - Verify it passes (Green phase)
+5. **NEVER mark task complete without passing tests** - Tests are proof of completion
+6. **EVERY component change needs test update** - No untested code
+7. **Track all tasks in TASKS.md** - Document test file paths
+
+### AI Assistant Workflow:
+```bash
+# 1. Create/update test file
+vim ComponentName.test.jsx  # Write test FIRST
+
+# 2. Run test to see it fail
+npm run test:watch ComponentName.test
+
+# 3. Implement feature
+vim ComponentName.jsx  # NOW write the code
+
+# 4. Run test to see it pass
+npm run test:watch ComponentName.test
+
+# 5. Update TASKS.md
+echo "✅ Task: [Feature] | Test: ComponentName.test.jsx | Status: PASSING" >> TASKS.md
+```
+
 ## 📞 Development Workflow
 
 ### Before Starting Work
 1. Pull latest changes
-2. Check for TypeScript errors: `npx tsc --noEmit`
-3. Run tests if available
+2. Run `npm run test:unit:run` to verify ALL tests pass
+3. Check for TypeScript errors: `npx tsc --noEmit`
 4. Review current task priorities
+5. Check TASKS.md for context
 
 ### During Development
 1. Use TodoWrite tool to track progress
-2. Follow existing code patterns
-3. Test on multiple screen sizes
-4. Handle loading and error states
+2. **WRITE TEST FIRST** (TDD is mandatory)
+3. Run `npm run test:watch` for instant feedback
+4. Follow existing code patterns
+5. Test on multiple screen sizes
+6. Handle loading and error states
+7. Update test when changing ANY component
 
 ### Before Committing
-1. Fix all TypeScript errors
-2. Test core functionality
-3. Check mobile responsiveness
-4. Update documentation if needed
+1. Run `npm run test:all` - 100% MUST pass
+2. Fix all TypeScript errors
+3. Ensure test coverage meets thresholds
+4. Test core functionality manually
+5. Check mobile responsiveness
+6. Update TASKS.md with completed task
+7. Update documentation if needed
+
+### Test-Driven Development
+```bash
+# 1. Write failing test
+npm run test:watch
+
+# 2. Implement feature
+# 3. Make test pass
+# 4. Refactor with confidence
+# 5. Commit when all tests green
+```
 
 ---
 
@@ -284,3 +436,14 @@ For comprehensive information, see files in the `claude/` directory:
 - `claude/claude.md` - Extended technical guide
 
 This guide provides everything needed for effective development on GE-Metrics.
+---
+
+## 📚 Claude Code Documentation
+
+Local Claude Code documentation is automatically synced and available in:
+- `docs/claude-code/` - Complete Claude Code documentation
+- Updated daily via GitHub Actions
+- See [docs/claude-code/README.md](docs/claude-code/README.md) for structure
+
+Quick reference: `docs/claude-code/claude-code-docs.txt` contains the full documentation map.
+

@@ -1,0 +1,197 @@
+name: Sync Claude Code Documentation
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC to check for documentation updates
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ main, master ]
+    paths:
+      - '.github/workflows/sync-claude-docs.yml'
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Create docs directory
+        run: mkdir -p docs/claude-code
+
+      - name: Download Claude Code documentation map
+        run: |
+          echo "📥 Downloading Claude Code documentation map..."
+          curl -s "https://code.claude.com/docs/llms.txt" > docs/claude-code/claude-code-docs.txt
+
+      - name: Download key documentation files
+        run: |
+          echo "📥 Downloading key Claude Code documentation files..."
+          
+          # Create subdirectories
+          mkdir -p docs/claude-code/{getting-started,configuration,reference,plugins,workflows}
+          
+          # Download main documentation files (adjust URLs based on actual structure)
+          curl -s "https://code.claude.com/docs/en/getting-started/installation.md" > docs/claude-code/getting-started/installation.md || echo "# Installation docs unavailable" > docs/claude-code/getting-started/installation.md
+          curl -s "https://code.claude.com/docs/en/configuration/settings.md" > docs/claude-code/configuration/settings.md || echo "# Configuration docs unavailable" > docs/claude-code/configuration/settings.md
+          curl -s "https://code.claude.com/docs/en/reference/commands.md" > docs/claude-code/reference/commands.md || echo "# Commands reference unavailable" > docs/claude-code/reference/commands.md
+          curl -s "https://code.claude.com/docs/en/plugins/overview.md" > docs/claude-code/plugins/overview.md || echo "# Plugins docs unavailable" > docs/claude-code/plugins/overview.md
+          curl -s "https://code.claude.com/docs/en/workflows/github-actions.md" > docs/claude-code/workflows/github-actions.md || echo "# GitHub Actions docs unavailable" > docs/claude-code/workflows/github-actions.md
+
+      - name: Fetch Claude Code repository
+        run: |
+          echo "📥 Fetching Claude Code repository documentation..."
+          git clone --depth=1 https://github.com/anthropics/claude-code.git temp-claude-code
+          
+          # Copy documentation files if they exist
+          if [ -d "temp-claude-code/docs" ]; then
+            cp -r temp-claude-code/docs/* docs/claude-code/ 2>/dev/null || true
+          fi
+          
+          if [ -f "temp-claude-code/README.md" ]; then
+            cp temp-claude-code/README.md docs/claude-code/
+          fi
+          
+          # Copy any markdown files from root
+          find temp-claude-code -maxdepth 1 -name "*.md" -exec cp {} docs/claude-code/ \; 2>/dev/null || true
+          
+          # Cleanup
+          rm -rf temp-claude-code
+
+      - name: Generate documentation index
+        run: |
+          echo "📝 Generating Claude Code documentation index..."
+          cat > docs/claude-code/README.md << 'EOF'
+          # Claude Code Documentation
+
+          This directory contains automatically synced documentation for Claude Code from Anthropic.
+
+          ## 📚 Documentation Sources
+
+          - **Official Documentation**: https://code.claude.com/docs/
+          - **GitHub Repository**: https://github.com/anthropics/claude-code
+          - **Last Updated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## 📁 Structure
+
+          - `getting-started/` - Installation and setup guides
+          - `configuration/` - Settings and configuration options
+          - `reference/` - Command reference and API docs
+          - `plugins/` - Plugin development and usage
+          - `workflows/` - GitHub Actions and workflow integration
+          - `claude-code-docs.txt` - Complete documentation map
+
+          ## 🔄 Auto-Sync
+
+          This documentation is automatically updated daily via GitHub Actions.
+          Last sync: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## 📖 Quick Links
+
+          - [Installation Guide](getting-started/installation.md)
+          - [Configuration Settings](configuration/settings.md)
+          - [Command Reference](reference/commands.md)
+          - [Plugin Development](plugins/overview.md)
+          - [GitHub Actions Integration](workflows/github-actions.md)
+          
+          EOF
+
+      - name: Update CLAUDE.md with documentation reference
+        run: |
+          echo "📝 Updating CLAUDE.md with documentation reference..."
+          
+          # Add Claude Code docs reference if not already present
+          if ! grep -q "Claude Code Documentation" CLAUDE.md; then
+            cat >> CLAUDE.md << 'EOF'
+
+          ---
+
+          ## 📚 Claude Code Documentation
+
+          Local Claude Code documentation is automatically synced and available in:
+          - `docs/claude-code/` - Complete Claude Code documentation
+          - Updated daily via GitHub Actions
+          - See [docs/claude-code/README.md](docs/claude-code/README.md) for structure
+
+          Quick reference: `docs/claude-code/claude-code-docs.txt` contains the full documentation map.
+
+          EOF
+          fi
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git add docs/claude-code/
+          if git diff --staged --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No documentation changes detected"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Documentation changes detected"
+          fi
+
+      - name: Commit and push changes
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add docs/claude-code/ CLAUDE.md
+          git commit -m "📚 Sync Claude Code documentation
+
+          - Updated Claude Code documentation from official sources
+          - Fetched latest docs from https://code.claude.com/docs/
+          - Synced repository documentation from anthropics/claude-code
+          - Generated documentation index and quick links
+
+          🤖 Generated with [Claude Code](https://claude.ai/code)
+          "
+          
+          git push
+
+      - name: Create summary
+        run: |
+          echo "## 📚 Claude Code Documentation Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Status**: Documentation sync completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "📅 **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Synced Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "- Official documentation from https://code.claude.com/docs/" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository docs from https://github.com/anthropics/claude-code" >> $GITHUB_STEP_SUMMARY
+          echo "- Generated local index and quick links" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Access Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "Documentation is now available in \`docs/claude-code/\` directory" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.git-check.outputs.changes }}" == "true" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📝 Changes" >> $GITHUB_STEP_SUMMARY
+            echo "Documentation was updated and committed to repository" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📝 Changes" >> $GITHUB_STEP_SUMMARY
+            echo "No documentation changes detected - docs are up to date" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  notify-sync:
+    runs-on: ubuntu-latest
+    needs: sync-docs
+    if: always()
+    steps:
+      - name: Notify sync status
+        run: |
+          if [ "${{ needs.sync-docs.result }}" == "success" ]; then
+            echo "✅ Claude Code documentation sync completed successfully"
+          else
+            echo "❌ Claude Code documentation sync failed"
+          fi

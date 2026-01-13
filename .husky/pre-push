@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# Run full test suite
+echo "🧪 Running full test suite..."
+npm run test:unit -- --run
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests before pushing."
+  exit 1
+fi
+
+# Run integration tests if available
+if [ -f "npm run test:integration" ]; then
+  echo "🔗 Running integration tests..."
+  npm run test:integration
+  if [ $? -ne 0 ]; then
+    echo "❌ Integration tests failed."
+    exit 1
+  fi
+fi
+
+# Check bundle size
+echo "📦 Checking bundle size..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Please fix build errors before pushing."
+  exit 1
+fi
+
+echo "✅ All pre-push checks passed!"

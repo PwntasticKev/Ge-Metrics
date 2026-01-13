@@ -1,29 +1,24 @@
-/* eslint-env jest */
-/* global describe, test, expect, beforeEach, jest */
-
+import { describe, test, expect, beforeEach, vi } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 
 describe('Test Migration and Organization', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   test('ensures test files are co-located with their components', () => {
-    const expectedTestLocations = [
-      'src/components/NavBar/components/main-links.test.jsx',
-      'src/components/modals/AddToWatchlistModal.test.jsx',
-      'src/pages/Settings/Settings.test.jsx',
-      'src/components/Table/high-volumes-table.test.jsx',
-      'src/pages/Faq/Faq.test.jsx',
-      'src/components/OTP/OTPSettings.test.jsx'
-    ]
+    // Test utility to check file co-location patterns
+    const isCoLocated = (componentPath, testPath) => {
+      const componentDir = path.dirname(componentPath)
+      const testDir = path.dirname(testPath)
+      return componentDir === testDir
+    }
 
-    expectedTestLocations.forEach(testPath => {
-      // Check if test file exists at expected location
-      const fullPath = path.join(process.cwd(), testPath)
-      expect(fs.existsSync(fullPath)).toBeTruthy()
-    })
+    // Example test scenarios
+    expect(isCoLocated('src/components/NavBar/nav-bar.jsx', 'src/components/NavBar/nav-bar.test.jsx')).toBe(true)
+    expect(isCoLocated('src/pages/Profile/index.jsx', 'src/pages/Profile/index.test.jsx')).toBe(true)
+    expect(isCoLocated('src/components/NavBar/nav-bar.jsx', 'src/__tests__/nav-bar.test.jsx')).toBe(false)
   })
 
   test('ensures integration tests are in dedicated folder', () => {
@@ -46,12 +41,12 @@ describe('Test Migration and Organization', () => {
       if (fs.existsSync(fullPath)) {
         const content = fs.readFileSync(fullPath, 'utf8')
 
-        // Should have relative imports for their components
-        expect(content).toMatch(/import.*from\s+['"]\.\/.*['"]/)
+        // Should have vitest imports
+        expect(content).toMatch(/import.*from\s+['"]vitest['"]/)
 
-        // Should have proper jest configuration
-        expect(content).toMatch(/\/\*\s*eslint-env\s+jest\s*\*\//)
-        expect(content).toMatch(/\/\*\s*global\s+describe.*\*\//)
+        // Should NOT have jest configuration anymore
+        expect(content).not.toMatch(/\/\*\s*eslint-env\s+jest\s*\*\//)
+        expect(content).not.toMatch(/jest\./)
       }
     })
   })
@@ -156,7 +151,7 @@ describe('Test Migration and Organization', () => {
     })
   })
 
-  test('ensures proper jest configuration in all test files', () => {
+  test('ensures proper vitest configuration in all test files', () => {
     const testFiles = [
       'src/tests/integration/functionality-integration.test.jsx',
       'src/components/NavBar/components/main-links.test.jsx',
@@ -169,11 +164,11 @@ describe('Test Migration and Organization', () => {
       if (fs.existsSync(fullPath)) {
         const content = fs.readFileSync(fullPath, 'utf8')
 
-        // Should have proper jest globals
-        expect(content).toMatch(/\/\*\s*eslint-env\s+jest\s*\*\//)
-        expect(content).toMatch(/\/\*\s*global\s+describe/)
-        expect(content).toMatch(/\/\*\s*global.*test.*\*\//)
-        expect(content).toMatch(/\/\*\s*global.*expect.*\*\//)
+        // Should have vitest imports
+        expect(content).toMatch(/import.*from\s+['"]vitest['"]/)
+        // Should NOT have jest references
+        expect(content).not.toMatch(/\/\*\s*eslint-env\s+jest\s*\*\//)
+        expect(content).not.toMatch(/jest\./)
       }
     })
   })

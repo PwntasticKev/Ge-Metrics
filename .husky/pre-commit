@@ -1,0 +1,62 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-commit checks..."
+echo "🚨 ZERO TOLERANCE: All components MUST have tests!"
+
+# Run TypeScript check
+echo "📝 Checking TypeScript..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript check failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Run ESLint
+echo "🔍 Running ESLint..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint check failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Check for missing test files (100% component coverage required)
+echo "🧪 Checking for missing test files..."
+node scripts/audit-tests.js
+if [ $? -ne 0 ]; then
+  echo "❌ Test coverage audit failed. All components MUST have test files."
+  echo "💡 Create missing tests with: npm run test:create <component-path>"
+  exit 1
+fi
+
+# Run all unit tests
+echo "🧪 Running unit tests..."
+npm run test:unit:run
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests before committing."
+  echo "💡 Run tests in watch mode: npm run test:watch"
+  exit 1
+fi
+
+# Check test coverage thresholds
+echo "📊 Checking test coverage thresholds..."
+npm run test:coverage
+if [ $? -ne 0 ]; then
+  echo "❌ Coverage thresholds not met. Required: 80% lines, 70% branches"
+  echo "💡 Add more tests to increase coverage."
+  exit 1
+fi
+
+# Verify all tests actually test the requirements
+echo "🔍 Validating test quality..."
+echo "⚠️  Make sure your tests cover:"
+echo "   - Component renders ✓"
+echo "   - Props handling ✓" 
+echo "   - Loading states ✓"
+echo "   - Error states ✓"
+echo "   - User interactions ✓"
+echo "   - Accessibility ✓"
+echo "   - Mobile responsive ✓"
+
+echo "✅ All pre-commit checks passed!"
+echo "🎉 Ready to commit with 100% test coverage!"
