@@ -1,0 +1,18 @@
+{
+  "name": "test-ge-metrics",
+  "description": "Run GE-Metrics tests after implementing features",
+  "version": "1.0.0",
+  "command": "bash",
+  "args": ["run.sh"],
+  "environment": {
+    "FORCE_COLOR": "1"
+  },
+  "output": {
+    "format": "stream",
+    "showInChat": true
+  },
+  "triggers": {
+    "manual": true,
+    "afterFileChange": false
+  }
+}

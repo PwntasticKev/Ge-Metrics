@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { safeResponseJson } from '../../utils/safeJsonParser.js'
 import {
   Box,
   Card,
@@ -596,7 +597,7 @@ export default function AIPredictions () {
       try {
         setWhaleLoading(true)
         const response = await fetch('/data/whale-activity.json')
-        const data = await response.json()
+        const data = await safeResponseJson(response, [])
         setWhaleData(data)
       } catch (error) {
         console.error('Failed to fetch whale activity data:', error)

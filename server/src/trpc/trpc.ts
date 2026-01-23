@@ -7,6 +7,8 @@ import * as AuthModule from '../utils/auth.js'
 // Context creation
 export const createContext = async ({ req, res }: CreateExpressContextOptions) => {
   const authHeader = req.headers.authorization
+  console.log('[AUTH_DEBUG] Auth header:', authHeader ? `Bearer ${authHeader.substring(7, 20)}...` : 'No header')
+  
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
     try {
@@ -16,7 +18,10 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
         (AuthModule as any).default || // fall back to default export
         new (AuthModule as any).AuthUtils() // last resort: instantiate the class
 
+      console.log('[AUTH_DEBUG] About to verify token with utils:', !!utils)
       const decodedUser = utils.verifyAccessToken(token)
+      console.log('[AUTH_DEBUG] Token decoded successfully:', { userId: decodedUser.userId, email: decodedUser.email })
+      
       // The decoded token has a 'userId' property which is a string.
       // We parse it to an integer and create an 'id' property for consistency in the context.
       const userId = parseInt(decodedUser.userId, 10)
@@ -29,11 +34,14 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
         id: userId,
         role: settings?.role || 'user'
       }
+      console.log('[AUTH_DEBUG] User context created:', { id: user.id, email: user.email })
       return { req, res, user }
     } catch (error) {
+      console.log('[AUTH_DEBUG] Token verification failed:', error.message)
       // Ignore invalid token, user will be unauthenticated..
     }
   }
+  console.log('[AUTH_DEBUG] No user authenticated')
   return { req, res, user: null }
 }
 

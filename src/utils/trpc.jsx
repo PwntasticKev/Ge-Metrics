@@ -27,8 +27,19 @@ export function TRPCProvider ({ children }) {
             : '/trpc',
           async headers () {
             const token = localStorage.getItem('accessToken')
+            // Get or generate CSRF token
+            let csrfToken = localStorage.getItem('csrfToken')
+            if (!csrfToken) {
+              // Generate a new CSRF token if none exists
+              csrfToken = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+              localStorage.setItem('csrfToken', csrfToken)
+            }
+            
             return {
-              Authorization: token ? `Bearer ${token}` : ''
+              Authorization: token ? `Bearer ${token}` : '',
+              'x-csrf-token': csrfToken
             }
           }
         })

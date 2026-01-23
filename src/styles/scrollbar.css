@@ -1,60 +1,55 @@
-/* Custom scrollbar styles */
+/* Hide all scrollbars but maintain scroll functionality */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-  transition: background-color 0.3s ease;
+  background: transparent;
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: transparent;
+  display: none;
 }
 
-/* Dark mode scrollbar */
-[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
-}
-
-[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #666;
-}
-
-/* Firefox scrollbar */
+/* Firefox - hide scrollbar */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: #888 transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-[data-mantine-color-scheme="dark"] * {
-  scrollbar-color: #4a4a4a transparent;
+/* IE and Edge - hide scrollbar */
+* {
+  -ms-overflow-style: none;
 }
 
-/* Navbar specific scrollbar */
+/* Navbar specific - also hide scrollbar */
 .navbar-scrollarea ::-webkit-scrollbar {
-  width: 4px;
+  width: 0;
+  display: none;
 }
 
 .navbar-scrollarea ::-webkit-scrollbar-thumb {
-  background: rgba(136, 136, 136, 0.6);
-  border-radius: 2px;
+  background: transparent;
+  display: none;
 }
 
 .navbar-scrollarea ::-webkit-scrollbar-thumb:hover {
-  background: rgba(136, 136, 136, 0.8);
+  background: transparent;
+  display: none;
 }
 
-[data-mantine-color-scheme="dark"] .navbar-scrollarea ::-webkit-scrollbar-thumb {
-  background: rgba(74, 74, 74, 0.6);
-}
-
-[data-mantine-color-scheme="dark"] .navbar-scrollarea ::-webkit-scrollbar-thumb:hover {
-  background: rgba(74, 74, 74, 0.8);
+/* Ensure scrolling still works */
+.navbar-scrollarea {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }

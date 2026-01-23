@@ -516,7 +516,7 @@ const CronJobs = () => {
                     </td>
                     <td>
                       <div>
-                        <Text size="sm" weight={500}>{job.successRate.toFixed(1)}%</Text>
+                        <Text size="sm" weight={500}>{job.successRate?.toFixed(1) ?? '0.0'}%</Text>
                         <Text size="xs" color="dimmed">
                           {job.totalRuns - job.failedRuns}/{job.totalRuns} runs
                         </Text>

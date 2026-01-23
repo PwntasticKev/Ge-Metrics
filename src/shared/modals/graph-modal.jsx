@@ -1,19 +1,9 @@
 import { Box, Container, Modal, Group, Avatar, Title } from '@mantine/core'
-import { useEffect, useState } from 'react'
 import AdvancedChart from '../../components/charts/AdvancedChart.jsx'
 
 export default function GraphModal ({ opened, setOpened, onClose, item, id, items }) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    if (opened) {
-      // Small delay to ensure modal is fully rendered before mounting chart
-      const timer = setTimeout(() => setMounted(true), 100)
-      return () => clearTimeout(timer)
-    } else {
-      setMounted(false)
-    }
-  }, [opened])
+  // Remove delay - mount chart immediately when modal opens
+  const mounted = opened
 
   const handleClose = () => {
     console.log('GraphModal: Attempting to close modal')

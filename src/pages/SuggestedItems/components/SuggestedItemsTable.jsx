@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   ActionIcon,
   Badge,
@@ -25,13 +25,17 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconHeart,
-  IconHeartFilled
+  IconHeartFilled,
+  IconAlertTriangle,
+  IconTrash,
+  IconTrashFilled
 } from '@tabler/icons-react'
 import { Link, useLocation } from 'react-router-dom'
 import GraphModal from '../../../shared/modals/graph-modal.jsx'
 import MiniChart from '../../../components/charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
 import LazyLoad from '../../../components/LazyLoad/index.jsx'
+import { useTrashScoring } from '../../../hooks/useTrashScoring.js'
 
 const useStyles = createStyles((theme) => ({
   tableHeader: {
@@ -145,10 +149,23 @@ export default function SuggestedItemsTable({
   onToggleFavorite,
   showFavoriteColumn = true
 }) {
+  // Get trash scoring functions
+  const { toggleTrashVote, hasUserVoted, isMarkingTrash, getTrashPercentage, getTrashCount } = useTrashScoring()
   const theme = useMantineTheme()
   const { classes, cx } = useStyles()
   const [search, setSearch] = useState('')
-  const [sortedData, setSortedData] = useState(data)
+  
+  // Map data with trash voting information
+  const dataWithTrash = useMemo(() => {
+    return data.map(item => ({
+      ...item,
+      userVoted: hasUserVoted(item.itemId),
+      trashPercentage: getTrashPercentage(item.itemId),
+      trashCount: getTrashCount(item.itemId)
+    }))
+  }, [data, hasUserVoted, getTrashPercentage, getTrashCount])
+  
+  const [sortedData, setSortedData] = useState(dataWithTrash)
   const [sortBy, setSortBy] = useState('suggestionScore')
   const [reverseSortDirection, setReverseSortDirection] = useState(true) // Start with highest score first
   const [scrolled, setScrolled] = useState(false)
@@ -165,20 +182,20 @@ export default function SuggestedItemsTable({
     const reversed = field === sortBy ? !reverseSortDirection : false
     setReverseSortDirection(reversed)
     setSortBy(field)
-    setSortedData(sortData(data, { sortBy: field, reversed, search }))
+    setSortedData(sortData(dataWithTrash, { sortBy: field, reversed, search }))
   }
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget
     setSearch(value)
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value }))
+    setSortedData(sortData(dataWithTrash, { sortBy, reversed: reverseSortDirection, search: value }))
     setCurrentPage(1) // Reset to first page when searching
   }
 
   useEffect(() => {
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search }))
+    setSortedData(sortData(dataWithTrash, { sortBy, reversed: reverseSortDirection, search }))
     setCurrentPage(1)
-  }, [data, sortBy, reverseSortDirection, search])
+  }, [dataWithTrash, sortBy, reverseSortDirection, search])
 
   // Calculate pagination
   const totalPages = Math.ceil(sortedData.length / itemsPerPage)
@@ -244,9 +261,25 @@ export default function SuggestedItemsTable({
                 {row.name}
               </Text>
             </Link>
-            <Text size="xs" color="dimmed">
-              ID: {row.itemId}
-            </Text>
+            <Group spacing="xs">
+              <Text size="xs" color="dimmed">
+                ID: {row.itemId}
+              </Text>
+              {row.trashPercentage > 0 && (
+                <Badge 
+                  size="xs" 
+                  color={
+                    row.trashPercentage >= 60 ? 'red' : 
+                    row.trashPercentage >= 40 ? 'orange' : 
+                    row.trashPercentage >= 25 ? 'yellow' : 
+                    'gray'
+                  }
+                  variant="light"
+                >
+                  {Math.round(row.trashPercentage)}% trash
+                </Badge>
+              )}
+            </Group>
           </div>
         </Group>
       </td>
@@ -330,6 +363,33 @@ export default function SuggestedItemsTable({
         </Tooltip>
       </td>
       <td style={{ textAlign: 'center' }}>
+        {(row.trashPercentage > 0 || row.manipulationWarning) && (
+          <Flex gap="xs" justify="center" align="center">
+            {row.trashPercentage > 0 && (
+              <Tooltip 
+                label={`${Math.round(row.trashPercentage)}% of users marked as unreliable`}
+                position="top"
+              >
+                <ActionIcon
+                  size="sm"
+                  color={row.trashPercentage > 50 ? 'red' : row.trashPercentage > 25 ? 'orange' : 'yellow'}
+                  variant="light"
+                >
+                  <IconAlertTriangle size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {row.manipulationWarning && (
+              <Tooltip label="⚠️ High Risk - Possible market manipulation detected">
+                <Badge color="red" variant="light" size="xs">
+                  RISK
+                </Badge>
+              </Tooltip>
+            )}
+          </Flex>
+        )}
+      </td>
+      <td style={{ textAlign: 'center' }}>
         <Flex gap="xs" justify="center" align="center">
           {showFavoriteColumn && onToggleFavorite && (
             <ActionIcon
@@ -341,6 +401,22 @@ export default function SuggestedItemsTable({
               {favoriteItems.has(row.itemId) ? <IconHeartFilled size={isMobile ? 14 : 16} /> : <IconHeart size={isMobile ? 14 : 16} />}
             </ActionIcon>
           )}
+          <Tooltip 
+            label={row.userVoted ? "Remove from trash (click to unmark)" : "Mark as unreliable/trash (click to vote)"}
+            position="top"
+            withArrow
+          >
+            <ActionIcon
+              size={isMobile ? 'sm' : 'md'}
+              color="orange"
+              variant={row.userVoted ? 'filled' : 'light'}
+              onClick={() => toggleTrashVote(row.itemId, row.name)}
+              loading={isMarkingTrash}
+              disabled={isMarkingTrash}
+            >
+              {row.userVoted ? <IconTrashFilled size={isMobile ? 14 : 16} /> : <IconTrash size={isMobile ? 14 : 16} />}
+            </ActionIcon>
+          </Tooltip>
           <ActionIcon
             variant="light"
             color="blue"
@@ -432,6 +508,7 @@ export default function SuggestedItemsTable({
                 >
                   Score
                 </Th>
+                <Th>Warning</Th>
                 <Th>Actions</Th>
               </tr>
             </thead>
@@ -440,7 +517,7 @@ export default function SuggestedItemsTable({
                 rows
               ) : (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={11}>
                     <Text color="dimmed" align="center" py="xl">
                       No items found matching your criteria
                     </Text>

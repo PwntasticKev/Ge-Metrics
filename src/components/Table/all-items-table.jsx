@@ -32,7 +32,9 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconHeart,
-  IconHeartFilled
+  IconHeartFilled,
+  IconTrash,
+  IconTrashFilled
 } from '@tabler/icons-react'
 import { Link, useLocation } from 'react-router-dom'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
@@ -41,6 +43,7 @@ import { useMediaQuery } from '@mantine/hooks'
 import LazyLoad from '../LazyLoad/index.jsx'
 import { calculateGETax } from '../../utils/utils.jsx'
 import { useSearchState } from '../../hooks/useSearchState.js'
+import { useTrashScoring } from '../../hooks/useTrashScoring.js'
 
 const useStyles = createStyles((theme) => ({
   th: {
@@ -268,6 +271,8 @@ export function AllItemsTable ({
   favoriteItems = new Set(),
   onToggleFavorite = null,
   showFavoriteColumn = false,
+  onToggleTrash = null,
+  showTrashColumn = false,
   volumeMap = {},
   defaultVolumeWindow = '1h'
 }) {
@@ -276,10 +281,29 @@ export function AllItemsTable ({
   const { classes, cx } = useStyles()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [scrolled, setScrolled] = useState(false)
+  const { 
+    userTrashItems, 
+    toggleTrashVote, 
+    hasUserVoted, 
+    getTrashPercentage, 
+    getTrashCount, 
+    isMarkingTrash 
+  } = useTrashScoring()
   
   // Smart search state with URL and localStorage persistence
   const { search, setSearch, debouncedSearch } = useSearchState()
-  const [sortedData, setSortedData] = useState(data)
+  
+  // Map data with trash voting information
+  const dataWithTrash = React.useMemo(() => {
+    return data.map(item => ({
+      ...item,
+      userVoted: hasUserVoted(item.itemId || item.id),
+      trashPercentage: getTrashPercentage(item.itemId || item.id),
+      trashCount: getTrashCount(item.itemId || item.id)
+    }))
+  }, [data, hasUserVoted, getTrashPercentage, getTrashCount])
+  
+  const [sortedData, setSortedData] = useState(dataWithTrash)
   const [graphModal, setGraphModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [sortBy, setSortBy] = useState(null)
@@ -337,13 +361,13 @@ export function AllItemsTable ({
   // Search persistence is handled by useSearchState hook
 
   useEffect(() => {
-    setSortedData(sortData(data, {
+    setSortedData(sortData(dataWithTrash, {
       sortBy,
       reversed: reverseSortDirection,
       filters
     }))
     setCurrentPage(1) // Reset to first page when filters change
-  }, [data, sortBy, reverseSortDirection, debouncedSearch, thirdAge, volumeFilter, volumeRankFilter, riskFilter, raidsItems, priceMin, priceMax, profitMin, profitMax])
+  }, [dataWithTrash, sortBy, reverseSortDirection, debouncedSearch, thirdAge, volumeFilter, volumeRankFilter, riskFilter, raidsItems, priceMin, priceMax, profitMin, profitMax])
 
   const setGraphInfo = (id) => {
     setGraphModal(true)
@@ -387,6 +411,7 @@ export function AllItemsTable ({
     const vol = volumeMap?.[row.id]
     const buyVol = volumeWindow === '1h' ? vol?.hourlyLowPriceVolume : vol?.lowPriceVolume
     const sellVol = volumeWindow === '1h' ? vol?.hourlyHighPriceVolume : vol?.highPriceVolume
+    const isUserTrashVoted = row.userVoted || userTrashItems.some(item => item.itemId === row.id)
 
     return (
       <tr key={idx} style={{ background: row.background ? theme.colors.gray[7] : '' }}>
@@ -403,9 +428,26 @@ export function AllItemsTable ({
           />
         </td>
         <td colSpan={2} style={{ verticalAlign: 'middle', textAlign: 'left' }}>
-          <Link to={`/item/${row.id}`} style={{ textDecoration: 'none' }}>
-            {row.name} {row.qty ? `(${row.qty})` : null}
-          </Link>
+          <div>
+            <Link to={`/item/${row.id}`} style={{ textDecoration: 'none' }}>
+              {row.name} {row.qty ? `(${row.qty})` : null}
+            </Link>
+            {row.trashPercentage > 0 && (
+              <Badge 
+                size="xs" 
+                color={
+                  row.trashPercentage >= 60 ? 'red' : 
+                  row.trashPercentage >= 40 ? 'orange' : 
+                  row.trashPercentage >= 25 ? 'yellow' : 
+                  'gray'
+                }
+                variant="light"
+                ml="xs"
+              >
+                {Math.round(row.trashPercentage)}% trash
+              </Badge>
+            )}
+          </div>
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{new Intl.NumberFormat().format(row.low)}</td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
@@ -460,6 +502,22 @@ export function AllItemsTable ({
               >
                 {isFavorite ? <IconHeartFilled size={isMobile ? 14 : 16} /> : <IconHeart size={isMobile ? 14 : 16} />}
               </ActionIcon>
+            )}
+            {showTrashColumn && (onToggleTrash || toggleTrashVote) && (
+              <Tooltip 
+                label={isUserTrashVoted ? "Remove from trash (click to unmark)" : "Mark as unreliable/trash (click to vote)"}
+                position="top"
+                withArrow
+              >
+                <ActionIcon
+                  size={isMobile ? 'sm' : 'md'}
+                  color="orange"
+                  variant={isUserTrashVoted ? 'filled' : 'light'}
+                  onClick={() => onToggleTrash ? onToggleTrash(row.id) : toggleTrashVote(row.id, row.name)}
+                >
+                  {isUserTrashVoted ? <IconTrashFilled size={isMobile ? 14 : 16} /> : <IconTrash size={isMobile ? 14 : 16} />}
+                </ActionIcon>
+              </Tooltip>
             )}
             <ActionIcon
               variant="light"

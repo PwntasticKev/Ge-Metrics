@@ -6,22 +6,49 @@ import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 // Base options for all environments
 const baseOptions: Options<{}> = {
-  // Add any other base options here if needed
+  max: 10,                    // Maximum connections in pool
+  idle_timeout: 20,          // Close idle connections after 20s
+  connect_timeout: 10,       // Connection timeout
+  transform: {
+    undefined: null         // Convert undefined to null for PostgreSQL
+  }
+}
+
+// Development-specific options
+const devOptions: Options<{}> = {
+  ...baseOptions,
+  max: 5,                    // Lower connection pool for local development
+  debug: false               // Set to true for query debugging
 }
 
 // Production-specific options
 const prodOptions: Options<{}> = {
   ...baseOptions,
   ssl: 'require',
-  max: 1
+  max: 25,                   // Increased pool for WebSocket connections and analytics (was 10)
+  idle_timeout: 30,         // Keep connections alive longer in production
+  connect_timeout: 10,      // Faster timeout in production
+  statement_timeout: 10000, // 10 second query timeout to prevent hung queries
+  prepare: false,           // Disable prepared statements for serverless compatibility
+  onnotice: () => {},       // Suppress PostgreSQL notices in production logs
+  debug: false              // Disable query debugging in production
 }
 
-const connectionOptions = config.NODE_ENV === 'production' ? prodOptions : baseOptions
+const connectionOptions = config.NODE_ENV === 'production' ? prodOptions : 
+                         config.NODE_ENV === 'development' ? devOptions : baseOptions
 
 // Determine the correct database URL
+console.log('[DB_CONNECTION] Environment check:', {
+  NODE_ENV: config.NODE_ENV,
+  hasLocalUrl: !!config.LOCAL_DATABASE_URL,
+  hasCorrectUrl: !!config.CORRECT_DATABASE_URL
+})
+
 const databaseUrl = config.NODE_ENV === 'development' && config.LOCAL_DATABASE_URL
   ? config.LOCAL_DATABASE_URL
   : config.CORRECT_DATABASE_URL
+
+console.log('[DB_CONNECTION] Selected database URL:', databaseUrl?.replace(/:[^:@]*@/, ':***@'))
 
 if (!databaseUrl) {
   throw new Error('Database URL is not defined. Please check your environment variables for LOCAL_DATABASE_URL or CORRECT_DATABASE_URL.')

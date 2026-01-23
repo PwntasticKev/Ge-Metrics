@@ -18,8 +18,9 @@ import java.awt.image.BufferedImage;
 @Slf4j
 @PluginDescriptor(
 	name = "GE Metrics Trade Tracker",
-	description = "Automatically tracks your Grand Exchange trades and syncs them to GE Metrics",
-	tags = {"grand-exchange", "trading", "flipping", "profit-tracking"}
+	description = "Automatically tracks Grand Exchange trades and syncs to GE-Metrics.com for advanced profit analysis, FIFO matching, and trading insights. Works offline with local storage.",
+	tags = {"grand-exchange", "trading", "flipping", "profit", "analytics", "tracking", "ge-metrics"},
+	enabledByDefault = false
 )
 public class GeMetricsPlugin extends Plugin
 {

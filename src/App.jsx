@@ -25,6 +25,10 @@ import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
 import HerbCleaning from './pages/HerbCleaning/index.jsx'
 
+// Bottom navigation imports
+import BottomNavBar from './components/Navigation/BottomNavBar'
+import useBottomNav from './hooks/useBottomNav'
+
 // Music player imports
 import { MusicPlayerProvider } from './contexts/MusicPlayerContext'
 import { MusicPlayerKeyboardHandler } from './components/MusicPlayer'
@@ -57,10 +61,10 @@ const CommunityLeaderboard = lazy(() => import('./pages/CommunityLeaderboard'))
 const BillingDashboard = lazy(() => import('./pages/Admin/BillingDashboard'))
 const UserManagement = lazy(() => import('./pages/Admin/UserManagement'))
 const SystemSettings = lazy(() => import('./pages/Admin/SystemSettings'))
-const SecurityLogs = lazy(() => import('./pages/Admin/SecurityLogs'))
 const FormulaDocumentation = lazy(() => import('./pages/Admin/FormulaDocumentation'))
 const CronJobs = lazy(() => import('./pages/Admin/CronJobs'))
 const ApiStatus = lazy(() => import('./pages/Admin/ApiStatus'))
+const TrashManagement = lazy(() => import('./pages/Admin/TrashManagement'))
 const AIPredictions = lazy(() => import('./pages/AIPredictions'))
 const FutureItems = lazy(() => import('./pages/FutureItems'))
 const Favorites = lazy(() => import('./pages/Favorites/index.jsx'))
@@ -268,6 +272,13 @@ function AppContent () {
   const { user, logout } = useAuth()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const toggle = () => setOpened((o) => !o)
+  
+  // Bottom navigation hook
+  const bottomNav = useBottomNav({
+    autoHide: true,
+    showOnScrollUp: true,
+    landscapeMode: true
+  })
 
   // Theme mode state (global)
   const [colorScheme, setColorScheme] = useState(() => {
@@ -329,7 +340,20 @@ function AppContent () {
                       <>
                         <HeaderNav setOpened={toggle} opened={opened} user={user} onLogout={logout} />
                         {isMobile
-                          ? <MobileNav opened={opened} setOpened={setOpened} user={user} />
+                          ? (
+                            <>
+                              <MobileNav opened={opened} setOpened={setOpened} user={user} />
+                              <BottomNavBar
+                                onMenuToggle={toggle}
+                                isMenuOpen={opened}
+                                hideOnScroll={bottomNav.isLandscape}
+                                notifications={{
+                                  flips: 0,
+                                  alerts: 0
+                                }}
+                              />
+                            </>
+                          )
                           : <NavMenu user={user} />}
                       </>
                     )}
@@ -363,7 +387,7 @@ function AppContent () {
               <Route path="/settings" element={<Settings />} />
               <Route path="/faq" element={<Faq />} />
               <Route path="/item/:id" element={<ItemDetails />} />
-              <Route path="/profile/:id" element={<Profile />} />
+              <Route path="/profile/:id?" element={<Profile />} />
               <Route path="/saplings" element={<Saplings />} />
               <Route path="/herb-cleaning" element={<HerbCleaning />} />
               <Route path="/plank-make" element={<PlankMake />} />
@@ -391,9 +415,9 @@ function AppContent () {
               <Route path="/admin/billing" element={<AdminRoute><BillingDashboard /></AdminRoute>} />
               <Route path="/admin/user-management" element={<AdminRoute><UserManagement /></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><SystemSettings /></AdminRoute>} />
-              <Route path="/admin/security" element={<AdminRoute><SecurityLogs /></AdminRoute>} />
               <Route path="/admin/formulas" element={<AdminRoute><FormulaDocumentation /></AdminRoute>} />
               <Route path="/admin/cron-jobs" element={<AdminRoute><CronJobs /></AdminRoute>} />
+              <Route path="/admin/trash-management" element={<AdminRoute><TrashManagement /></AdminRoute>} />
               <Route path="/admin/global-recipes" element={<AdminRoute><AdminGlobalRecipes /></AdminRoute>} />
               <Route path="/admin/money-making-methods" element={<AdminRoute><AdminMoneyMakingMethods /></AdminRoute>} />
               <Route path="/admin/api-status" element={<AdminRoute><ApiStatus /></AdminRoute>} />

@@ -1,9 +1,12 @@
 import { trpc } from '../utils/trpc.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useState, useEffect } from 'react'
 
 export function useFavorites (itemType) {
   const { user } = useAuth()
   const utils = trpc.useContext()
+  const [optimisticFavorites, setOptimisticFavorites] = useState([])
+  
   // Only include itemType in query input if it's defined
   const queryInput = itemType ? { itemType } : undefined
   const { data: favoriteItems, isLoading: isLoadingFavorites, error } = trpc.favorites.getAll.useQuery(queryInput, {
@@ -14,6 +17,13 @@ export function useFavorites (itemType) {
       console.error('useFavorites error:', error)
     }
   })
+
+  // Sync optimistic state with server data
+  useEffect(() => {
+    if (favoriteItems) {
+      setOptimisticFavorites(favoriteItems)
+    }
+  }, [favoriteItems])
 
   const addFavorite = trpc.favorites.add.useMutation({
     onSuccess: () => {
@@ -71,22 +81,33 @@ export function useFavorites (itemType) {
       return
     }
     
-    const isFavorite = favoriteItems?.some(fav => fav.itemId === numericItemId && fav.itemType === itemType)
-    console.log('[useFavorites] Toggling favorite:', { itemId: numericItemId, itemType, isFavorite, currentFavorites: favoriteItems?.length })
+    const isFavorite = optimisticFavorites?.some(fav => fav.itemId === numericItemId && fav.itemType === itemType)
+    console.log('[useFavorites] Toggling favorite:', { itemId: numericItemId, itemType, isFavorite, currentFavorites: optimisticFavorites?.length })
     
     if (isFavorite) {
+      // Optimistic update - remove immediately from UI
+      setOptimisticFavorites(prev => prev.filter(fav => !(fav.itemId === numericItemId && fav.itemType === itemType)))
+      
       removeFavorite.mutate({ itemId: numericItemId, itemType }, {
         onError: (error) => {
           console.error('[useFavorites] Failed to remove favorite:', error)
+          // Revert optimistic update on error
+          setOptimisticFavorites(favoriteItems || [])
         },
         onSuccess: () => {
           console.log('[useFavorites] Successfully removed favorite')
         }
       })
     } else {
+      // Optimistic update - add immediately to UI
+      const newFavorite = { itemId: numericItemId, itemType, userId: user.id }
+      setOptimisticFavorites(prev => [...prev, newFavorite])
+      
       addFavorite.mutate({ itemId: numericItemId, itemType }, {
         onError: (error) => {
           console.error('[useFavorites] Failed to add favorite:', error)
+          // Revert optimistic update on error
+          setOptimisticFavorites(favoriteItems || [])
         },
         onSuccess: () => {
           console.log('[useFavorites] Successfully added favorite')
@@ -96,7 +117,7 @@ export function useFavorites (itemType) {
   }
 
   return {
-    favoriteItems: favoriteItems || [],
+    favoriteItems: optimisticFavorites,
     toggleFavorite,
     isLoadingFavorites
   }

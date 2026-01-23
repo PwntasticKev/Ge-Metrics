@@ -98,6 +98,7 @@ export default function AllItems () {
                       favoriteItems={favoriteItemIds}
                       onToggleFavorite={handleToggleFavorite}
                       showFavoriteColumn={true}
+                      showTrashColumn={true}
                       volumeMap={volumeMap}
                       defaultVolumeWindow="1h"
                       // Pass tax info to table if it supports it, or modify table component

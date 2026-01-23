@@ -52,15 +52,18 @@ export class AuthUtils {
 
   verifyAccessToken (token: string): JWTPayload {
     try {
+      console.log('[AUTH_DEBUG] Verifying token with secret length:', config.JWT_ACCESS_SECRET.length)
       const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET, {
         issuer: 'auth-server',
         audience: 'client-app'
       }) as JWTPayload
+      console.log('[AUTH_DEBUG] Token decoded:', decoded)
       if (decoded.type !== 'access') {
         throw new Error('Invalid token type')
       }
       return decoded
     } catch (error) {
+      console.log('[AUTH_DEBUG] Token verification error details:', error.message)
       throw new Error('Invalid access token')
     }
   }

@@ -3,6 +3,7 @@ import { historicalData } from '../db/schema'
 import { eq, and } from 'drizzle-orm'
 import axios from 'axios'
 import { getLatestTimestamp } from '../utils/data-utils'
+import { safeResponseJson } from '../utils/safeJsonParser.js'
 
 const USER_AGENT = 'Ge-Metrics OSRS Trading App - Price Scraper (contact@ge-metrics.com)'
 
@@ -28,7 +29,7 @@ class HistoricalDataService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await safeResponseJson(response, {})
       console.log(`Fetched latest prices for ${Object.keys(data).length} items`)
       return data
     } catch (error) {
@@ -52,7 +53,7 @@ class HistoricalDataService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await safeResponseJson(response, {})
       console.log(`Fetched mapping for ${data.length} items`)
       return data
     } catch (error) {
@@ -81,7 +82,7 @@ class HistoricalDataService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await safeResponseJson(response, {})
       console.log(`Fetched 5-minute data for ${Object.keys(data.data || data).length} items`)
       return data
     } catch (error) {
@@ -110,7 +111,7 @@ class HistoricalDataService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await safeResponseJson(response, {})
       console.log(`Fetched 1-hour data for ${Object.keys(data.data || data).length} items`)
       return data
     } catch (error) {
@@ -136,7 +137,7 @@ class HistoricalDataService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await safeResponseJson(response, {})
       console.log(`Fetched time-series data for item ${itemId}: ${data.data?.length || 0} data points`)
       return data
     } catch (error) {

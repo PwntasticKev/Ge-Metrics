@@ -1,3 +1,5 @@
+import { safeResponseJson } from '../utils/safeJsonParser.js'
+
 const API_BASE_URL = 'http://localhost:4000/api/historical'
 
 /**
@@ -14,7 +16,7 @@ export const getItemHistoryById = async (timestep, itemId) => {
       throw new Error(`Failed to fetch historical data: ${response.status}`)
     }
 
-    const result = await response.json()
+    const result = await safeResponseJson(response, {})
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to fetch historical data')
@@ -44,7 +46,7 @@ export const clearHistoricalCache = async () => {
       throw new Error(`Failed to clear cache: ${response.status}`)
     }
 
-    const result = await response.json()
+    const result = await safeResponseJson(response, {})
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to clear cache')

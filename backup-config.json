@@ -1,0 +1,140 @@
+{
+  "schedules": {
+    "daily": {
+      "enabled": true,
+      "time": "02:00",
+      "type": "incremental",
+      "description": "Daily incremental backup for quick recovery"
+    },
+    "weekly": {
+      "enabled": true,
+      "day": "sunday",
+      "time": "03:00",
+      "type": "full",
+      "description": "Weekly full backup for comprehensive protection"
+    },
+    "monthly": {
+      "enabled": true,
+      "day": 1,
+      "time": "04:00",
+      "type": "full",
+      "description": "Monthly full backup for long-term archival"
+    }
+  },
+  "retention": {
+    "daily": 7,
+    "weekly": 4,
+    "monthly": 12,
+    "description": "Keep 7 daily, 4 weekly, and 12 monthly backups"
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "recipients": ["admin@example.com", "devops@example.com"],
+      "onSuccess": true,
+      "onFailure": true,
+      "template": {
+        "success": "Backup completed successfully: {filename} ({size})",
+        "failure": "Backup failed: {error}"
+      }
+    },
+    "slack": {
+      "enabled": false,
+      "webhook": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "channel": "#alerts",
+      "onSuccess": false,
+      "onFailure": true,
+      "template": {
+        "success": "✅ Backup completed: {filename}",
+        "failure": "❌ Backup failed: {error}"
+      }
+    },
+    "discord": {
+      "enabled": false,
+      "webhook": "https://discord.com/api/webhooks/YOUR/WEBHOOK",
+      "onSuccess": false,
+      "onFailure": true
+    }
+  },
+  "cloudBackup": {
+    "enabled": false,
+    "provider": "s3",
+    "dailyBackups": true,
+    "weeklyBackups": true,
+    "monthlyBackups": true,
+    "encryption": true,
+    "compression": true,
+    "lifecycle": {
+      "transitionToIA": 30,
+      "transitionToGlacier": 90,
+      "deleteAfter": 2555
+    }
+  },
+  "security": {
+    "encryption": {
+      "enabled": false,
+      "algorithm": "aes-256-cbc",
+      "keyRotation": true,
+      "keyRotationDays": 90
+    },
+    "access": {
+      "requireConfirmation": true,
+      "allowedIPs": [],
+      "auditLogging": true
+    }
+  },
+  "performance": {
+    "compression": {
+      "enabled": true,
+      "level": 6,
+      "algorithm": "gzip"
+    },
+    "parallel": {
+      "enabled": false,
+      "workers": 2
+    },
+    "bandwidth": {
+      "limit": null,
+      "throttle": false
+    }
+  },
+  "monitoring": {
+    "healthChecks": {
+      "enabled": true,
+      "interval": "5m",
+      "timeout": "30s",
+      "retries": 3
+    },
+    "metrics": {
+      "enabled": true,
+      "endpoint": "/metrics",
+      "labels": {
+        "environment": "production",
+        "service": "backup"
+      }
+    },
+    "alerting": {
+      "enabled": true,
+      "rules": [
+        {
+          "name": "backup_failure",
+          "condition": "failed_backups > 0",
+          "severity": "critical",
+          "cooldown": "1h"
+        },
+        {
+          "name": "backup_duration",
+          "condition": "backup_duration > 30m",
+          "severity": "warning",
+          "cooldown": "6h"
+        },
+        {
+          "name": "backup_size_anomaly",
+          "condition": "backup_size_change > 50%",
+          "severity": "warning",
+          "cooldown": "24h"
+        }
+      ]
+    }
+  }
+}

@@ -2,10 +2,12 @@ import React, { useState } from 'react'
 import { Modal, TextInput, PasswordInput, Button, Group, Text, Stack, Alert, Stepper, PinInput, Center, Box, Title, useMantineTheme } from '@mantine/core'
 import { IconMail, IconShieldLock, IconCheck, IconAlertCircle, IconLock, IconKey } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
+import { useMediaQuery } from '@mantine/hooks'
 import { trpc } from '../../utils/trpc'
 
 const PasswordRecoveryModal = ({ opened, onClose }) => {
   const theme = useMantineTheme()
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [activeStep, setActiveStep] = useState(0)
   const [otpCode, setOtpCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -118,8 +120,9 @@ const PasswordRecoveryModal = ({ opened, onClose }) => {
       opened={opened}
       onClose={handleClose}
       title={null}
-      size="md"
-      centered
+      size={isMobile ? "100%" : "md"}
+      fullScreen={isMobile}
+      centered={!isMobile}
       overlayProps={{
         backgroundOpacity: 0.7,
         blur: 3
@@ -262,8 +265,8 @@ const PasswordRecoveryModal = ({ opened, onClose }) => {
                 label="Email Address"
                 placeholder="Enter your email"
                 required
-                size="lg"
-                icon={<IconMail size={20} />}
+                size={isMobile ? "md" : "lg"}
+                icon={<IconMail size={isMobile ? 18 : 20} />}
                 {...form.getInputProps('email', { withError: false })}
                 styles={{
                   input: {
@@ -310,7 +313,7 @@ const PasswordRecoveryModal = ({ opened, onClose }) => {
                 <Button 
                   variant="outline" 
                   onClick={handleClose}
-                  size="lg"
+                  size={isMobile ? "md" : "lg"}
                   style={{
                     borderColor: '#373A40',
                     color: '#C1C2C5',
@@ -334,7 +337,7 @@ const PasswordRecoveryModal = ({ opened, onClose }) => {
                   type="submit"
                   loading={isLoading}
                   disabled={!form.values.email || !form.isValid()}
-                  size="lg"
+                  size={isMobile ? "md" : "lg"}
                   style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     border: 'none',
@@ -391,7 +394,7 @@ const PasswordRecoveryModal = ({ opened, onClose }) => {
                     value={otpCode}
                     onChange={setOtpCode}
                     length={6}
-                    size="lg"
+                    size={isMobile ? "md" : "lg"}
                     styles={{
                       input: {
                         border: '3px solid #373A40',
@@ -636,7 +639,7 @@ const PasswordRecoveryModal = ({ opened, onClose }) => {
             <Group position="right" mt="md">
               <Button 
                 onClick={handleClose}
-                size="lg"
+                size={isMobile ? "md" : "lg"}
                 style={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   border: 'none',

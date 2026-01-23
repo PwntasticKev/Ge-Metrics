@@ -26,11 +26,13 @@ import {
   IconRefresh,
   IconCoin,
   IconFilter,
-  IconFilterOff
+  IconFilterOff,
+  IconTrash
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
+import { useTrashScoring } from '../../hooks/useTrashScoring.js'
 import SuggestedItemsTable from './components/SuggestedItemsTable.jsx'
 
 export default function SuggestedItems() {
@@ -46,6 +48,14 @@ export default function SuggestedItems() {
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
+  const { 
+    userTrashItems, 
+    toggleTrashVote, 
+    getTrashPercentage, 
+    getTrashWeight,
+    isTrash 
+  } = useTrashScoring()
+  const [showTrashItems, setShowTrashItems] = useState(false) // Hide trash by default
 
   // Filter states
   const [showFilters, setShowFilters] = useState(true)
@@ -136,6 +146,25 @@ export default function SuggestedItems() {
         break
     }
 
+    // Apply trash filtering - hide heavily voted trash items unless user wants to see them
+    if (!showTrashItems) {
+      filtered = filtered.filter(item => {
+        const trashPercentage = getTrashPercentage(item.itemId)
+        return trashPercentage < 60 // Hide items with 60%+ trash votes
+      })
+    }
+    
+    // Apply trash weight penalties to suggestion scores for sorting
+    filtered = filtered.map(item => {
+      const trashWeight = getTrashWeight(item.itemId)
+      return {
+        ...item,
+        // Adjust suggestion score based on trash weight
+        adjustedScore: Math.round(item.suggestionScore * trashWeight),
+        trashPercentage: getTrashPercentage(item.itemId)
+      }
+    }).sort((a, b) => b.adjustedScore - a.adjustedScore) // Re-sort by adjusted score
+
     // Apply additional filters
     if (!showManipulated) {
       filtered = filtered.filter(item => !item.manipulationWarning)
@@ -162,7 +191,7 @@ export default function SuggestedItems() {
     }
 
     return filtered
-  }, [suggestedItems, activeTab, minMargin, maxMargin, minVolume, maxVolume, profitThreshold, showManipulated])
+  }, [suggestedItems, activeTab, minMargin, maxMargin, minVolume, maxVolume, profitThreshold, showManipulated, showTrashItems, getTrashPercentage, getTrashWeight])
 
   return (
     <>
@@ -290,6 +319,11 @@ export default function SuggestedItems() {
                         checked={showManipulated}
                         onChange={(event) => setShowManipulated(event.currentTarget.checked)}
                       />
+                      <Checkbox
+                        label="Show heavily trashed items (60%+ votes)"
+                        checked={showTrashItems}
+                        onChange={(event) => setShowTrashItems(event.currentTarget.checked)}
+                      />
                       <Button 
                         variant="subtle" 
                         size="xs" 
@@ -323,6 +357,9 @@ export default function SuggestedItems() {
               </Tabs.Tab>
               <Tabs.Tab value="low" icon={<IconTrendingUp size={14} />}>
                 Low Volume ({suggestedItems.filter(item => item.volume24h < 1000).length})
+              </Tabs.Tab>
+              <Tabs.Tab value="trash" icon={<IconTrash size={14} />} color="orange">
+                My Trash ({userTrashItems?.length || 0})
               </Tabs.Tab>
             </Tabs.List>
 
@@ -367,6 +404,39 @@ export default function SuggestedItems() {
               ) : (
                 <Alert icon={<IconAlertTriangle size={16} />} color="yellow">
                   No low volume items match your capital. Try increasing your budget.
+                </Alert>
+              )}
+            </Tabs.Panel>
+            
+            <Tabs.Panel value="trash" pt="xs">
+              {userTrashItems && userTrashItems.length > 0 ? (
+                <Card withBorder>
+                  <Stack>
+                    <Group position="apart">
+                      <Text size="lg" weight={500}>Your Trash List</Text>
+                      <Text size="sm" color="dimmed">
+                        Items you've marked as unreliable or trash
+                      </Text>
+                    </Group>
+                    <Alert icon={<IconAlertTriangle size={16} />} color="orange">
+                      These items are hidden from your suggested items view. Click the trash button again to restore them.
+                    </Alert>
+                    <SuggestedItemsTable
+                      data={userTrashItems.map(item => ({
+                        ...item,
+                        suggestionScore: 0,
+                        manipulationWarning: false,
+                        affordable: true
+                      }))}
+                      favoriteItems={favoriteItemIds}
+                      onToggleFavorite={handleToggleFavorite}
+                      showFavoriteColumn={true}
+                    />
+                  </Stack>
+                </Card>
+              ) : (
+                <Alert icon={<IconTrash size={16} />} color="gray">
+                  You haven't marked any items as trash yet. Use the trash button on items you want to hide.
                 </Alert>
               )}
             </Tabs.Panel>

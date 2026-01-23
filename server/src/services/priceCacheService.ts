@@ -2,6 +2,7 @@ import { db } from '../db/index.js'
 import { itemPriceHistory, itemMapping } from '../db/schema.js'
 import { eq, desc, and, gte } from 'drizzle-orm'
 import axios from 'axios'
+import { apiRotation } from './apiRotationService.js'
 
 interface PriceData {
   [itemId: string]: {
@@ -25,8 +26,9 @@ export class PriceCacheService {
   private lastFetchTime = 0
   private readonly FETCH_INTERVAL = 2 * 60 * 1000 // 2 minutes in milliseconds
   private readonly API_BASE_URL = 'https://prices.runescape.wiki/api/v1/osrs'
-  private readonly USER_AGENT = 'GE-Metrics Price Cache Service - Contact: admin@ge-metrics.com'
   private isFetching = false
+  private retryCount = 0
+  private readonly MAX_RETRIES = 3
 
   private constructor () {}
 
@@ -68,14 +70,14 @@ export class PriceCacheService {
     try {
       console.log('🔄 Fetching fresh price data from OSRS Wiki API...')
 
+      // Get rotating API headers for this request
+      const headers = apiRotation.getCurrentHeaders()
+      console.log(`🔄 Using identity: ${headers['User-Agent']}`)
+
       // Fetch both latest prices and volume data
       const [latestResponse, volumeResponse] = await Promise.all([
-        axios.get(`${this.API_BASE_URL}/latest`, {
-          headers: { 'User-Agent': this.USER_AGENT }
-        }),
-        axios.get(`${this.API_BASE_URL}/5m`, {
-          headers: { 'User-Agent': this.USER_AGENT }
-        })
+        axios.get(`${this.API_BASE_URL}/latest`, { headers }),
+        axios.get(`${this.API_BASE_URL}/5m`, { headers })
       ])
 
       const latestData: PriceData = latestResponse.data.data || latestResponse.data
@@ -94,13 +96,47 @@ export class PriceCacheService {
       await this.savePricesToDatabase(mergedData)
 
       this.lastFetchTime = Date.now()
+      this.retryCount = 0 // Reset retry count on success
       console.log(`✅ Successfully cached ${Object.keys(mergedData).length} items`)
     } catch (error) {
       console.error('❌ Error fetching prices:', error)
+      
+      // Handle rate limiting with API rotation and retry
+      if (this.isRateLimitError(error) && this.retryCount < this.MAX_RETRIES) {
+        console.warn(`🔄 Rate limit detected, attempt ${this.retryCount + 1}/${this.MAX_RETRIES}`)
+        
+        const { delayMs } = apiRotation.handleRateLimit()
+        this.retryCount++
+        
+        // Wait and retry with new identity
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+        console.log(`⏳ Retrying after ${delayMs}ms delay...`)
+        
+        // Recursively retry with new identity
+        return this.fetchAndCachePrices()
+      }
+      
       throw error
     } finally {
       this.isFetching = false
     }
+  }
+
+  /**
+   * Check if error is a rate limit error
+   */
+  private isRateLimitError(error: any): boolean {
+    if (error.response) {
+      const status = error.response.status
+      // Common rate limit status codes
+      return status === 429 || status === 503 || status === 502
+    }
+    
+    // Check error message for rate limit indicators
+    const message = error.message?.toLowerCase() || ''
+    return message.includes('rate limit') || 
+           message.includes('too many requests') ||
+           message.includes('quota exceeded')
   }
 
   /**

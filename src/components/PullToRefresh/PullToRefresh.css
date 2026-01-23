@@ -1,0 +1,123 @@
+/* Pull to Refresh Styles */
+
+.pull-to-refresh-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pull-to-refresh-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  background: var(--mantine-color-body);
+  will-change: transform;
+}
+
+.pull-to-refresh-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  background: linear-gradient(
+    to bottom,
+    var(--mantine-color-body) 0%,
+    transparent 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+  transform-origin: top center;
+}
+
+.pull-indicator-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: var(--mantine-color-default);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-mantine-color-scheme="dark"] .pull-indicator-content {
+  background: var(--mantine-color-dark-6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Animation classes */
+.pull-to-refresh-container.pulling {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pull-to-refresh-container.refreshing {
+  pointer-events: none;
+}
+
+/* iOS rubber band effect prevention */
+@supports (-webkit-touch-callout: none) {
+  .pull-to-refresh-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Android overscroll prevention */
+.pull-to-refresh-container {
+  overscroll-behavior-y: contain;
+}
+
+/* Smooth transitions */
+.pull-to-refresh-container {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pull-to-refresh-container.no-transition {
+  transition: none;
+}
+
+/* Loading spinner customization */
+.pull-indicator-content .mantine-Loader-root {
+  --loader-size: 20px;
+}
+
+/* Success indicator */
+.pull-indicator-success {
+  color: var(--mantine-color-green-6);
+}
+
+/* Error indicator */
+.pull-indicator-error {
+  color: var(--mantine-color-red-6);
+}
+
+/* Landscape adjustments */
+@media (orientation: landscape) and (max-height: 600px) {
+  .pull-to-refresh-indicator {
+    padding-bottom: 8px;
+  }
+
+  .pull-indicator-content {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .pull-to-refresh-container {
+    transition: none !important;
+  }
+
+  .pull-to-refresh-indicator {
+    transition: none !important;
+  }
+}

@@ -25,6 +25,8 @@ import { recipesRouter } from './recipes.js'
 import { moneyMakingMethodsRouter } from './money-making-methods.js'
 import { notificationsRouter } from './notifications.js'
 import { messagesRouter } from './messages.js'
+import { analyticsRouter } from './analytics.js'
+import { trashRouter } from './trash.js'
 
 export const appRouter = router({
   auth: authRouter,
@@ -52,7 +54,9 @@ export const appRouter = router({
   recipes: recipesRouter,
   moneyMakingMethods: moneyMakingMethodsRouter,
   notifications: notificationsRouter,
-  messages: messagesRouter
+  messages: messagesRouter,
+  analytics: analyticsRouter,
+  trash: trashRouter
 })
 
 export type AppRouter = typeof appRouter

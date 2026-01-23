@@ -1,0 +1,249 @@
+/* Swipeable Card Styles */
+
+.swipeable-card-wrapper {
+  position: relative;
+  margin-bottom: 8px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.swipeable-card-wrapper.compact {
+  margin-bottom: 4px;
+}
+
+.swipeable-favorite-card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.swipeable-favorite-card:active {
+  transform: scale(0.98);
+}
+
+/* Delete confirmation overlay */
+.delete-confirm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 59, 48, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: var(--mantine-radius-md);
+}
+
+[data-mantine-color-scheme="dark"] .delete-confirm-overlay {
+  background: rgba(255, 59, 48, 0.85);
+}
+
+/* Card metrics section */
+.card-metrics {
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* Swipe indicators */
+.swipe-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.swipe-indicator.swipe-left {
+  left: -40px;
+  color: var(--mantine-color-red-6);
+}
+
+.swipe-indicator.swipe-right {
+  right: -40px;
+  color: var(--mantine-color-green-6);
+}
+
+/* Show indicators during swipe */
+.swipeable-card-wrapper.swiping-left .swipe-left {
+  opacity: 1;
+  left: 8px;
+}
+
+.swipeable-card-wrapper.swiping-right .swipe-right {
+  opacity: 1;
+  right: 8px;
+}
+
+/* Swipeable Chart Styles */
+.swipeable-chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+}
+
+.swipeable-chart-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease;
+}
+
+.swipeable-chart-slide {
+  width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chart navigation dots */
+.chart-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  z-index: 5;
+}
+
+[data-mantine-color-scheme="dark"] .chart-dots {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chart-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.chart-dot.active {
+  width: 16px;
+  border-radius: 3px;
+  background: var(--mantine-color-blue-5);
+}
+
+/* Chart swipe hints */
+.chart-swipe-hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, rgba(0,0,0,0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.chart-swipe-hint.left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.1) 0%, transparent 100%);
+}
+
+.chart-swipe-hint.right {
+  right: 0;
+  background: linear-gradient(-90deg, rgba(0,0,0,0.1) 0%, transparent 100%);
+}
+
+.swipeable-chart-container:hover .chart-swipe-hint {
+  opacity: 1;
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .swipeable-favorite-card {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .swipeable-favorite-card:active {
+    transform: none;
+    background: var(--mantine-color-gray-0);
+  }
+  
+  [data-mantine-color-scheme="dark"] .swipeable-favorite-card:active {
+    background: var(--mantine-color-dark-6);
+  }
+}
+
+/* Animations */
+@keyframes swipeHintLeft {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-10px); }
+}
+
+@keyframes swipeHintRight {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+
+.swipe-hint-animation-left {
+  animation: swipeHintLeft 2s ease-in-out infinite;
+}
+
+.swipe-hint-animation-right {
+  animation: swipeHintRight 2s ease-in-out infinite;
+}
+
+/* Landscape adjustments */
+@media (orientation: landscape) and (max-height: 600px) {
+  .swipeable-chart-container {
+    height: 200px;
+  }
+  
+  .swipeable-card-wrapper {
+    margin-bottom: 4px;
+  }
+  
+  .swipeable-favorite-card {
+    padding: 6px !important;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .swipeable-favorite-card,
+  .swipeable-chart-wrapper,
+  .chart-dot,
+  .swipe-indicator {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .swipeable-favorite-card {
+    border: 2px solid var(--mantine-color-text);
+  }
+  
+  .delete-confirm-overlay {
+    background: var(--mantine-color-red-9);
+  }
+}

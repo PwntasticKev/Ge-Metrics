@@ -17,6 +17,7 @@ import {
   PinInput
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
   IconBrandGoogle,
@@ -43,6 +44,10 @@ const Login = () => {
   const [showVerificationAlert, setShowVerificationAlert] = useState(false)
   const { isLoadingUser, userError, login, loginWithOtp, isLoggingIn } = useAuth()
   const resendVerification = trpc.auth.resendVerificationEmail.useMutation()
+  
+  // Responsive breakpoints
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const isTablet = useMediaQuery('(max-width: 1024px)')
   
   const verificationEmail = searchParams.get('email')
 
@@ -330,23 +335,24 @@ const Login = () => {
         }
       `}</style>
 
-      {/* Left Side - Image Panel */}
-      <Box
-        className="left-panel"
-        style={{
-          width: '50%',
-          minHeight: '100vh',
-          background: `linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%), url(${bgImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
+      {/* Left Side - Image Panel - Hidden on mobile */}
+      {!isMobile && (
+        <Box
+          className="left-panel"
+          style={{
+            width: isTablet ? '40%' : '50%',
+            minHeight: '100vh',
+            background: `linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%), url(${bgImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
         {/* Animated overlay */}
         <div style={{
           position: 'absolute',
@@ -378,7 +384,7 @@ const Login = () => {
               order={1} 
               className="shimmer-text"
               style={{
-                fontSize: '48px',
+                fontSize: isTablet ? '36px' : '48px',
                 fontWeight: 700,
                 textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
                 letterSpacing: '2px'
@@ -400,7 +406,7 @@ const Login = () => {
           <Title 
             order={2} 
             style={{
-              fontSize: '36px',
+              fontSize: isTablet ? '28px' : '36px',
               fontWeight: 600,
               color: 'white',
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
@@ -442,18 +448,19 @@ const Login = () => {
           </Stack>
         </Box>
       </Box>
+      )}
 
-      {/* Right Side - Form Panel */}
+      {/* Right Side - Form Panel - Full width on mobile */}
       <Box
         className="right-panel"
         style={{
-          width: '50%',
+          width: isMobile ? '100%' : (isTablet ? '60%' : '50%'),
           minHeight: '100vh',
-          background: '#141517',
+          background: isMobile ? 'linear-gradient(135deg, #141517 0%, #25262b 100%)' : '#141517',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '40px',
+          padding: isMobile ? '20px' : (isTablet ? '30px' : '40px'),
           position: 'relative'
         }}
       >
@@ -461,22 +468,32 @@ const Login = () => {
           className="form-card"
           style={{
             width: '100%',
-            maxWidth: '450px',
+            maxWidth: isMobile ? '100%' : '450px',
             background: '#1A1B1E',
-            padding: '40px',
-            borderRadius: '16px',
+            padding: isMobile ? '20px' : (isTablet ? '30px' : '40px'),
+            borderRadius: isMobile ? '12px' : '16px',
             border: '2px solid #25262b',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            boxShadow: isMobile ? '0 10px 30px rgba(0, 0, 0, 0.3)' : '0 20px 60px rgba(0, 0, 0, 0.5)',
             animation: 'glow 3s ease-in-out infinite'
           }}
         >
           {/* Header */}
           <Box style={{
             textAlign: 'center',
-            marginBottom: '32px'
+            marginBottom: isMobile ? '24px' : '32px'
           }}>
+            {/* Show logo on mobile */}
+            {isMobile && (
+              <Group spacing="xs" position="center" mb="md">
+                <IconCoins size={28} color="#ffd700" />
+                <Title order={3} style={{ color: '#ffd700', fontWeight: 700 }}>
+                  GE Metrics
+                </Title>
+                <IconCoins size={28} color="#ffd700" />
+              </Group>
+            )}
             <Title order={2} style={{
-              fontSize: '28px',
+              fontSize: isMobile ? '24px' : '28px',
               fontWeight: 700,
               background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
               WebkitBackgroundClip: 'text',
@@ -486,7 +503,7 @@ const Login = () => {
             }}>
               {twoFactorRequired ? 'Enter Verification Code' : 'Welcome Back'}
             </Title>
-            <Text size="sm" color="#C1C2C5">
+            <Text size={isMobile ? "xs" : "sm"} color="#C1C2C5">
               {twoFactorRequired
                 ? 'Enter the 6-digit code from your authenticator app.'
                 : 'Sign in to continue trading'}
@@ -558,17 +575,17 @@ const Login = () => {
                   value={otp}
                   onChange={setOtp}
                   length={6}
-                  size="lg"
+                  size={isMobile ? "md" : "lg"}
                   styles={{
                     input: {
                       border: '3px solid #373A40',
-                      borderRadius: '12px',
-                      fontSize: '20px',
+                      borderRadius: isMobile ? '8px' : '12px',
+                      fontSize: isMobile ? '16px' : '20px',
                       fontWeight: 700,
                       backgroundColor: '#25262b',
                       color: '#ffffff',
-                      width: '50px',
-                      height: '60px',
+                      width: isMobile ? '40px' : '50px',
+                      height: isMobile ? '48px' : '60px',
                       transition: 'all 0.3s ease'
                     }
                   }}
@@ -591,24 +608,32 @@ const Login = () => {
                 fullWidth
                 size="lg"
                 loading={isLoggingIn}
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: '16px',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                  color: '#ffffff',
-                  height: '48px',
-                  borderRadius: '12px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.5)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)'
-                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)'
+                styles={{
+                  root: {
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                    color: '#ffffff',
+                    height: '48px',
+                    borderRadius: '12px',
+                    display: 'block',
+                    width: '100%',
+                    '&:hover': {
+                      transform: 'translateY(-2px) scale(1.02)',
+                      boxShadow: '0 8px 25px rgba(102, 126, 234, 0.5)',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    }
+                  },
+                  label: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%'
+                  }
                 }}
               >
                 Verify & Log In
@@ -622,18 +647,18 @@ const Login = () => {
                   label="Email or RuneScape username"
                   placeholder="Enter your email or username"
                   required
-                  size="lg"
-                  icon={<IconMail size={20} />}
+                  size={isMobile ? "md" : "lg"}
+                  icon={<IconMail size={isMobile ? 18 : 20} />}
                   {...form.getInputProps('identifier', { withError: false })}
                   styles={{
                     input: {
                       border: '3px solid #373A40',
-                      borderRadius: '12px',
+                      borderRadius: isMobile ? '8px' : '12px',
                       backgroundColor: '#25262b',
                       color: '#ffffff',
-                      fontSize: '16px',
-                      height: '52px',
-                      paddingLeft: '48px',
+                      fontSize: isMobile ? '14px' : '16px',
+                      height: isMobile ? '44px' : '52px',
+                      paddingLeft: isMobile ? '40px' : '48px',
                       transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease',
                       '&:focus': {
                         borderColor: '#ffd700',
@@ -664,18 +689,18 @@ const Login = () => {
                   label="Password"
                   placeholder="Enter your password"
                   required
-                  size="lg"
-                  icon={<IconLock size={20} />}
+                  size={isMobile ? "md" : "lg"}
+                  icon={<IconLock size={isMobile ? 18 : 20} />}
                   {...form.getInputProps('password', { withError: false })}
                   styles={{
                     input: {
                       border: '3px solid #373A40',
-                      borderRadius: '12px',
+                      borderRadius: isMobile ? '8px' : '12px',
                       backgroundColor: '#25262b',
                       color: '#ffffff',
-                      fontSize: '16px',
-                      height: '52px',
-                      paddingLeft: '48px',
+                      fontSize: isMobile ? '14px' : '16px',
+                      height: isMobile ? '44px' : '52px',
+                      paddingLeft: isMobile ? '40px' : '48px',
                       transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease',
                       '&:focus': {
                         borderColor: '#ffd700',
@@ -747,27 +772,35 @@ const Login = () => {
                 <Button
                   type="submit"
                   fullWidth
-                  size="lg"
+                  size={isMobile ? "md" : "lg"}
                   loading={isLoggingIn}
-                  leftIcon={<IconCoins size={20} />}
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                    color: '#ffffff',
-                    height: '56px',
-                    borderRadius: '12px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)'
-                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.6)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0) scale(1)'
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)'
+                  leftIcon={<IconCoins size={isMobile ? 18 : 20} />}
+                  styles={{
+                    root: {
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: isMobile ? '14px' : '16px',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                      color: '#ffffff',
+                      height: isMobile ? '44px' : '56px',
+                      borderRadius: isMobile ? '8px' : '12px',
+                      display: 'block',
+                      width: '100%',
+                      '&:hover': {
+                        transform: 'translateY(-3px) scale(1.02)',
+                        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.6)',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      }
+                    },
+                    label: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '100%'
+                    }
                   }}
                 >
                   Log In
@@ -793,33 +826,37 @@ const Login = () => {
 
               <Button
                 fullWidth
-                size="lg"
+                size={isMobile ? "md" : "lg"}
                 variant="outline"
-                leftIcon={<IconBrandGoogle size={20} />}
+                leftIcon={<IconBrandGoogle size={isMobile ? 18 : 20} />}
                 onClick={handleGoogleLogin}
-                style={{
-                  border: '3px solid #373A40',
-                  color: '#C1C2C5',
-                  backgroundColor: '#25262b',
-                  fontWeight: 600,
-                  fontSize: '16px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#667eea'
-                  e.currentTarget.style.color = '#ffffff'
-                  e.currentTarget.style.backgroundColor = '#2C2E33'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.2)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#373A40'
-                  e.currentTarget.style.color = '#C1C2C5'
-                  e.currentTarget.style.backgroundColor = '#25262b'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = 'none'
+                styles={{
+                  root: {
+                    border: '3px solid #373A40',
+                    color: '#C1C2C5',
+                    backgroundColor: '#25262b',
+                    fontWeight: 600,
+                    fontSize: isMobile ? '14px' : '16px',
+                    height: isMobile ? '44px' : '52px',
+                    borderRadius: isMobile ? '8px' : '12px',
+                    transition: 'all 0.3s ease',
+                    display: 'block',
+                    width: '100%',
+                    '&:hover': {
+                      borderColor: '#667eea',
+                      color: '#ffffff',
+                      backgroundColor: '#2C2E33',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)'
+                    }
+                  },
+                  label: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%'
+                  }
                 }}
               >
                 Continue with Google

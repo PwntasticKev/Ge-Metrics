@@ -15,8 +15,7 @@ import {
   Title,
   Container,
   ActionIcon,
-  Tooltip,
-  Pagination
+  Tooltip
 } from '@mantine/core'
 import {
   IconClock,
@@ -34,6 +33,8 @@ import { getRelativeTime } from '../../utils/utils.jsx'
 import ItemData from '../../utils/item-data.jsx'
 import MoneyMakingMethodsTable from '../MoneyMakingMethods/components/MoneyMakingMethodsTable.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
+import { InfiniteScrollTable } from '../../components/InfiniteScroll/InfiniteScrollTable'
+import { formatNumber } from '../../utils/formatters'
 
 const CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -63,26 +64,36 @@ export default function GlobalMoneyMakingMethods() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedDifficulty, setSelectedDifficulty] = useState('')
   const [sortBy, setSortBy] = useState('profitPerHour')
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 25
 
-  // Fetch global methods (approved methods visible to all users)
-  const { 
-    data: globalMethods, 
-    isLoading, 
-    error, 
-    refetch: refetchMethods 
-  } = trpc.moneyMakingMethods.getGlobalMethods.useQuery({
-    limit: itemsPerPage,
-    offset: (currentPage - 1) * itemsPerPage,
-    category: selectedCategory || undefined,
-    difficulty: selectedDifficulty || undefined,
-    sortBy: sortBy,
-    sortOrder: 'desc'
-  })
+  // Get TRPC utils for queries
+  const trpcUtils = trpc.useUtils()
+  
+  // Fetch data function for infinite scroll
+  const fetchGlobalMethods = React.useCallback(async ({ offset, limit, search, filters, sortBy: sortByParam, sortOrder }) => {
+    try {
+      const result = await trpcUtils.moneyMakingMethods.getGlobalMethods.fetch({
+        limit,
+        offset,
+        category: selectedCategory || undefined,
+        difficulty: selectedDifficulty || undefined,
+        sortBy: sortByParam || sortBy,
+        sortOrder: sortOrder || 'desc',
+        search: searchQuery
+      })
+      
+      return {
+        data: result || [],
+        totalCount: globalStats?.approved || 0,
+        hasMore: result && result.length >= limit
+      }
+    } catch (error) {
+      console.error('Error fetching global methods:', error)
+      throw error
+    }
+  }, [selectedCategory, selectedDifficulty, sortBy, searchQuery, trpcUtils.moneyMakingMethods.getGlobalMethods, globalStats?.approved])
 
-  // Get global stats
-  const { data: globalStats } = trpc.moneyMakingMethods.getAdminStats.useQuery()
+  // Get global stats - using a public endpoint
+  const { data: globalStats } = trpc.moneyMakingMethods.getGlobalStats.useQuery()
 
   // Update current time every second
   React.useEffect(() => {
@@ -92,61 +103,90 @@ export default function GlobalMoneyMakingMethods() {
     return () => clearInterval(interval)
   }, [])
 
-  // Reset pagination when filters change
-  React.useEffect(() => {
-    setCurrentPage(1)
-  }, [selectedCategory, selectedDifficulty, sortBy, searchQuery])
 
-  const handleRefresh = () => {
-    refetchMethods()
-  }
 
   const handleClearFilters = () => {
     setSearchQuery('')
     setSelectedCategory('')
     setSelectedDifficulty('')
     setSortBy('profitPerHour')
-    setCurrentPage(1)
   }
 
-  // Filter methods locally by search query
-  const filteredMethods = React.useMemo(() => {
-    if (!globalMethods || !searchQuery) return globalMethods || []
+  // Render individual method card
+  const renderMethodCard = React.useCallback((method, index) => {
+    const DIFFICULTY_COLORS = {
+      easy: 'green',
+      medium: 'orange', 
+      hard: 'red',
+      elite: 'violet'
+    }
     
-    const query = searchQuery.toLowerCase()
-    return globalMethods.filter(method => 
-      method.methodName.toLowerCase().includes(query) ||
-      method.description.toLowerCase().includes(query) ||
-      method.username.toLowerCase().includes(query)
-    )
-  }, [globalMethods, searchQuery])
-
-  const totalMethods = globalStats?.approved || 0
-  const totalPages = Math.ceil(totalMethods / itemsPerPage)
-
-  if (isLoading) {
+    const CATEGORY_COLORS = {
+      skilling: 'blue',
+      pvm: 'red',
+      merching: 'orange'
+    }
+    
+    const formatProfitPerHour = (profit) => {
+      if (!profit || profit === 0) return 'Calculating...'
+      return formatNumber(profit) + ' gp/hr'
+    }
+    
     return (
-      <PremiumPageWrapper>
-        <Container size="xl" py="md">
-          <Center style={{ height: '50vh' }}>
-            <Loader size="lg" />
-          </Center>
-        </Container>
-      </PremiumPageWrapper>
+      <Card key={method.id} withBorder p="md" style={{ marginBottom: '8px' }}>
+        <Group position="apart" align="flex-start">
+          <Stack spacing={4} style={{ flex: 1 }}>
+            <Group spacing="xs">
+              <Text weight={600} size="sm">{method.methodName}</Text>
+              <Badge color="green" variant="filled" size="sm">Global</Badge>
+            </Group>
+            
+            <Text size="xs" color="dimmed" lineClamp={2}>
+              {method.description}
+            </Text>
+            
+            <Group spacing="md">
+              <Group spacing="xs">
+                <Badge 
+                  color={CATEGORY_COLORS[method.category]} 
+                  variant="light" 
+                  size="sm"
+                  style={{ textTransform: 'capitalize' }}
+                >
+                  {method.category}
+                </Badge>
+                <Badge 
+                  color={DIFFICULTY_COLORS[method.difficulty]} 
+                  variant="light" 
+                  size="sm"
+                  style={{ textTransform: 'capitalize' }}
+                >
+                  {method.difficulty}
+                </Badge>
+              </Group>
+              
+              <Text size="xs" color="dimmed">by @{method.username}</Text>
+              
+              <Group spacing="xs">
+                <IconClock size={12} />
+                <Text size="xs" color="dimmed">
+                  {getRelativeTime(method.createdAt)}
+                </Text>
+              </Group>
+            </Group>
+          </Stack>
+          
+          <Group spacing="xs" align="center">
+            <IconCoin size={14} color="gold" />
+            <Text size="sm" weight={600} color="green">
+              {formatProfitPerHour(method.profitPerHour)}
+            </Text>
+          </Group>
+        </Group>
+      </Card>
     )
-  }
+  }, [])
 
-  if (error) {
-    return (
-      <PremiumPageWrapper>
-        <Container size="xl" py="md">
-          <Alert color="red" icon={<IconInfoCircle size={16} />}>
-            Error loading global money making methods: {error.message}
-          </Alert>
-        </Container>
-      </PremiumPageWrapper>
-    )
-  }
 
   return (
     <PremiumPageWrapper>
@@ -167,14 +207,6 @@ export default function GlobalMoneyMakingMethods() {
                   <span>{getRelativeTime(new Date(), currentTime)}</span>
                 </Group>
               </Badge>
-              <ActionIcon
-                variant="subtle"
-                size="lg"
-                onClick={handleRefresh}
-                loading={isLoading}
-              >
-                <IconRefresh size={16} />
-              </ActionIcon>
             </Group>
           </Group>
 
@@ -190,41 +222,6 @@ export default function GlobalMoneyMakingMethods() {
               </Group>
             </Card>
             
-            <Card withBorder>
-              <Group spacing="xs">
-                <IconTarget size={20} color="blue" />
-                <div>
-                  <Text size="sm" color="dimmed">Skilling Methods</Text>
-                  <Text weight={600} size="lg">
-                    {filteredMethods?.filter(m => m.category === 'skilling').length || 0}
-                  </Text>
-                </div>
-              </Group>
-            </Card>
-
-            <Card withBorder>
-              <Group spacing="xs">
-                <IconSword size={20} color="red" />
-                <div>
-                  <Text size="sm" color="dimmed">PvM Methods</Text>
-                  <Text weight={600} size="lg">
-                    {filteredMethods?.filter(m => m.category === 'pvm').length || 0}
-                  </Text>
-                </div>
-              </Group>
-            </Card>
-
-            <Card withBorder>
-              <Group spacing="xs">
-                <IconCoin size={20} color="orange" />
-                <div>
-                  <Text size="sm" color="dimmed">Trading Methods</Text>
-                  <Text weight={600} size="lg">
-                    {filteredMethods?.filter(m => m.category === 'merching').length || 0}
-                  </Text>
-                </div>
-              </Group>
-            </Card>
           </Group>
 
           {/* Filters */}
@@ -274,58 +271,58 @@ export default function GlobalMoneyMakingMethods() {
             </Stack>
           </Card>
 
-          {/* Methods Table */}
-          {filteredMethods && filteredMethods.length > 0 ? (
-            <Stack spacing="md">
-              <MoneyMakingMethodsTable
-                methods={filteredMethods}
-                onEdit={() => {}} // No edit for global methods
-                onDelete={() => {}} // No delete for global methods
-                showActions={false}
-                showUser={true}
-              />
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
+          {/* Infinite Scroll Methods */}
+          <InfiniteScrollTable
+            fetchData={fetchGlobalMethods}
+            renderItem={renderMethodCard}
+            initialLoadSize={30}
+            loadMoreSize={20}
+            searchQuery={searchQuery}
+            filters={{ category: selectedCategory, difficulty: selectedDifficulty }}
+            sortBy={sortBy}
+            sortOrder="desc"
+            itemHeight={120}
+            showStats={true}
+            showScrollToTop={true}
+            ariaLabel="Global money making methods"
+            containerHeight="600px"
+            renderEmpty={() => (
+              <Card withBorder py="xl">
                 <Center>
-                  <Pagination
-                    value={currentPage}
-                    onChange={setCurrentPage}
-                    total={totalPages}
-                    size="md"
-                    withEdges
-                  />
+                  <Stack align="center" spacing="md">
+                    <IconInfoCircle size={48} color="gray" />
+                    <div style={{ textAlign: 'center' }}>
+                      <Text weight={600} size="lg">
+                        {searchQuery || selectedCategory || selectedDifficulty
+                          ? 'No methods match your filters'
+                          : 'No approved methods yet'
+                        }
+                      </Text>
+                      <Text color="dimmed" size="sm">
+                        {searchQuery || selectedCategory || selectedDifficulty
+                          ? 'Try adjusting your search criteria'
+                          : 'Be the first to contribute! Create methods in "My Money Making Methods"'
+                        }
+                      </Text>
+                    </div>
+                    {(searchQuery || selectedCategory || selectedDifficulty) && (
+                      <Button onClick={handleClearFilters}>
+                        Clear Filters
+                      </Button>
+                    )}
+                  </Stack>
                 </Center>
-              )}
-            </Stack>
-          ) : (
-            <Card withBorder py="xl">
-              <Center>
-                <Stack align="center" spacing="md">
-                  <IconInfoCircle size={48} color="gray" />
-                  <div style={{ textAlign: 'center' }}>
-                    <Text weight={600} size="lg">
-                      {searchQuery || selectedCategory || selectedDifficulty
-                        ? 'No methods match your filters'
-                        : 'No approved methods yet'
-                      }
-                    </Text>
-                    <Text color="dimmed" size="sm">
-                      {searchQuery || selectedCategory || selectedDifficulty
-                        ? 'Try adjusting your search criteria'
-                        : 'Be the first to contribute! Create methods in "My Money Making Methods"'
-                      }
-                    </Text>
-                  </div>
-                  {(searchQuery || selectedCategory || selectedDifficulty) && (
-                    <Button onClick={handleClearFilters}>
-                      Clear Filters
-                    </Button>
-                  )}
-                </Stack>
-              </Center>
-            </Card>
-          )}
+              </Card>
+            )}
+            renderError={(error, retry) => (
+              <Alert color="red" icon={<IconInfoCircle size={16} />}>
+                <Group position="apart">
+                  <Text>Error loading global money making methods: {error.message}</Text>
+                  <Button size="xs" onClick={retry}>Retry</Button>
+                </Group>
+              </Alert>
+            )}
+          />
 
           {/* Help Card */}
           <Card withBorder style={{ backgroundColor: 'rgba(34, 139, 34, 0.1)' }}>

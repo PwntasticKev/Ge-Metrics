@@ -1,4 +1,5 @@
 import { showNotification } from '@mantine/notifications'
+import { safeResponseJson } from '../utils/safeJsonParser.js'
 
 // Available subscription plans
 const SUBSCRIPTION_PLANS = {
@@ -85,7 +86,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to fetch users')
       }
 
-      const users = await response.json()
+      const users = await safeResponseJson(response, {})
       return users.map(user => ({
         ...user,
         subscription: user.subscription || null,
@@ -119,7 +120,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to fetch user')
       }
 
-      const user = await response.json()
+      const user = await safeResponseJson(response, {})
       return {
         ...user,
         subscription: user.subscription || null,
@@ -155,11 +156,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to create subscription')
       }
 
-      const subscription = await response.json()
+      const subscription = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -194,11 +195,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to update subscription')
       }
 
-      const subscription = await response.json()
+      const subscription = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -233,11 +234,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to cancel subscription')
       }
 
-      const subscription = await response.json()
+      const subscription = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -271,11 +272,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to reactivate subscription')
       }
 
-      const subscription = await response.json()
+      const subscription = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -313,11 +314,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to upgrade subscription')
       }
 
-      const subscription = await response.json()
+      const subscription = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -355,11 +356,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to downgrade subscription')
       }
 
-      const subscription = await response.json()
+      const subscription = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -396,7 +397,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to fetch subscription stats')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Error fetching subscription stats:', error)
       showNotification({
@@ -433,7 +434,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to fetch expiring subscriptions')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Error fetching expiring subscriptions:', error)
       return []
@@ -461,7 +462,7 @@ class SubscriptionManagementService {
         return false
       }
 
-      const result = await response.json()
+      const result = await safeResponseJson(response, {})
       return result.hasAccess
     } catch (error) {
       console.error('Error checking feature access:', error)
@@ -486,7 +487,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to fetch user plan details')
       }
 
-      const planDetails = await response.json()
+      const planDetails = await safeResponseJson(response, {})
       return {
         ...planDetails,
         plan: planDetails.plan ? this.getPlan(planDetails.plan.id) : null
@@ -528,7 +529,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to search users')
       }
 
-      const users = await response.json()
+      const users = await safeResponseJson(response, {})
       return users.map(user => ({
         ...user,
         subscription: user.subscription || null,
@@ -601,11 +602,11 @@ class SubscriptionManagementService {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await safeResponseJson(response, {})
         throw new Error(error.message || 'Failed to send mass message')
       }
 
-      const result = await response.json()
+      const result = await safeResponseJson(response, {})
 
       showNotification({
         title: 'Success',
@@ -642,7 +643,7 @@ class SubscriptionManagementService {
         throw new Error('Failed to fetch message templates')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Error fetching message templates:', error)
       return {

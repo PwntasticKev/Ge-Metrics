@@ -23,8 +23,20 @@ dependencies {
 	
 	// JSON serialization
 	implementation 'com.google.code.gson:gson:2.10.1'
+	
+	// SQLite for local persistence
+	implementation 'org.xerial:sqlite-jdbc:3.41.0.0'
 
-	testImplementation 'junit:junit:4.12'
+	// Modern testing framework (JUnit 5)
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+	testImplementation 'org.mockito:mockito-core:5.1.1'
+	testImplementation 'org.mockito:mockito-junit-jupiter:5.1.1'
+	testImplementation 'org.assertj:assertj-core:3.24.2'
+	
+	// HTTP mocking for API tests
+	testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+	
+	// RuneLite test dependencies
 	testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
 }
@@ -43,5 +55,19 @@ tasks.withType(JavaCompile) {
 
 tasks.withType(JavaCompile) {
 	options.release.set(11)
+}
+
+// Enable JUnit 5
+test {
+	useJUnitPlatform()
+	
+	// Test configuration
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = false
+	}
+	
+	// JVM arguments for tests
+	jvmArgs '-XX:MaxPermSize=256m'
 }
 

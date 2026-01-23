@@ -1,5 +1,6 @@
 // Stripe Service for GE Metrics
 // Handles subscription management, payments, and checkout flows
+import { safeResponseJson } from '../utils/safeJsonParser.js'
 
 class StripeService {
   constructor () {
@@ -58,7 +59,7 @@ class StripeService {
         throw new Error('Failed to create checkout session')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Checkout session creation failed:', error)
       throw error
@@ -101,7 +102,7 @@ class StripeService {
         throw new Error('Failed to create subscription')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Subscription creation failed:', error)
       throw error
@@ -127,7 +128,7 @@ class StripeService {
         throw new Error('Failed to update subscription')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Subscription update failed:', error)
       throw error
@@ -153,7 +154,7 @@ class StripeService {
         throw new Error('Failed to cancel subscription')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Subscription cancellation failed:', error)
       throw error
@@ -179,7 +180,7 @@ class StripeService {
         throw new Error('Failed to create portal session')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Portal session creation failed:', error)
       throw error
@@ -204,7 +205,8 @@ class StripeService {
         throw new Error('Failed to create setup intent')
       }
 
-      const { clientSecret } = await response.json()
+      const result = await safeResponseJson(response, {})
+      const { clientSecret } = result || {}
       return clientSecret
     } catch (error) {
       console.error('Setup intent creation failed:', error)
@@ -249,7 +251,7 @@ class StripeService {
         throw new Error('Failed to get subscription')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Failed to get subscription:', error)
       throw error
@@ -270,7 +272,7 @@ class StripeService {
         throw new Error('Failed to get customer')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Failed to get customer:', error)
       throw error
@@ -291,7 +293,7 @@ class StripeService {
         throw new Error('Failed to get payment methods')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Failed to get payment methods:', error)
       throw error
@@ -314,7 +316,7 @@ class StripeService {
         throw new Error('Failed to create customer')
       }
 
-      return await response.json()
+      return await safeResponseJson(response, {})
     } catch (error) {
       console.error('Customer creation failed:', error)
       throw error

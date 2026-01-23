@@ -1,0 +1,500 @@
+/* Landscape Mode Optimization for Mobile Gaming */
+/* Designed for OSRS players in landscape orientation */
+
+/* Landscape Base Configuration */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  /* Reduce header height in landscape */
+  .mantine-AppShell-header,
+  .header-nav {
+    height: 40px !important;
+    padding: 4px 12px !important;
+  }
+
+  /* Adjust main content for smaller header */
+  .main-content {
+    padding-top: 40px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  /* Compact title and logo */
+  .header-logo {
+    height: 24px !important;
+  }
+
+  .header-title {
+    font-size: 14px !important;
+  }
+
+  /* Smaller navigation items */
+  .mantine-Navbar-root {
+    padding: 4px !important;
+  }
+
+  .nav-link {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+
+  /* Optimize scroll areas */
+  .mantine-ScrollArea-viewport {
+    max-height: calc(100vh - 48px) !important;
+  }
+
+  /* Compact cards */
+  .mantine-Card-root {
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Smaller buttons for more screen real estate */
+  .mantine-Button-root {
+    height: 32px !important;
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Compact forms */
+  .mantine-TextInput-wrapper,
+  .mantine-Select-wrapper,
+  .mantine-NumberInput-wrapper {
+    margin-bottom: 6px !important;
+  }
+
+  .mantine-TextInput-input,
+  .mantine-Select-input,
+  .mantine-NumberInput-input {
+    height: 32px !important;
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Optimize modals for landscape */
+  .mantine-Modal-modal {
+    max-height: calc(100vh - 16px) !important;
+    margin: 8px !important;
+  }
+
+  .mantine-Modal-header {
+    padding: 8px 12px !important;
+  }
+
+  .mantine-Modal-body {
+    padding: 8px 12px !important;
+    max-height: calc(100vh - 100px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Gaming-Specific Landscape (phones held horizontally) */
+@media screen and (orientation: landscape) and (max-height: 450px) {
+  /* Ultra-compact mode for gaming */
+  
+  /* Minimal header */
+  .mantine-AppShell-header {
+    height: 36px !important;
+    padding: 2px 8px !important;
+  }
+
+  .main-content {
+    padding-top: 36px !important;
+    padding: 4px !important;
+  }
+
+  /* Hide non-essential header elements */
+  .header-secondary-actions {
+    display: none !important;
+  }
+
+  /* Compact tables for data visibility */
+  .mantine-Table-root {
+    font-size: 11px !important;
+  }
+
+  .mantine-Table-root th,
+  .mantine-Table-root td {
+    padding: 2px 4px !important;
+    height: 24px !important;
+  }
+
+  /* Inline badges to save vertical space */
+  .mantine-Badge-root {
+    padding: 1px 4px !important;
+    font-size: 9px !important;
+    height: 16px !important;
+  }
+
+  /* Compact grid layouts */
+  .mantine-Grid-col {
+    padding: 2px !important;
+  }
+
+  /* Stack less, use horizontal layouts more */
+  .mantine-Stack-root {
+    gap: 4px !important;
+  }
+
+  .mantine-Group-root {
+    gap: 4px !important;
+  }
+
+  /* Optimize charts for landscape */
+  .recharts-wrapper {
+    max-height: 200px !important;
+  }
+
+  /* Compact tabs */
+  .mantine-Tabs-tab {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    min-height: 28px !important;
+  }
+
+  /* Minimize spacing between sections */
+  .section-divider {
+    margin: 4px 0 !important;
+  }
+
+  /* Optimize scrollbars for landscape */
+  ::-webkit-scrollbar {
+    width: 4px !important;
+    height: 4px !important;
+  }
+
+  /* Hide floating action buttons in ultra-compact mode */
+  .floating-action-button {
+    bottom: 4px !important;
+    right: 4px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+/* Split-Screen Gaming Mode (for tablets and larger phones) */
+@media screen and (orientation: landscape) and (min-width: 768px) and (max-height: 600px) {
+  /* Optimize for split-screen with game */
+  
+  /* Two-column layout for better use of horizontal space */
+  .gaming-split-layout {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Sidebar navigation in landscape */
+  .mantine-AppShell-navbar {
+    width: 60px !important;
+    padding: 4px !important;
+  }
+
+  .navbar-expanded .mantine-AppShell-navbar {
+    width: 180px !important;
+  }
+
+  /* Optimize data tables for side-by-side viewing */
+  .data-table-container {
+    max-height: calc(100vh - 56px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Compact but readable text */
+  body {
+    font-size: 13px !important;
+  }
+
+  /* Optimize flip tracking for landscape */
+  .flip-card {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Price cards in horizontal layout */
+  .price-card-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 8px !important;
+  }
+
+  .price-card {
+    min-width: 140px !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Touch Optimization for Landscape Gaming */
+@media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  /* Larger touch targets for landscape gaming */
+  
+  .touch-target {
+    min-width: 44px !important;
+    min-height: 36px !important;
+  }
+
+  /* Swipeable areas */
+  .swipeable-container {
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Optimized dropdown menus */
+  .mantine-Menu-dropdown {
+    max-height: calc(100vh - 16px) !important;
+  }
+
+  .mantine-Menu-item {
+    padding: 8px 12px !important;
+    min-height: 36px !important;
+  }
+
+  /* Touch-friendly tabs */
+  .mantine-Tabs-tab {
+    min-width: 60px !important;
+    padding: 6px 12px !important;
+  }
+
+  /* Optimize select dropdowns for touch */
+  .mantine-Select-dropdown {
+    max-height: 200px !important;
+  }
+
+  .mantine-Select-item {
+    padding: 8px !important;
+    min-height: 36px !important;
+  }
+}
+
+/* Specific Optimizations for Common Pages in Landscape */
+
+/* Profile/Dashboard in Landscape */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .profile-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  .profile-stat-card {
+    padding: 4px !important;
+  }
+
+  .profile-chart {
+    max-height: 180px !important;
+  }
+}
+
+/* Flip Tracker in Landscape */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .flip-tracker-table {
+    font-size: 11px !important;
+  }
+
+  .flip-row {
+    height: 28px !important;
+  }
+
+  .flip-actions {
+    display: flex !important;
+    gap: 2px !important;
+  }
+
+  .flip-action-button {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Potion Calculator in Landscape */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .potion-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 4px !important;
+    max-height: calc(100vh - 80px) !important;
+    overflow-y: auto !important;
+  }
+
+  .potion-card {
+    padding: 4px 6px !important;
+  }
+
+  .potion-profit {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Market Watch in Landscape */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .market-item-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  .market-item-card {
+    padding: 4px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .market-item-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .market-item-details {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .market-item-name {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .market-item-price {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Bottom Navigation for Landscape Gaming */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 36px !important;
+    background: var(--mantine-color-body) !important;
+    border-top: 1px solid var(--mantine-color-gray-3) !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    z-index: 200 !important;
+    padding: 0 8px !important;
+  }
+
+  .bottom-nav-item {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    padding: 2px !important;
+    font-size: 10px !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s !important;
+  }
+
+  .bottom-nav-item:hover {
+    background-color: var(--mantine-color-gray-1) !important;
+  }
+
+  .bottom-nav-icon {
+    width: 16px !important;
+    height: 16px !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* Adjust content for bottom nav */
+  .main-content {
+    padding-bottom: 40px !important;
+  }
+}
+
+/* Auto-Hide Header in Landscape for Maximum Gaming Space */
+@media screen and (orientation: landscape) and (max-height: 450px) {
+  .auto-hide-header {
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .auto-hide-header.visible {
+    transform: translateY(0);
+  }
+
+  .main-content.header-hidden {
+    padding-top: 4px !important;
+  }
+}
+
+/* Performance Optimizations for Landscape */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  /* Reduce animations for better performance */
+  * {
+    animation-duration: 0.1s !important;
+    transition-duration: 0.1s !important;
+  }
+
+  /* Optimize shadows */
+  .mantine-Card-root,
+  .mantine-Paper-root {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Simplify backgrounds */
+  .gradient-background {
+    background: var(--mantine-color-body) !important;
+  }
+
+  /* Optimize images */
+  img {
+    image-rendering: optimizeSpeed !important;
+  }
+}
+
+/* Dark Mode Optimizations for Gaming */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  [data-mantine-color-scheme="dark"] {
+    /* Higher contrast for gaming visibility */
+    --mantine-color-text: #ffffff !important;
+    --mantine-color-dimmed: #b0b0b0 !important;
+  }
+
+  [data-mantine-color-scheme="dark"] .mantine-Card-root {
+    background-color: rgba(26, 27, 30, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  [data-mantine-color-scheme="dark"] .profit-positive {
+    color: #69db7c !important;
+    font-weight: 600 !important;
+  }
+
+  [data-mantine-color-scheme="dark"] .profit-negative {
+    color: #ff8787 !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Accessibility in Landscape */
+@media screen and (orientation: landscape) and (max-height: 600px) and (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* High DPI Landscape Screens */
+@media screen and (orientation: landscape) and (max-height: 600px) and (-webkit-min-device-pixel-ratio: 2),
+@media screen and (orientation: landscape) and (max-height: 600px) and (min-resolution: 192dpi) {
+  /* Ensure text remains sharp */
+  body {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+  }
+
+  /* Optimize icons */
+  svg {
+    shape-rendering: crispEdges !important;
+  }
+}

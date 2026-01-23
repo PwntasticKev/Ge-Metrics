@@ -24,11 +24,14 @@ const configSchema = z.object({
   STRIPE_PRICE_MONTHLY: z.string().optional(),
   STRIPE_PRICE_YEARLY: z.string().optional(),
   STRIPE_PRODUCT_PREMIUM: z.string().optional(),
-  // Email Configuration (AWS SES is primary, SMTP is fallback)
+  // AWS Configuration (SES email + S3 backups)
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  AWS_REGION: z.string().optional(),
+  AWS_REGION: z.string().default('us-east-1'),
   SES_FROM_EMAIL: z.string().email().optional(),
+  // S3 Backup Configuration
+  S3_BACKUP_BUCKET: z.string().optional(),
+  CLOUD_BACKUP: z.string().transform(val => val === 'true').optional(),
   FROM_EMAIL: z.string().email().optional(), // Fallback for SMTP
   // SMTP Email Configuration (fallback if SES not configured)
   SMTP_HOST: z.string().optional(),
@@ -53,6 +56,9 @@ if (parsedConfig.CORRECT_DATABASE_URL_UNPOOLED) {
 if (process.env.FRONTEND_URL) {
   parsedConfig.FRONTEND_URL = process.env.FRONTEND_URL
 }
+
+// Debug logging for database connection
+// console.log('[CONFIG_DEBUG] Final DATABASE_URL:', parsedConfig.DATABASE_URL)
 
 export const config = parsedConfig
 

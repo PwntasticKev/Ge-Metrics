@@ -61,7 +61,16 @@
     "docs:claude:list": "bash scripts/claude-docs-helper.sh list",
     "docs:claude:map": "bash scripts/claude-docs-helper.sh map",
     "test:audit": "node scripts/audit-tests.js",
-    "test:create": "node scripts/create-test-template.js"
+    "test:create": "node scripts/create-test-template.js",
+    "backup": "node scripts/backup.js",
+    "backup:create": "node scripts/backup.js create",
+    "backup:restore": "node scripts/backup.js restore",
+    "backup:list": "node scripts/backup.js list",
+    "backup:cleanup": "node scripts/backup.js cleanup",
+    "backup:verify": "node scripts/backup.js verify",
+    "backup:schedule": "node scripts/backup-schedule.js start",
+    "backup:status": "node scripts/backup.js status",
+    "backup:interactive": "node scripts/backup.js interactive"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

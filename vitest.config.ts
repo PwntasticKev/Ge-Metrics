@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'node',
-    // setupFiles: ['./src/test/setup.ts'], // Disabled due to DOM dependency issues
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
     // Integration testing configuration
     poolOptions: {
       threads: {

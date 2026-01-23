@@ -1,0 +1,325 @@
+/**
+ * CSS classes for number formatting utilities
+ * Supports profit/loss colors, emphasis, and responsive display
+ */
+
+/* Profit/Loss Color Classes */
+.profit-positive {
+  color: #51cf66; /* Mantine green.5 */
+  font-weight: 600;
+}
+
+.profit-negative {
+  color: #ff6b6b; /* Mantine red.5 */
+  font-weight: 600;
+}
+
+.profit-neutral {
+  color: #868e96; /* Mantine gray.6 */
+  font-weight: 400;
+}
+
+/* Dark theme overrides */
+[data-mantine-color-scheme="dark"] .profit-positive {
+  color: #69db7c; /* Mantine green.4 */
+}
+
+[data-mantine-color-scheme="dark"] .profit-negative {
+  color: #ff8787; /* Mantine red.4 */
+}
+
+[data-mantine-color-scheme="dark"] .profit-neutral {
+  color: #adb5bd; /* Mantine gray.5 */
+}
+
+/* Price Change Indicators */
+.price-increase {
+  color: #51cf66;
+  font-weight: 600;
+}
+
+.price-increase::before {
+  content: '▲ ';
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+
+.price-decrease {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.price-decrease::before {
+  content: '▼ ';
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+
+.price-neutral {
+  color: #868e96;
+  font-weight: 400;
+}
+
+.price-neutral::before {
+  content: '• ';
+  opacity: 0.6;
+}
+
+/* Dark theme price changes */
+[data-mantine-color-scheme="dark"] .price-increase {
+  color: #69db7c;
+}
+
+[data-mantine-color-scheme="dark"] .price-decrease {
+  color: #ff8787;
+}
+
+[data-mantine-color-scheme="dark"] .price-neutral {
+  color: #adb5bd;
+}
+
+/* Number Emphasis Classes */
+.number-large {
+  font-size: 1.2em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.number-medium {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.number-small {
+  font-size: 0.9em;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.number-tiny {
+  font-size: 0.8em;
+  font-weight: 400;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+/* Currency Styling */
+.currency-gp {
+  color: #ffd700; /* Gold color for GP */
+  font-weight: 600;
+}
+
+.currency-gp .currency-symbol {
+  font-size: 0.9em;
+  margin-left: 2px;
+  opacity: 0.9;
+}
+
+/* Percentage Styling */
+.percentage-positive {
+  color: #51cf66;
+  font-weight: 600;
+}
+
+.percentage-negative {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.percentage-neutral {
+  color: #868e96;
+  font-weight: 400;
+}
+
+/* Compact Number Display */
+.number-compact {
+  font-variant-numeric: tabular-nums; /* Monospace numbers for alignment */
+  letter-spacing: -0.02em; /* Slightly tighter spacing */
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .number-large {
+    font-size: 1.1em;
+  }
+  
+  .number-mobile-compact {
+    font-size: 0.85em;
+    line-height: 1.2;
+  }
+  
+  /* Hide currency symbols on very small screens if needed */
+  @media (max-width: 480px) {
+    .currency-gp .currency-symbol-mobile-hide {
+      display: none;
+    }
+  }
+}
+
+/* Animation for number changes */
+.number-animated {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.number-pulse {
+  animation: numberPulse 0.6s ease-in-out;
+}
+
+@keyframes numberPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 0.8;
+  }
+}
+
+/* Sparkline integration */
+.number-with-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.number-trend-indicator {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+/* Tooltip styling for detailed numbers */
+.number-tooltip {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.85em;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .profit-positive {
+    color: #2b8a3e;
+    background-color: #d3f9d8;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  
+  .profit-negative {
+    color: #c92a2a;
+    background-color: #ffe3e3;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  
+  [data-mantine-color-scheme="dark"] .profit-positive {
+    background-color: #1a472a;
+    color: #69db7c;
+  }
+  
+  [data-mantine-color-scheme="dark"] .profit-negative {
+    background-color: #5c1f1f;
+    color: #ff8787;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .number-animated,
+  .number-pulse {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .profit-positive,
+  .profit-negative,
+  .price-increase,
+  .price-decrease {
+    color: black !important;
+    font-weight: bold;
+  }
+  
+  .profit-positive::after {
+    content: ' (▲)';
+  }
+  
+  .profit-negative::after {
+    content: ' (▼)';
+  }
+}
+
+/* Utility classes for common layouts */
+.numbers-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.numbers-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+/* Responsive number display */
+.number-responsive {
+  font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+  line-height: 1.4;
+}
+
+/* Focus styles for accessibility */
+.number-interactive:focus-visible {
+  outline: 2px solid #339af0;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Loading skeleton for numbers */
+.number-skeleton {
+  background: linear-gradient(90deg, 
+    rgba(206, 212, 218, 0.4) 25%, 
+    rgba(206, 212, 218, 0.6) 50%, 
+    rgba(206, 212, 218, 0.4) 75%);
+  background-size: 200% 100%;
+  animation: numberSkeletonLoad 1.5s infinite;
+  border-radius: 2px;
+  height: 1.2em;
+  min-width: 60px;
+}
+
+@keyframes numberSkeletonLoad {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+[data-mantine-color-scheme="dark"] .number-skeleton {
+  background: linear-gradient(90deg, 
+    rgba(134, 142, 150, 0.4) 25%, 
+    rgba(134, 142, 150, 0.6) 50%, 
+    rgba(134, 142, 150, 0.4) 75%);
+  background-size: 200% 100%;
+}

@@ -1,0 +1,14 @@
+      tablename       
+----------------------
+ blogs
+ game_updates
+ item_admin_clean
+ method_items
+ money_making_methods
+ notifications
+ user_messages
+ user_sessions
+ user_trash_votes
+ users
+(10 rows)
+

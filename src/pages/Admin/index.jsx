@@ -29,19 +29,32 @@ import {
   IconShield,
   IconAlertCircle,
   IconCreditCard,
-  IconMathSymbols
+  IconMathSymbols,
+  IconTrash
 } from '@tabler/icons-react'
 import accessControlService from '../../services/accessControlService.js'
 import { useNavigate } from 'react-router-dom'
 import { trpc } from '../../utils/trpc'
 
 const AdminPage = () => {
+  const navigate = useNavigate()
   const { data: users, isLoading, error } = trpc.admin.getAllUsers.useQuery()
 
   return (
     <div>
-      <Title order={1}>Admin Dashboard</Title>
-      <Text>Welcome to the admin panel. Here you can manage users, view system settings, and more.</Text>
+      <Group position="apart" mb="lg">
+        <div>
+          <Title order={1}>Admin Dashboard</Title>
+          <Text>Welcome to the admin panel. Here you can manage users, view system settings, and more.</Text>
+        </div>
+        <Button 
+          leftIcon={<IconTrash size={16} />}
+          color="orange"
+          onClick={() => navigate('/admin/trash-management')}
+        >
+          Trash Management
+        </Button>
+      </Group>
 
       <Paper withBorder shadow="md" p="md" mt="xl">
         <Title order={3}>User Management</Title>

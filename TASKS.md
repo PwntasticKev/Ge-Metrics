@@ -214,3 +214,8 @@ Track who writes the most tests:
 
 Last Updated: 2026-01-13
 Next Review: 2026-01-14
+## Auto-tracked Tasks
+
+| Date | Type | Task | Test File | Status | Commit |
+|------|------|------|-----------|--------|--------|
+| 2026-01-20 | chore | tests passed | app-smoke.spec.ts, auth-updated.spec.ts, auth.spec.ts, auth.spec.ts.disabled, example.spec.ts, flips-updated.spec.ts, flips.spec.ts, flips.spec.ts.disabled | 🟢 GREEN | 1ca1429 |

@@ -2,8 +2,14 @@ import { z } from 'zod'
 import { publicProcedure, router, subscribedProcedure } from './trpc.js'
 import { db, itemVolumes, itemMapping, connection } from '../db/index.js'
 import { NewItemVolume } from '../db/schema.js'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
+import { 
+  rateLimitedProcedure, 
+  rsWikiLimitedProcedure,
+  rsWikiLimitedSubscribedProcedure,
+  rateLimitedPublicProcedure 
+} from '../middleware/trpcRateLimit.js'
 
 // Cache for getAllItems to prevent excessive RSWiki API calls
 let itemsCache: {
@@ -14,12 +20,26 @@ let itemsCache: {
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes - matches price update cycle
 
 export const itemsRouter = router({
-  // Get all cached item volumes
+  // Get all cached item volumes with pagination
   getAllVolumes: subscribedProcedure
-    .query(async () => {
+    .input(z.object({
+      limit: z.number().min(1).max(1000).default(100),
+      offset: z.number().min(0).default(0)
+    }))
+    .query(async ({ input }) => {
       try {
-        console.log('[getAllVolumes] Fetching item volumes from database...')
-        const allVolumes = await db.select().from(itemVolumes)
+        console.log(`[getAllVolumes] Fetching ${input.limit} item volumes from database (offset: ${input.offset})...`)
+        
+        // Get total count for pagination info
+        const totalCount = await db.select({ count: 'count(*)' }).from(itemVolumes)
+        
+        // Get paginated volumes
+        const allVolumes = await db
+          .select()
+          .from(itemVolumes)
+          .limit(input.limit)
+          .offset(input.offset)
+          
         console.log(`[getAllVolumes] Successfully fetched ${allVolumes.length} item volumes`)
         
         // Convert array to an object for JSON-friendly transfer
@@ -34,22 +54,63 @@ export const itemsRouter = router({
             lastUpdatedAt: item.lastUpdatedAt
           }
         })
-        return volumeMap
+        return {
+          data: volumeMap,
+          pagination: {
+            total: totalCount[0]?.count || 0,
+            limit: input.limit,
+            offset: input.offset,
+            hasMore: (input.offset + allVolumes.length) < (totalCount[0]?.count || 0)
+          }
+        }
       } catch (error) {
         console.error('[getAllVolumes] Error fetching item volumes:', error)
         // Return empty object instead of throwing - volumes can be empty initially
         // This allows the UI to still function without volume data
         console.log('[getAllVolumes] Returning empty volume map due to error')
-        return {}
+        return {
+          data: {},
+          pagination: {
+            total: 0,
+            limit: input.limit,
+            offset: input.offset,
+            hasMore: false
+          }
+        }
       }
     }),
 
-  // Get all item mappings
-  getItemMapping: subscribedProcedure
-    .query(async () => {
+  // Get all item mappings with pagination (rate limited due to potential RS Wiki API calls)
+  getItemMapping: rsWikiLimitedSubscribedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(1000).default(100),
+      offset: z.number().min(0).default(0),
+      search: z.string().optional()
+    }))
+    .query(async ({ input }) => {
       try {
-        console.log('[getItemMapping] Fetching item mappings from database...')
-        const mappings = await db.select().from(itemMapping)
+        console.log(`[getItemMapping] Fetching ${input.limit} item mappings from database (offset: ${input.offset})...`)
+        
+        // Build query with optional search
+        let query = db.select().from(itemMapping)
+        
+        if (input.search) {
+          query = query.where(sql`name ILIKE ${'%' + input.search + '%'}`)
+        }
+        
+        // Get total count for pagination
+        let countQuery = db.select({ count: sql`count(*)` }).from(itemMapping)
+        if (input.search) {
+          countQuery = countQuery.where(sql`name ILIKE ${'%' + input.search + '%'}`)
+        }
+        const totalCount = await countQuery
+        
+        // Get paginated mappings
+        const mappings = await query
+          .limit(input.limit)
+          .offset(input.offset)
+          .orderBy(itemMapping.name)
+          
         console.log(`[getItemMapping] Successfully fetched ${mappings.length} item mappings`)
         
         // If table is empty, try to populate it from the API
@@ -119,11 +180,26 @@ export const itemsRouter = router({
               throw new Error('Failed to populate item mapping - table still empty after insertion')
             }
             
-            const mappingObject: Record<number, typeof repopulatedMappings[number]> = {}
-            repopulatedMappings.forEach(item => {
+            // After repopulation, get paginated results
+            const paginatedMappings = await query
+              .limit(input.limit)
+              .offset(input.offset)
+              .orderBy(itemMapping.name)
+              
+            const mappingObject: Record<number, typeof paginatedMappings[number]> = {}
+            paginatedMappings.forEach(item => {
               mappingObject[item.id] = item
             })
-            return mappingObject
+            
+            return {
+              data: mappingObject,
+              pagination: {
+                total: repopulatedMappings.length,
+                limit: input.limit,
+                offset: input.offset,
+                hasMore: (input.offset + paginatedMappings.length) < repopulatedMappings.length
+              }
+            }
           } catch (populateError) {
             console.error('[getItemMapping] Failed to populate from API:', populateError)
             console.error('[getItemMapping] Error details:', populateError instanceof Error ? populateError.stack : String(populateError))
@@ -140,7 +216,16 @@ export const itemsRouter = router({
         mappings.forEach(item => {
           mappingObject[item.id] = item
         })
-        return mappingObject
+        
+        return {
+          data: mappingObject,
+          pagination: {
+            total: totalCount[0]?.count || 0,
+            limit: input.limit,
+            offset: input.offset,
+            hasMore: (input.offset + mappings.length) < (totalCount[0]?.count || 0)
+          }
+        }
       } catch (error) {
         console.error('[getItemMapping] Error fetching item mappings:', error)
         console.error('[getItemMapping] Error details:', error instanceof Error ? error.stack : String(error))
@@ -153,7 +238,7 @@ export const itemsRouter = router({
     }),
 
   // This endpoint fetches latest prices with caching to prevent RSWiki API rate limiting
-  getAllItems: subscribedProcedure
+  getAllItems: rsWikiLimitedSubscribedProcedure
     .query(async () => {
       try {
         const now = Date.now()

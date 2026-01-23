@@ -289,11 +289,11 @@ export default function BillingDashboard () {
         </td>
         <td>
           <Stack spacing="xs">
-            <Text weight={500}>${billing.totalSpent.toFixed(2)}</Text>
+            <Text weight={500}>${billing.totalSpent?.toFixed(2) ?? '0.00'}</Text>
             <Text size="sm" color="dimmed">{billing.paymentCount} payments</Text>
             {billing.totalRefunded > 0 && (
               <Text size="xs" color="red">
-                ${billing.totalRefunded.toFixed(2)} refunded
+                ${billing.totalRefunded?.toFixed(2) ?? '0.00'} refunded
               </Text>
             )}
           </Stack>
@@ -702,7 +702,7 @@ export default function BillingDashboard () {
               <div>
                 <Text size="sm" weight={500}>Total Spent</Text>
                 <Text size="sm" weight={600} color="green">
-                  ${selectedCustomer.billing.totalSpent.toFixed(2)}
+                  ${selectedCustomer.billing?.totalSpent?.toFixed(2) ?? '0.00'}
                 </Text>
               </div>
               <div>

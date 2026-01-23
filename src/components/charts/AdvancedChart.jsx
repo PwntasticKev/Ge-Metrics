@@ -69,8 +69,8 @@ const COLORS = {
 }
 
 const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showControls = true }) => {
-  const [timeframe, setTimeframe] = useState('24h') // API Timestep
-  const [range, setRange] = useState('1D') // View Range
+  const [timeframe, setTimeframe] = useState('1h') // API Timestep  
+  const [range, setRange] = useState('1W') // View Range - Default to 1 week
   
   // Visibility State
   const [seriesVisibility, setSeriesVisibility] = useState({
@@ -149,7 +149,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     startDate, 
     endDate
   }, {
-    enabled: !!historyData && seriesVisibility.updates,
+    enabled: !!historyData && historyData.length > 0 && seriesVisibility.updates,
     staleTime: 5 * 60 * 1000
   })
 
@@ -270,11 +270,13 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   const updatesData = useMemo(() => {
     if (!gameUpdates.length || !chartData.length) return []
     
+    // Define bounds at the top level
+    const leftBound = left === 'dataMin' ? chartData[0]?.timestamp : left
+    const rightBound = right === 'dataMax' ? chartData[chartData.length - 1]?.timestamp : right
+    
     // Calculate visible price range to position dots at bottom
     const visibleData = chartData.filter(d => {
       const timestamp = d.timestamp
-      const leftBound = left === 'dataMin' ? chartData[0]?.timestamp : left
-      const rightBound = right === 'dataMax' ? chartData[chartData.length - 1]?.timestamp : right
       return timestamp >= leftBound && timestamp <= rightBound
     })
     
@@ -301,9 +303,9 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     const yDomainMin = bottom === 'auto' ? minPrice : bottom
     const yDomainMax = top === 'auto' ? maxPrice : top
     
-    // Position dots at the very bottom - use a very low value for testing
-    // This should put the dots near the bottom of the chart
-    const dotY = Math.min(...prices) * 0.1
+    // Position dots very close to bottom of price chart (5% from bottom)
+    const priceRange = maxPrice - minPrice
+    const dotY = minPrice + (priceRange * 0.05)
     
     const mapped = gameUpdates.map(u => ({
         timestamp: u.date.getTime() / 1000, // Match chartData timestamp format (seconds)
@@ -312,6 +314,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
         dateFormatted: formatDateForTimeframe(u.date, range),
         dateObj: u.date
     }))
+    
     
     return mapped
   }, [gameUpdates, range, chartData, left, right, seriesVisibility])
@@ -466,7 +469,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
 
   const commonChartProps = {
       data: chartData,
-    margin: { top: 10, right: 0, left: 0, bottom: 0 },
+    margin: { top: 5, right: 30, left: 0, bottom: 5 },
     onMouseDown: (e) => setRefAreaLeft(e?.activePayload?.[0]?.payload?.timestamp),
     onMouseUp: zoom,
     onMouseLeave: () => {}
@@ -475,10 +478,36 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
   const handleMouseMove = (e) => {
     if (e?.activePayload?.[0]?.payload) {
         const payload = e.activePayload[0].payload
-        setHoverData(payload)
-        setActiveTimestamp(payload.timestamp)
-        if (refAreaLeft) setRefAreaRight(payload.timestamp)
+        const currentTimestamp = payload.timestamp
         
+        // Check if there's a nearby event within grace period
+        const gracePeriod = 7 * 24 * 60 * 60 // 7 days in seconds
+        let nearbyEvent = null
+        let closestEventDiff = Infinity
+        
+        updatesData.forEach(event => {
+          const timeDiff = Math.abs(currentTimestamp - event.timestamp)
+          if (timeDiff <= gracePeriod && timeDiff < closestEventDiff) {
+            closestEventDiff = timeDiff
+            nearbyEvent = event
+          }
+        })
+        
+        // If there's a nearby event, show it in hover data
+        if (nearbyEvent) {
+          const combinedData = {
+            ...payload,
+            updateData: nearbyEvent.updateData,
+            eventTimestamp: nearbyEvent.timestamp,
+            isEventHover: true
+          }
+          setHoverData(combinedData)
+        } else {
+          setHoverData(payload)
+        }
+        
+        setActiveTimestamp(currentTimestamp)
+        if (refAreaLeft) setRefAreaRight(currentTimestamp)
     }
   }
 
@@ -606,6 +635,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                 />
             )}
 
+
             {/* SMA 20 */}
             {seriesVisibility.sma20 && (
                 <Line
@@ -685,96 +715,6 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     )
   }
 
-  const renderEventsChart = () => {
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart 
-          data={chartData}
-          margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <CartesianGrid stroke={COLORS.grid} vertical={false} />
-          <XAxis
-            dataKey="timestamp" 
-            type="number"
-            domain={[left, right]}
-            tick={{ fontSize: 10, fill: COLORS.crosshair }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(unix) => formatDateForTimeframe(new Date(unix * 1000), range)}
-            allowDataOverflow
-            minTickGap={30}
-          />
-          <YAxis 
-            orientation="right" 
-            domain={[0, 1]} 
-            tick={false}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip content={<></>} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-          
-          {/* Synchronized crosshair */}
-          {activeTimestamp && (
-            <ReferenceLine x={activeTimestamp} stroke={COLORS.crosshair} strokeWidth={1} strokeDasharray="2 2" />
-          )}
-          
-          {/* Event dots positioned at Y=0.5 */}
-          {seriesVisibility.updates && updatesData.length > 0 && (
-            <Scatter 
-              data={updatesData.map(u => ({ ...u, y: 0.5 }))}
-              fill="#fff"
-              shape={(props) => {
-                const { cx, cy, payload } = props
-                if (!payload || !payload.updateData) return null
-                return (
-                  <circle 
-                    cx={cx} 
-                    cy={cy} 
-                    r={6} 
-                    fill={payload.updateData.color || COLORS.update}
-                    stroke="#1A1B1E"
-                    strokeWidth={1}
-                  />
-                )
-              }}
-              onMouseEnter={(e) => {
-                // When hovering the dot, show both price data and update data
-                if (e.payload && e.payload.updateData) {
-                  const eventTimestamp = e.payload.timestamp
-                  
-                  // Find closest price data point to this event
-                  let closestPriceData = null
-                  let minDiff = Infinity
-                  
-                  chartData.forEach(dataPoint => {
-                    const diff = Math.abs(dataPoint.timestamp - eventTimestamp)
-                    if (diff < minDiff) {
-                      minDiff = diff
-                      closestPriceData = dataPoint
-                    }
-                  })
-                  
-                  // Combine price data with event data
-                  const combinedData = {
-                    ...closestPriceData,
-                    updateData: e.payload.updateData,
-                    eventTimestamp: eventTimestamp,
-                    isEventHover: true
-                  }
-                  
-                  
-                  setHoverData(combinedData)
-                }
-              }}
-              isAnimationActive={false}
-            />
-          )}
-        </BarChart>
-      </ResponsiveContainer>
-    )
-  }
 
   // Info Panel
   const InfoPanel = ({ data }) => {
@@ -984,10 +924,115 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
               )}
       </div>
 
-                {/* Events Chart (Game Updates & Blogs) */}
-                {(seriesVisibility.updates || updatesData.length > 0) && (
-                  <div style={{ height: 25, width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                      {isLoading ? null : renderEventsChart()}
+                {/* Events Area using Recharts for proper alignment */}
+                {seriesVisibility.updates && (
+                  <div style={{ height: 40, width: '100%', marginTop: -1, backgroundColor: 'rgba(26, 27, 30, 0.8)', position: 'relative', zIndex: 10 }}>
+                      <ComposedChart 
+                        {...commonChartProps} 
+                        width={800} 
+                        height={40} 
+                        margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
+                        data={updatesData.map(u => ({ timestamp: u.timestamp, y: 50, updateData: u.updateData }))}
+                      >
+                        {/* Invisible axis */}
+                        <XAxis
+                          dataKey="timestamp" 
+                          type="number"
+                          domain={[left, right]}
+                          tick={false}
+                          axisLine={false}
+                          tickLine={false}
+                          allowDataOverflow
+                        />
+                        <YAxis 
+                          domain={[0, 100]} 
+                          tick={false}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        
+                        {/* Synchronized crosshair */}
+                        {activeTimestamp && (
+                          <ReferenceLine x={activeTimestamp} stroke={COLORS.crosshair} strokeWidth={1} strokeDasharray="2 2" />
+                        )}
+                        
+                        {/* Events as scatter dots */}
+                        {updatesData.length > 0 && (
+                          <Scatter 
+                            dataKey="y"
+                            fill="none"
+                              shape={(props) => {
+                                const { cx, cy, payload } = props
+                                
+                                if (!cx || !cy || !payload || !payload.updateData) {
+                                  return null
+                                }
+                                
+                                const gracePeriod = 3 * 24 * 60 * 60  // 3 days in seconds
+                                const timeDiff = activeTimestamp ? Math.abs(activeTimestamp - payload.timestamp) : Infinity
+                                const isWithinGracePeriod = timeDiff <= gracePeriod
+                                const isHovered = activeTimestamp && isWithinGracePeriod
+                                const dotColor = payload.updateData.type === 'blog' ? '#3b82f6' : '#f59e0b'
+                                
+                                return (
+                                  <g>
+                                    {/* Comet tail */}
+                                    <circle 
+                                      cx={cx} 
+                                      cy={cy} 
+                                      r={isHovered ? 12 : 8}
+                                      fill={dotColor}
+                                      opacity={isHovered ? 0.5 : 0.3}
+                                    />
+                                    <circle 
+                                      cx={cx} 
+                                      cy={cy} 
+                                      r={isHovered ? 7 : 5}
+                                      fill={dotColor}
+                                      opacity={isHovered ? 0.8 : 0.6}
+                                    />
+                                    {/* Main dot */}
+                                    <circle 
+                                      cx={cx} 
+                                      cy={cy} 
+                                      r={isHovered ? 4 : 3}
+                                      fill={dotColor}
+                                      stroke="white"
+                                      strokeWidth={isHovered ? 2 : 1}
+                                      style={{ cursor: 'pointer' }}
+                                      opacity={1}
+                                    />
+                                  </g>
+                                )
+                              }}
+                              onMouseEnter={(e) => {
+                                if (e.payload && e.payload.updateData) {
+                                  const targetTimestamp = activeTimestamp || e.payload.timestamp
+                                  let closestPriceData = null
+                                  let minDiff = Infinity
+                                  
+                                  chartData.forEach(dataPoint => {
+                                    const diff = Math.abs(dataPoint.timestamp - targetTimestamp)
+                                    if (diff < minDiff) {
+                                      minDiff = diff
+                                      closestPriceData = dataPoint
+                                    }
+                                  })
+                                  
+                                  const combinedData = {
+                                    ...closestPriceData,
+                                    updateData: e.payload.updateData,
+                                    eventTimestamp: e.payload.timestamp,
+                                    isEventHover: true
+                                  }
+                                  setHoverData(combinedData)
+                                  setActiveTimestamp(targetTimestamp)
+                                }
+                              }}
+                              isAnimationActive={false}
+                            />
+                        )}
+                      </ComposedChart>
                   </div>
                 )}
 

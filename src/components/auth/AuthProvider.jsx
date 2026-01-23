@@ -32,18 +32,70 @@ const AuthProvider = ({ children }) => {
   const checkSession = useCallback(async () => {
     setIsLoading(true)
     const token = localStorage.getItem('accessToken')
+    const refreshToken = localStorage.getItem('refreshToken')
+    
     if (token) {
       try {
         const userProfile = await refetchMe()
         if (userProfile.data) {
           setUser(userProfile.data)
         } else {
+          // Try to refresh the token if we have a refresh token
+          if (refreshToken) {
+            try {
+              const refreshResult = await trpc.auth.refresh.mutate({ refreshToken })
+              if (refreshResult && refreshResult.accessToken) {
+                localStorage.setItem('accessToken', refreshResult.accessToken)
+                if (refreshResult.refreshToken) {
+                  localStorage.setItem('refreshToken', refreshResult.refreshToken)
+                }
+                const newProfile = await refetchMe()
+                if (newProfile.data) {
+                  setUser(newProfile.data)
+                }
+              } else {
+                setUser(null)
+                localStorage.removeItem('accessToken')
+                localStorage.removeItem('refreshToken')
+              }
+            } catch (refreshError) {
+              setUser(null)
+              localStorage.removeItem('accessToken')
+              localStorage.removeItem('refreshToken')
+            }
+          } else {
+            setUser(null)
+            localStorage.removeItem('accessToken')
+          }
+        }
+      } catch (error) {
+        // Try to refresh the token if we have a refresh token
+        if (refreshToken) {
+          try {
+            const refreshResult = await trpc.auth.refresh.mutate({ refreshToken })
+            if (refreshResult && refreshResult.accessToken) {
+              localStorage.setItem('accessToken', refreshResult.accessToken)
+              if (refreshResult.refreshToken) {
+                localStorage.setItem('refreshToken', refreshResult.refreshToken)
+              }
+              const newProfile = await refetchMe()
+              if (newProfile.data) {
+                setUser(newProfile.data)
+              }
+            } else {
+              setUser(null)
+              localStorage.removeItem('accessToken')
+              localStorage.removeItem('refreshToken')
+            }
+          } catch (refreshError) {
+            setUser(null)
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+          }
+        } else {
           setUser(null)
           localStorage.removeItem('accessToken')
         }
-      } catch (error) {
-        setUser(null)
-        localStorage.removeItem('accessToken')
       }
     }
     setIsLoading(false)
@@ -60,6 +112,9 @@ const AuthProvider = ({ children }) => {
       onSuccess: (data) => {
         if (data && !data.twoFactorRequired) {
           localStorage.setItem('accessToken', data.accessToken)
+          if (data.refreshToken) {
+            localStorage.setItem('refreshToken', data.refreshToken)
+          }
           checkSession()
         }
         callbacks?.onSuccess(data)
@@ -73,6 +128,9 @@ const AuthProvider = ({ children }) => {
       const data = await otpLoginMutation.mutateAsync(credentials)
       if (data && data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken)
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken)
+        }
         await checkSession()
       }
       return data
@@ -95,6 +153,7 @@ const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     setUser(null)
     localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
     navigate('/login')
   }, [navigate])
 

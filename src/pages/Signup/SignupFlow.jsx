@@ -15,6 +15,7 @@ import {
   Container
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { useMediaQuery } from '@mantine/hooks'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import securityService from '../../services/securityService'
@@ -62,6 +63,10 @@ const SignupFlow = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
+  
+  // Responsive breakpoints
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const isTablet = useMediaQuery('(max-width: 1024px)')
 
   const form = useForm({
     initialValues: {
@@ -254,23 +259,24 @@ const SignupFlow = () => {
         }
       `}</style>
 
-      {/* Left Side - Image Panel */}
-      <Box
-        className="left-panel"
-        style={{
-          width: '50%',
-          minHeight: '100vh',
-          background: `linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%), url(${bgImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
+      {/* Left Side - Image Panel - Hidden on mobile */}
+      {!isMobile && (
+        <Box
+          className="left-panel"
+          style={{
+            width: isTablet ? '40%' : '50%',
+            minHeight: '100vh',
+            background: `linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%), url(${bgImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
         {/* Animated overlay */}
         <div style={{
           position: 'absolute',
@@ -366,18 +372,19 @@ const SignupFlow = () => {
           </Stack>
         </Box>
       </Box>
+      )}
 
-      {/* Right Side - Form Panel */}
+      {/* Right Side - Form Panel - Full width on mobile */}
       <Box
         className="right-panel"
         style={{
-          width: '50%',
+          width: isMobile ? '100%' : (isTablet ? '60%' : '50%'),
           minHeight: '100vh',
-          background: '#141517',
+          background: isMobile ? 'linear-gradient(135deg, #141517 0%, #25262b 100%)' : '#141517',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '40px',
+          padding: isMobile ? '20px' : (isTablet ? '30px' : '40px'),
           position: 'relative'
         }}
       >
@@ -385,22 +392,32 @@ const SignupFlow = () => {
           className="form-card"
           style={{
             width: '100%',
-            maxWidth: '450px',
+            maxWidth: isMobile ? '100%' : '450px',
             background: '#1A1B1E',
-            padding: '40px',
-            borderRadius: '16px',
+            padding: isMobile ? '20px' : (isTablet ? '30px' : '40px'),
+            borderRadius: isMobile ? '12px' : '16px',
             border: '2px solid #25262b',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            boxShadow: isMobile ? '0 10px 30px rgba(0, 0, 0, 0.3)' : '0 20px 60px rgba(0, 0, 0, 0.5)',
             animation: 'glow 3s ease-in-out infinite'
           }}
         >
           {/* Header */}
           <Box style={{
             textAlign: 'center',
-            marginBottom: '32px'
+            marginBottom: isMobile ? '24px' : '32px'
           }}>
+            {/* Show logo on mobile */}
+            {isMobile && (
+              <Group spacing="xs" position="center" mb="md">
+                <IconCoins size={28} color="#ffd700" />
+                <Title order={3} style={{ color: '#ffd700', fontWeight: 700 }}>
+                  GE Metrics
+                </Title>
+                <IconCoins size={28} color="#ffd700" />
+              </Group>
+            )}
             <Title order={2} style={{
-              fontSize: '28px',
+              fontSize: isMobile ? '24px' : '28px',
               fontWeight: 700,
               background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
               WebkitBackgroundClip: 'text',
@@ -410,7 +427,7 @@ const SignupFlow = () => {
             }}>
               Create Your Account
             </Title>
-            <Text size="sm" color="#C1C2C5">
+            <Text size={isMobile ? "xs" : "sm"} color="#C1C2C5">
               Start your 14-day free trial and begin trading
             </Text>
           </Box>
@@ -422,8 +439,8 @@ const SignupFlow = () => {
                 placeholder="your.email@example.com"
                 required
                 autoComplete="email"
-                size="lg"
-                icon={<IconMail size={20} />}
+                size={isMobile ? "md" : "lg"}
+                icon={<IconMail size={isMobile ? 18 : 20} />}
                 {...form.getInputProps('email', { withError: false })}
                 error={form.errors.email && hasAttemptedSubmit ? form.errors.email : null}
                 styles={{
@@ -473,7 +490,7 @@ const SignupFlow = () => {
                 required
                 autoComplete="username"
                 description="3-32 characters, letters, numbers, and underscores only"
-                size="lg"
+                size={isMobile ? "md" : "lg"}
                 {...form.getInputProps('runescapeName', { withError: false })}
                 error={form.errors.runescapeName && hasAttemptedSubmit ? form.errors.runescapeName : null}
                 styles={{
@@ -526,8 +543,8 @@ const SignupFlow = () => {
                 placeholder="Create a strong password"
                 required
                 autoComplete="new-password"
-                size="lg"
-                icon={<IconShield size={20} />}
+                size={isMobile ? "md" : "lg"}
+                icon={<IconShield size={isMobile ? 18 : 20} />}
                 {...form.getInputProps('password', { withError: false })}
                 error={form.errors.password && hasAttemptedSubmit ? form.errors.password : null}
                 styles={{
@@ -638,8 +655,8 @@ const SignupFlow = () => {
                 fullWidth 
                 type="submit" 
                 loading={loading}
-                size="lg"
-                leftIcon={<IconCoins size={20} />}
+                size={isMobile ? "md" : "lg"}
+                leftIcon={<IconCoins size={isMobile ? 18 : 20} />}
                 style={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   border: 'none',

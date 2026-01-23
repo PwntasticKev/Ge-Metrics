@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index, boolean, integer, jsonb, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, index, boolean, integer, numeric, jsonb, uniqueIndex } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
@@ -117,15 +117,21 @@ export const selectSubscriptionSchema = createSelectSchema(subscriptions)
 
 export const insertUserWatchlistSchema = createInsertSchema(userWatchlists, {
   alertType: (schema) => schema,
-  targetPrice: (schema) => schema.positive().optional()
+  targetPrice: (schema) => schema.refine((val) => !val || Number(val) > 0, {
+    message: "Target price must be positive"
+  }).optional()
 })
 
 export const selectUserWatchlistSchema = createSelectSchema(userWatchlists)
 
 export const insertUserTransactionSchema = createInsertSchema(userTransactions, {
   transactionType: (schema) => schema,
-  quantity: (schema) => schema.positive(),
-  price: (schema) => schema.positive(),
+  quantity: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Quantity must be positive"
+  }),
+  price: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Price must be positive"
+  }),
   profit: (schema) => schema.optional()
 })
 
@@ -872,17 +878,25 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
 
 // Validation schemas for recipes
 export const insertRecipeSchema = createInsertSchema(recipes, {
-  outputItemId: (schema) => schema.positive(),
+  outputItemId: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Output item ID must be positive"
+  }),
   outputItemName: (schema) => schema.min(1).max(255),
-  conversionCost: (schema) => schema.nonnegative().optional()
+  conversionCost: (schema) => schema.refine((val) => !val || Number(val) >= 0, {
+    message: "Conversion cost must be non-negative"
+  }).optional()
 })
 
 export const selectRecipeSchema = createSelectSchema(recipes)
 
 export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients, {
-  itemId: (schema) => schema.positive(),
+  itemId: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Item ID must be positive"
+  }),
   itemName: (schema) => schema.min(1).max(255),
-  quantity: (schema) => schema.positive()
+  quantity: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Quantity must be positive"
+  })
 })
 
 export const selectRecipeIngredientSchema = createSelectSchema(recipeIngredients)
@@ -903,10 +917,10 @@ export const moneyMakingMethods = pgTable('money_making_methods', {
   description: text('description').notNull(),
   category: text('category').notNull(), // 'skilling', 'pvm', 'merching'
   difficulty: text('difficulty').notNull(), // 'easy', 'medium', 'hard', 'elite'
-  profitPerHour: integer('profit_per_hour').notNull(), // Calculated automatically
+  profitPerHour: numeric('profit_per_hour').notNull().default('0'), // Calculated automatically
   
   // Approval system
-  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
+  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected', 'private'
   isGlobal: boolean('is_global').default(false).notNull(), // Admin approved for global viewing
   rejectionReason: text('rejection_reason'), // Admin feedback for rejected methods
   approvedBy: integer('approved_by').references(() => users.id), // Admin who approved
@@ -914,6 +928,9 @@ export const moneyMakingMethods = pgTable('money_making_methods', {
   
   // Requirements - stored as JSON for flexibility
   requirements: jsonb('requirements').notNull().default('{}'), // {skills: {attack: 70}, quests: ["Dragon Slayer"], items: ["Whip"]}
+  
+  // Voting system
+  voteCounts: jsonb('vote_counts').notNull().default('{"thumbsup": 0, "thumbsdown": 0, "heart": 0, "fire": 0, "star": 0}'),
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
@@ -955,9 +972,11 @@ export const insertMoneyMakingMethodSchema = createInsertSchema(moneyMakingMetho
   difficulty: (schema) => schema.refine((val) => ['easy', 'medium', 'hard', 'elite'].includes(val), {
     message: "Difficulty must be 'easy', 'medium', 'hard', or 'elite'"
   }),
-  profitPerHour: (schema) => schema.nonnegative(),
-  status: (schema) => schema.refine((val) => ['pending', 'approved', 'rejected'].includes(val), {
-    message: "Status must be 'pending', 'approved', or 'rejected'"
+  profitPerHour: (schema) => schema.refine((val) => Number(val) >= 0, {
+    message: "Profit per hour must be non-negative"
+  }),
+  status: (schema) => schema.refine((val) => ['pending', 'approved', 'rejected', 'private'].includes(val), {
+    message: "Status must be 'pending', 'approved', 'rejected', or 'private'"
   }),
   requirements: (schema) => schema.optional()
 })
@@ -965,22 +984,107 @@ export const insertMoneyMakingMethodSchema = createInsertSchema(moneyMakingMetho
 export const selectMoneyMakingMethodSchema = createSelectSchema(moneyMakingMethods)
 
 export const insertMethodItemSchema = createInsertSchema(methodItems, {
-  itemId: (schema) => schema.positive(),
+  itemId: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Item ID must be positive"
+  }),
   itemName: (schema) => schema.min(1).max(255),
   type: (schema) => schema.refine((val) => ['input', 'output', 'requirement'].includes(val), {
     message: "Type must be 'input', 'output', or 'requirement'"
   }),
-  quantity: (schema) => schema.positive(),
+  quantity: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Quantity must be positive"
+  }),
   priceType: (schema) => schema.refine((val) => ['market', 'npc', 'custom'].includes(val), {
     message: "Price type must be 'market', 'npc', or 'custom'"
   }),
-  customPrice: (schema) => schema.nonnegative().optional()
+  customPrice: (schema) => schema.refine((val) => !val || Number(val) >= 0, {
+    message: "Custom price must be non-negative"
+  }).optional()
 })
 
 export const selectMethodItemSchema = createSelectSchema(methodItems)
 
 // Type exports for money making methods system
+// Method Votes - User reactions on money making methods
+export const methodVotes = pgTable('method_votes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  methodId: uuid('method_id').notNull().references(() => moneyMakingMethods.id, { onDelete: 'cascade' }),
+  voteType: text('vote_type').notNull(), // 'thumbsup', 'thumbsdown', 'heart', 'fire', 'star'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userMethodUnique: uniqueIndex('method_votes_user_method_unique').on(table.userId, table.methodId),
+  methodIdIdx: index('method_votes_method_id_idx').on(table.methodId),
+  userIdIdx: index('method_votes_user_id_idx').on(table.userId),
+  voteTypeIdx: index('method_votes_vote_type_idx').on(table.voteType),
+  createdAtIdx: index('method_votes_created_at_idx').on(table.createdAt)
+}))
+
+// Validation schemas for method votes
+export const insertMethodVoteSchema = createInsertSchema(methodVotes, {
+  voteType: (schema) => schema.refine((val) => ['thumbsup', 'thumbsdown', 'heart', 'fire', 'star'].includes(val), {
+    message: "Vote type must be 'thumbsup', 'thumbsdown', 'heart', 'fire', or 'star'"
+  })
+})
+
+export const selectMethodVoteSchema = createSelectSchema(methodVotes)
+
 export type MoneyMakingMethod = typeof moneyMakingMethods.$inferSelect;
 export type NewMoneyMakingMethod = typeof moneyMakingMethods.$inferInsert;
 export type MethodItem = typeof methodItems.$inferSelect;
 export type NewMethodItem = typeof methodItems.$inferInsert;
+export type MethodVote = typeof methodVotes.$inferSelect;
+export type NewMethodVote = typeof methodVotes.$inferInsert;
+
+// --- TRASH VOTING SYSTEM ---
+
+// User trash votes - one vote per user per item
+export const userTrashVotes = pgTable('user_trash_votes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id').notNull(),
+  itemName: text('item_name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userItemUnique: uniqueIndex('user_trash_votes_user_item_unique').on(table.userId, table.itemId),
+  userIdIdx: index('user_trash_votes_user_id_idx').on(table.userId),
+  itemIdIdx: index('user_trash_votes_item_id_idx').on(table.itemId),
+  createdAtIdx: index('user_trash_votes_created_at_idx').on(table.createdAt)
+}))
+
+// Admin override to clear trash votes and mark item as clean
+export const itemAdminClean = pgTable('item_admin_clean', {
+  itemId: integer('item_id').primaryKey(),
+  cleanedBy: integer('cleaned_by').notNull().references(() => users.id),
+  cleanedAt: timestamp('cleaned_at').defaultNow().notNull()
+}, (table) => ({
+  cleanedByIdx: index('item_admin_clean_cleaned_by_idx').on(table.cleanedBy),
+  cleanedAtIdx: index('item_admin_clean_cleaned_at_idx').on(table.cleanedAt)
+}))
+
+// Validation schemas for trash voting
+export const insertUserTrashVoteSchema = createInsertSchema(userTrashVotes, {
+  itemId: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Item ID must be positive"
+  }),
+  itemName: (schema) => schema.min(1).max(255, {
+    message: "Item name must be between 1 and 255 characters"
+  })
+})
+
+export const selectUserTrashVoteSchema = createSelectSchema(userTrashVotes)
+
+export const insertItemAdminCleanSchema = createInsertSchema(itemAdminClean, {
+  itemId: (schema) => schema.refine((val) => Number(val) > 0, {
+    message: "Item ID must be positive"
+  })
+})
+
+export const selectItemAdminCleanSchema = createSelectSchema(itemAdminClean)
+
+// Type exports for trash voting system
+export type UserTrashVote = typeof userTrashVotes.$inferSelect;
+export type NewUserTrashVote = typeof userTrashVotes.$inferInsert;
+export type ItemAdminClean = typeof itemAdminClean.$inferSelect;
+export type NewItemAdminClean = typeof itemAdminClean.$inferInsert;
