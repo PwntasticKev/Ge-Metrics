@@ -1,0 +1,50 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - img [ref=e8]
+      - heading "GE Metrics" [level=3] [ref=e14]
+      - img [ref=e15]
+    - heading "Welcome Back" [level=2] [ref=e21]
+    - generic [ref=e22]: Sign in to continue trading
+  - generic [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]: Email or RuneScape username *
+      - generic [ref=e27]:
+        - generic:
+          - img
+        - textbox "Email or RuneScape username" [ref=e28]:
+          - /placeholder: Enter your email or username
+    - generic [ref=e29]:
+      - generic [ref=e30]: Password *
+      - generic [ref=e31]:
+        - generic:
+          - img
+        - textbox "Password" [ref=e33]:
+          - /placeholder: Enter your password
+        - button [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+    - generic [ref=e38]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - checkbox "Remember me" [ref=e42]
+          - img
+        - generic [ref=e44]: Remember me
+      - button "Forgot password?" [ref=e45] [cursor=pointer]
+    - button "Log In" [ref=e46] [cursor=pointer]:
+      - generic [ref=e47]:
+        - img [ref=e49]
+        - generic [ref=e55]: Log In
+  - separator [ref=e56]:
+    - generic [ref=e57]: or
+  - button "Continue with Google" [ref=e58] [cursor=pointer]:
+    - generic [ref=e59]:
+      - img [ref=e61]
+      - generic [ref=e63]: Continue with Google
+  - generic [ref=e64]:
+    - text: New to GE Metrics?
+    - link "Create your account" [ref=e65] [cursor=pointer]:
+      - /url: /signup
+```

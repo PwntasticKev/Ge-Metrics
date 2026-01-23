@@ -12,7 +12,7 @@ export function useTrashScoring() {
   const utils = trpc.useContext() // Get utils at the top level
   
   // Get all trash data (votes, total users, user's votes)
-  const { data: trashData, isLoading } = trpc.trash.getAllTrashData.useQuery(undefined, {
+  const { data: trashData, isLoading, error } = trpc.trash.getAllTrashData.useQuery(undefined, {
     enabled: !!user,
     staleTime: 30000, // Cache for 30 seconds
     refetchOnWindowFocus: false
@@ -145,6 +145,8 @@ export function useTrashScoring() {
     trashData,
     userTrashItems,
     isLoading,
+    totalUsers: trashData?.totalUsers || 0,
+    error, // Add error property for tests
     
     // Calculations
     getTrashWeight,
@@ -152,6 +154,7 @@ export function useTrashScoring() {
     getTrashCount,
     hasUserVoted,
     isTrash,
+    isUserTrashVoted: hasUserVoted, // Alias for backwards compatibility
     
     // Actions
     toggleTrashVote,

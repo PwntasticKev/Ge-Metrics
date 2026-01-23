@@ -2,19 +2,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import fs from 'fs/promises'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import BackupService from './backupService.js'
 
 const execAsync = promisify(exec)
 
 // Mock dependencies
 vi.mock('fs/promises')
 vi.mock('child_process')
+vi.mock('node-cron', () => ({
+  default: {
+    schedule: vi.fn()
+  }
+}))
 
 describe.skip('Database Backup Service', () => {
   let backupService
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    
+    // Dynamically import to avoid node-cron resolution issues
+    const { default: BackupService } = await import('./backupService.js')
     backupService = new BackupService({
       databaseUrl: 'postgresql://postgres:postgres@localhost:5432/ge_metrics_test',
       backupDirectory: '/tmp/backups',

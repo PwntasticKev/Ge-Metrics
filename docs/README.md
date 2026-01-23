@@ -1,99 +1,46 @@
-# Documentation
+# GE-Metrics Documentation
 
-This directory contains documentation for the GE-Metrics project and related tools.
+## 📁 Documentation Structure
 
-## 📚 Available Documentation
+### Setup Guides
+- [setup/](setup/) - Initial setup and installation guides
+  - `EMAIL_SETUP_GUIDE.md` - Email service configuration
+  - `STRIPE_SETUP.md` - Payment processing setup
+  - `RUNELITE_PLUGIN_SETUP_COMPLETE.md` - Game plugin setup
+  - `SIGNUP_SETUP_CHECKLIST.md` - User registration flow
 
-### Claude Code Documentation (`claude-code/`)
-Automatically synced documentation from Anthropic's Claude Code tool.
+### References
+- [references/](references/) - Quick reference materials
+  - `LOCAL_DATABASE_REFERENCE.md` - Database connection info
+  - `QUICK_FIX_REFERENCE.md` - Common troubleshooting
+  - `LOGIN_FEATURES.md` - Authentication features
 
-**Quick Access:**
-```bash
-# View all available docs
-npm run docs:claude:list
+### Development
+- [development/](development/) - Development workflows and guides
+  - `TESTING.md` - Testing strategies
+  - `TESTING_RULES.md` - Testing requirements
+  - `TASK_TRACKING_HOOK_README.md` - Hook configuration
 
-# Search for specific topics
-npm run docs:claude:search "github actions"
+### Deployment
+- [deployment/](deployment/) - Production deployment guides
+  - `PRODUCTION_READINESS_CHECKLIST.md` - Go-live checklist
 
-# Open specific documentation
-./scripts/claude-docs-helper.sh open quickstart
+### AI Instructions
+- [ai-instructions/](ai-instructions/) - Instructions for AI assistants
+  - `testing.md` - Testing requirements (READ FIRST)
+  - `architecture.md` - Project structure
+  - `patterns.md` - Code conventions
+  - `emergency.md` - Troubleshooting
 
-# Sync latest documentation
-npm run docs:sync
-```
+## 🚀 New Developer Onboarding
 
-**Auto-Sync**: Documentation is automatically updated daily via GitHub Actions.
+1. **Start Here**: Read [../CLAUDE.md](../CLAUDE.md) for essential commands
+2. **Setup**: Follow [setup/](setup/) guides for your environment
+3. **Development**: Review [development/](development/) for coding standards
+4. **Architecture**: Understand [ai-instructions/architecture.md](ai-instructions/architecture.md)
 
-### Project Documentation
-- **Setup Guides**: `setup/` - Development environment setup
-- **API Documentation**: `API_STRUCTURE.md` - API structure and endpoints
-- **Legacy Documentation**: `legacy/` - Historical implementation details
+## 🔧 Common Tasks
 
-## 🔄 Keeping Documentation Updated
-
-### Automatic Updates
-- **Claude Code docs**: Updated daily at 6 AM UTC via GitHub Actions
-- **Workflow**: See `.github/workflows/sync-claude-docs.yml`
-
-### Manual Updates
-```bash
-# Sync Claude Code documentation
-npm run docs:sync
-
-# Search documentation
-npm run docs:claude:search "plugins"
-
-# View documentation map
-npm run docs:claude:map
-```
-
-## 📖 Quick Reference
-
-### Claude Code Common Tasks
-```bash
-# Getting started
-npm run docs:claude:search "quickstart"
-
-# Plugin development
-npm run docs:claude:search "plugins"
-
-# GitHub Actions integration
-npm run docs:claude:search "github"
-
-# Configuration settings
-npm run docs:claude:search "settings"
-```
-
-### Documentation Structure
-```
-docs/
-├── claude-code/           # Claude Code documentation (auto-synced)
-│   ├── README.md         # Documentation index
-│   ├── claude-code-docs.txt  # Complete documentation map
-│   ├── getting-started/   # Installation and setup
-│   ├── configuration/     # Settings and config
-│   ├── reference/         # Command reference
-│   ├── plugins/          # Plugin development
-│   └── workflows/        # GitHub Actions
-├── setup/                # Project setup guides
-├── legacy/               # Historical documentation
-└── README.md            # This file
-```
-
-## 🚀 Benefits of Local Documentation
-
-1. **Offline Access**: Documentation available without internet
-2. **Version Control**: Track documentation changes with your code
-3. **Search Integration**: Quickly find relevant information
-4. **Development Context**: Documentation alongside your code
-5. **Team Sync**: Everyone has the same documentation version
-
-## 🔗 External Links
-
-- **Claude Code Official Docs**: https://code.claude.com/docs/
-- **Claude Code GitHub**: https://github.com/anthropics/claude-code
-- **Claude Code Actions**: https://github.com/anthropics/claude-code-action
-
----
-
-*Documentation last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")*
+- **Run Tests**: `/tdd-verification` (Claude skill)
+- **Database Issues**: Check [references/LOCAL_DATABASE_REFERENCE.md](references/LOCAL_DATABASE_REFERENCE.md)
+- **Production Deploy**: Follow [deployment/PRODUCTION_READINESS_CHECKLIST.md](deployment/PRODUCTION_READINESS_CHECKLIST.md)

@@ -4,11 +4,11 @@ import { QueryClient, QueryClientProvider } from 'react-query'
 import { MantineProvider } from '@mantine/core'
 import AdvancedChart from './AdvancedChart'
 import { trpc } from '../../utils/trpc'
+import { getItemHistoryById } from '../../api/rs-wiki-api.jsx'
 
 // Mock external dependencies
-const mockGetItemHistoryById = vi.fn()
 vi.mock('../../api/rs-wiki-api.jsx', () => ({
-  getItemHistoryById: mockGetItemHistoryById
+  getItemHistoryById: vi.fn()
 }))
 
 vi.mock('../../utils/trpc.jsx', () => ({
@@ -153,7 +153,6 @@ const mockItem = {
 }
 
 describe.skip('AdvancedChart', () => {
-  let mockGetItemHistoryById
   let mockGameEventsQuery
 
   beforeEach(() => {
@@ -162,7 +161,7 @@ describe.skip('AdvancedChart', () => {
     vi.clearAllMocks()
     
     // Mock API responses
-    mockGetItemHistoryById = vi.fn().mockResolvedValue({
+    getItemHistoryById.mockResolvedValue({
       data: { data: mockHistoryData }
     })
     
@@ -172,7 +171,7 @@ describe.skip('AdvancedChart', () => {
       error: null
     }
     
-    mockGetItemHistoryById.mockReturnValue(Promise.resolve(mockHistoryData))
+    getItemHistoryById.mockReturnValue(Promise.resolve(mockHistoryData))
     trpc.gameEvents.getByDateRange.useQuery.mockReturnValue(mockGameEventsQuery)
     trpc.useUtils.mockReturnValue({
       flips: {
@@ -210,7 +209,7 @@ describe.skip('AdvancedChart', () => {
     })
 
     it('displays loading state while fetching data', async () => {
-      mockGetItemHistoryById.mockImplementation(() => new Promise(() => {})) // Never resolves
+      getItemHistoryById.mockImplementation(() => new Promise(() => {})) // Never resolves
       
       render(
         <AdvancedChart itemId={123} items={[mockItem]} />,
@@ -221,7 +220,7 @@ describe.skip('AdvancedChart', () => {
     })
 
     it('handles and displays errors gracefully', async () => {
-      mockGetItemHistoryById.mockRejectedValue(new Error('API Error'))
+      getItemHistoryById.mockRejectedValue(new Error('API Error'))
       
       render(
         <AdvancedChart itemId={123} items={[mockItem]} />,
@@ -267,7 +266,7 @@ describe.skip('AdvancedChart', () => {
       )
       
       await waitFor(() => {
-        expect(mockGetItemHistoryById).toHaveBeenCalledWith('1h', 123)
+        expect(getItemHistoryById).toHaveBeenCalledWith('1h', 123)
       })
     })
   })
@@ -560,7 +559,7 @@ describe.skip('AdvancedChart', () => {
       
       // Should call API with new timeframe
       await waitFor(() => {
-        expect(mockGetItemHistoryById).toHaveBeenCalledWith('1h', 123)
+        expect(getItemHistoryById).toHaveBeenCalledWith('1h', 123)
       })
     })
 
@@ -657,7 +656,7 @@ describe.skip('AdvancedChart', () => {
         lowPriceVolume: 1200 + Math.random() * 500
       }))
       
-      mockGetItemHistoryById.mockResolvedValue({
+      getItemHistoryById.mockResolvedValue({
         data: { data: largeDataset }
       })
       

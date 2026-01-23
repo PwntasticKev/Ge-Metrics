@@ -1,0 +1,64 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e7]
+      - heading "GE Metrics" [level=1] [ref=e13]
+      - img [ref=e14]
+    - heading "Grand Exchange Trading Platform" [level=2] [ref=e20]
+    - generic [ref=e21]: Track flips, analyze market trends, and maximize your GP profits with real-time Grand Exchange data
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - img [ref=e25]
+        - generic [ref=e28]: Real-time Data
+      - generic [ref=e29]:
+        - img [ref=e30]
+        - generic [ref=e36]: Profit Tracking
+      - generic [ref=e37]:
+        - img [ref=e38]
+        - generic [ref=e40]: Whale Alerts
+  - generic [ref=e42]:
+    - generic [ref=e43]:
+      - heading "Welcome Back" [level=2] [ref=e44]
+      - generic [ref=e45]: Sign in to continue trading
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]: Email or RuneScape username *
+        - generic [ref=e50]:
+          - generic:
+            - img
+          - textbox "Email or RuneScape username" [ref=e51]:
+            - /placeholder: Enter your email or username
+      - generic [ref=e52]:
+        - generic [ref=e53]: Password *
+        - generic [ref=e54]:
+          - generic:
+            - img
+          - textbox "Password" [ref=e56]:
+            - /placeholder: Enter your password
+          - button [ref=e58] [cursor=pointer]:
+            - img [ref=e59]
+      - generic [ref=e61]:
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - checkbox "Remember me" [ref=e65]
+            - img
+          - generic [ref=e67]: Remember me
+        - button "Forgot password?" [ref=e68] [cursor=pointer]
+      - button "Log In" [ref=e69] [cursor=pointer]:
+        - generic [ref=e70]:
+          - img [ref=e72]
+          - generic [ref=e78]: Log In
+    - separator [ref=e79]:
+      - generic [ref=e80]: or
+    - button "Continue with Google" [ref=e81] [cursor=pointer]:
+      - generic [ref=e82]:
+        - img [ref=e84]
+        - generic [ref=e86]: Continue with Google
+    - generic [ref=e87]:
+      - text: New to GE Metrics?
+      - link "Create your account" [ref=e88] [cursor=pointer]:
+        - /url: /signup
+```

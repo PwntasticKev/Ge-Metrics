@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e7]
+      - heading "GE Metrics" [level=1] [ref=e13]
+      - img [ref=e14]
+    - heading "Join the Grand Exchange Trading Platform" [level=2] [ref=e20]
+    - generic [ref=e21]: Start tracking your flips, analyzing market trends, and maximizing your GP profits with real-time Grand Exchange data
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - img [ref=e25]
+        - generic [ref=e28]: 14-Day Free Trial
+      - generic [ref=e29]:
+        - img [ref=e30]
+        - generic [ref=e36]: Real-time Data
+      - generic [ref=e37]:
+        - img [ref=e38]
+        - generic [ref=e40]: Profit Tracking
+  - generic [ref=e42]:
+    - generic [ref=e43]:
+      - heading "Create Your Account" [level=2] [ref=e44]
+      - generic [ref=e45]: Start your 14-day free trial and begin trading
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]: Email *
+        - generic [ref=e50]:
+          - generic:
+            - img
+          - textbox "Email" [ref=e51]:
+            - /placeholder: your.email@example.com
+      - generic [ref=e52]:
+        - generic [ref=e53]: RuneScape Username *
+        - generic [ref=e54]: 3-32 characters, letters, numbers, and underscores only
+        - textbox "RuneScape Username" [ref=e56]:
+          - /placeholder: Your RuneScape username
+      - generic [ref=e57]:
+        - generic [ref=e58]: Password *
+        - generic [ref=e59]:
+          - generic:
+            - img
+          - textbox "Password" [ref=e61]:
+            - /placeholder: Create a strong password
+          - button [ref=e63] [cursor=pointer]:
+            - img [ref=e64]
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - checkbox "I accept the terms of service and privacy policy" [ref=e70]
+          - img
+        - generic [ref=e72]: I accept the terms of service and privacy policy
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - checkbox "Send me marketing emails about new features and updates" [ref=e76]
+          - img
+        - generic [ref=e78]: Send me marketing emails about new features and updates
+      - button "Start Trading" [ref=e79] [cursor=pointer]:
+        - generic [ref=e80]:
+          - img [ref=e82]
+          - generic [ref=e88]: Start Trading
+    - generic [ref=e89]:
+      - text: Already have an account?
+      - button "Log in" [ref=e90] [cursor=pointer]
+```

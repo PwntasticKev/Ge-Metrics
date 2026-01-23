@@ -9,8 +9,27 @@ A comprehensive Old School RuneScape (OSRS) Grand Exchange analytics platform fo
 npm install
 
 # Start development servers
-npm run dev        # Frontend (http://localhost:5173)
-npm run dev:server # Backend (http://localhost:3000)
+npm run dev        # Frontend (http://localhost:8000)
+npm run dev:server # Backend (http://localhost:4000)
+```
+
+## 📚 Documentation
+
+- **[CLAUDE.md](CLAUDE.md)** - Essential commands and AI instructions
+- **[docs/](docs/)** - Complete documentation (setup, development, references)
+- **[TASKS.md](TASKS.md)** - Current project tasks and priorities
+
+## 🧪 Testing
+
+```bash
+# Run comprehensive test suite (recommended after any changes)
+/tdd-verification   # Claude skill for full TDD verification
+
+# Manual testing
+npm run lint        # Code style
+npx tsc --noEmit    # TypeScript check
+npm run test:unit:run # Unit tests
+npm run test:e2e    # End-to-end tests
 ```
 
 ## 🛠️ Tech Stack

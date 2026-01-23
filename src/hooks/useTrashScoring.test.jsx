@@ -2,31 +2,64 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { useTrashScoring } from './useTrashScoring'
-import { trpc } from '../utils/trpc'
+import { trpc } from '../utils/trpc.jsx'
 
-// Mock the TRPC client
-vi.mock('../utils/trpc', () => ({
-  trpc: {
-    trash: {
-      getAllTrashData: {
-        useQuery: vi.fn()
-      },
-      markItem: {
-        useMutation: vi.fn()
-      },
-      unmarkItem: {
-        useMutation: vi.fn()
-      }
-    },
-    useUtils: vi.fn(() => ({
-      trash: {
-        getAllTrashData: {
-          invalidate: vi.fn()
-        }
-      }
-    }))
+// Mock useAuth
+vi.mock('../contexts/AuthContext.jsx', () => ({
+  useAuth: vi.fn(() => ({
+    user: { id: 1, email: 'test@test.com' }
+  }))
+}))
+
+// Mock notifications
+vi.mock('@mantine/notifications', () => ({
+  notifications: {
+    show: vi.fn()
   }
 }))
+
+// Mock the entire TRPC module
+vi.mock('../utils/trpc.jsx', () => {
+  const invalidateFn = vi.fn()
+  const mockUtils = {
+    trash: {
+      invalidate: invalidateFn
+    }
+  }
+  
+  return {
+    trpc: {
+      trash: {
+        getAllTrashData: {
+          useQuery: vi.fn(() => ({
+            data: {
+              itemStats: {},
+              userVotes: [],
+              userTrashItems: [],
+              totalUsers: 100,
+              adminCleaned: new Set()
+            },
+            isLoading: false
+          }))
+        },
+        markItem: {
+          useMutation: vi.fn(() => ({
+            mutateAsync: vi.fn().mockResolvedValue({ success: true }),
+            isLoading: false
+          }))
+        },
+        unmarkItem: {
+          useMutation: vi.fn(() => ({
+            mutateAsync: vi.fn().mockResolvedValue({ success: true }),
+            isLoading: false
+          }))
+        }
+      },
+      useContext: vi.fn(() => mockUtils),
+      useUtils: vi.fn(() => mockUtils)
+    }
+  }
+})
 
 describe('useTrashScoring', () => {
   let queryClient
@@ -49,10 +82,11 @@ describe('useTrashScoring', () => {
 
   it('should fetch trash data on mount', () => {
     const mockData = {
-      trashItems: [],
+      itemStats: {},
       userVotes: [],
       userTrashItems: [],
-      totalUsers: 10
+      totalUsers: 10,
+      adminCleaned: new Set()
     }
 
     trpc.trash.getAllTrashData.useQuery.mockReturnValue({
@@ -98,12 +132,13 @@ describe('useTrashScoring', () => {
 
   it('should calculate trash percentage correctly', () => {
     const mockData = {
-      trashItems: [
-        { itemId: 1, trashCount: 5 }
-      ],
+      itemStats: {
+        1: { trashCount: 5, totalUsers: 10 }
+      },
       userVotes: [],
       userTrashItems: [],
-      totalUsers: 10
+      totalUsers: 10,
+      adminCleaned: new Set()
     }
 
     trpc.trash.getAllTrashData.useQuery.mockReturnValue({
@@ -120,10 +155,11 @@ describe('useTrashScoring', () => {
 
   it('should check if item is trash for user', () => {
     const mockData = {
-      trashItems: [],
+      itemStats: {},
       userVotes: [1, 2, 3],
       userTrashItems: [],
-      totalUsers: 10
+      totalUsers: 10,
+      adminCleaned: new Set()
     }
 
     trpc.trash.getAllTrashData.useQuery.mockReturnValue({
@@ -139,30 +175,38 @@ describe('useTrashScoring', () => {
   })
 
   it('should toggle trash vote successfully', async () => {
-    const mockMutate = vi.fn()
+    const mockMutate = vi.fn().mockResolvedValue({ success: true })
     const mockInvalidate = vi.fn()
     
-    trpc.trash.markItem.useMutation.mockReturnValue({
-      mutateAsync: mockMutate
-    })
+    // Mock the mutation with onSuccess callback that gets called
+    trpc.trash.markItem.useMutation.mockImplementation((options) => ({
+      mutateAsync: async (...args) => {
+        const result = await mockMutate(...args)
+        if (options.onSuccess) {
+          options.onSuccess(result)
+        }
+        return result
+      },
+      isLoading: false
+    }))
     
     trpc.trash.unmarkItem.useMutation.mockReturnValue({
-      mutateAsync: vi.fn()
+      mutateAsync: vi.fn(),
+      isLoading: false
     })
 
-    trpc.useUtils.mockReturnValue({
+    trpc.useContext.mockReturnValue({
       trash: {
-        getAllTrashData: {
-          invalidate: mockInvalidate
-        }
+        invalidate: mockInvalidate
       }
     })
 
     const mockData = {
-      trashItems: [],
+      itemStats: {},
       userVotes: [],
       userTrashItems: [],
-      totalUsers: 10
+      totalUsers: 10,
+      adminCleaned: new Set()
     }
 
     trpc.trash.getAllTrashData.useQuery.mockReturnValue({
@@ -193,10 +237,11 @@ describe('useTrashScoring', () => {
     })
 
     const mockData = {
-      trashItems: [],
+      itemStats: {},
       userVotes: [],
       userTrashItems: [],
-      totalUsers: 10
+      totalUsers: 10,
+      adminCleaned: new Set()
     }
 
     trpc.trash.getAllTrashData.useQuery.mockReturnValue({
@@ -220,30 +265,38 @@ describe('useTrashScoring', () => {
   })
 
   it('should unmark item if already marked as trash', async () => {
-    const mockUnmark = vi.fn()
+    const mockUnmark = vi.fn().mockResolvedValue({ success: true })
     const mockInvalidate = vi.fn()
     
     trpc.trash.markItem.useMutation.mockReturnValue({
-      mutateAsync: vi.fn()
+      mutateAsync: vi.fn(),
+      isLoading: false
     })
     
-    trpc.trash.unmarkItem.useMutation.mockReturnValue({
-      mutateAsync: mockUnmark
-    })
-
-    trpc.useUtils.mockReturnValue({
-      trash: {
-        getAllTrashData: {
-          invalidate: mockInvalidate
+    // Mock the unmark mutation with onSuccess callback
+    trpc.trash.unmarkItem.useMutation.mockImplementation((options) => ({
+      mutateAsync: async (...args) => {
+        const result = await mockUnmark(...args)
+        if (options.onSuccess) {
+          options.onSuccess(result)
         }
+        return result
+      },
+      isLoading: false
+    }))
+
+    trpc.useContext.mockReturnValue({
+      trash: {
+        invalidate: mockInvalidate
       }
     })
 
     const mockData = {
-      trashItems: [],
+      itemStats: {},
       userVotes: [123], // Item is already marked
       userTrashItems: [],
-      totalUsers: 10
+      totalUsers: 10,
+      adminCleaned: new Set()
     }
 
     trpc.trash.getAllTrashData.useQuery.mockReturnValue({
