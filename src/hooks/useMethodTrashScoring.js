@@ -4,40 +4,39 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { notifications } from '@mantine/notifications'
 
 /**
- * Hook for managing trash scoring system
- * Provides functions to mark items as trash, get trash weights, and manage user's trash list
+ * Hook for managing method trash scoring system
+ * Provides functions to mark methods as trash, get trash weights, and manage user's trash list
  */
-export function useTrashScoring() {
+export function useMethodTrashScoring() {
   const { user } = useAuth()
-  const utils = trpc.useContext() // Get utils at the top level
+  const utils = trpc.useContext()
   
-  // Get all trash data (votes, total users, user's votes)
-  const { data: trashData, isLoading, error } = trpc.trash.getAllTrashData.useQuery(undefined, {
+  // Get all method trash data (votes, total users, user's votes)
+  const { data: trashData, isLoading, error } = trpc.methodTrash.getAllMethodTrashData.useQuery(undefined, {
     enabled: !!user,
     staleTime: 30000, // Cache for 30 seconds
     refetchOnWindowFocus: false
   })
 
   // Mutations for voting
-  const markAsTrash = trpc.trash.markItem.useMutation({
+  const markAsTrash = trpc.methodTrash.markMethod.useMutation({
     onSuccess: () => {
-      // Invalidate all queries to refresh data
-      utils.trash.invalidate()
+      utils.methodTrash.invalidate()
     }
   })
 
-  const unmarkAsTrash = trpc.trash.unmarkItem.useMutation({
+  const unmarkAsTrash = trpc.methodTrash.unmarkMethod.useMutation({
     onSuccess: () => {
-      utils.trash.invalidate()
+      utils.methodTrash.invalidate()
     }
   })
 
   // Calculate trash weight penalty based on percentage of users who marked as trash
   const getTrashWeight = useMemo(() => {
-    return (itemId) => {
-      if (!trashData?.itemStats[itemId]) return 1.0
+    return (methodId) => {
+      if (!trashData?.methodStats[methodId]) return 1.0
 
-      const { trashCount, totalUsers } = trashData.itemStats[itemId]
+      const { trashCount, totalUsers } = trashData.methodStats[methodId]
       const percentage = totalUsers > 0 ? (trashCount / totalUsers) * 100 : 0
 
       if (percentage === 0) return 1.0
@@ -51,70 +50,69 @@ export function useTrashScoring() {
     }
   }, [trashData])
 
-  // Get trash percentage for an item
+  // Get trash percentage for a method
   const getTrashPercentage = useMemo(() => {
-    return (itemId) => {
-      if (!trashData?.itemStats[itemId]) return 0
+    return (methodId) => {
+      if (!trashData?.methodStats[methodId]) return 0
       
-      const { trashCount, totalUsers } = trashData.itemStats[itemId]
+      const { trashCount, totalUsers } = trashData.methodStats[methodId]
       return totalUsers > 0 ? (trashCount / totalUsers) * 100 : 0
     }
   }, [trashData])
 
-  // Get trash vote count for an item
+  // Get trash vote count for a method
   const getTrashCount = useMemo(() => {
-    return (itemId) => {
-      return trashData?.itemStats[itemId]?.trashCount || 0
+    return (methodId) => {
+      return trashData?.methodStats[methodId]?.trashCount || 0
     }
   }, [trashData])
 
-  // Check if user has voted this item as trash
+  // Check if user has voted this method as trash
   const hasUserVoted = useMemo(() => {
-    return (itemId) => {
-      // userVotes comes as an array from TRPC (Sets don't serialize to JSON)
+    return (methodId) => {
       if (!trashData?.userVotes) return false
       
-      // Handle both array and Set formats
+      // userVotes comes as an array from TRPC (Set gets serialized to array)
       const votesArray = Array.isArray(trashData.userVotes) 
         ? trashData.userVotes
         : Array.from(trashData.userVotes || [])
       
-      return votesArray.includes(itemId)
+      return votesArray.includes(methodId)
     }
   }, [trashData])
 
-  // Check if item is considered trash (>25% voted)
+  // Check if method is considered trash (>25% voted)
   const isTrash = useMemo(() => {
-    return (itemId) => {
-      return getTrashPercentage(itemId) > 25
+    return (methodId) => {
+      return getTrashPercentage(methodId) > 25
     }
   }, [getTrashPercentage])
 
   // Get user's complete trash list
-  const userTrashItems = trashData?.userTrashItems || []
+  const userTrashMethods = trashData?.userTrashMethods || []
 
-  // Toggle trash vote for an item
-  const toggleTrashVote = async (itemId, itemName) => {
+  // Toggle trash vote for a method
+  const toggleTrashVote = async (methodId, methodName) => {
     if (!user) {
       console.warn('User must be logged in to vote')
       notifications.show({
         title: 'Login Required',
-        message: 'You must be logged in to vote on items',
+        message: 'You must be logged in to vote on methods',
         color: 'yellow'
       })
       return
     }
 
     try {
-      if (hasUserVoted(itemId)) {
-        await unmarkAsTrash.mutateAsync({ itemId })
+      if (hasUserVoted(methodId)) {
+        await unmarkAsTrash.mutateAsync({ methodId })
         notifications.show({
           title: 'Vote Removed',
-          message: `Removed trash vote for ${itemName}`,
+          message: `Removed trash vote for ${methodName}`,
           color: 'blue'
         })
       } else {
-        const result = await markAsTrash.mutateAsync({ itemId, itemName })
+        const result = await markAsTrash.mutateAsync({ methodId, methodName })
         
         if (result?.wasAdminCleaned) {
           notifications.show({
@@ -126,7 +124,7 @@ export function useTrashScoring() {
         } else {
           notifications.show({
             title: 'Vote Recorded',
-            message: `Marked ${itemName} as unreliable`,
+            message: `Marked ${methodName} as unreliable`,
             color: 'red'
           })
         }
@@ -144,10 +142,10 @@ export function useTrashScoring() {
   return {
     // Data
     trashData,
-    userTrashItems,
+    userTrashMethods,
     isLoading,
     totalUsers: trashData?.totalUsers || 0,
-    error, // Add error property for tests
+    error,
     
     // Calculations
     getTrashWeight,

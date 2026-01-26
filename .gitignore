@@ -34,3 +34,8 @@ prisma/schema.prisma
 exchange-rs/prisma/schema.prisma
 /schema.prisma
 .vercel
+/node_modules
+node_modules
+*/node_modules
+node_modules.backup
+*/node_modules.backup

@@ -13,9 +13,10 @@ import {
   Tooltip,
   Title,
   Stack,
-  Container
+  Container,
+  Tabs
 } from '@mantine/core'
-import { IconClock, IconRefresh, IconPlus, IconInfoCircle, IconEdit, IconTrash, IconCoin } from '@tabler/icons-react'
+import { IconClock, IconRefresh, IconPlus, IconInfoCircle, IconEdit, IconTrash, IconCoin, IconTrashX } from '@tabler/icons-react'
 import React, { useState } from 'react'
 import { trpc } from '../../utils/trpc.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
@@ -25,6 +26,8 @@ import ItemData from '../../utils/item-data.jsx'
 import MoneyMakingMethodCreationModal from './components/MoneyMakingMethodCreationModal.jsx'
 import MoneyMakingMethodEditModal from './components/MoneyMakingMethodEditModal.jsx'
 import MoneyMakingMethodsTable from './components/MoneyMakingMethodsTable.jsx'
+import TrashMethodsView from './components/TrashMethodsView.jsx'
+import { useMethodTrashScoring } from '../../hooks/useMethodTrashScoring.js'
 
 export default function UserMoneyMakingMethods() {
   const { items, mapStatus, priceStatus } = ItemData()
@@ -32,6 +35,10 @@ export default function UserMoneyMakingMethods() {
   const [creationModalOpen, setCreationModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState(null)
+  const [activeTab, setActiveTab] = useState('methods')
+  
+  // Get method trash scoring functionality
+  const { hasUserVoted, isTrash } = useMethodTrashScoring()
   
   // Fetch user's own money making methods
   const { 
@@ -107,6 +114,11 @@ export default function UserMoneyMakingMethods() {
     return <Badge color="gray" variant="filled">{status}</Badge>
   }
 
+  // Filter out methods that the user has marked as trash
+  const filteredMethods = userMethods?.filter(method => 
+    !hasUserVoted(method.id) && !isTrash(method.id)
+  ) || []
+
   if (isLoading) {
     return (
       <Center style={{ height: '50vh' }}>
@@ -163,7 +175,7 @@ export default function UserMoneyMakingMethods() {
                 <IconCoin size={20} color="orange" />
                 <div>
                   <Text size="sm" color="dimmed">Total Methods</Text>
-                  <Text weight={600}>{userMethods?.length || 0}</Text>
+                  <Text weight={600}>{filteredMethods?.length || 0}</Text>
                 </div>
               </Group>
             </Card>
@@ -174,7 +186,7 @@ export default function UserMoneyMakingMethods() {
                 <div>
                   <Text size="sm" color="dimmed">Approved</Text>
                   <Text weight={600}>
-                    {userMethods?.filter(m => m.status === 'approved').length || 0}
+                    {filteredMethods?.filter(m => m.status === 'approved').length || 0}
                   </Text>
                 </div>
               </Group>
@@ -186,42 +198,59 @@ export default function UserMoneyMakingMethods() {
                 <div>
                   <Text size="sm" color="dimmed">Pending</Text>
                   <Text weight={600}>
-                    {userMethods?.filter(m => m.status === 'pending').length || 0}
+                    {filteredMethods?.filter(m => m.status === 'pending').length || 0}
                   </Text>
                 </div>
               </Group>
             </Card>
           </Group>
 
-          {/* Methods Table */}
-          {userMethods && userMethods.length > 0 ? (
-            <MoneyMakingMethodsTable
-              methods={userMethods}
-              onEdit={handleEditMethod}
-              onDelete={handleDeleteMethod}
-              showActions={true}
-            />
-          ) : (
-            <Card withBorder py="xl">
-              <Center>
-                <Stack align="center" spacing="md">
-                  <IconCoin size={48} color="gray" />
-                  <div style={{ textAlign: 'center' }}>
-                    <Text weight={600} size="lg">No methods created yet</Text>
-                    <Text color="dimmed" size="sm">
-                      Create your first money making method to get started
-                    </Text>
-                  </div>
-                  <Button
-                    leftIcon={<IconPlus size={14} />}
-                    onClick={() => setCreationModalOpen(true)}
-                  >
-                    Create Your First Method
-                  </Button>
-                </Stack>
-              </Center>
-            </Card>
-          )}
+          {/* Tabs for Methods and Trash */}
+          <Tabs value={activeTab} onTabChange={setActiveTab}>
+            <Tabs.List>
+              <Tabs.Tab value="methods" icon={<IconCoin size={14} />}>
+                My Methods
+              </Tabs.Tab>
+              <Tabs.Tab value="trash" icon={<IconTrashX size={14} />} color="orange">
+                Trash
+              </Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="methods" pt="md">
+              {filteredMethods && filteredMethods.length > 0 ? (
+                <MoneyMakingMethodsTable
+                  methods={filteredMethods}
+                  onEdit={handleEditMethod}
+                  onDelete={handleDeleteMethod}
+                  showActions={true}
+                />
+              ) : (
+                <Card withBorder py="xl">
+                  <Center>
+                    <Stack align="center" spacing="md">
+                      <IconCoin size={48} color="gray" />
+                      <div style={{ textAlign: 'center' }}>
+                        <Text weight={600} size="lg">No methods created yet</Text>
+                        <Text color="dimmed" size="sm">
+                          Create your first money making method to get started
+                        </Text>
+                      </div>
+                      <Button
+                        leftIcon={<IconPlus size={14} />}
+                        onClick={() => setCreationModalOpen(true)}
+                      >
+                        Create Your First Method
+                      </Button>
+                    </Stack>
+                  </Center>
+                </Card>
+              )}
+            </Tabs.Panel>
+
+            <Tabs.Panel value="trash" pt="md">
+              <TrashMethodsView />
+            </Tabs.Panel>
+          </Tabs>
         </Stack>
 
         {/* Modals */}

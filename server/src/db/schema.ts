@@ -1088,3 +1088,48 @@ export type UserTrashVote = typeof userTrashVotes.$inferSelect;
 export type NewUserTrashVote = typeof userTrashVotes.$inferInsert;
 export type ItemAdminClean = typeof itemAdminClean.$inferSelect;
 export type NewItemAdminClean = typeof itemAdminClean.$inferInsert;
+
+// --- METHOD TRASH VOTING SYSTEM ---
+
+// User trash votes for money making methods - one vote per user per method
+export const methodTrashVotes = pgTable('method_trash_votes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  methodId: uuid('method_id').notNull().references(() => moneyMakingMethods.id, { onDelete: 'cascade' }),
+  methodName: text('method_name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  userMethodUnique: uniqueIndex('method_trash_votes_user_method_unique').on(table.userId, table.methodId),
+  userIdIdx: index('method_trash_votes_user_id_idx').on(table.userId),
+  methodIdIdx: index('method_trash_votes_method_id_idx').on(table.methodId),
+  createdAtIdx: index('method_trash_votes_created_at_idx').on(table.createdAt)
+}))
+
+// Admin override to clear method trash votes and mark method as clean
+export const methodAdminClean = pgTable('method_admin_clean', {
+  methodId: uuid('method_id').primaryKey().references(() => moneyMakingMethods.id, { onDelete: 'cascade' }),
+  cleanedBy: integer('cleaned_by').notNull().references(() => users.id),
+  cleanedAt: timestamp('cleaned_at').defaultNow().notNull()
+}, (table) => ({
+  cleanedByIdx: index('method_admin_clean_cleaned_by_idx').on(table.cleanedBy),
+  cleanedAtIdx: index('method_admin_clean_cleaned_at_idx').on(table.cleanedAt)
+}))
+
+// Validation schemas for method trash voting
+export const insertMethodTrashVoteSchema = createInsertSchema(methodTrashVotes, {
+  methodName: (schema) => schema.min(1).max(255, {
+    message: "Method name must be between 1 and 255 characters"
+  })
+})
+
+export const selectMethodTrashVoteSchema = createSelectSchema(methodTrashVotes)
+
+export const insertMethodAdminCleanSchema = createInsertSchema(methodAdminClean)
+
+export const selectMethodAdminCleanSchema = createSelectSchema(methodAdminClean)
+
+// Type exports for method trash voting system
+export type MethodTrashVote = typeof methodTrashVotes.$inferSelect;
+export type NewMethodTrashVote = typeof methodTrashVotes.$inferInsert;
+export type MethodAdminClean = typeof methodAdminClean.$inferSelect;
+export type NewMethodAdminClean = typeof methodAdminClean.$inferInsert;

@@ -26,7 +26,8 @@ import {
   IconTarget,
   IconSword,
   IconCoin,
-  IconUsers
+  IconUsers,
+  IconTrashFilled
 } from '@tabler/icons-react'
 import { trpc } from '../../utils/trpc.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
@@ -35,6 +36,7 @@ import MoneyMakingMethodsTable from '../MoneyMakingMethods/components/MoneyMakin
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 import { InfiniteScrollTable } from '../../components/InfiniteScroll/InfiniteScrollTable'
 import { formatNumber } from '../../utils/formatters'
+import { useMethodTrashScoring } from '../../hooks/useMethodTrashScoring.js'
 
 const CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -68,6 +70,12 @@ export default function GlobalMoneyMakingMethods() {
   // Get TRPC utils for queries
   const trpcUtils = trpc.useUtils()
   
+  // Get global stats - using a public endpoint
+  const { data: globalStats } = trpc.moneyMakingMethods.getGlobalStats.useQuery()
+  
+  // Get method trash scoring functionality
+  const { toggleTrashVote, hasUserVoted } = useMethodTrashScoring()
+  
   // Fetch data function for infinite scroll
   const fetchGlobalMethods = React.useCallback(async ({ offset, limit, search, filters, sortBy: sortByParam, sortOrder }) => {
     try {
@@ -81,19 +89,21 @@ export default function GlobalMoneyMakingMethods() {
         search: searchQuery
       })
       
+      // Filter out methods that the user has voted as trash
+      const filteredResult = result?.filter(method => 
+        !hasUserVoted(method.id) && !isTrash(method.id)
+      ) || []
+
       return {
-        data: result || [],
-        totalCount: globalStats?.approved || 0,
-        hasMore: result && result.length >= limit
+        data: filteredResult,
+        totalCount: filteredResult.length,
+        hasMore: filteredResult.length >= limit
       }
     } catch (error) {
       console.error('Error fetching global methods:', error)
       throw error
     }
-  }, [selectedCategory, selectedDifficulty, sortBy, searchQuery, trpcUtils.moneyMakingMethods.getGlobalMethods, globalStats?.approved])
-
-  // Get global stats - using a public endpoint
-  const { data: globalStats } = trpc.moneyMakingMethods.getGlobalStats.useQuery()
+  }, [selectedCategory, selectedDifficulty, sortBy, searchQuery, trpcUtils.moneyMakingMethods.getGlobalMethods, hasUserVoted, isTrash])
 
   // Update current time every second
   React.useEffect(() => {
@@ -177,6 +187,16 @@ export default function GlobalMoneyMakingMethods() {
           </Stack>
           
           <Group spacing="xs" align="center">
+            <Tooltip label={hasUserVoted(method.id) ? "Remove trash vote" : "Mark as unreliable"}>
+              <ActionIcon
+                size="sm"
+                variant={hasUserVoted(method.id) ? 'filled' : 'subtle'}
+                color="orange"
+                onClick={() => toggleTrashVote(method.id, method.methodName)}
+              >
+                <IconTrashFilled size={14} />
+              </ActionIcon>
+            </Tooltip>
             <IconCoin size={14} color="gold" />
             <Text size="sm" weight={600} color="green">
               {formatProfitPerHour(method.profitPerHour)}
@@ -185,7 +205,7 @@ export default function GlobalMoneyMakingMethods() {
         </Group>
       </Card>
     )
-  }, [])
+  }, [toggleTrashVote, hasUserVoted])
 
 
   return (

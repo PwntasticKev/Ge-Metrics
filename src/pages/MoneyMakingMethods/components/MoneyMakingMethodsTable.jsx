@@ -10,8 +10,9 @@ import {
   Stack,
   Box
 } from '@mantine/core'
-import { IconEdit, IconTrash, IconCoin, IconTarget, IconClock } from '@tabler/icons-react'
+import { IconEdit, IconTrash, IconTrashFilled, IconCoin, IconTarget, IconClock } from '@tabler/icons-react'
 import { formatNumber, getRelativeTime } from '../../../utils/utils.jsx'
+import { useMethodTrashScoring } from '../../../hooks/useMethodTrashScoring.js'
 
 const DIFFICULTY_COLORS = {
   easy: 'green',
@@ -32,8 +33,10 @@ export default function MoneyMakingMethodsTable({
   onDelete, 
   showActions = false,
   showUser = false,
-  customActions
+  customActions,
+  showTrashButton = false
 }) {
+  const { toggleTrashVote, hasUserVoted } = useMethodTrashScoring()
   const formatProfitPerHour = (profit) => {
     if (!profit || profit === 0) return 'Calculating...'
     return formatNumber(profit) + ' gp/hr'
@@ -177,32 +180,48 @@ export default function MoneyMakingMethodsTable({
       </td>
 
       {/* Actions */}
-      {showActions && (
+      {(showActions || showTrashButton) && (
         <td>
           <Group spacing="xs" noWrap>
-            {customActions ? (
-              customActions(method)
-            ) : (
+            {showTrashButton && (
+              <Tooltip label={hasUserVoted(method.id) ? "Remove trash vote" : "Mark as unreliable"}>
+                <ActionIcon
+                  size="sm"
+                  variant={hasUserVoted(method.id) ? 'filled' : 'subtle'}
+                  color="orange"
+                  onClick={() => toggleTrashVote(method.id, method.methodName)}
+                >
+                  <IconTrashFilled size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {showActions && (
               <>
-                <Tooltip label="Edit method">
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={() => onEdit(method)}
-                  >
-                    <IconEdit size={14} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Delete method">
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    color="red"
-                    onClick={() => onDelete(method.id)}
-                  >
-                    <IconTrash size={14} />
-                  </ActionIcon>
-                </Tooltip>
+                {customActions ? (
+                  customActions(method)
+                ) : (
+                  <>
+                    <Tooltip label="Edit method">
+                      <ActionIcon
+                        size="sm"
+                        variant="subtle"
+                        onClick={() => onEdit(method)}
+                      >
+                        <IconEdit size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Delete method permanently">
+                      <ActionIcon
+                        size="sm"
+                        variant="subtle"
+                        color="red"
+                        onClick={() => onDelete(method.id)}
+                      >
+                        <IconTrash size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </>
+                )}
               </>
             )}
           </Group>
