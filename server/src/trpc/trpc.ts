@@ -12,7 +12,7 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
     try {
-      // Robustly get the auth utilities instance
+      // Robustly get the auth utilities instance.
       const utils =
         (AuthModule as any).authUtils || // prefer the named instance
         (AuthModule as any).default || // fall back to default export

@@ -380,7 +380,7 @@ class WebSocketAnalyticsService {
 
   private async authenticateToken(token: string): Promise<any> {
     try {
-      const decoded = jwt.verify(token, config.JWT_SECRET) as any
+      const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET) as any
       const user = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1)
       return user[0] || null
     } catch (error) {

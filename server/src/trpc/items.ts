@@ -31,7 +31,7 @@ export const itemsRouter = router({
         console.log(`[getAllVolumes] Fetching ${input.limit} item volumes from database (offset: ${input.offset})...`)
         
         // Get total count for pagination info
-        const totalCount = await db.select({ count: 'count(*)' }).from(itemVolumes)
+        const totalCount = await db.select({ count: sql<number>`count(*)` }).from(itemVolumes)
         
         // Get paginated volumes
         const allVolumes = await db
@@ -54,13 +54,15 @@ export const itemsRouter = router({
             lastUpdatedAt: item.lastUpdatedAt
           }
         })
+        const total = Number(totalCount[0]?.count ?? 0)
+
         return {
           data: volumeMap,
           pagination: {
-            total: totalCount[0]?.count || 0,
+            total,
             limit: input.limit,
             offset: input.offset,
-            hasMore: (input.offset + allVolumes.length) < (totalCount[0]?.count || 0)
+            hasMore: (input.offset + allVolumes.length) < total
           }
         }
       } catch (error) {
@@ -92,18 +94,19 @@ export const itemsRouter = router({
         console.log(`[getItemMapping] Fetching ${input.limit} item mappings from database (offset: ${input.offset})...`)
         
         // Build query with optional search
-        let query = db.select().from(itemMapping)
+        let query = db.select().from(itemMapping).$dynamic()
         
         if (input.search) {
           query = query.where(sql`name ILIKE ${'%' + input.search + '%'}`)
         }
         
         // Get total count for pagination
-        let countQuery = db.select({ count: sql`count(*)` }).from(itemMapping)
+        let countQuery = db.select({ count: sql<number>`count(*)` }).from(itemMapping).$dynamic()
         if (input.search) {
           countQuery = countQuery.where(sql`name ILIKE ${'%' + input.search + '%'}`)
         }
         const totalCount = await countQuery
+        const total = Number(totalCount[0]?.count ?? 0)
         
         // Get paginated mappings
         const mappings = await query
@@ -220,10 +223,10 @@ export const itemsRouter = router({
         return {
           data: mappingObject,
           pagination: {
-            total: totalCount[0]?.count || 0,
+            total,
             limit: input.limit,
             offset: input.offset,
-            hasMore: (input.offset + mappings.length) < (totalCount[0]?.count || 0)
+            hasMore: (input.offset + mappings.length) < total
           }
         }
       } catch (error) {

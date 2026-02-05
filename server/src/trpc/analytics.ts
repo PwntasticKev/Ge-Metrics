@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { t, adminProcedure, protectedProcedure, publicProcedure } from './trpc.js'
 import { websocketService } from '../services/websocketService.js'
+import type { AnalyticsEvent } from '../services/websocketService.js'
 import { db } from '../db/index.js'
 import { sql } from 'drizzle-orm'
 
@@ -36,8 +37,9 @@ export const analyticsRouter = t.router({
   broadcastEvent: adminProcedure
     .input(AnalyticsEventSchema)
     .mutation(({ input, ctx }) => {
-      const event = {
-        ...input,
+      const event: AnalyticsEvent = {
+        type: input.type,
+        data: input.data,
         timestamp: new Date(),
         userId: input.userId || ctx.user.id,
       }
@@ -90,7 +92,7 @@ export const analyticsRouter = t.router({
 
         return {
           timeframe,
-          data: userActivity.rows,
+          data: userActivity,
           timestamp: new Date(),
         }
       } catch (error) {
@@ -136,7 +138,7 @@ export const analyticsRouter = t.router({
         return {
           timeframe,
           itemIds: itemIds || [],
-          data: priceMetrics.rows,
+          data: priceMetrics,
           timestamp: new Date(),
         }
       } catch (error) {
@@ -180,8 +182,8 @@ export const analyticsRouter = t.router({
         return {
           timeframe,
           database: {
-            tables: dbStats.rows,
-            connectionCount: (await db.execute(sql`SELECT count(*) as count FROM pg_stat_activity`)).rows[0]?.count || 0,
+            tables: dbStats,
+            connectionCount: (await db.execute(sql`SELECT count(*) as count FROM pg_stat_activity`))[0]?.count || 0,
           },
           websocket: wsStats,
           memory: {
@@ -248,8 +250,8 @@ export const analyticsRouter = t.router({
 
         return {
           timeframe,
-          stats: methodStats.rows,
-          topMethods: topMethods.rows,
+          stats: methodStats,
+          topMethods: topMethods,
           timestamp: new Date(),
         }
       } catch (error) {
@@ -323,10 +325,10 @@ export const analyticsRouter = t.router({
             WHERE created_at >= ${since}
           `)
 
-          if (recentActivity.rows[0]?.count > 0) {
+          if (recentActivity[0]?.count > 0) {
             events.push({
               type: 'user_activity',
-              data: recentActivity.rows[0],
+              data: recentActivity[0],
               timestamp: new Date(),
             })
           }
@@ -346,10 +348,10 @@ export const analyticsRouter = t.router({
             LIMIT 5
           `)
 
-          if (recentMethods.rows.length > 0) {
+          if (recentMethods.length > 0) {
             events.push({
               type: 'method_update',
-              data: recentMethods.rows,
+              data: recentMethods,
               timestamp: new Date(),
             })
           }
