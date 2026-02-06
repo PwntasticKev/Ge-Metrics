@@ -50,33 +50,6 @@ export default defineConfig({
         defaultWarn(warning);
       },
       output: {
-        // Optimal chunk strategy for CDN caching
-        manualChunks: (id) => {
-          if (!id.includes('node_modules')) return
-          // React + all packages that import React hooks must stay together
-          if (
-            id.includes('node_modules/react/') ||
-            id.includes('node_modules/react-dom/') ||
-            id.includes('node_modules/react-is/') ||
-            id.includes('node_modules/react-router') ||
-            id.includes('node_modules/hoist-non-react-statics') ||
-            id.includes('node_modules/@emotion') ||
-            id.includes('node_modules/stylis')
-          ) {
-            return 'react-vendor'
-          }
-          if (id.includes('node_modules/@mantine')) {
-            return 'mantine-vendor'
-          }
-          if (id.includes('node_modules/@trpc') || id.includes('node_modules/@tanstack')) {
-            return 'trpc-vendor'
-          }
-          if (id.includes('node_modules/lightweight-charts') || id.includes('node_modules/recharts') || id.includes('node_modules/react-smooth')) {
-            return 'charts-vendor'
-          }
-          return 'vendor'
-        },
-        // Optimize asset naming for CDN
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name!.split('.')
           const extType = info[info.length - 1]
