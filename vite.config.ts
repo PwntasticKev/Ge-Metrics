@@ -7,14 +7,18 @@ import path from 'path'
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   resolve: {
-    dedupe: ['@emotion/react', '@emotion/styled'],
+    dedupe: ['react', 'react-dom', '@emotion/react', '@emotion/styled'],
     alias: {
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
       '@emotion/react': path.resolve(__dirname, 'node_modules/@emotion/react'),
       '@emotion/styled': path.resolve(__dirname, 'node_modules/@emotion/styled')
     }
   },
   optimizeDeps: {
     include: [
+      'react',
+      'react-dom',
       'lightweight-charts',
       '@emotion/react',
       '@emotion/styled',
@@ -48,8 +52,17 @@ export default defineConfig({
       output: {
         // Optimal chunk strategy for CDN caching
         manualChunks: (id) => {
-          // Vendor chunks - rarely change, cache longer
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+          if (!id.includes('node_modules')) return
+          // React + all packages that import React hooks must stay together
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/react-is/') ||
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/hoist-non-react-statics') ||
+            id.includes('node_modules/@emotion') ||
+            id.includes('node_modules/stylis')
+          ) {
             return 'react-vendor'
           }
           if (id.includes('node_modules/@mantine')) {
@@ -58,16 +71,10 @@ export default defineConfig({
           if (id.includes('node_modules/@trpc') || id.includes('node_modules/@tanstack')) {
             return 'trpc-vendor'
           }
-          if (id.includes('node_modules/@emotion')) {
-            return 'emotion-vendor'
-          }
-          if (id.includes('node_modules/lightweight-charts') || id.includes('node_modules/recharts')) {
+          if (id.includes('node_modules/lightweight-charts') || id.includes('node_modules/recharts') || id.includes('node_modules/react-smooth')) {
             return 'charts-vendor'
           }
-          // Large vendor libraries
-          if (id.includes('node_modules')) {
-            return 'vendor'
-          }
+          return 'vendor'
         },
         // Optimize asset naming for CDN
         assetFileNames: (assetInfo) => {
