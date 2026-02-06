@@ -31,7 +31,6 @@
     "test:all": "bun run test:unit:run && bun run test:e2e",
     "coverage": "vitest run --coverage",
     "coverage:report": "vitest run --coverage && open coverage/index.html",
-    "prepare": "husky install",
     "validate:icons": "node scripts/validate-icons-simple.js",
     "test:app-loading": "node test-app-loading.cjs",
     "test:auth-bypass": "node test-auth-bypass.cjs",

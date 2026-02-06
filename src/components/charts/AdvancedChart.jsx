@@ -49,7 +49,7 @@ import {
   IconZoomOut,
   IconFilter
 } from '@tabler/icons-react'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getItemHistoryById } from '../../api/rs-wiki-api.jsx'
 import { getItemById } from '../../utils/utils.jsx'
 import { calculateSMA, calculateEMA } from '../../utils/indicators.js'
