@@ -112,7 +112,6 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.5.0",
-    "react-query": "^3.39.3",
     "react-router-dom": "^6.13.0",
     "recharts": "^2.15.3",
     "sass": "^1.63.4",

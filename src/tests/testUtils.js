@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { MantineProvider } from '@mantine/core'
 import '@testing-library/jest-dom'
@@ -74,7 +74,7 @@ export const renderWithProviders = (ui, options = {}) => {
     defaultOptions: {
       queries: {
         retry: false,
-        cacheTime: 0
+        gcTime: 0
       }
     }
   })
