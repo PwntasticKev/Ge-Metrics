@@ -37,7 +37,7 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
       console.log('[AUTH_DEBUG] User context created:', { id: user.id, email: user.email })
       return { req, res, user }
     } catch (error) {
-      console.log('[AUTH_DEBUG] Token verification failed:', error.message)
+      console.log('[AUTH_DEBUG] Token verification failed:', (error as Error).message)
       // Ignore invalid token, user will be unauthenticated..
     }
   }

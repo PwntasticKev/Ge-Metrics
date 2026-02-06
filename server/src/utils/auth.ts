@@ -63,7 +63,7 @@ export class AuthUtils {
       }
       return decoded
     } catch (error) {
-      console.log('[AUTH_DEBUG] Token verification error details:', error.message)
+      console.log('[AUTH_DEBUG] Token verification error details:', (error as Error).message)
       throw new Error('Invalid access token')
     }
   }

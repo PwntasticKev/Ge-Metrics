@@ -15,10 +15,12 @@ function initRedis() {
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       // Fallback to memory storage if Redis unavailable
-      enableOfflineQueue: false
+      enableOfflineQueue: false,
+      retryStrategy(times) {
+        return Math.min(times * 100, 2000)
+      }
     })
   }
   return redis
@@ -46,7 +48,7 @@ interface RateLimitKey {
 function generateRateLimitKey(req: Request): string {
   const ip = req.ip || req.connection.remoteAddress || 'unknown'
   const userId = (req as any).user?.id || 'anonymous'
-  const sessionId = req.sessionID || req.headers['x-session-id'] || 'no-session'
+  const sessionId = (req as any).sessionID || req.headers['x-session-id'] || 'no-session'
   
   return `${REDIS_KEY_PREFIX}:${ip}:${userId}:${sessionId}`
 }

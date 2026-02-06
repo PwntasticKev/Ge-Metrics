@@ -28,11 +28,13 @@ const prodOptions: Options<{}> = {
   max: 25,                   // Increased pool for WebSocket connections and analytics (was 10)
   idle_timeout: 30,         // Keep connections alive longer in production
   connect_timeout: 10,      // Faster timeout in production
-  statement_timeout: 10000, // 10 second query timeout to prevent hung queries
   prepare: false,           // Disable prepared statements for serverless compatibility
   onnotice: () => {},       // Suppress PostgreSQL notices in production logs
   debug: false              // Disable query debugging in production
-}
+} as Options<{}> & { statement_timeout?: number }
+
+// Add statement_timeout via runtime assignment (not in typed Options)
+;(prodOptions as any).statement_timeout = 10000 // 10 second query timeout to prevent hung queries
 
 const connectionOptions = config.NODE_ENV === 'production' ? prodOptions : 
                          config.NODE_ENV === 'development' ? devOptions : baseOptions

@@ -176,7 +176,7 @@ export const moneyMakingMethodsRouter = router({
               description: input.description,
               category: input.category,
               difficulty: input.difficulty,
-              profitPerHour: input.profitPerHour,
+              profitPerHour: String(input.profitPerHour),
               requirements: input.requirements || {},
               status: input.isPrivate ? 'private' : 'pending',
               isGlobal: false // Never global on creation
@@ -270,7 +270,7 @@ export const moneyMakingMethodsRouter = router({
               description: input.description,
               category: input.category,
               difficulty: input.difficulty,
-              profitPerHour: input.profitPerHour,
+              profitPerHour: String(input.profitPerHour),
               requirements: input.requirements || {},
               status: newStatus,
               isGlobal: false,   // Remove from global when updated
@@ -871,7 +871,7 @@ export const moneyMakingMethodsRouter = router({
           }
 
           voteCounts.forEach(vc => {
-            formattedCounts[vc.voteType] = vc.count || 0
+            (formattedCounts as Record<string, number>)[vc.voteType] = vc.count || 0
           })
 
           // Update method with new vote counts
@@ -944,7 +944,7 @@ export const moneyMakingMethodsRouter = router({
           }
 
           voteCounts.forEach(vc => {
-            formattedCounts[vc.voteType] = vc.count || 0
+            (formattedCounts as Record<string, number>)[vc.voteType] = vc.count || 0
           })
 
           // Update method with new vote counts

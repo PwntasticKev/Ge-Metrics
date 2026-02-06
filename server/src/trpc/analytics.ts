@@ -325,7 +325,7 @@ export const analyticsRouter = t.router({
             WHERE created_at >= ${since}
           `)
 
-          if (recentActivity[0]?.count > 0) {
+          if ((recentActivity[0] as any)?.count > 0) {
             events.push({
               type: 'user_activity',
               data: recentActivity[0],
