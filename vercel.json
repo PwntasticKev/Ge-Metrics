@@ -16,15 +16,6 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|woff2?|png|jpe?g|gif|svg|ico|webp|avif))",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
       "source": "/api/health",
       "headers": [
         {
@@ -46,7 +37,7 @@
   "crons": [
     {
       "path": "/api/cron/blogs",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [

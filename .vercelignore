@@ -1,0 +1,7 @@
+.git
+.claude
+.husky
+.vscode
+.idea
+coverage
+docs

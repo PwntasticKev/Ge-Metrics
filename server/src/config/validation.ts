@@ -254,20 +254,26 @@ export function printEnvironmentReport(): void {
  */
 export function validateOrExit(): void {
   const result = validateEnvironmentVariables()
-  
+
   if (!result.isValid) {
     console.error('\n💥 ENVIRONMENT VALIDATION FAILED')
-    console.error('🚫 Cannot start server with missing critical environment variables\n')
-    
+    console.error('🚫 Missing critical environment variables\n')
+
     result.errors.forEach(error => console.error(error))
-    
-    console.error('\n📋 To fix this:')
-    console.error('1. Copy .env.example to .env')
-    console.error('2. Fill in all required values')
-    console.error('3. Ensure secrets are properly generated')
-    console.error('4. Restart the server\n')
-    
-    process.exit(1)
+
+    // In serverless (Vercel), log errors but don't kill the process —
+    // process.exit() crashes the entire function invocation.
+    if (process.env.VERCEL) {
+      console.error('\n⚠️  Running in degraded mode on Vercel — fix env vars in dashboard')
+    } else {
+      console.error('\n📋 To fix this:')
+      console.error('1. Copy .env.example to .env')
+      console.error('2. Fill in all required values')
+      console.error('3. Ensure secrets are properly generated')
+      console.error('4. Restart the server\n')
+
+      process.exit(1)
+    }
   }
   
   // Print warnings if any
