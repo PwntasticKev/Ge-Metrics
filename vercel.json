@@ -1,23 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "server/src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "framework": "vite",
   "functions": {
-    "server/src/index.ts": {
+    "api/index.ts": {
       "maxDuration": 30
     }
   },
@@ -68,17 +52,16 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/server/src/index.ts"
+      "destination": "/api"
     },
     {
       "source": "/trpc/(.*)",
-      "destination": "/server/src/index.ts"
+      "destination": "/api"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
-  "regions": ["iad1"],
-  "framework": "vite"
+  "regions": ["iad1"]
 }
