@@ -30,6 +30,7 @@ import {
   IconCoins
 } from '@tabler/icons-react'
 import { useAuth } from '../../hooks/useAuth'
+import SEOHelmet from '../../components/SEO/SEOHelmet'
 import PasswordRecoveryModal from '../../components/auth/PasswordRecoveryModal'
 import { trpc } from '../../utils/trpc'
 import bgImage from '../../assets/gehd.png'
@@ -260,6 +261,7 @@ const Login = () => {
       overflow: 'hidden',
       background: '#141517'
     }}>
+      <SEOHelmet />
       <style>{`
         @keyframes slideInLeft {
           from {

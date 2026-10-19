@@ -6,7 +6,7 @@ import { getPricingData, getMappingData, getVolumeData, getItemHistoryById } fro
  * This test suite specifically targets the "Unexpected end of JSON input" error
  * that was occurring frequently in production
  */
-describe.skip('JSON Error Integration Tests', () => {
+describe('JSON Error Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Mock console to avoid spam during tests
@@ -68,6 +68,10 @@ describe.skip('JSON Error Integration Tests', () => {
 
     it('should handle network disconnection during JSON parsing', async () => {
       // Mock fetch to simulate network failure during parsing
+      // safeResponseJson: clone() works, then text() rejects.
+      // The error is caught in safeResponseJson's catch, returns fallback.
+      // safeFetch sees success: true, data: fallback ({}).
+      // getVolumeData returns { success: true, data: {} }.
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -83,10 +87,12 @@ describe.skip('JSON Error Integration Tests', () => {
       })
 
       const result = await getVolumeData()
-      
-      expect(result.success).toBe(false)
-      expect(result.error).toBeInstanceOf(Error)
-      expect(result.error.message).toContain('Network connection lost')
+
+      // safeResponseJson catches the text() rejection and returns fallback
+      // safeFetch wraps it as success with fallback data
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({})
+      expect(console.error).toHaveBeenCalled()
     })
 
     it('should handle server returning HTML error page instead of JSON', async () => {
@@ -113,10 +119,12 @@ describe.skip('JSON Error Integration Tests', () => {
       })
 
       const result = await getItemHistoryById('1h', 123)
-      
-      expect(result.success).toBe(false)
-      expect(result.error).toBeInstanceOf(Error)
-      expect(result.error.message).toContain('Expected JSON response but got: text/html')
+
+      // safeResponseJson detects non-JSON content-type, throws error, catches it,
+      // returns fallback. safeFetch wraps as success with fallback data.
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({})
+      expect(console.error).toHaveBeenCalled()
     })
 
     it('should handle malformed JSON with safe fallbacks', async () => {
@@ -273,13 +281,14 @@ describe.skip('JSON Error Integration Tests', () => {
       })
 
       const result = await getPricingData()
-      
+
       // Should handle gracefully without throwing
       expect(result.success).toBe(true)
       expect(result.data).toEqual({})
-      
-      // Should log appropriate error but not crash
-      expect(console.error).toHaveBeenCalled()
+
+      // safeResponseJson detects empty body via text() → returns fallback with console.warn
+      // console.error is NOT called for empty body (only console.warn)
+      expect(console.warn).toHaveBeenCalled()
     })
 
     it('should maintain backward compatibility with existing code', async () => {

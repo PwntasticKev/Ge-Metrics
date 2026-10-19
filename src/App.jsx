@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react'
+import { HelmetProvider } from 'react-helmet-async'
 import { BrowserRouter as Router, Outlet, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import ErrorPage from './pages/error-page.jsx'
 import Login from './pages/Login'
@@ -435,12 +436,14 @@ function AppContent () {
 
 export default function App () {
   return (
-    <TRPCProvider>
-      <Router>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </Router>
-    </TRPCProvider>
+    <HelmetProvider>
+      <TRPCProvider>
+        <Router>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </Router>
+      </TRPCProvider>
+    </HelmetProvider>
   )
 }

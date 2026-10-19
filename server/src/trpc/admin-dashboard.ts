@@ -17,32 +17,26 @@ export const adminDashboardRouter = router({
       const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000)
       const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      // Get user stats
-      const [totalUsers] = await db.select({ count: count() }).from(users)
-      const [newUsersToday] = await db.select({ count: count() })
-        .from(users)
-        .where(gte(users.createdAt, last24Hours))
-      const [newUsersWeek] = await db.select({ count: count() })
-        .from(users)
-        .where(gte(users.createdAt, last7Days))
-
-      // Get subscription stats
-      const [totalSubscriptions] = await db.select({ count: count() }).from(subscriptions)
-      const [activeSubscriptions] = await db.select({ count: count() })
-        .from(subscriptions)
-        .where(eq(subscriptions.status, 'active'))
-      const [trialSubscriptions] = await db.select({ count: count() })
-        .from(subscriptions)
-        .where(eq(subscriptions.status, 'trialing'))
-      const [canceledSubscriptions] = await db.select({ count: count() })
-        .from(subscriptions)
-        .where(eq(subscriptions.status, 'canceled'))
-
-      // Get recent audit log entries
-      const recentAuditLogs = await db.select()
-        .from(auditLog)
-        .orderBy(desc(auditLog.createdAt))
-        .limit(10)
+      // Run all independent queries in parallel
+      const [
+        [totalUsers],
+        [newUsersToday],
+        [newUsersWeek],
+        [totalSubscriptions],
+        [activeSubscriptions],
+        [trialSubscriptions],
+        [canceledSubscriptions],
+        recentAuditLogs,
+      ] = await Promise.all([
+        db.select({ count: count() }).from(users),
+        db.select({ count: count() }).from(users).where(gte(users.createdAt, last24Hours)),
+        db.select({ count: count() }).from(users).where(gte(users.createdAt, last7Days)),
+        db.select({ count: count() }).from(subscriptions),
+        db.select({ count: count() }).from(subscriptions).where(eq(subscriptions.status, 'active')),
+        db.select({ count: count() }).from(subscriptions).where(eq(subscriptions.status, 'trialing')),
+        db.select({ count: count() }).from(subscriptions).where(eq(subscriptions.status, 'canceled')),
+        db.select().from(auditLog).orderBy(desc(auditLog.createdAt)).limit(10),
+      ])
 
       // Mock API stats for now (we'll implement proper tracking later)
       const mockApiStats = {

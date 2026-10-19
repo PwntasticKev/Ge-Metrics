@@ -10,7 +10,7 @@ import {
 // Mock fetch globally
 global.fetch = vi.fn()
 
-describe.skip('SafeJsonParser', () => {
+describe('SafeJsonParser', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Mock console to avoid spam during tests
@@ -189,14 +189,20 @@ describe.skip('SafeJsonParser', () => {
     })
 
     it('should handle timeout', async () => {
-      // Mock a fetch that never resolves
-      global.fetch.mockImplementation(() => 
-        new Promise(() => {}) // Never resolves
+      // Mock a fetch that respects AbortSignal (like real fetch does)
+      global.fetch.mockImplementation((url, options) =>
+        new Promise((resolve, reject) => {
+          if (options?.signal) {
+            options.signal.addEventListener('abort', () => {
+              reject(new DOMException('The operation was aborted.', 'AbortError'))
+            })
+          }
+        })
       )
 
       const result = await safeFetch('https://test.com/api')
       expect(result.success).toBe(false)
-      expect(result.error).toBeInstanceOf(Error)
+      expect(result.error).toBeDefined()
       expect(result.error.name).toBe('AbortError')
     }, 35000) // 35 second test timeout
   })

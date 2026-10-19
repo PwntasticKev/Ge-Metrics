@@ -4,11 +4,16 @@ import { stripe } from '../services/stripe.js'
 import { db } from '../db/index.js'
 import { subscriptions } from '../db/schema.js'
 import { and, eq } from 'drizzle-orm'
+import { createRateLimitMiddleware } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
 
+const webhookRateLimit = createRateLimitMiddleware({
+  message: 'Too many webhook requests. Please try again later.',
+})
+
 // Webhook endpoint: Stripe requires the raw body to validate signatures
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', webhookRateLimit, express.raw({ type: 'application/json' }), async (req, res) => {
   const signature = req.headers['stripe-signature'] as string
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 

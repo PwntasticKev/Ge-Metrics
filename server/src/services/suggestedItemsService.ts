@@ -217,8 +217,8 @@ export async function getSuggestedItems(filters: SuggestedItemsFilters = {}): Pr
         )
       )
 
-    const items = await query
-    
+    const items = await query.limit(1000)
+
     console.log(`[getSuggestedItems] Processing ${items.length} items`)
     
     const suggestedItems: SuggestedItem[] = []

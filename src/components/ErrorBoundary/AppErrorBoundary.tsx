@@ -348,17 +348,19 @@ Component Stack: ${errorInfo?.componentStack}
                   variant="light"
                   color="gray"
                   size="lg"
+                  aria-label="Copy error details"
                 >
                   <IconCopy size={16} />
                 </ActionIcon>
               </Tooltip>
-              
+
               <Tooltip label="Toggle error details">
                 <ActionIcon
                   onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
                   variant="light"
                   color="gray"
                   size="lg"
+                  aria-label="Toggle error details"
                 >
                   {showDetails ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
                 </ActionIcon>

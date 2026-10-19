@@ -38,6 +38,10 @@
     {
       "path": "/api/cron/blogs",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/game-updates/update",
+      "schedule": "0 1 * * *"
     }
   ],
   "rewrites": [

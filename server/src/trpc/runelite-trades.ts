@@ -157,22 +157,25 @@ async function processFifoMatching(
   
   let remainingSellQuantity = filledQuantity
   
+  // Collect batch operations instead of individual queries per position
+  type PositionId = (typeof openPositionsList)[number]['id']
+  const matchInserts: (typeof tradeMatches.$inferInsert)[] = []
+  const positionsToUpdate: { id: PositionId; quantity: number }[] = []
+  const positionIdsToDelete: PositionId[] = []
+
   for (const position of sortedPositions) {
     if (remainingSellQuantity <= 0) break
-    
+
     const availableQuantity = position.quantity
-    
     if (availableQuantity <= 0) continue
-    
-    // Match what we can
+
     const matchQuantity = Math.min(remainingSellQuantity, availableQuantity)
     const buyPrice = position.averageBuyPrice
     const profit = (sellPrice - buyPrice) * matchQuantity
     const profitAfterTax = Math.floor(profit * 0.98) // 2% GE tax
-    const roiPercentage = buyPrice > 0 ? Math.floor((profit / buyPrice) * 10000) : 0 // Percentage * 100
-    
-    // Create trade match
-    await db.insert(tradeMatches).values({
+    const roiPercentage = buyPrice > 0 ? Math.floor((profit / buyPrice) * 10000) : 0
+
+    matchInserts.push({
       userId,
       osrsAccountId,
       itemId,
@@ -185,19 +188,37 @@ async function processFifoMatching(
       profitAfterTax,
       roiPercentage
     })
-    
-    // Update open position
+
     const newQuantity = position.quantity - matchQuantity
     if (newQuantity > 0) {
-      await db.update(openPositions)
-        .set({ quantity: newQuantity, updatedAt: new Date() })
-        .where(eq(openPositions.id, position.id))
+      positionsToUpdate.push({ id: position.id, quantity: newQuantity })
     } else {
-      await db.delete(openPositions)
-        .where(eq(openPositions.id, position.id))
+      positionIdsToDelete.push(position.id)
     }
-    
+
     remainingSellQuantity -= matchQuantity
+  }
+
+  // Execute batch operations
+  if (matchInserts.length > 0) {
+    await db.insert(tradeMatches).values(matchInserts)
+  }
+
+  // Updates must be individual (different values per row), but run in parallel
+  const positionPromises: Promise<unknown>[] = positionsToUpdate.map(({ id, quantity }) =>
+    db.update(openPositions)
+      .set({ quantity, updatedAt: new Date() })
+      .where(eq(openPositions.id, id))
+  )
+
+  if (positionIdsToDelete.length > 0) {
+    positionPromises.push(
+      db.delete(openPositions).where(inArray(openPositions.id, positionIdsToDelete))
+    )
+  }
+
+  if (positionPromises.length > 0) {
+    await Promise.all(positionPromises)
   }
 }
 

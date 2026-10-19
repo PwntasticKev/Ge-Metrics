@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { publicProcedure, router, subscribedProcedure } from './trpc.js'
 import { db, itemVolumes, itemMapping, connection } from '../db/index.js'
 import { NewItemVolume } from '../db/schema.js'
-import { eq, desc, sql } from 'drizzle-orm'
+import { eq, desc, sql, count } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 import { 
   rateLimitedProcedure, 
@@ -175,11 +175,11 @@ export const itemsRouter = router({
             
             console.log(`[getItemMapping] Finished inserting. Total inserted: ${insertedCount}`)
             
-            // Re-fetch from database after population
-            const repopulatedMappings = await db.select().from(itemMapping)
-            console.log(`[getItemMapping] Successfully populated and fetched ${repopulatedMappings.length} item mappings`)
-            
-            if (repopulatedMappings.length === 0) {
+            // Verify population succeeded
+            const [{ count: repopulatedCount }] = await db.select({ count: count() }).from(itemMapping)
+            console.log(`[getItemMapping] Successfully populated ${repopulatedCount} item mappings`)
+
+            if (repopulatedCount === 0) {
               throw new Error('Failed to populate item mapping - table still empty after insertion')
             }
             
@@ -197,10 +197,10 @@ export const itemsRouter = router({
             return {
               data: mappingObject,
               pagination: {
-                total: repopulatedMappings.length,
+                total: repopulatedCount,
                 limit: input.limit,
                 offset: input.offset,
-                hasMore: (input.offset + paginatedMappings.length) < repopulatedMappings.length
+                hasMore: (input.offset + paginatedMappings.length) < repopulatedCount
               }
             }
           } catch (populateError) {
@@ -342,8 +342,8 @@ export const itemsRouter = router({
         `
         const tableExists = tableCheck[0]?.exists ?? false
         
-        let existingCount: any[] = []
-        
+        let existingCount = 0
+
         if (!tableExists) {
           console.log('[populateItemMapping] Table does not exist, creating it...')
           await connection`
@@ -366,8 +366,9 @@ export const itemsRouter = router({
         } else {
           // Table exists, try to query it
           try {
-            existingCount = await db.select().from(itemMapping)
-            console.log(`[populateItemMapping] Table exists with ${existingCount.length} items`)
+            const [{ count: existingRows }] = await db.select({ count: count() }).from(itemMapping)
+            existingCount = existingRows
+            console.log(`[populateItemMapping] Table exists with ${existingCount} items`)
           } catch (queryError) {
             // Table exists but has wrong schema - drop and recreate
             console.error('[populateItemMapping] Table exists but query failed (wrong schema?), recreating...', queryError)
@@ -389,13 +390,13 @@ export const itemsRouter = router({
               )
             `
             console.log('[populateItemMapping] Table recreated successfully')
-            existingCount = []
+            existingCount = 0
           }
         }
-        
-        if (existingCount.length > 100) {
-          console.log(`[populateItemMapping] Table already has ${existingCount.length} items, skipping population`)
-          return { success: true, message: `Table already populated with ${existingCount.length} items`, count: existingCount.length }
+
+        if (existingCount > 100) {
+          console.log(`[populateItemMapping] Table already has ${existingCount} items, skipping population`)
+          return { success: true, message: `Table already populated with ${existingCount} items`, count: existingCount }
         }
         
         const response = await fetch('https://prices.runescape.wiki/api/v1/osrs/mapping', {
@@ -452,13 +453,13 @@ export const itemsRouter = router({
           }
         }
         
-        const finalCount = await db.select().from(itemMapping)
-        
+        const [{ count: finalCount }] = await db.select({ count: count() }).from(itemMapping)
+
         return {
           success: true,
-          message: `Inserted ${insertedCount} items. Table now has ${finalCount.length} items.`,
+          message: `Inserted ${insertedCount} items. Table now has ${finalCount} items.`,
           inserted: insertedCount,
-          finalCount: finalCount.length,
+          finalCount,
           errors: errorCount
         }
       } catch (error) {
@@ -508,10 +509,11 @@ export const itemsRouter = router({
         }
         
         // Now try to query the table
-        let existingCount: any[] = []
+        let existingVolumeCount = 0
         try {
-          existingCount = await db.select().from(itemVolumes)
-          console.log(`[populateItemVolumes] Table exists with ${existingCount.length} items`)
+          const [{ count: rows }] = await db.select({ count: count() }).from(itemVolumes)
+          existingVolumeCount = rows
+          console.log(`[populateItemVolumes] Table exists with ${existingVolumeCount} items`)
         } catch (queryError) {
           console.error('[populateItemVolumes] Error querying table after creation:', queryError)
           // Table might have wrong schema - try to recreate it
@@ -532,7 +534,7 @@ export const itemsRouter = router({
                 CONSTRAINT "item_volumes_item_id_unique" UNIQUE("item_id")
               )
             `)
-            existingCount = []
+            existingVolumeCount = 0
             console.log('[populateItemVolumes] Table recreated successfully')
           } catch (recreateError) {
             console.error('[populateItemVolumes] Failed to recreate table:', recreateError)
@@ -556,13 +558,13 @@ export const itemsRouter = router({
         await updateHourlyItemVolumes()
         
         // Get final count
-        const finalCount = await db.select().from(itemVolumes)
-        
+        const [{ count: finalVolumeCount }] = await db.select({ count: count() }).from(itemVolumes)
+
         return {
           success: true,
-          message: `Successfully populated item volumes. Table now has ${finalCount.length} items.`,
-          count: finalCount.length,
-          previousCount: existingCount.length
+          message: `Successfully populated item volumes. Table now has ${finalVolumeCount} items.`,
+          count: finalVolumeCount,
+          previousCount: existingVolumeCount
         }
       } catch (error) {
         console.error('[populateItemVolumes] Error:', error)

@@ -12,22 +12,21 @@ vi.mock('../../utils/trpc.jsx', () => ({
         useQuery: vi.fn()
       },
       deleteMethod: {
-        useMutation: vi.fn()
+        useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false }))
       },
       createMethod: {
-        useMutation: vi.fn()
+        useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false }))
       },
       updateMethod: {
-        useMutation: vi.fn()
+        useMutation: vi.fn(() => ({ mutate: vi.fn(), isLoading: false }))
       }
     },
     items: {
       getAllItems: {
-        useQuery: vi.fn(() => ({
-          data: [],
-          isLoading: false,
-          error: null
-        }))
+        useQuery: vi.fn(() => ({ data: [], isLoading: false, error: null }))
+      },
+      getItemMapping: {
+        useQuery: vi.fn(() => ({ data: {}, isLoading: false, error: null }))
       }
     },
     useUtils: vi.fn(() => ({
@@ -42,6 +41,7 @@ vi.mock('../../utils/trpc.jsx', () => ({
 
 // Mock Mantine components
 vi.mock('@mantine/core', () => ({
+  Box: ({ children, ...props }) => <div data-testid="box" {...props}>{children}</div>,
   Container: ({ children }) => <div data-testid="container">{children}</div>,
   Title: ({ children }) => <h1 data-testid="title">{children}</h1>,
   Card: ({ children }) => <div data-testid="card">{children}</div>,
@@ -128,7 +128,15 @@ vi.mock('@mantine/core', () => ({
           <option key={item.value} value={item.value}>{item.label}</option>
         ))}
       </select>
-    </label>
+    </label>,
+  Tabs: Object.assign(
+    ({ children, value, onTabChange }) => <div data-testid="tabs" data-value={value}>{children}</div>,
+    {
+      List: ({ children }) => <div data-testid="tabs-list" role="tablist">{children}</div>,
+      Tab: ({ children, value, icon, color, ...props }) => <button role="tab" data-testid={`tab-${value}`} {...props}>{children}</button>,
+      Panel: ({ children, value }) => <div data-testid={`tab-panel-${value}`} role="tabpanel">{children}</div>
+    }
+  )
 }))
 
 vi.mock('../../utils/item-data.jsx', () => ({
@@ -136,6 +144,16 @@ vi.mock('../../utils/item-data.jsx', () => ({
     items: [],
     mapStatus: 'success',
     priceStatus: 'success'
+  }))
+}))
+
+// Mock useMethodTrashScoring (uses useAuth which needs AuthContext)
+vi.mock('../../hooks/useMethodTrashScoring.js', () => ({
+  useMethodTrashScoring: vi.fn(() => ({
+    hasUserVoted: vi.fn(() => false),
+    isTrash: vi.fn(() => false),
+    voteTrash: vi.fn(),
+    trashScore: 0
   }))
 }))
 
@@ -155,7 +173,7 @@ vi.mock('../../utils/utils.jsx', () => ({
 import { trpc } from '../../utils/trpc.jsx'
 import { showNotification } from '@mantine/notifications'
 
-describe.skip('UserMoneyMakingMethods', () => {
+describe('UserMoneyMakingMethods', () => {
   let queryClient
 
   beforeEach(() => {
@@ -167,6 +185,16 @@ describe.skip('UserMoneyMakingMethods', () => {
     })
     vi.clearAllMocks()
     global.confirm = vi.fn(() => true)
+
+    // Restore default return values (mockReset: true wipes vi.mock factory implementations)
+    trpc.moneyMakingMethods.deleteMethod.useMutation.mockReturnValue({ mutate: vi.fn(), isLoading: false })
+    trpc.moneyMakingMethods.createMethod.useMutation.mockReturnValue({ mutate: vi.fn(), isLoading: false })
+    trpc.moneyMakingMethods.updateMethod.useMutation.mockReturnValue({ mutate: vi.fn(), isLoading: false })
+    trpc.items.getAllItems.useQuery.mockReturnValue({ data: [], isLoading: false, error: null })
+    trpc.items.getItemMapping.useQuery.mockReturnValue({ data: {}, isLoading: false, error: null })
+    trpc.useUtils.mockReturnValue({
+      moneyMakingMethods: { getUserMethods: { invalidate: vi.fn() } }
+    })
   })
 
   afterEach(() => {
@@ -292,8 +320,8 @@ describe.skip('UserMoneyMakingMethods', () => {
 
     it('handles method deletion correctly', async () => {
       const refetch = vi.fn()
-      const deleteMutation = vi.fn()
-      
+      const deleteMutate = vi.fn()
+
       trpc.moneyMakingMethods.getUserMethods.useQuery.mockReturnValue({
         data: mockMethods,
         isLoading: false,
@@ -301,23 +329,25 @@ describe.skip('UserMoneyMakingMethods', () => {
         refetch
       })
 
-      trpc.moneyMakingMethods.deleteMethod.useMutation.mockReturnValue({
-        mutate: deleteMutation
-      })
+      trpc.moneyMakingMethods.deleteMethod.useMutation.mockImplementation(() => ({
+        mutate: deleteMutate,
+        isLoading: false
+      }))
 
       renderComponent()
-      
-      // Find and click delete button by its icon data-testid
-      const deleteButtons = screen.getAllByTestId('action-icon')
-      const deleteButton = deleteButtons.find(btn => btn.innerHTML.includes('IconTrash'))
-      
+
+      // Find delete buttons by SVG class in rendered icon
+      const actionIcons = screen.getAllByTestId('action-icon')
+      const deleteButton = actionIcons.find(btn => btn.innerHTML.includes('tabler-icon-trash'))
+      expect(deleteButton).toBeDefined()
+
       fireEvent.click(deleteButton)
 
       expect(global.confirm).toHaveBeenCalledWith(
         'Are you sure you want to delete this method? This action cannot be undone.'
       )
-      
-      expect(deleteMutation).toHaveBeenCalledWith({ id: mockMethods[0].id })
+
+      expect(deleteMutate).toHaveBeenCalledWith({ id: mockMethods[0].id })
     })
 
     it('handles method update correctly', async () => {
@@ -332,7 +362,7 @@ describe.skip('UserMoneyMakingMethods', () => {
       
       // Find and click edit button by its icon data-testid
       const editButtons = screen.getAllByTestId('action-icon')
-      const editButton = editButtons.find(btn => btn.innerHTML.includes('IconEdit'))
+      const editButton = editButtons.find(btn => btn.innerHTML.includes('tabler-icon-edit'))
       
       fireEvent.click(editButton)
 
@@ -482,7 +512,7 @@ describe.skip('UserMoneyMakingMethods', () => {
   describe('Error Handling', () => {
     it('shows notification on delete success', async () => {
       const refetch = vi.fn()
-      
+
       trpc.moneyMakingMethods.getUserMethods.useQuery.mockReturnValue({
         data: mockMethods,
         isLoading: false,
@@ -490,22 +520,19 @@ describe.skip('UserMoneyMakingMethods', () => {
         refetch
       })
 
-      const deleteMutation = vi.fn((options) => {
-        options.onSuccess()
-      })
-
+      // useMutation receives {onSuccess, onError} — store and invoke onSuccess when mutate is called
       trpc.moneyMakingMethods.deleteMethod.useMutation.mockImplementation((options) => ({
         mutate: (data) => {
-          options.onSuccess()
-          refetch()
-        }
+          if (options?.onSuccess) options.onSuccess()
+        },
+        isLoading: false
       }))
 
       renderComponent()
-      
+
       const deleteButtons = screen.getAllByTestId('action-icon')
-      const deleteButton = deleteButtons.find(btn => btn.innerHTML.includes('IconTrash'))
-      
+      const deleteButton = deleteButtons.find(btn => btn.innerHTML.includes('tabler-icon-trash'))
+
       if (deleteButton) fireEvent.click(deleteButton)
 
       await waitFor(() => {
@@ -527,15 +554,16 @@ describe.skip('UserMoneyMakingMethods', () => {
 
       trpc.moneyMakingMethods.deleteMethod.useMutation.mockImplementation((options) => ({
         mutate: (data) => {
-          options.onError({ message: 'Delete failed' })
-        }
+          if (options?.onError) options.onError({ message: 'Delete failed' })
+        },
+        isLoading: false
       }))
 
       renderComponent()
-      
+
       const deleteButtons = screen.getAllByTestId('action-icon')
-      const deleteButton = deleteButtons.find(btn => btn.innerHTML.includes('IconTrash'))
-      
+      const deleteButton = deleteButtons.find(btn => btn.innerHTML.includes('tabler-icon-trash'))
+
       if (deleteButton) fireEvent.click(deleteButton)
 
       await waitFor(() => {

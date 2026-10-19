@@ -3,17 +3,41 @@ import fs from 'fs/promises'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 
-const execAsync = promisify(exec)
-
-// Mock dependencies
+// Mock dependencies BEFORE any imports that use them
 vi.mock('fs/promises')
-vi.mock('child_process')
+vi.mock('child_process', () => {
+  const mockExec = vi.fn()
+  return {
+    exec: mockExec,
+    default: { exec: mockExec }
+  }
+})
 vi.mock('node-cron', () => ({
   default: {
-    schedule: vi.fn()
+    schedule: vi.fn(() => ({
+      start: vi.fn(),
+      stop: vi.fn(),
+      destroy: vi.fn()
+    }))
   }
 }))
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: vi.fn(),
+  PutObjectCommand: vi.fn(),
+  GetObjectCommand: vi.fn(),
+  ListObjectsV2Command: vi.fn(),
+  DeleteObjectCommand: vi.fn()
+}))
+vi.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: vi.fn()
+}))
 
+// Create a promisified mock exec that supports mockResolvedValue
+const mockExecAsync = vi.fn()
+
+// SKIP: backupService.js is server-side code that imports node-cron and @aws-sdk/client-s3.
+// These packages are only installed in server/node_modules, not the root.
+// Vite's resolver fails before vitest can mock them. This test must run in the server test suite.
 describe.skip('Database Backup Service', () => {
   let backupService
 

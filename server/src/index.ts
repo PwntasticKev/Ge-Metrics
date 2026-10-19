@@ -14,6 +14,7 @@ import { validateOrExit, printEnvironmentReport } from './config/validation.js'
 import priceCacheService from './services/priceCacheService.js'
 import gameUpdatesScraper from './services/gameUpdatesScraper.js'
 import blogCronRoutes from './routes/blogCron.js'
+import gameUpdatesCronRoutes from './routes/gameUpdatesCron.js'
 import stripeRoutes from './routes/stripe.js'
 // import { scheduleVolumeUpdates } from './tasks/updateVolumes.js' - This is no longer needed
 import { updateAllItemVolumes } from './services/itemVolumeService.js'
@@ -135,9 +136,15 @@ app.use((req, res, next) => {
 
 // API routes
 app.use('/api/cron/blogs', blogCronRoutes)
+app.use('/api/cron/game-updates', gameUpdatesCronRoutes)
 
 // tRPC middleware
 app.use('/trpc', createExpressMiddleware({ router: appRouter, createContext }))
+
+// 404 catch-all — must come AFTER all routes, BEFORE error handler
+app.use((req: express.Request, res: express.Response) => {
+  res.status(404).json({ error: 'Route not found', path: req.originalUrl })
+})
 
 // Error handling middleware
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

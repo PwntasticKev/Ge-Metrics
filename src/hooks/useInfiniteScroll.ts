@@ -119,6 +119,9 @@ class ScrollCache {
 
 const cache = new ScrollCache()
 
+// Stable defaults to prevent infinite re-render loops from unstable object references
+const EMPTY_FILTERS: Record<string, any> = {}
+
 /**
  * Advanced infinite scroll hook with virtual scrolling, caching, and error handling
  */
@@ -129,7 +132,7 @@ export function useInfiniteScroll<T = any>(config: InfiniteScrollConfig): Infini
     loadMoreSize = 20,
     triggerOffset = 200,
     searchQuery = '',
-    filters = {},
+    filters = EMPTY_FILTERS,
     sortBy,
     sortOrder = 'desc',
     enableVirtualization = false,

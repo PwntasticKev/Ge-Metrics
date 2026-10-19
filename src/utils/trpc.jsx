@@ -22,9 +22,7 @@ export function TRPCProvider ({ children }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: import.meta.env.PROD 
-            ? 'https://www.ge-metrics.com/trpc' 
-            : '/trpc',
+          url: '/trpc',
           async headers () {
             const token = localStorage.getItem('accessToken')
             // Get or generate CSRF token

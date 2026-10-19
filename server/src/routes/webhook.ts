@@ -2,11 +2,16 @@ import express from 'express'
 import { validateWebhookSignature } from '../config/stripe.js'
 import { subscriptionService } from '../services/subscriptionService.js'
 import { config } from '../config/index.js'
+import { createRateLimitMiddleware } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
 
+const webhookRateLimit = createRateLimitMiddleware({
+  message: 'Too many webhook requests. Please try again later.',
+})
+
 // Stripe webhook endpoint
-router.post('/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/stripe', webhookRateLimit, express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'] as string
   const webhookSecret = config.STRIPE_WEBHOOK_SECRET
 

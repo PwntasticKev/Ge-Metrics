@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /login
+Allow: /signup
+Allow: /terms
+Allow: /contact
+Allow: /affiliate
+Disallow: /all-items
+Disallow: /admin
+Disallow: /api/
+Disallow: /trpc/
+
+Sitemap: https://ge-metrics.com/sitemap.xml

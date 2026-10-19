@@ -34,6 +34,7 @@ import {
   IconSparkles
 } from '@tabler/icons-react'
 import { useTrialContext } from '../../contexts/TrialContext'
+import SEOHelmet from '../../components/SEO/SEOHelmet'
 import bg from '../../assets/gehd.png'
 
 const SignupSuccess = () => {
@@ -166,6 +167,7 @@ const SignupSuccess = () => {
       backgroundSize: 'cover',
       backgroundPosition: 'center'
     }}>
+      <SEOHelmet />
       <Paper shadow="xl" p="xl" radius="md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>
         <Center mb="xl">
           <ThemeIcon color={isTrial ? 'blue' : 'green'} size={80} radius="xl">

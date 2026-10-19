@@ -2,6 +2,7 @@ import React from 'react'
 import { Container, Title, Text, Box, Divider, List, Anchor, Stack, Card, Group, ThemeIcon, Badge, ActionIcon } from '@mantine/core'
 import { IconScale, IconShield, IconArrowLeft, IconExternalLink } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
+import SEOHelmet from '../../components/SEO/SEOHelmet'
 
 export default function TermsAndConditions() {
   return (
@@ -12,6 +13,7 @@ export default function TermsAndConditions() {
         padding: 0
       })}
     >
+      <SEOHelmet />
       <Container size="lg" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <Stack spacing="xl">
           {/* Header */}

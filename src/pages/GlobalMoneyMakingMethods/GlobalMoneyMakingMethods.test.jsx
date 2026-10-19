@@ -3,17 +3,17 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MantineProvider } from '@mantine/core'
 import { MemoryRouter } from 'react-router-dom'
-import { createTRPCReact } from '@trpc/react-query'
 import GlobalMoneyMakingMethods from './index.jsx'
 
-// Create a mock TRPC client
-const mockTrpc = createTRPCReact()
-const mockGetGlobalMethods = vi.fn()
-const mockGetGlobalStats = vi.fn()
-const mockFetchGlobalMethods = vi.fn()
+// Use vi.hoisted so mocks are available when vi.mock factory runs (hoisted above imports)
+const { mockGetGlobalMethods, mockGetGlobalStats, mockFetchGlobalMethods } = vi.hoisted(() => ({
+  mockGetGlobalMethods: vi.fn(),
+  mockGetGlobalStats: vi.fn(),
+  mockFetchGlobalMethods: vi.fn()
+}))
 
-// Mock the trpc utils
-vi.mock('../../utils/trpc', () => ({
+// Mock the trpc utils (must match the .jsx extension used in component imports)
+vi.mock('../../utils/trpc.jsx', () => ({
   trpc: {
     moneyMakingMethods: {
       getGlobalMethods: {
@@ -33,7 +33,7 @@ vi.mock('../../utils/trpc', () => ({
   }
 }))
 
-// Create trpc mock object for use in tests
+// Reference for test assertions
 const trpc = {
   moneyMakingMethods: {
     getGlobalMethods: {
@@ -42,14 +42,7 @@ const trpc = {
     getGlobalStats: {
       useQuery: mockGetGlobalStats
     }
-  },
-  useUtils: vi.fn(() => ({
-    moneyMakingMethods: {
-      getGlobalMethods: {
-        fetch: mockFetchGlobalMethods
-      }
-    }
-  }))
+  }
 }
 
 // Mock ItemData hook
@@ -74,6 +67,25 @@ vi.mock('../../utils/utils.jsx', () => ({
 // Mock formatters
 vi.mock('../../utils/formatters', () => ({
   formatNumber: vi.fn((num) => num?.toLocaleString() || '0')
+}))
+
+// Mock useMethodTrashScoring (depends on useAuth which needs AuthContext)
+vi.mock('../../hooks/useMethodTrashScoring.js', () => ({
+  useMethodTrashScoring: vi.fn(() => ({
+    hasUserVoted: vi.fn(() => false),
+    isTrash: vi.fn(() => false),
+    voteTrash: vi.fn(),
+    trashScore: 0
+  }))
+}))
+
+// Mock MoneyMakingMethodsTable
+vi.mock('../MoneyMakingMethods/components/MoneyMakingMethodsTable.jsx', () => ({
+  default: vi.fn(({ methods, onDelete }) => (
+    <div data-testid="methods-table">
+      {methods?.map(m => <div key={m.id}>{m.methodName}</div>)}
+    </div>
+  ))
 }))
 
 // Mock InfiniteScrollTable
@@ -109,7 +121,7 @@ vi.mock('../../components/InfiniteScroll/InfiniteScrollTable', () => ({
   })
 }))
 
-describe.skip('GlobalMoneyMakingMethods', () => {
+describe('GlobalMoneyMakingMethods', () => {
   let queryClient
 
   beforeEach(() => {
@@ -118,6 +130,22 @@ describe.skip('GlobalMoneyMakingMethods', () => {
         queries: { retry: false },
         mutations: { retry: false }
       }
+    })
+
+    // Mock matchMedia for Mantine hooks
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn()
+      }))
     })
   })
 

@@ -23,6 +23,15 @@ const MetricsRequestSchema = z.object({
   limit: z.number().min(1).max(1000).optional().default(100),
 })
 
+// Safe interval mapping — prevents sql.raw() injection
+const SAFE_INTERVALS: Record<string, string> = {
+  '1h': '1 hour',
+  '6h': '6 hours',
+  '24h': '24 hours',
+  '7d': '7 days',
+  '30d': '30 days',
+}
+
 export const analyticsRouter = t.router({
   /**
    * Get WebSocket connection statistics (admin only)
@@ -111,17 +120,19 @@ export const analyticsRouter = t.router({
     }))
     .query(async ({ input }) => {
       const { timeframe, itemIds } = input
-      
+      const interval = SAFE_INTERVALS[timeframe]
+      if (!interval) throw new Error(`Invalid timeframe: ${timeframe}`)
+
       try {
         let query = sql`
-          SELECT 
+          SELECT
             item_id,
             AVG(buying_price) as avg_buy_price,
             AVG(selling_price) as avg_sell_price,
             COUNT(*) as update_count,
             MAX(created_at) as last_updated
-          FROM item_volumes 
-          WHERE created_at >= NOW() - INTERVAL '${sql.raw(timeframe)}'
+          FROM item_volumes
+          WHERE created_at >= NOW() - INTERVAL '${sql.raw(interval)}'
         `
 
         if (itemIds && itemIds.length > 0) {
@@ -214,6 +225,8 @@ export const analyticsRouter = t.router({
     }))
     .query(async ({ input }) => {
       const { timeframe, limit } = input
+      const interval = SAFE_INTERVALS[timeframe]
+      if (!interval) throw new Error(`Invalid timeframe: ${timeframe}`)
 
       try {
         // Get method creation and approval metrics
@@ -225,8 +238,8 @@ export const analyticsRouter = t.router({
             COUNT(*) as method_count,
             AVG(profit_per_hour) as avg_profit,
             DATE_TRUNC('day', created_at) as date
-          FROM money_making_methods 
-          WHERE created_at >= NOW() - INTERVAL '${sql.raw(timeframe)}'
+          FROM money_making_methods
+          WHERE created_at >= NOW() - INTERVAL '${sql.raw(interval)}'
           GROUP BY category, difficulty, status, DATE_TRUNC('day', created_at)
           ORDER BY date DESC, method_count DESC
           LIMIT ${limit}
@@ -234,16 +247,16 @@ export const analyticsRouter = t.router({
 
         // Get top performers
         const topMethods = await db.execute(sql`
-          SELECT 
+          SELECT
             method_name,
             category,
             difficulty,
             profit_per_hour,
             username,
             created_at
-          FROM money_making_methods 
+          FROM money_making_methods
           WHERE status = 'approved'
-          AND created_at >= NOW() - INTERVAL '${sql.raw(timeframe)}'
+          AND created_at >= NOW() - INTERVAL '${sql.raw(interval)}'
           ORDER BY profit_per_hour DESC
           LIMIT 10
         `)

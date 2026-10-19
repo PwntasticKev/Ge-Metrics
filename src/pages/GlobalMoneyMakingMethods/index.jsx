@@ -74,7 +74,7 @@ export default function GlobalMoneyMakingMethods() {
   const { data: globalStats } = trpc.moneyMakingMethods.getGlobalStats.useQuery()
   
   // Get method trash scoring functionality
-  const { toggleTrashVote, hasUserVoted } = useMethodTrashScoring()
+  const { toggleTrashVote, hasUserVoted, isTrash } = useMethodTrashScoring()
   
   // Fetch data function for infinite scroll
   const fetchGlobalMethods = React.useCallback(async ({ offset, limit, search, filters, sortBy: sortByParam, sortOrder }) => {

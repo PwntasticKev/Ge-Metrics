@@ -23,7 +23,10 @@ export default defineConfig({
       '@emotion/react',
       '@emotion/styled',
       '@mantine/core',
-      '@mantine/hooks'
+      '@mantine/hooks',
+      'three',
+      '@react-three/fiber',
+      '@react-three/drei'
     ],
     esbuildOptions: {
       // Ensure CommonJS modules are handled correctly

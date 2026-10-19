@@ -1,6 +1,6 @@
 import { db } from '../db/index.js'
 import * as schema from '../db/schema.js'
-import { eq, and, gte, lte, desc } from 'drizzle-orm'
+import { eq, and, gte, lte, desc, inArray, count, sql } from 'drizzle-orm'
 
 export interface SubscriptionPlan {
   id: string
@@ -296,31 +296,52 @@ export class SubscriptionManagementService {
    */
   async getSubscriptionStats (): Promise<SubscriptionStats> {
     try {
-      const allSubscriptions = await db.select().from(schema.subscriptions)
+      // Use SQL count aggregates for status counts instead of fetching all rows
+      const [statusCounts] = await db.select({
+        total: count(),
+        active: count(sql`CASE WHEN ${schema.subscriptions.status} = 'active' THEN 1 END`),
+        canceled: count(sql`CASE WHEN ${schema.subscriptions.status} = 'canceled' THEN 1 END`),
+        pastDue: count(sql`CASE WHEN ${schema.subscriptions.status} = 'past_due' THEN 1 END`),
+      }).from(schema.subscriptions)
+
+      // Only fetch active subscriptions for revenue calculation (much smaller set)
+      const activeSubscriptions = await db.select({
+        plan: schema.subscriptions.plan,
+        status: schema.subscriptions.status,
+      }).from(schema.subscriptions).where(eq(schema.subscriptions.status, 'active'))
+
+      // Fetch plan distribution counts via SQL
+      const planCounts = await db.select({
+        plan: schema.subscriptions.plan,
+        count: count(),
+      }).from(schema.subscriptions).groupBy(schema.subscriptions.plan)
 
       const stats: SubscriptionStats = {
-        totalSubscriptions: allSubscriptions.length,
-        activeSubscriptions: allSubscriptions.filter(s => s.status === 'active').length,
-        canceledSubscriptions: allSubscriptions.filter(s => s.status === 'canceled').length,
-        pastDueSubscriptions: allSubscriptions.filter(s => s.status === 'past_due').length,
+        totalSubscriptions: statusCounts.total,
+        activeSubscriptions: statusCounts.active,
+        canceledSubscriptions: statusCounts.canceled,
+        pastDueSubscriptions: statusCounts.pastDue,
         monthlyRevenue: 0,
         yearlyRevenue: 0,
         planDistribution: {}
       }
 
-      // Calculate revenue and plan distribution
-      allSubscriptions.forEach(subscription => {
+      // Calculate revenue from active subscriptions only
+      for (const subscription of activeSubscriptions) {
         const plan = SubscriptionManagementService.getPlan(subscription.plan)
-        if (plan && subscription.status === 'active') {
+        if (plan) {
           if (plan.interval === 'month') {
             stats.monthlyRevenue += plan.price
           } else if (plan.interval === 'year') {
             stats.yearlyRevenue += plan.price
           }
         }
+      }
 
-        stats.planDistribution[subscription.plan] = (stats.planDistribution[subscription.plan] || 0) + 1
-      })
+      // Build plan distribution from SQL aggregate
+      for (const { plan, count: cnt } of planCounts) {
+        stats.planDistribution[plan] = cnt
+      }
 
       return stats
     } catch (error) {
@@ -485,14 +506,20 @@ export class SubscriptionManagementService {
       let emailsSent = 0
       const { sendEmail } = await import('./emailService.js')
 
+      // Batch fetch all users upfront instead of N+1 queries
+      const userIds = expiringTrials.map(sub => sub.userId)
+      const allUsers = userIds.length > 0
+        ? await db.select().from(schema.users).where(inArray(schema.users.id, userIds))
+        : []
+      const userMap = new Map(allUsers.map(u => [u.id, u]))
+
       for (const sub of expiringTrials) {
         try {
-          const [user] = await db.select().from(schema.users).where(eq(schema.users.id, sub.userId)).limit(1)
-          
+          const user = userMap.get(sub.userId)
           if (!user) continue
 
           const trialEndDate = sub.trialEnd ? new Date(sub.trialEnd).toLocaleDateString() : 'soon'
-          
+
           await sendEmail({
             to: user.email,
             subject: 'Your Trial is Ending Soon!',
@@ -511,7 +538,7 @@ export class SubscriptionManagementService {
             `,
             text: `Hey ${user.username}, your Ge-Metrics free trial is ending on ${trialEndDate}. Upgrade now to keep your premium access: ${process.env.FRONTEND_URL}/billing`
           })
-          
+
           emailsSent++
         } catch (err) {
           console.error(`Failed to send trial expiry email to user ${sub.userId}:`, err)

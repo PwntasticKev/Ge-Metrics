@@ -11,6 +11,7 @@ import {
   IconSparkles, IconTarget, IconChartBar
 } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
+import SEOHelmet from '../../components/SEO/SEOHelmet'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 
@@ -116,6 +117,7 @@ export default function Affiliate() {
         padding: 0
       })}
     >
+      <SEOHelmet />
       <Container size="xl" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <Stack spacing="xl">
           {/* Header */}

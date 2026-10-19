@@ -8,6 +8,7 @@ import {
   IconCheck, IconInfoCircle, IconSend, IconUser, IconBulb, IconBug
 } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
+import SEOHelmet from '../../components/SEO/SEOHelmet'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 
@@ -73,6 +74,7 @@ export default function Contact() {
         padding: 0
       })}
     >
+      <SEOHelmet />
       <Container size="lg" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <Stack spacing="xl">
           {/* Header */}
