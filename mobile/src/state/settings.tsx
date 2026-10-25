@@ -10,6 +10,8 @@ export interface Settings {
   membersItems: boolean
   /** Cash available per 4-hour window; null means no limit. */
   budget: number | null
+  /** The one-time "tap a set" tip has been dismissed. */
+  seenSetsTip: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,7 +19,8 @@ export const DEFAULT_SETTINGS: Settings = {
   hideStale: true,
   hideFlukes: true,
   membersItems: true,
-  budget: null
+  budget: null,
+  seenSetsTip: false
 }
 
 const KEY = 'gem.settings.v1'
