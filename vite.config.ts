@@ -42,9 +42,9 @@ export default defineConfig({
     },
     rollupOptions: {
       onwarn(warning, defaultWarn) {
-        // Ignore unresolved import warnings - these will be resolved at build time
+        // Unresolved imports mean a missing dependency; fail the build instead of shipping a broken bundle.
         if (warning.code === 'UNRESOLVED_IMPORT') {
-          return;
+          throw new Error(warning.message)
         }
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
         defaultWarn(warning);

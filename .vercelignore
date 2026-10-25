@@ -5,3 +5,7 @@
 .idea
 coverage
 docs
+
+# Static (no-backend) deployment: don't ship the API function or server
+/api
+/server

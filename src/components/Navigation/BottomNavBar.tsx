@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext'
 import { formatNumber } from '../../utils/formatters'
 import './BottomNavBar.css'
+import { isPathAvailable } from '../../config/features.js'
 
 interface NavItem {
   icon: React.ElementType
@@ -70,7 +71,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     {
       icon: IconCalculator,
       label: 'Calc',
-      path: '/calculators'
+      // No /calculators page exists; High Alchemy is the main profit calculator.
+      path: '/high-alchemy'
     },
     {
       icon: user ? IconUser : IconMenu2,
@@ -78,7 +80,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       path: user ? '/profile' : '#',
       badge: user && notifications.alerts ? notifications.alerts : undefined
     }
-  ]
+  ].filter(item => item.path === '#' || isPathAvailable(item.path))
 
   // Detect landscape orientation
   useEffect(() => {

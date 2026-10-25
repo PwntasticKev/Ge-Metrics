@@ -28,6 +28,7 @@ import MessagesButton from '../Messages/MessagesButton.jsx'
 import { Link, useNavigate } from 'react-router-dom'
 import { calculateGETax } from '../../utils/utils.jsx'
 import { trpc } from '../../utils/trpc.jsx'
+import { BACKEND_ENABLED } from '../../config/features.js'
 
 export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const theme = useMantineTheme()
@@ -38,7 +39,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const searchInputRef = useRef(null)
   const dropdownRef = useRef(null)
-  const { data: subscription } = trpc.billing.getSubscription.useQuery()
+  const { data: subscription } = trpc.billing.getSubscription.useQuery(undefined, { enabled: BACKEND_ENABLED })
   const isSubscribed = subscription && subscription.status === 'active'
   const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
 
@@ -374,6 +375,8 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
 
         {/* Right Section */}
         <Group spacing="sm" noWrap>
+          {/* Account-only controls: hidden in static (no backend) mode */}
+          {BACKEND_ENABLED && (<>
           {/* Premium/Subscription Button */}
           {!isPremiumUser
             ? (
@@ -481,6 +484,8 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
               )}
 
 
+          </>)}
+
           {/* Notifications */}
           {user && (
             <NotificationBell />
@@ -491,6 +496,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
             <MessagesButton />
           )}
 
+          {BACKEND_ENABLED && (<>
           {/* Billing Icon */}
           <ActionIcon
             component={Link}
@@ -527,6 +533,8 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
           >
             <AvatarMenu user={user} onLogout={onLogout} size={36} checked={checked} setChecked={setChecked}/>
           </Box>
+
+          </>)}
 
           {/* Mobile Menu */}
           <MediaQuery largerThan="sm" styles={{ display: 'none' }}>

@@ -2,6 +2,8 @@ import { createTRPCReact } from '@trpc/react-query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { httpBatchLink } from '@trpc/client'
 import { useState } from 'react'
+import { BACKEND_ENABLED } from '../config/features.js'
+import { staticTrpcLink } from './staticTrpcLink.js'
 
 // Create tRPC React hooks
 export const trpc = createTRPCReact()
@@ -20,7 +22,7 @@ export function TRPCProvider ({ children }) {
 
   const [trpcClient] = useState(() =>
     trpc.createClient({
-      links: [
+      links: !BACKEND_ENABLED ? [staticTrpcLink()] : [
         httpBatchLink({
           url: import.meta.env.PROD 
             ? 'https://www.ge-metrics.com/trpc' 

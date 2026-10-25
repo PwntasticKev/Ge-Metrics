@@ -5,6 +5,11 @@
 REACT_APP_VERSION=1.0.0
 NODE_ENV=development
 
+# Deployment mode
+# Unset/false (default): static site, prices straight from the OSRS Wiki API, no DB/accounts.
+# true: use the Express/tRPC backend + Postgres (also restore api/ + server/ in vercel config).
+VITE_BACKEND_ENABLED=false
+
 # API Configuration
 REACT_APP_API_URL=http://localhost:3001/api
 

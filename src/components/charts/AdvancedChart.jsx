@@ -54,6 +54,7 @@ import { getItemHistoryById } from '../../api/rs-wiki-api.jsx'
 import { getItemById } from '../../utils/utils.jsx'
 import { calculateSMA, calculateEMA } from '../../utils/indicators.js'
 import { trpc } from '../../utils/trpc.jsx'
+import { BACKEND_ENABLED } from '../../config/features.js'
 
 // Color Constants
 const COLORS = {
@@ -149,7 +150,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     startDate, 
     endDate
   }, {
-    enabled: !!historyData && historyData.length > 0 && seriesVisibility.updates,
+    enabled: BACKEND_ENABLED && !!historyData && historyData.length > 0 && seriesVisibility.updates,
     staleTime: 5 * 60 * 1000
   })
 
