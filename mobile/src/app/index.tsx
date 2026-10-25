@@ -6,7 +6,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { SetFlipRow } from '../components/SetFlipRow'
 import { Pills, Tabs } from '../components/Tabs'
 import { useRankedSets, type SetKind } from '../lib/ranking'
-import { minutesAgo } from '../lib/format'
+import { gpShort, minutesAgo } from '../lib/format'
+import { useSettings } from '../state/settings'
 
 const SORTS = [
   { value: 'potential', label: '4h profit' },
@@ -22,6 +23,7 @@ const KINDS = [
 
 export default function SetsScreen () {
   const market = useMarket()
+  const { settings } = useSettings()
   const [sortBy, setSortBy] = useState<SortMetric>('potential')
   const [kind, setKind] = useState<SetKind>('all')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -33,7 +35,7 @@ export default function SetsScreen () {
     <FlipListScreen<SetFlip>
       market={market}
       header={
-        <ScreenHeader title="Sets" meta={market.market ? `${flips.length} profitable, ${minutesAgo(market.updatedAt)}` : undefined} search={{ value: query, onChange: setQuery, placeholder: 'Search sets' }}>
+        <ScreenHeader title="Sets" meta={market.market ? `${flips.length} profitable${settings.budget ? ` with ${gpShort(settings.budget)}` : ''}, ${minutesAgo(market.updatedAt)}` : undefined} search={{ value: query, onChange: setQuery, placeholder: 'Search sets' }}>
           <Tabs options={SORTS} value={sortBy} onChange={setSortBy} />
           <Pills options={KINDS} value={kind} onChange={setKind} />
         </ScreenHeader>

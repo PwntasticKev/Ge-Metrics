@@ -10,13 +10,16 @@ export function gpFull (n: number): string {
 }
 
 // 1.23B, 53.3M, 6.66M, 981K, 950
+// "10.0" -> "10", "1.50" -> "1.5"
+const trim = (s: string) => (s.includes('.') ? s.replace(/\.?0+$/, '') : s)
+
 export function gpShort (n: number | null): string {
   if (n === null || !Number.isFinite(n)) return '–'
   const abs = Math.abs(n)
   const sign = n < 0 ? '-' : ''
-  if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`
-  if (abs >= 1e7) return `${sign}${(abs / 1e6).toFixed(1)}M`
-  if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`
+  if (abs >= 1e9) return `${sign}${trim((abs / 1e9).toFixed(2))}B`
+  if (abs >= 1e7) return `${sign}${trim((abs / 1e6).toFixed(1))}M`
+  if (abs >= 1e6) return `${sign}${trim((abs / 1e6).toFixed(2))}M`
   if (abs >= 1e3) return `${sign}${Math.round(abs / 1e3)}K`
   return `${sign}${Math.round(abs)}`
 }

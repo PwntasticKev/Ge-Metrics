@@ -8,13 +8,16 @@ export interface Settings {
   hideStale: boolean
   hideFlukes: boolean
   membersItems: boolean
+  /** Cash available per 4-hour window; null means no limit. */
+  budget: number | null
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   hideStale: true,
   hideFlukes: true,
-  membersItems: true
+  membersItems: true,
+  budget: null
 }
 
 const KEY = 'gem.settings.v1'
@@ -34,7 +37,10 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
 
   useEffect(() => {
-    loadJson(KEY, {}, isSettings).then(stored => setSettings({ ...DEFAULT_SETTINGS, ...stored }))
+    loadJson(KEY, {}, isSettings).then(stored => {
+      const budget = typeof stored.budget === 'number' && stored.budget > 0 ? stored.budget : null
+      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget })
+    })
   }, [])
 
   const update = useCallback((patch: Partial<Settings>) => {

@@ -7,6 +7,8 @@ import { ItemFlipRow } from '../components/ItemFlipRow'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { Tabs } from '../components/Tabs'
 import { useRankedItems } from '../lib/ranking'
+import { gpShort } from '../lib/format'
+import { useSettings } from '../state/settings'
 import { useTheme } from '../theme/ThemeProvider'
 
 const SORTS = [
@@ -18,6 +20,7 @@ const SORTS = [
 export default function ItemsScreen () {
   const market = useMarket()
   const { palette } = useTheme()
+  const { settings } = useSettings()
   const [sortBy, setSortBy] = useState<SortMetric>('potential')
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<number | null>(null)
@@ -30,7 +33,7 @@ export default function ItemsScreen () {
       header={
         <ScreenHeader
           title="Items"
-          meta={market.market ? `${total.toLocaleString('en-US')} profitable` : undefined}
+          meta={market.market ? `${total.toLocaleString('en-US')} profitable${settings.budget ? ` with ${gpShort(settings.budget)}` : ''}` : undefined}
           search={{ value: query, onChange: setQuery, placeholder: 'Search items' }}
         >
           <Tabs options={SORTS} value={sortBy} onChange={setSortBy} />

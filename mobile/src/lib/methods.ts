@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { decantingRecipes, moneyMakingRecipes, processingMethods, rankProcessFlips, type Market, type ProcessFlip, type ProcessRecipe } from '@ge/engine'
+import { decantingRecipes, moneyMakingRecipes, processingMethods, rankProcessFlips, withBudget, type Market, type ProcessFlip, type ProcessRecipe } from '@ge/engine'
 import { useSettings, type Settings } from '../state/settings'
 
 export type ProcessSort = 'perHour' | 'potential' | 'profit' | 'roi'
@@ -100,7 +100,7 @@ const MAX_ROWS = 200
 // "best now" always matches the top of the list.
 export function rankMethod (market: Market, method: MethodDef, sortBy: ProcessSort, settings: Settings, query = ''): ProcessFlip[] {
   const q = query.trim().toLowerCase()
-  return rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious: !settings.hideFlukes })
+  return withBudget(rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious: !settings.hideFlukes }), settings.budget, sortBy)
     .filter(f => !settings.hideStale || !f.stale)
     .filter(f => settings.membersItems || recipeMeta(f.id)?.members !== true)
     .filter(f => !q || f.name.toLowerCase().includes(q))

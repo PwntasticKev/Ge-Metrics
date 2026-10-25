@@ -170,6 +170,7 @@ declare module '@ge/engine' {
     recipes: ProcessRecipe[]
   }
   export const processingMethods: ProcessingMethod[]
+  export function withBudget<T extends { profit: number; potential: number | null }> (flips: T[], budget: number | null, sortBy?: string): T[]
 
   export function geTax (sellPrice: number, itemId?: number): number
   export function createMarketFromWiki (

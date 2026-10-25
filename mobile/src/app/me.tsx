@@ -14,6 +14,14 @@ const THEMES: { value: ThemePreference; label: string }[] = [
   { value: 'dark', label: 'Dark' }
 ]
 
+const BUDGETS: { value: number | null; label: string }[] = [
+  { value: null, label: 'Any' },
+  { value: 1e6, label: '1M' },
+  { value: 1e7, label: '10M' },
+  { value: 1e8, label: '100M' },
+  { value: 1e9, label: '1B' }
+]
+
 function Section ({ title, children }: { title: string; children: React.ReactNode }) {
   const { palette } = useTheme()
   return (
@@ -24,13 +32,14 @@ function Section ({ title, children }: { title: string; children: React.ReactNod
   )
 }
 
-function Row ({ label, detail, right, onPress, last = false }: { label: string; detail?: string; right?: React.ReactNode; onPress?: () => void; last?: boolean }) {
+function Row ({ label, detail, right, below, onPress, last = false }: { label: string; detail?: string; right?: React.ReactNode; below?: React.ReactNode; onPress?: () => void; last?: boolean }) {
   const { palette } = useTheme()
   const content = (
     <View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.rule }]}>
       <View style={{ flex: 1 }}>
         <Text style={[styles.label, { color: palette.ink }]}>{label}</Text>
         {detail ? <Text style={[styles.detail, { color: palette.muted }]}>{detail}</Text> : null}
+        {below ? <View style={{ marginTop: 10, alignSelf: 'flex-start' }}>{below}</View> : null}
       </View>
       {right}
     </View>
@@ -50,17 +59,16 @@ function Toggle ({ setting }: { setting: 'hideStale' | 'hideFlukes' | 'membersIt
   )
 }
 
-function ThemePicker () {
-  const { settings, update } = useSettings()
+function Segmented<T> ({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   const { palette } = useTheme()
   return (
     <View style={[styles.seg, { backgroundColor: palette.well }]} accessibilityRole="radiogroup">
-      {THEMES.map(t => {
-        const on = settings.theme === t.value
+      {options.map(t => {
+        const on = value === t.value
         return (
           <Pressable
-            key={t.value}
-            onPress={() => { Haptics.selectionAsync(); update({ theme: t.value }) }}
+            key={t.label}
+            onPress={() => { Haptics.selectionAsync(); onChange(t.value) }}
             style={[styles.segItem, on && { backgroundColor: palette.card }]}
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
@@ -71,6 +79,16 @@ function ThemePicker () {
       })}
     </View>
   )
+}
+
+function ThemePicker () {
+  const { settings, update } = useSettings()
+  return <Segmented options={THEMES} value={settings.theme} onChange={theme => update({ theme })} />
+}
+
+function BudgetPicker () {
+  const { settings, update } = useSettings()
+  return <Segmented options={BUDGETS} value={settings.budget} onChange={budget => update({ budget })} />
 }
 
 export default function MeScreen () {
@@ -84,6 +102,9 @@ export default function MeScreen () {
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: space.xl }}>
         <Section title="Display">
           <Row label="Theme" right={<ThemePicker />} last />
+        </Section>
+        <Section title="Your cash">
+          <Row label="Cash stack" detail="Only show what you can afford, and cap 4h profit to it" below={<BudgetPicker />} last />
         </Section>
         <Section title="Prices">
           <Row label="Hide stale prices" detail="Older than 6 hours" right={<Toggle setting="hideStale" />} />
