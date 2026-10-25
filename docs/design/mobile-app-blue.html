@@ -1,0 +1,92 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+.wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:28px 18px;padding:2px 0 8px}
+.cap{font:600 14px var(--font-sans,system-ui);color:var(--foreground);margin:0 0 2px}
+.sub{font:13px/1.4 var(--font-sans,system-ui);color:var(--muted-foreground);margin:0 0 10px;min-height:36px}
+.ph{width:290px;margin:0 auto;border-radius:42px;padding:8px;background:#08080a;box-shadow:0 0 0 1px #2c2c33,0 14px 40px rgba(0,0,0,.3)}
+.s{height:620px;border-radius:35px;overflow:hidden;background:var(--bg);color:var(--ink);font:14px/1.3 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:flex;flex-direction:column}
+.st{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:12px;font-weight:600}
+.b{flex:1;overflow:hidden;padding:6px 0 0}
+.hd{padding:2px 16px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.ttl{font-size:28px;font-weight:700;letter-spacing:-.6px}
+.upd{font-size:12px;color:var(--mut)}
+.sort{display:flex;gap:16px;padding:0 16px 8px;font-size:13px;color:var(--mut);border-bottom:1px solid var(--rule)}
+.sort b{color:var(--ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--brand);padding-bottom:6px}
+.row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--rule)}
+.ic{width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:7px;background:var(--well)}
+.ic img{max-width:24px;max-height:24px;image-rendering:pixelated}
+.nm{font-weight:600;font-size:14px;line-height:1.15}.mt{font-size:12px;color:var(--mut)}
+.rt{margin-left:auto;text-align:right}.p{font-weight:700;font-size:15px;color:var(--profit)}
+.open{background:var(--card);border-bottom:1px solid var(--rule)}
+.open .row{border-bottom:none;padding-bottom:4px}
+.parts{padding:0 16px 10px 56px}
+.ln{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}
+.ln img{width:18px;height:18px;object-fit:contain;image-rendering:pixelated}
+.ln .v{margin-left:auto;font-weight:600}
+.ln.sell{border-top:1px solid var(--rule);margin-top:4px;padding-top:6px}
+.ln .tagb{font-size:11px;font-weight:600;color:var(--mut);width:28px}
+.tot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut);padding-top:5px}
+.tot b{color:var(--profit)}
+.up{color:var(--profit)}.down{color:var(--mut)}
+.sec{font-size:13px;font-weight:600;color:var(--mut);padding:14px 16px 6px}
+.set{display:flex;align-items:center;padding:11px 16px;border-bottom:1px solid var(--rule);background:var(--card)}
+.set .r{margin-left:auto;color:var(--mut);font-size:13.5px}
+.seg{display:flex;background:var(--well);border-radius:8px;padding:2px}.seg span{padding:3px 9px;font-size:12px;border-radius:6px;color:var(--mut)}.seg span.on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tg{display:inline-block;vertical-align:middle;width:42px;height:25px;border-radius:99px;background:var(--brand);position:relative}.tg:after{content:"";position:absolute;right:2px;top:2px;width:21px;height:21px;border-radius:50%;background:#fff}
+.tg.off{background:var(--well)}.tg.off:after{left:2px;right:auto}
+.tb{display:flex;justify-content:space-around;padding:8px 6px 20px;border-top:1px solid var(--rule);background:var(--bar)}
+.t{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--mut)}
+.t svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8}.t.on{color:var(--brand)}
+</style></head><body><div class="wrap" id="w"></div><script>
+const W='https://oldschool.runescape.wiki/images/'
+const N=n=>Math.round(n).toLocaleString('en-US')
+const S=n=>{const a=Math.abs(n);return a>=1e9?(n/1e9).toFixed(2)+'B':a>=1e6?(n/1e6).toFixed(a>=1e7?1:2)+'M':a>=1e3?Math.round(n/1e3)+'K':N(n)}
+const LIGHT={bg:'#F5F6FA',card:'#FFFFFF',well:'#ECEEF5',ink:'#151829',mut:'#6B7088',rule:'#E3E5EE',brand:'#3355FF',profit:'#2541E8',bar:'#FFFFFF'}
+const DARK={bg:'#0E1430',card:'#18214A',well:'#1F2A58',ink:'#EEF0FF',mut:'#8A93BD',rule:'#222C57',brand:'#8EA2FF',profit:'#A9B8FF',bar:'#121A3D'}
+const IC={sets:'<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',items:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8"/>',watch:'<path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5L12 16.6l-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/>',tools:'<path d="M14 6l4 4-9 9H5v-4z"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>'}
+const tabs=on=>`<div class="tb">${[['sets','Sets'],['items','Items'],['watch','Watchlist'],['tools','Tools'],['me','Me']].map(([k,l])=>`<div class="t ${l==on?'on':''}"><svg viewBox="0 0 24 24">${IC[k]}</svg>${l}</div>`).join('')}</div>`
+const phone=(cap,sub,theme,body,tab)=>`<div><p class="cap">${cap}</p><p class="sub">${sub}</p><div class="ph"><div class="s" style="${Object.entries(theme).map(([k,v])=>`--${k}:${v}`).join(';')}"><div class="st"><span>9:41</span><span>●●● 5G ▮</span></div><div class="b">${body}</div>${tabs(tab)}</div></div></div>`
+const head=(t,r)=>`<div class="hd"><span class="ttl">${t}</span><span class="upd">${r}</span></div>`
+const ic=f=>`<div class="ic"><img src="${W+f}" alt=""></div>`
+const row=(f,n,meta,big,small)=>`<div class="row">${ic(f)}<div><div class="nm">${n}</div><div class="mt">${meta}</div></div><div class="rt"><div class="p">${big}</div><div class="mt">${small}</div></div></div>`
+
+// Sets
+const sets=[["Virtus","Virtus_armour_set.png",1020297,8],["Justiciar","Justiciar_armour_set.png",981084,8],["Ancestral","Ancestral_robes_set.png",859211,8],["Blood Moon","Blood_Moon_armour_set.png",317670,14],["Eclipse Moon","Eclipse_Moon_armour_set.png",188241,15],["Blue Moon","Blue_Moon_armour_set.png",329213,8],["Sunfire fanatic","Sunfire_fanatic_armour_set.png",349295,6]]
+const torvaParts=[["full helm","Torva_full_helm.png",172500000],["platebody","Torva_platebody.png",155751582],["platelegs","Torva_platelegs.png",97888888]]
+const setsBody=head('Sets','38 profitable')+`<div class="sort"><b>4h profit</b><span>Each</span><span>ROI</span><span>GE sets</span></div>
+<div class="open">${row('Torva_armour_set.png','Torva','8 per 4h, +53.3M','+6.66M','each')}<div class="parts">${torvaParts.map(([n,f,p])=>`<div class="ln"><span class="tagb">Buy</span><img src="${W+f}" alt="">${n}<span class="v">${N(p)}</span></div>`).join('')}<div class="ln sell"><span class="tagb">Sell</span><img src="${W}Torva_armour_set.png" alt="">Set<span class="v">${N(437800000)}</span></div><div class="tot"><span>After 5,000,000 tax</span><b>+${N(6659530)}</b></div></div></div>`+
+sets.map(([n,f,p,m])=>row(f,n,`${m} per 4h, +${S(p*m)}`,'+'+S(p),'each')).join('')
+
+// Items
+const items=[["Obligator_(uncharged).png","Obligator",33001000,8],["Horn_of_Bran.png","Horn of Bran",3921302,8],["Ascension_crossbows.png","Ascension crossbows",3579931,8],["Oathplate_helm.png","Oathplate helm",2570192,8],["Harmonised_orb.png","Harmonised orb",2557864,8],["Old_school_bond.png","Old school bond",202358,100]]
+const itemsBody=head('Items','1,739 profitable')+`<div class="sort"><b>4h profit</b><span>Each</span><span>ROI</span><span>Under 10M</span></div>`+
+row(items[0][0],items[0][1],'8 per 4h, +264M','+33.0M','each')+
+`<div class="open">${row('Scythe_of_Vitur_(uncharged).png','Scythe of Vitur','8 per 4h, +49.0M','+6.12M','each')}<div class="parts"><div class="ln"><span class="tagb">Buy</span>at<span class="v">${N(1135489989)}</span></div><div class="ln"><span class="tagb">Sell</span>at<span class="v">${N(1146610010)}</span></div><div class="tot"><span>After 5,000,000 tax</span><b>+${N(6120021)}</b></div></div></div>`+
+items.slice(1).map(([f,n,p,m])=>row(f,n,`${m} per 4h, +${S(p*m)}`,'+'+S(p),'each')).join('')
+
+// Watchlist
+const watch=[["Torva_armour_set.png","Torva set","Alert: profit over 5M","+6.66M",'each','up'],["Abyssal_whip.png","Abyssal whip","Alert: sell at 760K","729,999","▼ 3.3%",'down'],["Twisted_bow.png","Twisted bow","No alert","1.43B","▼ 3.0%",'down'],["Zenyte_shard.png","Zenyte shard","Alert: buy at 12.8M","13.05M","▼ 1.5%",'down'],["Death_rune.png","Death rune","No alert","155","▲ 0.6%",'up']]
+const watchBody=head('Watchlist','5 starred')+`<div class="sort"><b>All</b><span>Sets</span><span>Items</span><span>Alerts</span></div>`+
+watch.map(([f,n,a,v,c,d])=>`<div class="row">${ic(f)}<div><div class="nm">${n}</div><div class="mt">${a}</div></div><div class="rt"><div class="p" style="color:var(--ink)">${v}</div><div class="mt ${d}">${c}</div></div></div>`).join('')+
+`<div class="sec">Notifications</div><div class="set">Price alerts<span class="r"><span class="tg"></span></span></div><div class="set">Set profit alerts<span class="r"><span class="tg"></span></span></div>`
+
+// Me
+const meBody=head('Me','')+`<div class="sec">Display</div>
+<div class="set">Theme<span class="r"><span class="seg"><span class="on">System</span><span>Light</span><span>Dark</span></span></span></div>
+<div class="set">Game mode<span class="r"><span class="seg"><span class="on">Main</span><span>DMM</span></span></span></div>
+<div class="sec">Prices</div>
+<div class="set">Refresh every<span class="r">60 seconds ›</span></div>
+<div class="set">Hide prices older than<span class="r">6 hours ›</span></div>
+<div class="set">Hide fluke trades<span class="r"><span class="tg"></span></span></div>
+<div class="set">Members items<span class="r"><span class="tg"></span></span></div>
+<div class="sec">Data</div>
+<div class="set">Back up watchlist<span class="r">›</span></div>
+<div class="set">Prices from<span class="r">OSRS Wiki ›</span></div>`
+
+document.getElementById('w').innerHTML=[
+ phone('Sets, light','Same as before with palette A. Tap a row to see the parts.',LIGHT,setsBody,'Sets'),
+ phone('Sets, dark','Palette B when the phone is in dark mode. Same layout.',DARK,setsBody,'Sets'),
+ phone('Items','Single items, same slim rows. Opening one shows the buy and sell offer prices.',LIGHT,itemsBody,'Items'),
+ phone('Watchlist','Starred sets and items. Price drops are gray with a down arrow, never red.',LIGHT,watchBody,'Watchlist'),
+ phone('Me','No account. Theme follows the phone unless you pick one.',LIGHT,meBody,'Me')
+].join('')
+</script></body></html>
