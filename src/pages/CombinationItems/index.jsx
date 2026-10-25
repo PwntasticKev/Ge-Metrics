@@ -1,131 +1,78 @@
-import {
-  Box,
-  Center,
-  Loader,
-  Group,
-  Text,
-  Badge,
-  Card
-} from '@mantine/core'
-import { IconClock, IconRefresh } from '@tabler/icons-react'
-import React, { useState, useEffect } from 'react'
-import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
-import ItemData from '../../utils/item-data.jsx'
-import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
+import React, { useMemo, useState } from 'react'
+import { Alert, Center, Loader, ScrollArea, SegmentedControl, Table, Text } from '@mantine/core'
+import { useFlipMarket } from '../../hooks/useFlipMarket.js'
+import { buildRecipes, rankSetFlips } from '../../domain/flipping/index.js'
 import { itemRecipes } from '../../components/Table/data/item-set-filters.jsx'
-import { useFavorites } from '../../hooks/useFavorites.js'
-import GraphModal from '../../shared/modals/graph-modal.jsx'
+import FlipControls, { filterFlips } from '../../components/Flips/FlipControls.jsx'
+import FlipPageHeader from '../../components/Flips/FlipPageHeader.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
+import SetFlipRow from './components/SetFlipRow.jsx'
+
+const RECIPES = buildRecipes(itemRecipes)
+
+const KIND_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'ge-set', label: 'GE sets' },
+  { value: 'combine', label: 'Crafted' }
+]
 
 export default function CombinationItems () {
-  const { items, mapStatus, priceStatus } = ItemData()
-  const [lastFetchTime, setLastFetchTime] = useState(new Date())
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [itemSets, setItemSets] = useState([])
-  const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
-  const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
+  const { market, status, refreshFailed, updatedAt } = useFlipMarket()
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('potential')
+  const [kind, setKind] = useState('all')
+  const [hideStale, setHideStale] = useState(true)
+  const [openId, setOpenId] = useState(null)
 
-  const favoriteItemIds = new Set(
-    (favoriteItems || [])
-      .filter(fav => fav.itemType === 'combination')
-      .map(fav => fav.itemId)
+  const ranked = useMemo(() => (market ? rankSetFlips(RECIPES, market, { sortBy }) : []), [market, sortBy])
+  const flips = useMemo(
+    () => filterFlips(ranked, { search, hideStale }).filter(f => kind === 'all' || f.kind === kind),
+    [ranked, search, hideStale, kind]
   )
-
-  useEffect(() => {
-    if (priceStatus === 'success' && items.length > 0) {
-      setLastFetchTime(new Date())
-      const processedItemSets = itemRecipes
-        .map(recipe => getItemSetProfit(recipe, items))
-        .filter(item => item)
-        .sort((a, b) => b.profit - a.profit)
-      setItemSets(processedItemSets)
-    }
-  }, [priceStatus, items])
-
-  // Update current time every second for live ticker
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const isLoading = mapStatus === 'loading' || priceStatus === 'loading' || isLoadingFavorites
 
   return (
     <PremiumPageWrapper>
-      <React.Fragment>
-        {(mapStatus === 'error' || priceStatus === 'error') && <p>Error fetching data</p>}
-        {
-          isLoading &&
-          <Center maw={400} h={300} mx="auto">
-            <Loader/>
-          </Center>
-        }
-        {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
-          <Box sx={{ py: 4 }}>
-            <Group position="apart" mb="md">
-              <div>
-                <Text size="xl" weight={700} color="white">Arbitrage Tracker</Text>
-                <Text size="sm" color="rgba(255, 255, 255, 0.7)">
-                  Monitor arbitrage opportunities between individual items and their combination sets. Setup alerts and execute trades.
-                </Text>
-              </div>
-              <Group spacing="md">
-              <Badge
-                color="blue"
-                size="lg"
-              >
-                <Group spacing="xs">
-                  <IconClock size={14} />
-                  <span>{getRelativeTime(lastFetchTime, currentTime)}</span>
-                </Group>
-              </Badge>
-              <Badge
-                color={itemSets.length > 0 ? 'green' : 'orange'}
-                size="lg"
-              >
-                {itemSets.length} Sets Available
-              </Badge>
-            </Group>
-          </Group>
-
-          <Card withBorder p="md" mb="md" style={{ backgroundColor: 'rgba(25, 113, 194, 0.1)' }}>
-            <Group position="apart">
-              <div>
-                <Text weight={500} size="sm" color="white">Data Status</Text>
-                <Text size="xs" color="rgba(255, 255, 255, 0.7)">
-                  Last updated {getRelativeTime(lastFetchTime, currentTime)} •
-                  {itemSets.length} combination sets tracked
-                </Text>
-              </div>
-              <Badge color="green">
-                <Group spacing="xs">
-                  <IconRefresh size={12} />
-                  <span>Live Data</span>
-                </Group>
-              </Badge>
-            </Group>
-          </Card>
-
-          {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
-            <ItemSetsTable
-              data={itemSets}
-              items={items}
-              favoriteItems={favoriteItemIds}
-              onToggleFavorite={(itemId) => toggleFavorite(itemId, 'combination')}
-              setGraphInfo={(info) => setGraphInfo({ ...info, item: { ...info.item, items } })}
-            />
-          )}
-
-        </Box>
-      )}
-      <GraphModal
-        opened={graphInfo.open}
-        onClose={() => setGraphInfo({ open: false, item: null })}
-        item={graphInfo.item}
+      <FlipPageHeader
+        title="Combination Sets"
+        description="Buy at the left price, exchange, sell at the right price. Ranked by what you can make in one 4-hour buy-limit window, after GE tax. Prices are the latest trades, so offers can take time to fill."
+        count={flips.length}
+        updatedAt={updatedAt}
       />
-      </React.Fragment>
+      <FlipControls search={search} onSearch={setSearch} sortBy={sortBy} onSort={setSortBy} hideStale={hideStale} onHideStale={setHideStale}>
+        <SegmentedControl value={kind} onChange={setKind} data={KIND_OPTIONS} aria-label="Set type" />
+      </FlipControls>
+
+      {status === 'error' && <Alert color="red" mb="md">Could not load prices from the OSRS Wiki. Retrying every minute.</Alert>}
+      {status === 'success' && refreshFailed && <Alert color="orange" mb="md">Latest refresh failed. Showing prices from {updatedAt?.toLocaleTimeString()}; retrying every minute.</Alert>}
+      {status === 'loading' && <Center h={240}><Loader /></Center>}
+      {status === 'success' && flips.length === 0 && <Text color="dimmed" align="center" py="xl">No profitable sets match these filters right now.</Text>}
+
+      {status === 'success' && flips.length > 0 && (
+        <ScrollArea>
+          <Table highlightOnHover verticalSpacing="sm" miw={860}>
+            <thead>
+              <tr>
+                <th>Set</th>
+                <th>Buy at</th>
+                <th>Sell at</th>
+                <th>Profit each</th>
+                <th>Per 4h</th>
+                <th>4h profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flips.map(flip => (
+                <SetFlipRow
+                  key={flip.id}
+                  flip={flip}
+                  open={openId === flip.id}
+                  onToggle={() => setOpenId(id => (id === flip.id ? null : flip.id))}
+                />
+              ))}
+            </tbody>
+          </Table>
+        </ScrollArea>
+      )}
     </PremiumPageWrapper>
   )
 }

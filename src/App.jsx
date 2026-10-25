@@ -79,6 +79,7 @@ const ComingSoon = lazy(() => import('./pages/ComingSoon/index.jsx'))
 const BillingPage = lazy(() => import('./pages/Billing/index.jsx'))
 const FlipHistory = lazy(() => import('./pages/FlipHistory/index.jsx'))
 const PlankMake = lazy(() => import('./pages/PlankMake/index.jsx'))
+const ItemFlips = lazy(() => import('./pages/ItemFlips/index.jsx'))
 const HighAlchemy = lazy(() => import('./pages/HighAlchemy/index.jsx'))
 const MagicTablets = lazy(() => import('./pages/MagicTablets/index.jsx'))
 const EnchantingBolts = lazy(() => import('./pages/EnchantingBolts/index.jsx'))
@@ -381,6 +382,7 @@ function AppContent () {
             >
               <Route path="/home" element={<Navigate to="/all-items" />} />
               <Route path="/all-items" element={<AllItems />} />
+              <Route path="/flips" element={<ItemFlips />} />
               <Route path="/high-volumes" element={<HighVolumes />} />
               <Route path="/suggested-items" element={<SuggestedItems />} />
               <Route path="/watchlist" element={<Watchlist />} />
