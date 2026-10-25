@@ -215,3 +215,9 @@ describe('review regressions', () => {
   })
 })
 
+describe('market items', () => {
+  it('carry the high alch value for the alchemy tool', () => {
+    const market = createMarket([item(1, 'Staff', 8000, 8600, { highalch: 9300 })], { nowSec: NOW })
+    expect(market.get(1).highalch).toBe(9300)
+  })
+})
