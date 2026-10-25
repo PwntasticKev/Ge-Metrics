@@ -4,6 +4,7 @@ import { signed, shortSetName } from '../lib/format'
 import { useWatchlist } from '../state/watchlist'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
+import { Sparkline } from './Sparkline'
 
 function partLabel (name: string, setName: string): string {
   // "Torva full helm" in the Torva set reads better as "full helm".
@@ -26,6 +27,7 @@ export const SetFlipRow = memo(function SetFlipRow ({ flip, expanded, onToggle }
       expanded={expanded}
       onToggle={() => onToggle(flip.id)}
     >
+      <Sparkline itemId={flip.setId} />
       {flip.buy.map(line => (
         <PriceLine key={`b${line.id}`} tag="Buy" icon={line.icon} label={flip.direction === 'split' ? 'Set' : (line.qty > 1 ? `${line.qty} × ` : '') + partLabel(line.name, flip.name)} price={line.price} />
       ))}

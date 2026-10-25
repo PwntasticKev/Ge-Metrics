@@ -25,14 +25,15 @@ export default function SetsScreen () {
   const [sortBy, setSortBy] = useState<SortMetric>('potential')
   const [kind, setKind] = useState<SetKind>('all')
   const [openId, setOpenId] = useState<string | null>(null)
-  const flips = useRankedSets(market.market, sortBy, kind)
+  const [query, setQuery] = useState('')
+  const flips = useRankedSets(market.market, sortBy, kind, query)
   const onToggle = useCallback((id: string) => setOpenId(prev => (prev === id ? null : id)), [])
 
   return (
     <FlipListScreen<SetFlip>
       market={market}
       header={
-        <ScreenHeader title="Sets" meta={market.market ? `${flips.length} profitable, ${minutesAgo(market.updatedAt)}` : undefined}>
+        <ScreenHeader title="Sets" meta={market.market ? `${flips.length} profitable, ${minutesAgo(market.updatedAt)}` : undefined} search={{ value: query, onChange: setQuery, placeholder: 'Search sets' }}>
           <Tabs options={SORTS} value={sortBy} onChange={setSortBy} />
           <Pills options={KINDS} value={kind} onChange={setKind} />
         </ScreenHeader>

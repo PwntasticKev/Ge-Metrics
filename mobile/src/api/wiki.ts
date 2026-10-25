@@ -46,3 +46,15 @@ export async function fetchLatest (): Promise<Record<string, WikiPrice>> {
 export async function fetchVolumes (): Promise<Record<string, number>> {
   return dataMap<number>(await getJson('/volumes'), '/volumes')
 }
+
+export interface PricePoint {
+  timestamp: number
+  avgHighPrice: number | null
+  avgLowPrice: number | null
+}
+
+export async function fetchTimeseries (id: number, timestep: '5m' | '1h' | '6h' | '24h' = '1h'): Promise<PricePoint[]> {
+  const body = await getJson(`/timeseries?timestep=${timestep}&id=${id}`)
+  if (!isObject(body) || !Array.isArray(body.data)) throw new WikiError('Unexpected response from /timeseries')
+  return body.data.filter((p): p is PricePoint => isObject(p) && Number.isFinite(p.timestamp))
+}

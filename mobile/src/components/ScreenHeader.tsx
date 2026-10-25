@@ -4,22 +4,26 @@ import { useTheme } from '../theme/ThemeProvider'
 import { space, type } from '../theme/tokens'
 
 interface Props {
-  title: string
+  title?: string
+  /** False inside a stack screen that already has a native header. */
+  inset?: boolean
   meta?: string
   search?: { value: string; onChange: (v: string) => void; placeholder: string }
   children?: React.ReactNode
 }
 
 // Large title, a small status on the right, optional search, then tabs.
-export function ScreenHeader ({ title, meta, search, children }: Props) {
+export function ScreenHeader ({ title, inset = true, meta, search, children }: Props) {
   const { palette } = useTheme()
   const insets = useSafeAreaInsets()
   return (
-    <View style={{ paddingTop: insets.top + space.sm, backgroundColor: palette.bg }}>
-      <View style={styles.titleRow}>
-        <Text style={[type.title, { color: palette.ink }]} accessibilityRole="header">{title}</Text>
-        {meta ? <Text style={[styles.meta, { color: palette.muted }]}>{meta}</Text> : null}
-      </View>
+    <View style={{ paddingTop: inset ? insets.top + space.sm : space.sm, backgroundColor: palette.bg }}>
+      {(title || meta) ? (
+        <View style={styles.titleRow}>
+          {title ? <Text style={[type.title, { color: palette.ink }]} accessibilityRole="header">{title}</Text> : <View />}
+          {meta ? <Text style={[styles.meta, { color: palette.muted }]}>{meta}</Text> : null}
+        </View>
+      ) : null}
       {search && (
         <TextInput
           value={search.value}

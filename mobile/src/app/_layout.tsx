@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router'
 import { NativeTabs } from 'expo-router/native-tabs'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
@@ -19,8 +20,11 @@ function useAppFocus () {
 
 function Tabs () {
   const { palette, isDark } = useTheme()
+  // Navigation theme in our colors avoids a white flash when switching tabs.
+  const base = isDark ? DarkTheme : DefaultTheme
+  const navTheme = { ...base, colors: { ...base.colors, background: palette.bg, card: palette.bar, text: palette.ink, border: palette.rule, primary: palette.brand } }
   return (
-    <>
+    <NavigationThemeProvider value={navTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NativeTabs tintColor={palette.brand} backgroundColor={palette.bar}>
         <NativeTabs.Trigger name="index">
@@ -44,7 +48,7 @@ function Tabs () {
           <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
         </NativeTabs.Trigger>
       </NativeTabs>
-    </>
+    </NavigationThemeProvider>
   )
 }
 

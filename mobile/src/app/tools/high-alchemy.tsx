@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Market } from '@ge/engine'
-import { useMarket } from '../api/useMarket'
-import { PriceLine } from '../components/DetailLines'
-import { FlipListScreen } from '../components/FlipListScreen'
-import { FlipRow } from '../components/FlipRow'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { gpFull, signed } from '../lib/format'
-import { useTheme } from '../theme/ThemeProvider'
-import { space } from '../theme/tokens'
+import { useMarket } from '../../api/useMarket'
+import { PriceLine } from '../../components/DetailLines'
+import { FlipListScreen } from '../../components/FlipListScreen'
+import { FlipRow } from '../../components/FlipRow'
+import { ScreenHeader } from '../../components/ScreenHeader'
+import { gpFull, signed } from '../../lib/format'
+import { useTheme } from '../../theme/ThemeProvider'
+import { space } from '../../theme/tokens'
 
 const NATURE_RUNE_ID = 561
 const MIN_DAILY_VOLUME = 2000
@@ -51,7 +51,7 @@ export default function ToolsScreen () {
   return (
     <FlipListScreen<AlchRow>
       market={market}
-      header={<ScreenHeader title="High Alchemy" meta={nature ? `Nature rune ${gpFull(nature)}` : undefined} />}
+      header={<ScreenHeader inset={false} meta={nature ? `Nature rune ${gpFull(nature)}` : undefined} />}
       data={rows}
       keyOf={r => String(r.id)}
       extraData={openId}

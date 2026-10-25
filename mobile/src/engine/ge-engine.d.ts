@@ -117,6 +117,58 @@ declare module '@ge/engine' {
     conversionCost?: number
   }
 
+  export interface ProcessRecipe {
+    id: string
+    method: string
+    name?: string
+    inputs: { id: number; qty: number }[]
+    outputs: { id: number; qty: number }[]
+    coinCost?: number
+    actionsPerHour?: number | null
+    skill?: string | null
+    members?: boolean
+    location?: string | null
+    source?: string
+  }
+
+  export interface ProcessFlip {
+    readonly id: string
+    readonly method: string
+    readonly name: string
+    readonly icon: string | null
+    readonly buy: readonly FlipLine[]
+    readonly sell: readonly FlipLine[]
+    readonly coinCost: number
+    readonly cost: number
+    readonly revenue: number
+    readonly tax: number
+    readonly profit: number
+    readonly roi: number
+    readonly maxActions: number | null
+    readonly potential: number | null
+    readonly perHour: number | null
+    readonly ageSec: number | null
+    readonly stale: boolean
+    readonly suspicious: boolean
+  }
+
+  export function computeProcessFlip (recipe: ProcessRecipe, market: Market, options?: { staleAfterSec?: number; actionsPerHour?: number | null }): ProcessFlip | null
+  export function rankProcessFlips (recipes: readonly ProcessRecipe[], market: Market, options?: Omit<RankOptions, 'sortBy'> & { sortBy?: SortMetric | 'perHour' }): ProcessFlip[]
+  export function decantingRecipes (items: readonly MarketItem[]): ProcessRecipe[]
+  export function herbCleaningRecipes (items: readonly MarketItem[]): ProcessRecipe[]
+  export function unfinishedPotionRecipes (items: readonly MarketItem[]): ProcessRecipe[]
+  export const moneyMakingRecipes: ProcessRecipe[]
+  export interface ProcessingMethod {
+    key: string
+    title: string
+    description: string
+    requirements: string | null
+    actionsPerHour: number | null
+    source: string
+    recipes: ProcessRecipe[]
+  }
+  export const processingMethods: ProcessingMethod[]
+
   export function geTax (sellPrice: number, itemId?: number): number
   export function createMarketFromWiki (
     data: { mapping: WikiMappingEntry[]; latest: Record<string, WikiPrice>; volumes?: Record<string, number> },

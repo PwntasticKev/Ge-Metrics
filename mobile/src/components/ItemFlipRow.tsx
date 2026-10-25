@@ -4,6 +4,7 @@ import { signed, stripUncharged } from '../lib/format'
 import { useWatchlist } from '../state/watchlist'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
+import { Sparkline } from './Sparkline'
 
 export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle }: { flip: ItemFlip; expanded: boolean; onToggle: (id: number) => void }) {
   const { isStarred, toggle } = useWatchlist()
@@ -19,6 +20,7 @@ export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle
       expanded={expanded}
       onToggle={() => onToggle(flip.id)}
     >
+      <Sparkline itemId={flip.id} />
       <PriceLine tag="Buy" label="at" price={flip.buyAt} />
       <PriceLine tag="Sell" label="at" price={flip.sellAt} />
       <ProfitFooter tax={flip.tax} profit={flip.profit} starred={isStarred(entry)} onStar={() => toggle(entry)} />

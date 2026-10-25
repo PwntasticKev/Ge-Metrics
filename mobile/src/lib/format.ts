@@ -26,6 +26,11 @@ export function signed (n: number | null): string {
   return `${n >= 0 ? '+' : ''}${gpShort(n)}`
 }
 
+// Quantities can be fractional averages in wiki guides: 0.286 -> "0.29".
+export function qty (n: number): string {
+  return Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(n < 1 ? 2 : 1)
+}
+
 export function percent (ratio: number): string {
   return Number.isFinite(ratio) ? `${(ratio * 100).toFixed(ratio < 0.1 ? 2 : 1)}%` : '–'
 }

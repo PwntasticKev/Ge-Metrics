@@ -9,7 +9,7 @@ export type SetKind = 'all' | 'ge-set' | 'combine'
 // Items list is capped: thousands of rows is slow and nobody scrolls that far.
 const MAX_ITEM_ROWS = 300
 
-export function useRankedSets (market: Market | null, sortBy: SortMetric, kind: SetKind): SetFlip[] {
+export function useRankedSets (market: Market | null, sortBy: SortMetric, kind: SetKind, query = ''): SetFlip[] {
   const { settings } = useSettings()
   return useMemo(() => {
     if (!market) return []
@@ -17,7 +17,8 @@ export function useRankedSets (market: Market | null, sortBy: SortMetric, kind: 
       .filter(f => kind === 'all' || f.kind === kind)
       .filter(f => !settings.hideStale || !f.stale)
       .filter(f => settings.membersItems || !market.get(f.setId)?.members)
-  }, [market, sortBy, kind, settings.hideFlukes, settings.hideStale, settings.membersItems])
+      .filter(f => !query.trim() || f.name.toLowerCase().includes(query.trim().toLowerCase()))
+  }, [market, sortBy, kind, query, settings.hideFlukes, settings.hideStale, settings.membersItems])
 }
 
 export function useRankedItems (market: Market | null, sortBy: SortMetric, query: string): { flips: ItemFlip[]; total: number } {
