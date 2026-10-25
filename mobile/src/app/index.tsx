@@ -4,7 +4,7 @@ import { useMarket } from '../api/useMarket'
 import { FlipListScreen } from '../components/FlipListScreen'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SetFlipRow } from '../components/SetFlipRow'
-import { Tabs } from '../components/Tabs'
+import { Pills, Tabs } from '../components/Tabs'
 import { useRankedSets, type SetKind } from '../lib/ranking'
 import { minutesAgo } from '../lib/format'
 
@@ -34,7 +34,7 @@ export default function SetsScreen () {
       header={
         <ScreenHeader title="Sets" meta={market.market ? `${flips.length} profitable, ${minutesAgo(market.updatedAt)}` : undefined}>
           <Tabs options={SORTS} value={sortBy} onChange={setSortBy} />
-          <Tabs options={KINDS} value={kind} onChange={setKind} />
+          <Pills options={KINDS} value={kind} onChange={setKind} />
         </ScreenHeader>
       }
       data={flips}

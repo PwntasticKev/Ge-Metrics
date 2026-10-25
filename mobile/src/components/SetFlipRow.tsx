@@ -27,7 +27,7 @@ export const SetFlipRow = memo(function SetFlipRow ({ flip, expanded, onToggle }
       onToggle={() => onToggle(flip.id)}
     >
       {flip.buy.map(line => (
-        <PriceLine key={`b${line.id}`} tag="Buy" icon={line.icon} label={(line.qty > 1 ? `${line.qty} × ` : '') + partLabel(line.name, flip.name)} price={line.price} />
+        <PriceLine key={`b${line.id}`} tag="Buy" icon={line.icon} label={flip.direction === 'split' ? 'Set' : (line.qty > 1 ? `${line.qty} × ` : '') + partLabel(line.name, flip.name)} price={line.price} />
       ))}
       {flip.sell.map((line, i) => (
         <PriceLine key={`s${line.id}`} tag="Sell" icon={line.icon} divider={i === 0} label={flip.direction === 'combine' ? 'Set' : (line.qty > 1 ? `${line.qty} × ` : '') + partLabel(line.name, flip.name)} price={line.price} />
