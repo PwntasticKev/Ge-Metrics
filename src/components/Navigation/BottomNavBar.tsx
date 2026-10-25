@@ -59,7 +59,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     {
       icon: IconChartLine,
       label: 'Flips',
-      path: '/flips',
+      path: '/flip-history',
+      requiresAuth: true,
       badge: notifications.flips
     },
     {

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import {
   IconListDetails,
-  IconArrowsExchange,
   IconTrendingUp,
   IconEye,
   IconBookmark,
@@ -518,21 +517,9 @@ export function MainLinks ({ expanded, isMobile = false, onNavigate }) {
         />
 
         <MainLink
-          icon={<IconArrowsExchange size="1rem"/>}
-          color="green"
-          label="Item Flips"
-          link="/flips"
-          expanded={expanded}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-          isPremium={true}
-          hasAccess={hasAccess}
-        />
-
-        <MainLink
           icon={<IconSword size="1rem"/>}
           color="violet"
-          label="Combination Sets"
+          label="Combination Items"
           link="/combination-items"
           expanded={expanded}
           isMobile={isMobile}
