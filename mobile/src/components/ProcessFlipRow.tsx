@@ -3,8 +3,9 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { ProcessFlip } from '@ge/engine'
 import { gpFull, qty, signed } from '../lib/format'
 import { recipeMeta, type ProcessSort } from '../lib/methods'
+import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
-import { PriceLine } from './DetailLines'
+import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
 
 function headline (flip: ProcessFlip, sortBy: ProcessSort): { value: string; caption: string } {
@@ -21,6 +22,8 @@ function metaLine (flip: ProcessFlip, sortBy: ProcessSort): string {
 
 export const ProcessFlipRow = memo(function ProcessFlipRow ({ flip, sortBy, expanded, onToggle }: { flip: ProcessFlip; sortBy: ProcessSort; expanded: boolean; onToggle: (id: string) => void }) {
   const { palette } = useTheme()
+  const { isStarred, toggle } = useWatchlist()
+  const entry = { kind: 'process', id: flip.id } as const
   const meta = recipeMeta(flip.id)
   const { value, caption } = headline(flip, sortBy)
   return (
@@ -35,12 +38,8 @@ export const ProcessFlipRow = memo(function ProcessFlipRow ({ flip, sortBy, expa
     >
       {flip.buy.map(l => <PriceLine key={`b${l.id}`} tag="Buy" icon={l.icon} label={`${qty(l.qty)} × ${l.name}`} price={l.price} />)}
       {flip.sell.map((l, i) => <PriceLine key={`s${l.id}`} tag="Sell" icon={l.icon} divider={i === 0} label={`${qty(l.qty)} × ${l.name}`} price={l.price} />)}
-      <View style={styles.footer}>
-        <Text style={[styles.small, { color: palette.muted }]}>
-          {flip.coinCost > 0 ? `Coins ${gpFull(flip.coinCost)}, ` : ''}Tax {gpFull(flip.tax)}
-        </Text>
-        <Text style={[styles.profit, { color: palette.profit }]}>{flip.profit >= 0 ? '+' : ''}{gpFull(flip.profit)} each</Text>
-      </View>
+      {flip.coinCost > 0 ? <Text style={[styles.small, { color: palette.muted, paddingTop: 6 }]}>Includes {gpFull(flip.coinCost)} coins paid per action</Text> : null}
+      <ProfitFooter tax={flip.tax} profit={flip.profit} starred={isStarred(entry)} onStar={() => toggle(entry)} />
       {meta?.source ? (
         <Pressable onPress={() => Linking.openURL(meta.source!)} accessibilityRole="link" hitSlop={8}>
           <Text style={[styles.link, { color: palette.brand }]}>Wiki guide{meta.location ? `, ${meta.location}` : ''}</Text>
@@ -51,8 +50,6 @@ export const ProcessFlipRow = memo(function ProcessFlipRow ({ flip, sortBy, expa
 })
 
 const styles = StyleSheet.create({
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 },
   small: { fontSize: 12.5 },
-  profit: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
   link: { fontSize: 13, fontWeight: '600', paddingTop: 8 }
 })

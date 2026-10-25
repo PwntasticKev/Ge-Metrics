@@ -16,6 +16,11 @@
       },
       "infoPlist": {
         "CFBundleDisplayName": "GE Metrics"
+      },
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/ios-dark.png",
+        "tinted": "./assets/images/ios-tinted.png"
       }
     },
     "android": {

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import type { ItemFlip } from '@ge/engine'
-import { signed, stripUncharged } from '../lib/format'
+import { gpShort, signed, stripUncharged } from '../lib/format'
 import { useWatchlist } from '../state/watchlist'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
@@ -14,7 +14,7 @@ export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle
     <FlipRow
       icon={flip.icon}
       name={stripUncharged(flip.name)}
-      meta={`${limit}, ${signed(flip.potential)}`}
+      meta={`${limit}, ${signed(flip.potential)}${flip.dailyVolume ? `, ${gpShort(flip.dailyVolume)}/day` : ''}`}
       value={signed(flip.profit)}
       valueCaption="each"
       expanded={expanded}

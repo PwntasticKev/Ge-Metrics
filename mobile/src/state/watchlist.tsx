@@ -1,15 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { loadJson, saveJson } from './storage'
 
-// Starred sets (by recipe id) and items (by item id), kept on the device.
-export type WatchEntry = { kind: 'set'; id: string } | { kind: 'item'; id: number }
+// Starred sets (by recipe id), items (by item id) and processing methods
+// (by recipe id), kept on the device.
+export type WatchEntry = { kind: 'set'; id: string } | { kind: 'item'; id: number } | { kind: 'process'; id: string }
 
 const KEY = 'gem.watchlist.v1'
 
 function isEntryList (value: unknown): value is WatchEntry[] {
   return Array.isArray(value) && value.every(e =>
     typeof e === 'object' && e !== null &&
-    ((e.kind === 'set' && typeof e.id === 'string') || (e.kind === 'item' && Number.isInteger(e.id)))
+    (((e.kind === 'set' || e.kind === 'process') && typeof e.id === 'string') || (e.kind === 'item' && Number.isInteger(e.id)))
   )
 }
 

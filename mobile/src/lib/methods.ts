@@ -88,6 +88,12 @@ const recipeById = new Map<string, ProcessRecipe>(
 )
 export const recipeMeta = (id: string): ProcessRecipe | undefined => recipeById.get(id)
 
+// Finds any processing recipe by id, including decanting recipes that are
+// generated from the current item list.
+export function findProcessRecipe (id: string, market: Market): ProcessRecipe | undefined {
+  return recipeById.get(id) ?? (id.startsWith('decant:') ? DECANTING.recipes(market).find(r => r.id === id) : undefined)
+}
+
 const MAX_ROWS = 200
 
 export function useRankedProcess (market: Market | null, method: MethodDef, sortBy: ProcessSort, query: string): { flips: ProcessFlip[]; total: number } {
