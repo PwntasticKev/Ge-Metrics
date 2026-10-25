@@ -2,7 +2,9 @@
 // cast a spell, pay a sawmill...), sell the outputs on the GE.
 //
 // A recipe is one action:
-//   { id, method, name, inputs: [{ id, qty }], outputs: [{ id, qty }], coinCost }
+//   { id, method, name, inputs: [{ id, qty }], outputs: [{ id, qty }], coinCost, coinRevenue }
+// coinCost is coins paid per action (e.g. a sawmill fee); coinRevenue is coins
+// received per action without selling anything (e.g. alching), so it isn't taxed.
 // Inputs are bought at their low price, outputs sold at their high price, and
 // GE tax is paid on every output unit sold.
 
@@ -27,16 +29,18 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
   const inputs = resolve(recipe.inputs, market)
   const outputs = resolve(recipe.outputs, market)
   if (!inputs || !outputs) return null
+  if (!inputs.length || (!outputs.length && !recipe.coinRevenue)) return null
   if (!inputs.every(r => r.item.low) || !outputs.every(r => r.item.high)) return null
 
   const buy = inputs.map(({ item, qty }) => line(item, qty, item.low))
   const sell = outputs.map(({ item, qty }) => line(item, qty, item.high))
   const coinCost = recipe.coinCost ?? 0
   const cost = sum(buy.map(l => l.total)) + coinCost
-  const revenue = sum(sell.map(l => l.total))
+  const coinRevenue = recipe.coinRevenue ?? 0
+  const revenue = sum(sell.map(l => l.total)) + coinRevenue
   const tax = sum(outputs.map(({ item, qty }) => geTax(item.high, item.id) * qty))
   const profit = revenue - cost - tax
-  const roi = profit / cost
+  const roi = cost > 0 ? profit / cost : 0
 
   // You can only buy so many inputs per 4h, and only fill so much volume.
   const limitCap = minKnown(inputs.map(({ item, qty }) => Math.floor(buyLimitOf(item) / qty)))
@@ -46,7 +50,7 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
   }))
   const maxActions = minKnown([limitCap, liquidityCap])
   const ageSec = oldestAgeSec(market.nowSec, [...inputs, ...outputs].flatMap(({ item }) => [item.highTime, item.lowTime]))
-  const main = outputs[0].item
+  const main = (outputs[0] ?? inputs[0]).item
 
   return Object.freeze({
     id: recipe.id,
@@ -56,6 +60,7 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
     buy: Object.freeze(buy),
     sell: Object.freeze(sell),
     coinCost,
+    coinRevenue,
     cost,
     revenue,
     tax,

@@ -12,7 +12,7 @@ import { METHODS, useRankedProcess, type MethodDef, type ProcessSort } from '../
 import { useTheme } from '../../theme/ThemeProvider'
 
 function isMethodKey (key: unknown): key is string {
-  return typeof key === 'string' && key in METHODS
+  return typeof key === 'string' && Object.hasOwn(METHODS, key)
 }
 
 function MethodList ({ method }: { method: MethodDef }) {
@@ -44,11 +44,18 @@ function MethodList ({ method }: { method: MethodDef }) {
 
 export default function MethodScreen () {
   const { method } = useLocalSearchParams<{ method: string }>()
-  if (!isMethodKey(method)) return <EmptyState title="Unknown tool" body="Go back and pick a tool from the list." />
+  if (!isMethodKey(method)) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Not found' }} />
+        <EmptyState title="Unknown tool" body="Go back and pick a tool from the list." />
+      </>
+    )
+  }
   return (
     <>
       <Stack.Screen options={{ title: METHODS[method].title }} />
-      <MethodList method={METHODS[method]} />
+      <MethodList key={method} method={METHODS[method]} />
     </>
   )
 }

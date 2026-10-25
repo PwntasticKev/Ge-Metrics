@@ -25,6 +25,11 @@ describe('computeProcessFlip', () => {
     expect(computeProcessFlip(recipe, market, { actionsPerHour: 1000 }).perHour).toBe(99_000)
   })
 
+  it('counts coins received as untaxed revenue', () => {
+    const alch = { id: 'alch', method: 'x', inputs: [{ id: 1, qty: 1 }], outputs: [], coinRevenue: 120 }
+    expect(computeProcessFlip(alch, market)).toMatchObject({ revenue: 120, tax: 0, profit: 20, name: 'Teak logs' })
+  })
+
   it('returns null when an item is missing or unpriced', () => {
     expect(computeProcessFlip({ ...recipe, inputs: [{ id: 99, qty: 1 }] }, market)).toBeNull()
   })

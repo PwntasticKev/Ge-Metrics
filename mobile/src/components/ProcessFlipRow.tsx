@@ -39,6 +39,7 @@ export const ProcessFlipRow = memo(function ProcessFlipRow ({ flip, sortBy, expa
       {flip.buy.map(l => <PriceLine key={`b${l.id}`} tag="Buy" icon={l.icon} label={`${qty(l.qty)} × ${l.name}`} price={l.price} />)}
       {flip.sell.map((l, i) => <PriceLine key={`s${l.id}`} tag="Sell" icon={l.icon} divider={i === 0} label={`${qty(l.qty)} × ${l.name}`} price={l.price} />)}
       {flip.coinCost > 0 ? <Text style={[styles.small, { color: palette.muted, paddingTop: 6 }]}>Includes {gpFull(flip.coinCost)} coins paid per action</Text> : null}
+      {flip.coinRevenue > 0 ? <Text style={[styles.small, { color: palette.muted, paddingTop: 6 }]}>Plus {gpFull(flip.coinRevenue)} coins received per action</Text> : null}
       <ProfitFooter tax={flip.tax} profit={flip.profit} starred={isStarred(entry)} onStar={() => toggle(entry)} />
       {meta?.source ? (
         <Pressable onPress={() => Linking.openURL(meta.source!)} accessibilityRole="link" hitSlop={8}>

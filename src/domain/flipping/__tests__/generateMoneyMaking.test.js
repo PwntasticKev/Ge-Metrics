@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseMmgtable, toMethod, cleanWikiText, skillRequirements } from '../../../../scripts/generate-money-making.js'
+import { parseMmgtable, toMethod, cleanWikiText, skillRequirements, evalQuantity } from '../../../../scripts/generate-money-making.js'
 
 const PAGE = `{{Mmgtable
 |Activity = Cleaning [[grimy toadflax]]
@@ -51,5 +51,32 @@ describe('money making generator', () => {
   it('cleans links and skill templates', () => {
     expect(cleanWikiText('[[Toadflax|toadflax]] and [[Vial of water]]')).toBe('toadflax and Vial of water')
     expect(skillRequirements('{{SCP|Herblore|50}} * {{SCP|Magic|70}} (recommended)')).toBe('Herblore 50, Magic 70')
+  })
+
+  it('keeps the last field intact (no stray brace)', () => {
+    const lastNumeric = PAGE.replace('|Details = Clean them. {{Coins|15000000}}+ recommended\n', '')
+    expect(parseMmgtable(lastNumeric).location).toBe('[[Grand Exchange]]')
+    const kphLast = '{{Mmgtable\n|Category = Skilling\n|kph = 5000\n}}'
+    expect(parseMmgtable(kphLast).kph).toBe('5000')
+  })
+
+  it('skips guides with unparseable quantities', () => {
+    expect(toMethod('Money making guide/X', parseMmgtable(PAGE.replace('|Input1num = 1', '|Input1num = ~50')), ids)).toBeNull()
+  })
+
+  it('treats coins received as revenue, not a negative cost', () => {
+    const alch = PAGE.replace('|Output1 = [[Toadflax]]\n|Output1num = 1', '|Output1 = Coins\n|Output1num = 900')
+    expect(toMethod('Money making guide/Alch', parseMmgtable(alch), ids)).toMatchObject({ outputs: [], coinRevenue: 900, coinCost: 0 })
+  })
+
+  it('evaluates arithmetic quantities safely', () => {
+    expect(evalQuantity('27*3')).toBe(81)
+    expect(evalQuantity('1/4')).toBe(0.25)
+    expect(evalQuantity('2.5*(1/1620)')).toBeCloseTo(0.0015432)
+    expect(evalQuantity('(1/1)')).toBe(1)
+    expect(evalQuantity('1,000')).toBe(1000)
+    expect(evalQuantity('~50')).toBeNaN()
+    expect(evalQuantity('alert(1)')).toBeNaN()
+    expect(evalQuantity('2*')).toBeNaN()
   })
 })

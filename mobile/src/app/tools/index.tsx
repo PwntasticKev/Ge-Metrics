@@ -1,12 +1,13 @@
 import { router, type Href } from 'expo-router'
 import { useMemo } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { rankProcessFlips, type Market } from '@ge/engine'
+import type { Market } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
 import { ItemIcon } from '../../components/ItemIcon'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { signed } from '../../lib/format'
-import { METHODS, PROCESSING_METHODS, type MethodDef } from '../../lib/methods'
+import { METHODS, PROCESSING_METHODS, rankMethod, type MethodDef } from '../../lib/methods'
+import { useSettings, type Settings } from '../../state/settings'
 import { useTheme } from '../../theme/ThemeProvider'
 import { space } from '../../theme/tokens'
 
@@ -16,9 +17,9 @@ interface Best {
   value: string
 }
 
-function bestFor (method: MethodDef, market: Market | null): Best | null {
+function bestFor (method: MethodDef, market: Market | null, settings: Settings): Best | null {
   if (!market) return null
-  const top = rankProcessFlips(method.recipes(market), market, { sortBy: method.defaultSort }).find(f => !f.stale)
+  const top = rankMethod(market, method, method.defaultSort, settings)[0]
   if (!top) return null
   const value = method.defaultSort === 'perHour' && top.perHour !== null ? `${signed(top.perHour)}/hr` : `${signed(top.potential)} per 4h`
   return { name: top.name, icon: top.icon, value }
@@ -68,13 +69,14 @@ function MethodRow ({ method, best, last }: { method: MethodDef; best: Best | nu
 export default function ToolsHub () {
   const { palette } = useTheme()
   const { market } = useMarket()
+  const { settings } = useSettings()
 
-  const featured = useMemo(() => FEATURED.map(f => ({ ...f, method: METHODS[f.key], best: bestFor(METHODS[f.key], market) })), [market])
+  const featured = useMemo(() => FEATURED.map(f => ({ ...f, method: METHODS[f.key], best: bestFor(METHODS[f.key], market, settings) })), [market, settings])
   const processing = useMemo(
     () => PROCESSING_METHODS
-      .map(method => ({ method, best: bestFor(method, market) }))
+      .map(method => ({ method, best: bestFor(method, market, settings) }))
       .sort((a, b) => Number(Boolean(b.best)) - Number(Boolean(a.best))),
-    [market]
+    [market, settings]
   )
 
   return (

@@ -56,5 +56,8 @@ export interface PricePoint {
 export async function fetchTimeseries (id: number, timestep: '5m' | '1h' | '6h' | '24h' = '1h'): Promise<PricePoint[]> {
   const body = await getJson(`/timeseries?timestep=${timestep}&id=${id}`)
   if (!isObject(body) || !Array.isArray(body.data)) throw new WikiError('Unexpected response from /timeseries')
-  return body.data.filter((p): p is PricePoint => isObject(p) && Number.isFinite(p.timestamp))
+  const priceOrNull = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+  return body.data
+    .filter((p): p is Record<string, unknown> => isObject(p) && typeof p.timestamp === 'number')
+    .map(p => ({ timestamp: p.timestamp as number, avgHighPrice: priceOrNull(p.avgHighPrice), avgLowPrice: priceOrNull(p.avgLowPrice) }))
 }

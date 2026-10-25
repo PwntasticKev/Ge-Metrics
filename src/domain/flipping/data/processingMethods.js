@@ -1,4 +1,4 @@
-// Curated from the OSRS Wiki on 2026-10-25: processing methods with GE-tradeable
+// Curated from the OSRS Wiki on 2026-10-25 (incl. Sailing-era methods): processing methods with GE-tradeable
 // inputs and outputs. Item ids verified against the prices API mapping by exact name.
 // Each method links its wiki source. Refresh when fees or recipes change.
 export default [
@@ -140,7 +140,7 @@ export default [
   },
   {
     "key": "plank-make",
-    "title": "Plank Make (Lunar)",
+    "title": "Plank Make",
     "description": "Cast Plank Make (Lunar) on logs; each cast converts one log into a plank for 70% of the sawmill fee.",
     "requirements": "86 Magic, Lunar spellbook, Dream Mentor",
     "actionsPerHour": 960,
@@ -367,7 +367,7 @@ export default [
   },
   {
     "key": "enchant-bolts",
-    "title": "Enchant crossbow bolts",
+    "title": "Enchant bolts",
     "description": "Cast Enchant Crossbow Bolt (standard spellbook) on gem-tipped bolts; each cast enchants 10 bolts.",
     "requirements": "4-87 Magic depending on bolt (see recipe notes), standard spellbook, members",
     "actionsPerHour": null,
@@ -2111,7 +2111,7 @@ export default [
   },
   {
     "key": "magic-tablets",
-    "title": "Magic tablets (house lectern)",
+    "title": "Magic tablets",
     "description": "Make teleport/enchant/bones-to tablets at a lectern in your player-owned house study using soft clay plus the spell runes.",
     "requirements": "Lectern in POH study (Oak lectern 40 Construction up to Marble lectern 77; see notes), Magic level of the spell, standard spellbook (Marble lectern works from any spellbook)",
     "actionsPerHour": 1100,
@@ -2682,7 +2682,7 @@ export default [
   },
   {
     "key": "lunar-tablets",
-    "title": "Lunar teleport tablets (Lunar Isle lectern)",
+    "title": "Lunar tablets",
     "description": "Make Lunar teleport tablets at the lectern in the ceremonial building on Lunar Isle using soft clay plus the spell runes.",
     "requirements": "69-89 Magic, Lunar spellbook, Lunar Diplomacy (Dream Mentor for some)",
     "actionsPerHour": 1100,
@@ -2940,7 +2940,7 @@ export default [
   },
   {
     "key": "ancient-tablets",
-    "title": "Ancient teleport tablets (Ancient Pyramid lectern)",
+    "title": "Ancient tablets",
     "description": "Make Ancient Magicks teleport tablets at the lectern by the altar in the Ancient Pyramid using soft clay plus the spell runes.",
     "requirements": "54-96 Magic, Ancient Magicks spellbook (Desert Treasure I)",
     "actionsPerHour": null,
@@ -3174,7 +3174,7 @@ export default [
   },
   {
     "key": "tanning",
-    "title": "Tanning hides at a tanner",
+    "title": "Tanning hides",
     "description": "Pay a tanner (e.g. Ellis in Al Kharid) a per-hide fee to turn unnoted hides into leather.",
     "requirements": "None (dragonhides members); Crafting Guild tanner needs 40 Crafting",
     "actionsPerHour": 3500,
@@ -3822,7 +3822,7 @@ export default [
   },
   {
     "key": "battlestaves",
-    "title": "Crafting elemental battlestaves",
+    "title": "Battlestaves",
     "description": "Attach an elemental orb to a battlestaff anywhere.",
     "requirements": "54-66 Crafting depending on element; members",
     "actionsPerHour": 2450,
@@ -3924,7 +3924,7 @@ export default [
   },
   {
     "key": "mystic-staves",
-    "title": "Upgrading battlestaves to mystic staves",
+    "title": "Mystic staves",
     "description": "Pay Thormac (Sorcerer's Tower, south of Seers' Village) to upgrade an elemental battlestaff into a mystic staff.",
     "requirements": "Scorpion Catcher; members",
     "actionsPerHour": null,
@@ -4010,7 +4010,7 @@ export default [
   },
   {
     "key": "smelting",
-    "title": "Smelting bars at a furnace",
+    "title": "Smelting bars",
     "description": "Smelt ores (plus coal where needed) into bars at any furnace.",
     "requirements": "1-85 Smithing depending on bar; most bars members",
     "actionsPerHour": null,
@@ -4238,7 +4238,7 @@ export default [
   },
   {
     "key": "dhide-armour",
-    "title": "Crafting dragonhide armour",
+    "title": "D'hide armour",
     "description": "Use a needle and thread on dragon leather to craft d'hide vambraces, chaps and bodies.",
     "requirements": "57-84 Crafting depending on piece; members",
     "actionsPerHour": 1685,
@@ -4519,6 +4519,2373 @@ export default [
         ],
         "coinCost": 0,
         "notes": "84 Crafting; needle (not consumed); thread has 5 uses so 0.2 thread per item; a Costume needle (Death on the Isle) removes thread"
+      }
+    ]
+  },
+  {
+    "key": "repair-kits",
+    "title": "Boat repair kits",
+    "description": "Build boat repair kits at a Shipwrights' Workbench from planks, nails and swamp paste (basic kits can be made anywhere). Oak through camphor make 2 kits from 2 planks; ironwood and rosewood make 3 kits from 1 plank.",
+    "requirements": "Members; Construction 1/19/30/47/66/80/92 by tier; hammer and saw; Shipwrights' Workbench for oak and above (closest bank: Red Rock, 52 Sailing; Port Khazard, 30 Sailing)",
+    "actionsPerHour": null,
+    "source": "https://oldschool.runescape.wiki/w/Repair_kits",
+    "recipes": [
+      {
+        "id": "proc:repair-kits:repair-kit",
+        "method": "repair-kits",
+        "name": "Repair kit",
+        "inputs": [
+          {
+            "id": 960,
+            "qty": 2
+          },
+          {
+            "id": 4819,
+            "qty": 10
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31964,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "1 Construction; tools: Hammer, Saw; 4 ticks/action; no workbench needed (use items together), 2 kits only after Pandemonium"
+      },
+      {
+        "id": "proc:repair-kits:oak-repair-kit",
+        "method": "repair-kits",
+        "name": "Oak repair kit",
+        "inputs": [
+          {
+            "id": 8778,
+            "qty": 2
+          },
+          {
+            "id": 4820,
+            "qty": 10
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31967,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "19 Construction; at Shipwrights' Workbench; tools: Hammer, Saw; 4 ticks/action"
+      },
+      {
+        "id": "proc:repair-kits:teak-repair-kit",
+        "method": "repair-kits",
+        "name": "Teak repair kit",
+        "inputs": [
+          {
+            "id": 8780,
+            "qty": 2
+          },
+          {
+            "id": 1539,
+            "qty": 10
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31970,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "30 Construction; at Shipwrights' Workbench; tools: Hammer, Saw; 4 ticks/action"
+      },
+      {
+        "id": "proc:repair-kits:mahogany-repair-kit",
+        "method": "repair-kits",
+        "name": "Mahogany repair kit",
+        "inputs": [
+          {
+            "id": 8782,
+            "qty": 2
+          },
+          {
+            "id": 4822,
+            "qty": 10
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31973,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "47 Construction; at Shipwrights' Workbench; tools: Hammer, Saw; 4 ticks/action"
+      },
+      {
+        "id": "proc:repair-kits:camphor-repair-kit",
+        "method": "repair-kits",
+        "name": "Camphor repair kit",
+        "inputs": [
+          {
+            "id": 31432,
+            "qty": 2
+          },
+          {
+            "id": 4823,
+            "qty": 10
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31976,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "66 Construction; at Shipwrights' Workbench; tools: Hammer, Saw; 4 ticks/action"
+      },
+      {
+        "id": "proc:repair-kits:ironwood-repair-kit",
+        "method": "repair-kits",
+        "name": "Ironwood repair kit",
+        "inputs": [
+          {
+            "id": 31435,
+            "qty": 1
+          },
+          {
+            "id": 4824,
+            "qty": 10
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31979,
+            "qty": 3
+          }
+        ],
+        "coinCost": 0,
+        "notes": "80 Construction; at Shipwrights' Workbench; tools: Hammer, Saw; 4 ticks/action"
+      },
+      {
+        "id": "proc:repair-kits:rosewood-repair-kit",
+        "method": "repair-kits",
+        "name": "Rosewood repair kit",
+        "inputs": [
+          {
+            "id": 31438,
+            "qty": 1
+          },
+          {
+            "id": 31406,
+            "qty": 5
+          },
+          {
+            "id": 1941,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31982,
+            "qty": 3
+          }
+        ],
+        "coinCost": 0,
+        "notes": "92 Construction; at Shipwrights' Workbench; tools: Hammer, Saw; 4 ticks/action"
+      }
+    ]
+  },
+  {
+    "key": "hull-parts",
+    "title": "Hull and keel parts",
+    "description": "Shipbuilding components for Sailing. Hull parts: 5 planks at a Shipwrights' Workbench; large hull parts: 5 hull parts. Keel parts: 5 metal bars at an anvil; large keel parts: 5 keel parts. Dragon keel parts use 2 dragon metal sheets at the Dragon forge (large: 2 dragon keel parts).",
+    "requirements": "Members; Construction 1-84 (hull) or Smithing 10-94 (keel); hammer (and saw for hull parts); keel parts require Pandemonium, dragon keel parts also Dragon Slayer II",
+    "actionsPerHour": null,
+    "source": "https://oldschool.runescape.wiki/w/Hull_parts",
+    "recipes": [
+      {
+        "id": "proc:hull-parts:wooden-hull-parts",
+        "method": "hull-parts",
+        "name": "Wooden hull parts",
+        "inputs": [
+          {
+            "id": 960,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32041,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "1 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-wooden-hull-parts",
+        "method": "hull-parts",
+        "name": "Large wooden hull parts",
+        "inputs": [
+          {
+            "id": 32041,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32062,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "1 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:oak-hull-parts",
+        "method": "hull-parts",
+        "name": "Oak hull parts",
+        "inputs": [
+          {
+            "id": 8778,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32044,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "8 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-oak-hull-parts",
+        "method": "hull-parts",
+        "name": "Large oak hull parts",
+        "inputs": [
+          {
+            "id": 32044,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32065,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "8 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:teak-hull-parts",
+        "method": "hull-parts",
+        "name": "Teak hull parts",
+        "inputs": [
+          {
+            "id": 8780,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32047,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "23 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-teak-hull-parts",
+        "method": "hull-parts",
+        "name": "Large teak hull parts",
+        "inputs": [
+          {
+            "id": 32047,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32068,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "23 Construction; at Shipwright's Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:mahogany-hull-parts",
+        "method": "hull-parts",
+        "name": "Mahogany hull parts",
+        "inputs": [
+          {
+            "id": 8782,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32050,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "41 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-mahogany-hull-parts",
+        "method": "hull-parts",
+        "name": "Large mahogany hull parts",
+        "inputs": [
+          {
+            "id": 32050,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32071,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "41 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:camphor-hull-parts",
+        "method": "hull-parts",
+        "name": "Camphor hull parts",
+        "inputs": [
+          {
+            "id": 31432,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32053,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "53 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-camphor-hull-parts",
+        "method": "hull-parts",
+        "name": "Large camphor hull parts",
+        "inputs": [
+          {
+            "id": 32053,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32074,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "53 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:ironwood-hull-parts",
+        "method": "hull-parts",
+        "name": "Ironwood hull parts",
+        "inputs": [
+          {
+            "id": 31435,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32056,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "75 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-ironwood-hull-parts",
+        "method": "hull-parts",
+        "name": "Large ironwood hull parts",
+        "inputs": [
+          {
+            "id": 32056,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32077,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "75 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:rosewood-hull-parts",
+        "method": "hull-parts",
+        "name": "Rosewood hull parts",
+        "inputs": [
+          {
+            "id": 31438,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32059,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "84 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 4 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:large-rosewood-hull-parts",
+        "method": "hull-parts",
+        "name": "Large rosewood hull parts",
+        "inputs": [
+          {
+            "id": 32059,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32080,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "84 Construction; at Shipwrights' Workbench; tools: Saw, Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:hull-parts:bronze-keel-parts",
+        "method": "hull-parts",
+        "name": "Bronze keel parts",
+        "inputs": [
+          {
+            "id": 2349,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31999,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "10 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:large-bronze-keel-parts",
+        "method": "hull-parts",
+        "name": "Large bronze keel parts",
+        "inputs": [
+          {
+            "id": 31999,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32020,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "10 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:iron-keel-parts",
+        "method": "hull-parts",
+        "name": "Iron keel parts",
+        "inputs": [
+          {
+            "id": 2351,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32002,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "22 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:large-iron-keel-parts",
+        "method": "hull-parts",
+        "name": "Large iron keel parts",
+        "inputs": [
+          {
+            "id": 32002,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32023,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "22 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:steel-keel-parts",
+        "method": "hull-parts",
+        "name": "Steel keel parts",
+        "inputs": [
+          {
+            "id": 2353,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32005,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "38 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:large-steel-keel-parts",
+        "method": "hull-parts",
+        "name": "Large steel keel parts",
+        "inputs": [
+          {
+            "id": 32005,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32026,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "38 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:mithril-keel-parts",
+        "method": "hull-parts",
+        "name": "Mithril keel parts",
+        "inputs": [
+          {
+            "id": 2359,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32008,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "56 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:large-mithril-keel-parts",
+        "method": "hull-parts",
+        "name": "Large mithril keel parts",
+        "inputs": [
+          {
+            "id": 32008,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32029,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "56 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:adamant-keel-parts",
+        "method": "hull-parts",
+        "name": "Adamant keel parts",
+        "inputs": [
+          {
+            "id": 2361,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32011,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "74 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:large-adamant-keel-parts",
+        "method": "hull-parts",
+        "name": "Large adamant keel parts",
+        "inputs": [
+          {
+            "id": 32011,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32032,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "74 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:rune-keel-parts",
+        "method": "hull-parts",
+        "name": "Rune keel parts",
+        "inputs": [
+          {
+            "id": 2363,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32014,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "86 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:large-rune-keel-parts",
+        "method": "hull-parts",
+        "name": "Large rune keel parts",
+        "inputs": [
+          {
+            "id": 32014,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32035,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "86 Smithing; at Anvil; tools: Hammer; 5 ticks/action; requires completion of Pandemonium"
+      },
+      {
+        "id": "proc:hull-parts:dragon-keel-parts",
+        "method": "hull-parts",
+        "name": "Dragon keel parts",
+        "inputs": [
+          {
+            "id": 31996,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32017,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "94 Smithing; at Dragon forge; tools: Hammer; 4 ticks/action; requires completion of Pandemonium and Dragon Slayer II"
+      },
+      {
+        "id": "proc:hull-parts:large-dragon-keel-parts",
+        "method": "hull-parts",
+        "name": "Large dragon keel parts",
+        "inputs": [
+          {
+            "id": 32017,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32038,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "94 Smithing; at Dragon forge; tools: Hammer; 4 ticks/action; requires completion of Pandemonium and Dragon Slayer II"
+      }
+    ]
+  },
+  {
+    "key": "cannonballs",
+    "title": "Cannonballs",
+    "description": "Smelt bars into cannonballs at a furnace with an ammo mould (4 per bar), then optionally combine 2 cannonballs with a chain or 10 rubium splinters at an anvil for 2 chainshot or 2 incendiary cannonballs.",
+    "requirements": "Members; Dwarf Cannon (partial) for cannonballs; Pandemonium for chainshot/incendiary; Smithing 5/20/35/55/75/90 for bronze/iron/steel/mithril/adamant/rune",
+    "actionsPerHour": 600,
+    "source": "https://oldschool.runescape.wiki/w/Cannonball",
+    "recipes": [
+      {
+        "id": "proc:cannonballs:bronze-cannonball",
+        "method": "cannonballs",
+        "name": "Bronze cannonball",
+        "inputs": [
+          {
+            "id": 2349,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31906,
+            "qty": 4
+          }
+        ],
+        "coinCost": 0,
+        "notes": "5 Smithing; furnace with ammo mould: 1 bar -> 4 cannonballs (8 ticks). Double ammo mould (Giants' Foundry, Sleeping Giants): 2 bars -> 8 in the same time. Ancient Furnace (Grimstone, 87 Sailing) is twice as fast; Isles unnotes bars for 100 gp each."
+      },
+      {
+        "id": "proc:cannonballs:iron-cannonball",
+        "method": "cannonballs",
+        "name": "Iron cannonball",
+        "inputs": [
+          {
+            "id": 2351,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31908,
+            "qty": 4
+          }
+        ],
+        "coinCost": 0,
+        "notes": "20 Smithing; furnace with ammo mould: 1 bar -> 4 cannonballs (8 ticks). Double ammo mould (Giants' Foundry, Sleeping Giants): 2 bars -> 8 in the same time. Ancient Furnace (Grimstone, 87 Sailing) is twice as fast; Isles unnotes bars for 100 gp each."
+      },
+      {
+        "id": "proc:cannonballs:steel-cannonball",
+        "method": "cannonballs",
+        "name": "Steel cannonball",
+        "inputs": [
+          {
+            "id": 2353,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 2,
+            "qty": 4
+          }
+        ],
+        "coinCost": 0,
+        "notes": "35 Smithing; furnace with ammo mould: 1 bar -> 4 cannonballs (8 ticks). Double ammo mould (Giants' Foundry, Sleeping Giants): 2 bars -> 8 in the same time. Ancient Furnace (Grimstone, 87 Sailing) is twice as fast; Isles unnotes bars for 100 gp each."
+      },
+      {
+        "id": "proc:cannonballs:mithril-cannonball",
+        "method": "cannonballs",
+        "name": "Mithril cannonball",
+        "inputs": [
+          {
+            "id": 2359,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31910,
+            "qty": 4
+          }
+        ],
+        "coinCost": 0,
+        "notes": "55 Smithing; furnace with ammo mould: 1 bar -> 4 cannonballs (8 ticks). Double ammo mould (Giants' Foundry, Sleeping Giants): 2 bars -> 8 in the same time. Ancient Furnace (Grimstone, 87 Sailing) is twice as fast; Isles unnotes bars for 100 gp each."
+      },
+      {
+        "id": "proc:cannonballs:adamant-cannonball",
+        "method": "cannonballs",
+        "name": "Adamant cannonball",
+        "inputs": [
+          {
+            "id": 2361,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31912,
+            "qty": 4
+          }
+        ],
+        "coinCost": 0,
+        "notes": "75 Smithing; furnace with ammo mould: 1 bar -> 4 cannonballs (8 ticks). Double ammo mould (Giants' Foundry, Sleeping Giants): 2 bars -> 8 in the same time. Ancient Furnace (Grimstone, 87 Sailing) is twice as fast; Isles unnotes bars for 100 gp each."
+      },
+      {
+        "id": "proc:cannonballs:rune-cannonball",
+        "method": "cannonballs",
+        "name": "Rune cannonball",
+        "inputs": [
+          {
+            "id": 2363,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31914,
+            "qty": 4
+          }
+        ],
+        "coinCost": 0,
+        "notes": "90 Smithing; furnace with ammo mould: 1 bar -> 4 cannonballs (8 ticks). Double ammo mould (Giants' Foundry, Sleeping Giants): 2 bars -> 8 in the same time. Ancient Furnace (Grimstone, 87 Sailing) is twice as fast; Isles unnotes bars for 100 gp each."
+      },
+      {
+        "id": "proc:cannonballs:bronze-chainshot-cannonball",
+        "method": "cannonballs",
+        "name": "Bronze chainshot cannonball",
+        "inputs": [
+          {
+            "id": 31906,
+            "qty": 2
+          },
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31918,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "5 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:bronze-incendiary-cannonball",
+        "method": "cannonballs",
+        "name": "Bronze incendiary cannonball",
+        "inputs": [
+          {
+            "id": 31906,
+            "qty": 2
+          },
+          {
+            "id": 31722,
+            "qty": 10
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31932,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "5 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:iron-chainshot-cannonball",
+        "method": "cannonballs",
+        "name": "Iron chainshot cannonball",
+        "inputs": [
+          {
+            "id": 31908,
+            "qty": 2
+          },
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31920,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "20 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:iron-incendiary-cannonball",
+        "method": "cannonballs",
+        "name": "Iron incendiary cannonball",
+        "inputs": [
+          {
+            "id": 31908,
+            "qty": 2
+          },
+          {
+            "id": 31722,
+            "qty": 10
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31934,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "20 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:steel-chainshot-cannonball",
+        "method": "cannonballs",
+        "name": "Steel chainshot cannonball",
+        "inputs": [
+          {
+            "id": 2,
+            "qty": 2
+          },
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31922,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "35 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:steel-incendiary-cannonball",
+        "method": "cannonballs",
+        "name": "Steel incendiary cannonball",
+        "inputs": [
+          {
+            "id": 2,
+            "qty": 2
+          },
+          {
+            "id": 31722,
+            "qty": 10
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31936,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "35 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:mithril-chainshot-cannonball",
+        "method": "cannonballs",
+        "name": "Mithril chainshot cannonball",
+        "inputs": [
+          {
+            "id": 31910,
+            "qty": 2
+          },
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31924,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "55 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:mithril-incendiary-cannonball",
+        "method": "cannonballs",
+        "name": "Mithril incendiary cannonball",
+        "inputs": [
+          {
+            "id": 31910,
+            "qty": 2
+          },
+          {
+            "id": 31722,
+            "qty": 10
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31938,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "55 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:adamant-chainshot-cannonball",
+        "method": "cannonballs",
+        "name": "Adamant chainshot cannonball",
+        "inputs": [
+          {
+            "id": 31912,
+            "qty": 2
+          },
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31926,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "75 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:adamant-incendiary-cannonball",
+        "method": "cannonballs",
+        "name": "Adamant incendiary cannonball",
+        "inputs": [
+          {
+            "id": 31912,
+            "qty": 2
+          },
+          {
+            "id": 31722,
+            "qty": 10
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31940,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "75 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:rune-chainshot-cannonball",
+        "method": "cannonballs",
+        "name": "Rune chainshot cannonball",
+        "inputs": [
+          {
+            "id": 31914,
+            "qty": 2
+          },
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31928,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "90 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium"
+      },
+      {
+        "id": "proc:cannonballs:rune-incendiary-cannonball",
+        "method": "cannonballs",
+        "name": "Rune incendiary cannonball",
+        "inputs": [
+          {
+            "id": 31914,
+            "qty": 2
+          },
+          {
+            "id": 31722,
+            "qty": 10
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31942,
+            "qty": 2
+          }
+        ],
+        "coinCost": 0,
+        "notes": "90 Smithing; at Anvil; tools: Hammer; 3 ticks/action; requires Pandemonium; wiki MMG: 1,850 sets/hr"
+      },
+      {
+        "id": "proc:cannonballs:chain",
+        "method": "cannonballs",
+        "name": "Chain",
+        "inputs": [
+          {
+            "id": 2353,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32886,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "34 Smithing; at Anvil; tools: Hammer; 5 ticks/action (chain is the chainshot ingredient)"
+      }
+    ]
+  },
+  {
+    "key": "cloth",
+    "title": "Yarn and cloth",
+    "description": "Spin flax, hemp or cotton bolls into yarn at a spinning wheel, then weave 2 yarn into a bolt of linen, canvas or cotton at a loom.",
+    "requirements": "Members; Crafting 12 (linen), 39 (canvas/hemp), 73 (cotton)",
+    "actionsPerHour": null,
+    "source": "https://oldschool.runescape.wiki/w/Bolt_of_canvas",
+    "recipes": [
+      {
+        "id": "proc:cloth:linen-yarn",
+        "method": "cloth",
+        "name": "Linen yarn",
+        "inputs": [
+          {
+            "id": 1779,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31463,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "12 Crafting; at Spinning wheel; 3 ticks/action; wiki MMG rate ~2,000/hr at a spinning wheel (Spinning flax to bow strings)"
+      },
+      {
+        "id": "proc:cloth:hemp-yarn",
+        "method": "cloth",
+        "name": "Hemp yarn",
+        "inputs": [
+          {
+            "id": 31457,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31466,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "39 Crafting; at Spinning wheel; 3 ticks/action; wiki MMG rate ~2,000/hr at a spinning wheel (Spinning flax to bow strings)"
+      },
+      {
+        "id": "proc:cloth:cotton-yarn",
+        "method": "cloth",
+        "name": "Cotton yarn",
+        "inputs": [
+          {
+            "id": 31460,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31469,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "73 Crafting; at Spinning wheel; 3 ticks/action; wiki MMG rate ~2,000/hr at a spinning wheel (Spinning flax to bow strings)"
+      },
+      {
+        "id": "proc:cloth:bolt-of-linen",
+        "method": "cloth",
+        "name": "Bolt of linen",
+        "inputs": [
+          {
+            "id": 31463,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31472,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "12 Crafting; at Loom; 3 ticks/action; wiki MMG rate ~1,100 bolts/hr (Crafting bolts of canvas, Fossil Island loom)"
+      },
+      {
+        "id": "proc:cloth:bolt-of-canvas",
+        "method": "cloth",
+        "name": "Bolt of canvas",
+        "inputs": [
+          {
+            "id": 31466,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31475,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "39 Crafting; at Loom; 3 ticks/action; wiki MMG rate ~1,100 bolts/hr (Crafting bolts of canvas, Fossil Island loom)"
+      },
+      {
+        "id": "proc:cloth:bolt-of-cotton",
+        "method": "cloth",
+        "name": "Bolt of cotton",
+        "inputs": [
+          {
+            "id": 31469,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31478,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "73 Crafting; at Loom; 3 ticks/action; wiki MMG rate ~1,100 bolts/hr (Crafting bolts of canvas, Fossil Island loom)"
+      }
+    ]
+  },
+  {
+    "key": "fish-cutting",
+    "title": "Fish cutting",
+    "description": "Cut raw fish with a knife. High-level fish give fine fish offcuts (trawling/crab bait); raw yellowfin and raw marlin also give 3 yellow fin / marlin scales (Herblore secondaries); raw haddock gives a haddock eye.",
+    "requirements": "Members; knife; Cooking 1 (wiki MMG recommends 90+ for marlin); chum station/spreader on a boat for faster processing",
+    "actionsPerHour": 11000,
+    "source": "https://oldschool.runescape.wiki/w/Fine_fish_offcuts",
+    "recipes": [
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-shark",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw shark)",
+        "inputs": [
+          {
+            "id": 383,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-sea-turtle",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw sea turtle)",
+        "inputs": [
+          {
+            "id": 395,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-anglerfish",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw anglerfish)",
+        "inputs": [
+          {
+            "id": 13439,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-dark-crab",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw dark crab)",
+        "inputs": [
+          {
+            "id": 11934,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-manta-ray",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw manta ray)",
+        "inputs": [
+          {
+            "id": 389,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-halibut",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw halibut)",
+        "inputs": [
+          {
+            "id": 32333,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-bluefin",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw bluefin)",
+        "inputs": [
+          {
+            "id": 32341,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:fine-fish-offcuts-raw-jumbo-squid",
+        "method": "fish-cutting",
+        "name": "Fine fish offcuts (raw jumbo squid)",
+        "inputs": [
+          {
+            "id": 31561,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 ticks/fish when cutting by hand; chum station 2/tick, chum spreader 4/tick"
+      },
+      {
+        "id": "proc:fish-cutting:yellow-fin-raw-yellowfin",
+        "method": "fish-cutting",
+        "name": "Yellow fin (raw yellowfin)",
+        "inputs": [
+          {
+            "id": 32325,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32360,
+            "qty": 3
+          },
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 Yellow fin + 1 Fine fish offcuts per fish; wiki MMG 11,000/hr with a chum spreader"
+      },
+      {
+        "id": "proc:fish-cutting:marlin-scales-raw-marlin",
+        "method": "fish-cutting",
+        "name": "Marlin scales (raw marlin)",
+        "inputs": [
+          {
+            "id": 32349,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32362,
+            "qty": 3
+          },
+          {
+            "id": 32307,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 3 Marlin scales + 1 Fine fish offcuts per fish; wiki MMG 11,000/hr with a chum spreader (90+ Cooking recommended)"
+      },
+      {
+        "id": "proc:fish-cutting:haddock-eye-raw-haddock",
+        "method": "fish-cutting",
+        "name": "Haddock eye (raw haddock)",
+        "inputs": [
+          {
+            "id": 32317,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 32357,
+            "qty": 1
+          },
+          {
+            "id": 11334,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Knife; 1 Haddock eye + 1 Fish offcuts per fish"
+      }
+    ]
+  },
+  {
+    "key": "sailing-potions",
+    "title": "Sailing potions",
+    "description": "Make coral unfinished potions (coral + vial of water), then finish them: Umbral (unf) + rainbow crab paste -> Armadyl brew(3); Pillar (unf) + haddock eye -> Super fishing(3); Pillar (unf) + crab paste -> Super hunter(3); Elkhorn (unf) + squid paste -> Haemostatic poultice, + cotton yarn -> Haemostatic dressing (3). Also stamina + marlin scales -> Extended stamina, super energy + yellow fin -> Extreme energy, and anti-odour salt.",
+    "requirements": "Members; Herblore 56 (Elkhorn/Haemostatic), 62 (Pillar/Super fishing), 66 (Extreme energy), 67 (Super hunter), 85 (Extended stamina), 89 (Umbral/Armadyl brew); Pandemonium for Armadyl brews",
+    "actionsPerHour": 2100,
+    "source": "https://oldschool.runescape.wiki/w/Armadyl_brew",
+    "recipes": [
+      {
+        "id": "proc:sailing-potions:elkhorn-potion-unf",
+        "method": "sailing-potions",
+        "name": "Elkhorn potion (unf)",
+        "inputs": [
+          {
+            "id": 227,
+            "qty": 1
+          },
+          {
+            "id": 31481,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31662,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "56 Herblore; 1 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:pillar-potion-unf",
+        "method": "sailing-potions",
+        "name": "Pillar potion (unf)",
+        "inputs": [
+          {
+            "id": 227,
+            "qty": 1
+          },
+          {
+            "id": 31484,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31665,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "62 Herblore; 1 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:umbral-potion-unf",
+        "method": "sailing-potions",
+        "name": "Umbral potion (unf)",
+        "inputs": [
+          {
+            "id": 227,
+            "qty": 1
+          },
+          {
+            "id": 31487,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31668,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "89 Herblore; 1 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:armadyl-brew-3",
+        "method": "sailing-potions",
+        "name": "Armadyl brew(3)",
+        "inputs": [
+          {
+            "id": 31668,
+            "qty": 1
+          },
+          {
+            "id": 31710,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31653,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "89 Herblore; 2 ticks/action; wiki MMG 2,100/hr; alchemist's amulet gives 4-dose output"
+      },
+      {
+        "id": "proc:sailing-potions:super-fishing-potion-3",
+        "method": "sailing-potions",
+        "name": "Super fishing potion(3)",
+        "inputs": [
+          {
+            "id": 31665,
+            "qty": 1
+          },
+          {
+            "id": 32357,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31605,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "62 Herblore; 2 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:super-hunter-potion-3",
+        "method": "sailing-potions",
+        "name": "Super hunter potion(3)",
+        "inputs": [
+          {
+            "id": 31665,
+            "qty": 1
+          },
+          {
+            "id": 31708,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31629,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "67 Herblore; 2 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:haemostatic-poultice",
+        "method": "sailing-potions",
+        "name": "Haemostatic poultice",
+        "inputs": [
+          {
+            "id": 31662,
+            "qty": 1
+          },
+          {
+            "id": 31569,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31587,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "56 Herblore; 2 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:haemostatic-dressing-3",
+        "method": "sailing-potions",
+        "name": "Haemostatic dressing (3)",
+        "inputs": [
+          {
+            "id": 31587,
+            "qty": 1
+          },
+          {
+            "id": 31469,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31593,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "56 Herblore; 2 ticks/action"
+      },
+      {
+        "id": "proc:sailing-potions:extended-stamina-potion-1",
+        "method": "sailing-potions",
+        "name": "Extended stamina potion(1)",
+        "inputs": [
+          {
+            "id": 12631,
+            "qty": 1
+          },
+          {
+            "id": 32362,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31647,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "85 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extended-stamina-potion-2",
+        "method": "sailing-potions",
+        "name": "Extended stamina potion(2)",
+        "inputs": [
+          {
+            "id": 12629,
+            "qty": 1
+          },
+          {
+            "id": 32362,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31644,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "85 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extended-stamina-potion-3",
+        "method": "sailing-potions",
+        "name": "Extended stamina potion(3)",
+        "inputs": [
+          {
+            "id": 12627,
+            "qty": 1
+          },
+          {
+            "id": 32362,
+            "qty": 3
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31641,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "85 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extended-stamina-potion-4",
+        "method": "sailing-potions",
+        "name": "Extended stamina potion(4)",
+        "inputs": [
+          {
+            "id": 12625,
+            "qty": 1
+          },
+          {
+            "id": 32362,
+            "qty": 4
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31638,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "85 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extreme-energy-potion-1",
+        "method": "sailing-potions",
+        "name": "Extreme energy potion(1)",
+        "inputs": [
+          {
+            "id": 3022,
+            "qty": 1
+          },
+          {
+            "id": 32360,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31623,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "66 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extreme-energy-potion-2",
+        "method": "sailing-potions",
+        "name": "Extreme energy potion(2)",
+        "inputs": [
+          {
+            "id": 3020,
+            "qty": 1
+          },
+          {
+            "id": 32360,
+            "qty": 2
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31620,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "66 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extreme-energy-potion-3",
+        "method": "sailing-potions",
+        "name": "Extreme energy potion(3)",
+        "inputs": [
+          {
+            "id": 3018,
+            "qty": 1
+          },
+          {
+            "id": 32360,
+            "qty": 3
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31617,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "66 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:extreme-energy-potion-4",
+        "method": "sailing-potions",
+        "name": "Extreme energy potion(4)",
+        "inputs": [
+          {
+            "id": 3016,
+            "qty": 1
+          },
+          {
+            "id": 32360,
+            "qty": 4
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31614,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "66 Herblore; 2 ticks/action; one secondary per dose"
+      },
+      {
+        "id": "proc:sailing-potions:anti-odour-salt",
+        "method": "sailing-potions",
+        "name": "Anti-odour salt",
+        "inputs": [
+          {
+            "id": 31481,
+            "qty": 1
+          },
+          {
+            "id": 31708,
+            "qty": 5
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31712,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "49 Herblore; tools: Pestle and mortar; 1 ticks/action"
+      }
+    ]
+  },
+  {
+    "key": "pastes",
+    "title": "Crab and squid paste",
+    "description": "Grind raw squid or crabs with a pestle and mortar into Herblore secondaries (squid paste, crab paste, rainbow crab paste). Auto-processes every 3 ticks.",
+    "requirements": "Members; pestle and mortar; no level requirement",
+    "actionsPerHour": 2000,
+    "source": "https://oldschool.runescape.wiki/w/Squid_paste",
+    "recipes": [
+      {
+        "id": "proc:pastes:squid-paste-raw-swordtip-squid",
+        "method": "pastes",
+        "name": "Squid paste (raw swordtip squid)",
+        "inputs": [
+          {
+            "id": 31553,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31569,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "tools: Pestle and mortar; 3 ticks/action"
+      },
+      {
+        "id": "proc:pastes:squid-paste-raw-jumbo-squid",
+        "method": "pastes",
+        "name": "Squid paste (raw jumbo squid)",
+        "inputs": [
+          {
+            "id": 31561,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31569,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "tools: Pestle and mortar; 3 ticks/action"
+      },
+      {
+        "id": "proc:pastes:crab-paste-red-crab",
+        "method": "pastes",
+        "name": "Crab paste (red crab)",
+        "inputs": [
+          {
+            "id": 31671,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31708,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "tools: Pestle and mortar"
+      },
+      {
+        "id": "proc:pastes:crab-paste-blue-crab",
+        "method": "pastes",
+        "name": "Crab paste (blue crab)",
+        "inputs": [
+          {
+            "id": 31674,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31708,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "tools: Pestle and mortar"
+      },
+      {
+        "id": "proc:pastes:rainbow-crab-paste-type-1",
+        "method": "pastes",
+        "name": "Rainbow crab paste (type 1)",
+        "inputs": [
+          {
+            "id": 31677,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31710,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Pestle and mortar; any of the three rainbow crab variants (GE names Rainbow crab (1)/(2)/(3)) gives 1 paste; 3 ticks when auto-processing"
+      },
+      {
+        "id": "proc:pastes:rainbow-crab-paste-type-2",
+        "method": "pastes",
+        "name": "Rainbow crab paste (type 2)",
+        "inputs": [
+          {
+            "id": 31680,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31710,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Pestle and mortar; any of the three rainbow crab variants (GE names Rainbow crab (1)/(2)/(3)) gives 1 paste; 3 ticks when auto-processing"
+      },
+      {
+        "id": "proc:pastes:rainbow-crab-paste-type-3",
+        "method": "pastes",
+        "name": "Rainbow crab paste (type 3)",
+        "inputs": [
+          {
+            "id": 31683,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31710,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "Pestle and mortar; any of the three rainbow crab variants (GE names Rainbow crab (1)/(2)/(3)) gives 1 paste; 3 ticks when auto-processing"
+      }
+    ]
+  },
+  {
+    "key": "sailing-smithing",
+    "title": "Nails",
+    "description": "Smith bars into 15 nails at an anvil (dragon nails: 1 dragon metal sheet -> 15 at the Dragon forge). Nails feed repair kits.",
+    "requirements": "Members; Smithing 4-89 by metal (92 for dragon nails); hammer",
+    "actionsPerHour": null,
+    "source": "https://oldschool.runescape.wiki/w/Nails",
+    "recipes": [
+      {
+        "id": "proc:sailing-smithing:bronze-nails",
+        "method": "sailing-smithing",
+        "name": "Bronze nails",
+        "inputs": [
+          {
+            "id": 2349,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 4819,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "4 Smithing; at Anvil; tools: Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:sailing-smithing:iron-nails",
+        "method": "sailing-smithing",
+        "name": "Iron nails",
+        "inputs": [
+          {
+            "id": 2351,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 4820,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "19 Smithing; at Anvil; tools: Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:sailing-smithing:steel-nails",
+        "method": "sailing-smithing",
+        "name": "Steel nails",
+        "inputs": [
+          {
+            "id": 2353,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 1539,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "34 Smithing; at Anvil; tools: Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:sailing-smithing:mithril-nails",
+        "method": "sailing-smithing",
+        "name": "Mithril nails",
+        "inputs": [
+          {
+            "id": 2359,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 4822,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "54 Smithing; at Anvil; tools: Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:sailing-smithing:adamantite-nails",
+        "method": "sailing-smithing",
+        "name": "Adamantite nails",
+        "inputs": [
+          {
+            "id": 2361,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 4823,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "74 Smithing; at Anvil; tools: Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:sailing-smithing:rune-nails",
+        "method": "sailing-smithing",
+        "name": "Rune nails",
+        "inputs": [
+          {
+            "id": 2363,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 4824,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "89 Smithing; at Anvil; tools: Hammer; 5 ticks/action"
+      },
+      {
+        "id": "proc:sailing-smithing:dragon-nails",
+        "method": "sailing-smithing",
+        "name": "Dragon nails",
+        "inputs": [
+          {
+            "id": 31996,
+            "qty": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": 31406,
+            "qty": 15
+          }
+        ],
+        "coinCost": 0,
+        "notes": "92 Smithing; at Dragon forge; tools: Hammer; 4 ticks/action; requires Dragon Slayer II and Pandemonium"
+      }
+    ]
+  },
+  {
+    "key": "elemental-amulets",
+    "title": "Elemental amulets",
+    "description": "Summer Sweep-Up 2026: use an amulet of magic, the matching elemental gem and 100 runes on the Air/Water/Earth/Fire Altar; combine all four amulets with 500 of each elemental rune at the Runic Altar for an Elemental amulet.",
+    "requirements": "Members; Runecraft 18/19/20/21, 30 for Elemental amulet; access to the altars",
+    "actionsPerHour": null,
+    "source": "https://oldschool.runescape.wiki/w/Elemental_amulet",
+    "recipes": [
+      {
+        "id": "proc:elemental-amulets:amulet-of-air",
+        "method": "elemental-amulets",
+        "name": "Amulet of air",
+        "inputs": [
+          {
+            "id": 1727,
+            "qty": 1
+          },
+          {
+            "id": 34404,
+            "qty": 1
+          },
+          {
+            "id": 556,
+            "qty": 100
+          }
+        ],
+        "outputs": [
+          {
+            "id": 34407,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "18 Runecraft; at Air Altar; 3 ticks/action"
+      },
+      {
+        "id": "proc:elemental-amulets:amulet-of-water",
+        "method": "elemental-amulets",
+        "name": "Amulet of water",
+        "inputs": [
+          {
+            "id": 1727,
+            "qty": 1
+          },
+          {
+            "id": 34410,
+            "qty": 1
+          },
+          {
+            "id": 555,
+            "qty": 100
+          }
+        ],
+        "outputs": [
+          {
+            "id": 34413,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "19 Runecraft; at Water Altar; 3 ticks/action"
+      },
+      {
+        "id": "proc:elemental-amulets:amulet-of-earth",
+        "method": "elemental-amulets",
+        "name": "Amulet of earth",
+        "inputs": [
+          {
+            "id": 1727,
+            "qty": 1
+          },
+          {
+            "id": 34416,
+            "qty": 1
+          },
+          {
+            "id": 557,
+            "qty": 100
+          }
+        ],
+        "outputs": [
+          {
+            "id": 34419,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "20 Runecraft; at Earth Altar; 3 ticks/action"
+      },
+      {
+        "id": "proc:elemental-amulets:amulet-of-fire",
+        "method": "elemental-amulets",
+        "name": "Amulet of fire",
+        "inputs": [
+          {
+            "id": 1727,
+            "qty": 1
+          },
+          {
+            "id": 34422,
+            "qty": 1
+          },
+          {
+            "id": 554,
+            "qty": 100
+          }
+        ],
+        "outputs": [
+          {
+            "id": 34425,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "21 Runecraft; at Fire Altar; 3 ticks/action"
+      },
+      {
+        "id": "proc:elemental-amulets:elemental-amulet",
+        "method": "elemental-amulets",
+        "name": "Elemental amulet",
+        "inputs": [
+          {
+            "id": 34407,
+            "qty": 1
+          },
+          {
+            "id": 34425,
+            "qty": 1
+          },
+          {
+            "id": 34419,
+            "qty": 1
+          },
+          {
+            "id": 34413,
+            "qty": 1
+          },
+          {
+            "id": 556,
+            "qty": 500
+          },
+          {
+            "id": 554,
+            "qty": 500
+          },
+          {
+            "id": 557,
+            "qty": 500
+          },
+          {
+            "id": 555,
+            "qty": 500
+          }
+        ],
+        "outputs": [
+          {
+            "id": 34428,
+            "qty": 1
+          }
+        ],
+        "coinCost": 0,
+        "notes": "30 Runecraft; at Runic Altar; 3 ticks/action"
       }
     ]
   }

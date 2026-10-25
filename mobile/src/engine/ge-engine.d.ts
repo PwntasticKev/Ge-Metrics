@@ -124,6 +124,7 @@ declare module '@ge/engine' {
     inputs: { id: number; qty: number }[]
     outputs: { id: number; qty: number }[]
     coinCost?: number
+    coinRevenue?: number
     actionsPerHour?: number | null
     skill?: string | null
     members?: boolean
@@ -139,6 +140,7 @@ declare module '@ge/engine' {
     readonly buy: readonly FlipLine[]
     readonly sell: readonly FlipLine[]
     readonly coinCost: number
+    readonly coinRevenue: number
     readonly cost: number
     readonly revenue: number
     readonly tax: number

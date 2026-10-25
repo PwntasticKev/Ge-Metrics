@@ -81,7 +81,7 @@ export function parseMmgtable (text) {
       if (depth === 0) { end = i; break }
     }
   }
-  const body = text.slice(start, end)
+  const body = text.slice(start, end + 1)
   const fields = {}
   let nest = 0
   let current = ''
@@ -93,7 +93,13 @@ export function parseMmgtable (text) {
   for (let i = 0; i < body.length; i++) {
     const two = body.slice(i, i + 2)
     if (two === '{{' || two === '[[') { nest++; current += two; i++; continue }
-    if (two === '}}' || two === ']]') { nest--; current += two; i++; continue }
+    if (two === '}}' || two === ']]') {
+      nest--
+      if (nest === 0) break // the template's own closing braces
+      current += two
+      i++
+      continue
+    }
     if (body[i] === '|' && nest === 1) { flush(); continue }
     current += body[i]
   }
@@ -107,10 +113,54 @@ export function skillRequirements (value) {
   return skills.length ? [...new Set(skills)].join(', ') : null
 }
 
+// Evaluates the plain arithmetic wiki editors use for quantities, e.g.
+// "27*3", "1/4", "2.5*(1/1620)". Anything else (templates, "~50") is NaN.
+export function evalQuantity (text) {
+  const src = String(text ?? '').replace(/,/g, '').replace(/\s+/g, '')
+  if (!/^[\d.+\-*/()]+$/.test(src)) return NaN
+  let pos = 0
+  const peek = () => src[pos]
+  const number = () => {
+    const match = src.slice(pos).match(/^\d*\.?\d+/)
+    if (!match) throw new Error('number expected')
+    pos += match[0].length
+    return Number(match[0])
+  }
+  const factor = () => {
+    if (peek() === '-') { pos++; return -factor() }
+    if (peek() === '(') {
+      pos++
+      const v = expr()
+      if (peek() !== ')') throw new Error(') expected')
+      pos++
+      return v
+    }
+    return number()
+  }
+  const term = () => {
+    let v = factor()
+    while (peek() === '*' || peek() === '/') v = src[pos++] === '*' ? v * factor() : v / factor()
+    return v
+  }
+  const expr = () => {
+    let v = term()
+    while (peek() === '+' || peek() === '-') v = src[pos++] === '+' ? v + term() : v - term()
+    return v
+  }
+  try {
+    const v = expr()
+    return pos === src.length ? v : NaN
+  } catch {
+    return NaN
+  }
+}
+
 function numberOr (value, fallback) {
-  const n = Number(String(value ?? '').replace(/,/g, '').trim())
+  const n = evalQuantity(value)
   return Number.isFinite(n) && n > 0 ? n : fallback
 }
+
+const blank = value => value === undefined || cleanWikiText(String(value)) === ''
 
 function collect (fields, kind) {
   const entries = []
@@ -118,7 +168,9 @@ function collect (fields, kind) {
     const name = fields[`${kind}${i}`]
     if (!name) continue
     const raw = fields[`${kind}${i}num`]
-    entries.push({ name: cleanWikiText(name), qty: numberOr(raw, 1), explicit: numberOr(raw, null) !== null })
+    const parsed = numberOr(raw, null)
+    // A quantity like "~50" or "1-2" can't be priced; mark it so the guide is skipped.
+    entries.push({ name: cleanWikiText(name), qty: parsed ?? 1, explicit: parsed !== null, unparseable: !blank(raw) && parsed === null })
   }
   return entries
 }
@@ -129,19 +181,21 @@ export function toMethod (title, fields, idByName) {
   const outputs = collect(fields, 'output')
   if (!inputs.length || !outputs.length) return null
 
-  let coinCost = 0
-  const resolve = list => list.flatMap(e => {
-    if (/^coins?$/i.test(e.name)) { coinCost += e.qty; return [] }
+  if ([...inputs, ...outputs].some(e => e.unparseable)) return null
+  const isCoins = e => /^coins?$/i.test(e.name)
+  const coinTotal = list => list.filter(isCoins).reduce((t, e) => t + e.qty, 0)
+  const resolve = list => list.filter(e => !isCoins(e)).map(e => {
     const id = idByName.get(e.name.toLowerCase())
-    return id ? [{ id, qty: e.qty }] : [null]
+    return id ? { id, qty: e.qty } : null
   })
   const resolvedInputs = resolve(inputs)
-  const resolvedOutputs = resolve(outputs).filter(Boolean)
-  // Every input must be buyable and at least one output sellable; outputs paid
-  // in coins (e.g. alching) are folded into a negative coin cost.
-  const coinOutputs = outputs.filter(e => /^coins?$/i.test(e.name)).reduce((t, e) => t + e.qty, 0)
-  if (resolvedInputs.includes(null) || !resolvedInputs.length || !resolvedOutputs.length) return null
-  if (outputs.some(e => !/^coins?$/i.test(e.name) && !idByName.has(e.name.toLowerCase()))) return null
+  const resolvedOutputs = resolve(outputs)
+  const coinCost = coinTotal(inputs)
+  const coinRevenue = coinTotal(outputs)
+  // Every item must be tradeable; you need something to buy, and either an
+  // item to sell or coins back (e.g. alching).
+  if (resolvedInputs.includes(null) || resolvedOutputs.includes(null)) return null
+  if (!resolvedInputs.length || (!resolvedOutputs.length && !coinRevenue)) return null
 
   const perAction = String(fields.isperkill ?? '').trim().toLowerCase() === 'y'
   // Per-hour guides list hourly quantities; without them we can't price it.
@@ -153,7 +207,8 @@ export function toMethod (title, fields, idByName) {
     name,
     inputs: resolvedInputs,
     outputs: resolvedOutputs,
-    coinCost: coinCost - coinOutputs,
+    coinCost,
+    coinRevenue,
     // Per-hour guides are priced as one "action" per hour.
     actionsPerHour: perAction ? numberOr(fields.kph, null) : 1,
     skill: skillRequirements(fields.skill),

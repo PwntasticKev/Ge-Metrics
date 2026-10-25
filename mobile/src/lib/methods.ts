@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { decantingRecipes, moneyMakingRecipes, processingMethods, rankProcessFlips, type Market, type ProcessFlip, type ProcessRecipe } from '@ge/engine'
-import { useSettings } from '../state/settings'
+import { useSettings, type Settings } from '../state/settings'
 
 export type ProcessSort = 'perHour' | 'potential' | 'profit' | 'roi'
 
@@ -96,15 +96,21 @@ export function findProcessRecipe (id: string, market: Market): ProcessRecipe | 
 
 const MAX_ROWS = 200
 
+// One ranking used by both the method lists and the Tools hub, so the hub's
+// "best now" always matches the top of the list.
+export function rankMethod (market: Market, method: MethodDef, sortBy: ProcessSort, settings: Settings, query = ''): ProcessFlip[] {
+  const q = query.trim().toLowerCase()
+  return rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious: !settings.hideFlukes })
+    .filter(f => !settings.hideStale || !f.stale)
+    .filter(f => settings.membersItems || recipeMeta(f.id)?.members !== true)
+    .filter(f => !q || f.name.toLowerCase().includes(q))
+}
+
 export function useRankedProcess (market: Market | null, method: MethodDef, sortBy: ProcessSort, query: string): { flips: ProcessFlip[]; total: number } {
   const { settings } = useSettings()
   return useMemo(() => {
     if (!market) return { flips: [], total: 0 }
-    const q = query.trim().toLowerCase()
-    const all = rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious: !settings.hideFlukes })
-      .filter(f => !settings.hideStale || !f.stale)
-      .filter(f => settings.membersItems || recipeMeta(f.id)?.members !== true)
-      .filter(f => !q || f.name.toLowerCase().includes(q))
+    const all = rankMethod(market, method, sortBy, settings, query)
     return { flips: all.slice(0, MAX_ROWS), total: all.length }
-  }, [market, method, sortBy, query, settings.hideFlukes, settings.hideStale, settings.membersItems])
+  }, [market, method, sortBy, query, settings])
 }

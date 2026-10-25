@@ -17,6 +17,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2300,
     "skill": "Fishing 43, Hunter 35",
     "members": true,
@@ -40,6 +41,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Cooking 7",
     "members": true,
@@ -79,6 +81,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 330,
     "skill": "Mining 43",
     "members": true,
@@ -102,6 +105,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 360,
     "skill": "Prayer 31",
     "members": false,
@@ -115,7 +119,7 @@ export default [
     "inputs": [
       {
         "id": 3008,
-        "qty": 1
+        "qty": 0.0015432098765432098
       }
     ],
     "outputs": [
@@ -125,6 +129,7 @@ export default [
       }
     ],
     "coinCost": 1,
+    "coinRevenue": 0,
     "actionsPerHour": 1620,
     "skill": "Mining 60",
     "members": false,
@@ -147,7 +152,8 @@ export default [
         "qty": 27
       }
     ],
-    "coinCost": 1,
+    "coinCost": 675,
+    "coinRevenue": 0,
     "actionsPerHour": 288,
     "skill": null,
     "members": true,
@@ -171,6 +177,7 @@ export default [
       }
     ],
     "coinCost": 341874,
+    "coinRevenue": 0,
     "actionsPerHour": 55,
     "skill": "Hunter 46",
     "members": true,
@@ -194,6 +201,7 @@ export default [
       }
     ],
     "coinCost": 8.55,
+    "coinRevenue": 0,
     "actionsPerHour": 6000,
     "skill": null,
     "members": true,
@@ -211,7 +219,7 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.006172839506172839
       }
     ],
     "outputs": [
@@ -221,10 +229,11 @@ export default [
       },
       {
         "id": 229,
-        "qty": 1
+        "qty": 0.3333333333333333
       }
     ],
     "coinCost": 394,
+    "coinRevenue": 0,
     "actionsPerHour": 2500,
     "skill": null,
     "members": true,
@@ -252,6 +261,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Fletching 45",
     "members": true,
@@ -279,6 +289,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 780,
     "skill": "Magic 15",
     "members": false,
@@ -330,6 +341,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1000,
     "skill": "Magic 71",
     "members": true,
@@ -361,6 +373,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1200,
     "skill": "Magic 76",
     "members": true,
@@ -384,6 +397,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 150,
     "skill": "Fishing 82, Hunter 15",
     "members": true,
@@ -407,6 +421,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 400,
     "skill": "Fishing 82",
     "members": true,
@@ -430,6 +445,7 @@ export default [
       }
     ],
     "coinCost": 50,
+    "coinRevenue": 0,
     "actionsPerHour": 308,
     "skill": "Fishing 85",
     "members": true,
@@ -453,6 +469,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 740,
     "skill": "Hunter 77, Sailing 64, Construction 10",
     "members": true,
@@ -476,6 +493,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 220,
     "skill": "Fishing 87, Cooking 72",
     "members": true,
@@ -503,6 +521,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 494,
     "skill": "Fishing 10, Combat 15",
     "members": false,
@@ -526,6 +545,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 480,
     "skill": "Fishing 76",
     "members": true,
@@ -543,7 +563,7 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.004464285714285714
       }
     ],
     "outputs": [
@@ -553,6 +573,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 504,
     "skill": "Hunter 35",
     "members": true,
@@ -580,11 +601,79 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 440,
     "skill": "Fishing 20",
     "members": false,
     "location": "Barbarian Village",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCatching_trout_%26_salmon"
+  },
+  {
+    "id": "mmg:Charging air orbs",
+    "method": "money-making",
+    "name": "Charging air orbs",
+    "inputs": [
+      {
+        "id": 567,
+        "qty": 25
+      },
+      {
+        "id": 564,
+        "qty": 75
+      },
+      {
+        "id": 3008,
+        "qty": 1.5
+      },
+      {
+        "id": 11978,
+        "qty": 0.16666666666666666
+      }
+    ],
+    "outputs": [
+      {
+        "id": 573,
+        "qty": 25
+      },
+      {
+        "id": 1704,
+        "qty": 0.16666666666666666
+      }
+    ],
+    "coinCost": 0,
+    "coinRevenue": 0,
+    "actionsPerHour": 1,
+    "skill": "Magic 66",
+    "members": true,
+    "location": "Air Obelisk",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCharging_air_orbs"
+  },
+  {
+    "id": "mmg:Charging and alchemising bracelets of ethereum",
+    "method": "money-making",
+    "name": "Charging and alchemising bracelets of ethereum",
+    "inputs": [
+      {
+        "id": 21817,
+        "qty": 1
+      },
+      {
+        "id": 21820,
+        "qty": 1
+      },
+      {
+        "id": 561,
+        "qty": 1
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 45000,
+    "actionsPerHour": 1,
+    "skill": "Magic 55",
+    "members": true,
+    "location": "Grand Exchange",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCharging_and_alchemising_bracelets_of_ethereum"
   },
   {
     "id": "mmg:Charging earth orbs",
@@ -597,11 +686,11 @@ export default [
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 81
       },
       {
         "id": 1712,
-        "qty": 1
+        "qty": 0.25
       },
       {
         "id": 12631,
@@ -615,10 +704,11 @@ export default [
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 19,
     "skill": "Magic 60",
     "members": true,
@@ -636,7 +726,7 @@ export default [
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 78
       },
       {
         "id": 8009,
@@ -650,6 +740,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 18,
     "skill": "Magic 63, Agility 70, Defence",
     "members": true,
@@ -667,7 +758,7 @@ export default [
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 78
       },
       {
         "id": 563,
@@ -681,6 +772,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 18,
     "skill": "Magic 56, Agility 70, Defence",
     "members": true,
@@ -704,6 +796,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 48",
     "members": true,
@@ -727,6 +820,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 65",
     "members": true,
@@ -750,6 +844,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Herblore 70",
     "members": true,
@@ -773,6 +868,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 3",
     "members": true,
@@ -796,6 +892,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 20",
     "members": true,
@@ -819,6 +916,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 40",
     "members": true,
@@ -842,6 +940,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 54",
     "members": true,
@@ -865,6 +964,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 67",
     "members": true,
@@ -888,6 +988,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Herblore 5",
     "members": true,
@@ -911,6 +1012,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 25",
     "members": true,
@@ -934,6 +1036,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 59",
     "members": true,
@@ -957,6 +1060,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 11",
     "members": true,
@@ -980,6 +1084,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 30",
     "members": true,
@@ -1003,34 +1108,12 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Herblore 75",
     "members": true,
     "location": "Grand Exchange",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCleaning_grimy_torstol"
-  },
-  {
-    "id": "mmg:Collecting anti-dragon shields (free-to-play)",
-    "method": "money-making",
-    "name": "Collecting anti-dragon shields (free-to-play)",
-    "inputs": [
-      {
-        "id": 3008,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 1540,
-        "qty": 1
-      }
-    ],
-    "coinCost": 1,
-    "actionsPerHour": 3400,
-    "skill": null,
-    "members": false,
-    "location": "Edgeville",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCollecting_anti-dragon_shields_(free-to-play)"
   },
   {
     "id": "mmg:Collecting ashes",
@@ -1049,6 +1132,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1000,
     "skill": "Firemaking 30",
     "members": false,
@@ -1062,11 +1146,11 @@ export default [
     "inputs": [
       {
         "id": 563,
-        "qty": 1
+        "qty": 0.037037037037037035
       },
       {
         "id": 554,
-        "qty": 1
+        "qty": 0.037037037037037035
       }
     ],
     "outputs": [
@@ -1076,6 +1160,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 210,
     "skill": "Combat, Defence, Prayer 25",
     "members": false,
@@ -1089,7 +1174,7 @@ export default [
     "inputs": [
       {
         "id": 8011,
-        "qty": 1
+        "qty": 0.037037037037037035
       }
     ],
     "outputs": [
@@ -1099,6 +1184,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 135,
     "skill": "Thieving 61",
     "members": true,
@@ -1126,6 +1212,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 30,
     "skill": "Agility 70, Magic 37",
     "members": true,
@@ -1157,6 +1244,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Construction 50, Magic 40",
     "members": true,
@@ -1170,11 +1258,11 @@ export default [
     "inputs": [
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       },
       {
         "id": 3853,
-        "qty": 1
+        "qty": 0.125
       }
     ],
     "outputs": [
@@ -1183,7 +1271,8 @@ export default [
         "qty": 27
       }
     ],
-    "coinCost": 1,
+    "coinCost": 324,
+    "coinRevenue": 0,
     "actionsPerHour": 24,
     "skill": "Agility",
     "members": true,
@@ -1201,7 +1290,7 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       }
     ],
     "outputs": [
@@ -1211,6 +1300,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 20,
     "skill": "Agility 10",
     "members": true,
@@ -1224,7 +1314,7 @@ export default [
     "inputs": [
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       },
       {
         "id": 8013,
@@ -1238,6 +1328,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 60,
     "skill": "Prayer, Construction",
     "members": true,
@@ -1261,6 +1352,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 540,
     "skill": "Combat, Defence, Prayer 43, Magic 33",
     "members": false,
@@ -1284,6 +1376,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Combat, Defence, Prayer 43",
     "members": true,
@@ -1311,6 +1404,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 38,
     "skill": "Magic 72",
     "members": true,
@@ -1324,11 +1418,11 @@ export default [
     "inputs": [
       {
         "id": 554,
-        "qty": 1
+        "qty": 0.04
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 0.04
       }
     ],
     "outputs": [
@@ -1338,6 +1432,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 250,
     "skill": "Combat, Defence, Prayer 43, Magic 25",
     "members": false,
@@ -1361,6 +1456,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 240,
     "skill": "Magic 55, Combat, Defence, Prayer 43",
     "members": false,
@@ -1374,23 +1470,23 @@ export default [
     "inputs": [
       {
         "id": 563,
-        "qty": 1
+        "qty": 1.0188679245283019
       },
       {
         "id": 1891,
-        "qty": 1
+        "qty": 0.1509433962264151
       },
       {
         "id": 2430,
-        "qty": 1
+        "qty": 0.018867924528301886
       },
       {
         "id": 555,
-        "qty": 1
+        "qty": 0.018867924528301886
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.0023584905660377358
       }
     ],
     "outputs": [
@@ -1400,6 +1496,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 212,
     "skill": "Magic 33, Hitpoints 20",
     "members": true,
@@ -1423,6 +1520,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 800,
     "skill": "Magic 33, Agility 46",
     "members": true,
@@ -1436,11 +1534,11 @@ export default [
     "inputs": [
       {
         "id": 563,
-        "qty": 1
+        "qty": 1.0384615384615385
       },
       {
         "id": 555,
-        "qty": 1
+        "qty": 0.038461538461538464
       }
     ],
     "outputs": [
@@ -1450,6 +1548,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 104,
     "skill": "Magic 37",
     "members": false,
@@ -1473,50 +1572,51 @@ export default [
     "outputs": [
       {
         "id": 1391,
-        "qty": 1
+        "qty": 0.18097585140510686
       },
       {
         "id": 12851,
-        "qty": 1
+        "qty": 0.03290470025547398
       },
       {
         "id": 3470,
-        "qty": 1
+        "qty": 0.12406725627927581
       },
       {
         "id": 1303,
-        "qty": 1
+        "qty": 0.027420583546228318
       },
       {
         "id": 1941,
-        "qty": 1
+        "qty": 43.45
       },
       {
         "id": 1127,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 1093,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 1079,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 1305,
-        "qty": 1
+        "qty": 0.005484116709245664
       },
       {
         "id": 1113,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 560,
-        "qty": 1
+        "qty": 0.9624624824726139
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 1837.4975609756098,
     "actionsPerHour": 205,
     "skill": "Firemaking 95",
     "members": true,
@@ -1548,6 +1648,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 540,
     "skill": "Cooking 35",
     "members": false,
@@ -1571,6 +1672,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 1",
     "members": false,
@@ -1594,6 +1696,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 84",
     "members": true,
@@ -1617,6 +1720,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 1",
     "members": false,
@@ -1640,6 +1744,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 90",
     "members": true,
@@ -1663,6 +1768,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 82",
     "members": true,
@@ -1686,6 +1792,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 5",
     "members": false,
@@ -1709,6 +1816,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 30",
     "members": true,
@@ -1732,6 +1840,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 40",
     "members": false,
@@ -1755,6 +1864,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 99",
     "members": true,
@@ -1778,6 +1888,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 62",
     "members": true,
@@ -1801,6 +1912,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 92",
     "members": true,
@@ -1824,6 +1936,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 25",
     "members": false,
@@ -1847,6 +1960,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 80",
     "members": true,
@@ -1870,6 +1984,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 1",
     "members": false,
@@ -1893,6 +2008,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 68",
     "members": true,
@@ -1916,6 +2032,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 45",
     "members": false,
@@ -1939,6 +2056,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 15",
     "members": false,
@@ -1962,6 +2080,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 30",
     "members": false,
@@ -1985,6 +2104,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1300,
     "skill": "Cooking 79",
     "members": true,
@@ -2012,163 +2132,20 @@ export default [
       },
       {
         "id": 556,
-        "qty": 1
+        "qty": 356.4
       },
       {
         "id": 556,
-        "qty": 1
+        "qty": 59.400000000000006
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 172,
     "skill": "Runecraft 1, Firemaking 75, Crafting 99",
     "members": true,
     "location": "Air Altar",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_air_runes_(high_level)"
-  },
-  {
-    "id": "mmg:Crafting blood runes",
-    "method": "money-making",
-    "name": "Crafting blood runes",
-    "inputs": [
-      {
-        "id": 7936,
-        "qty": 1
-      },
-      {
-        "id": 12625,
-        "qty": 4
-      },
-      {
-        "id": 26390,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      }
-    ],
-    "coinCost": 0,
-    "actionsPerHour": 70,
-    "skill": "Runecraft 77, Firemaking 62, Agility 74, Mining 78, Agility 93",
-    "members": true,
-    "location": "Blood Altar",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_blood_runes"
-  },
-  {
-    "id": "mmg:Crafting blood runes at Arceuus (max)",
-    "method": "money-making",
-    "name": "Crafting blood runes at Arceuus (max)",
-    "inputs": [
-      {
-        "id": 26390,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      }
-    ],
-    "coinCost": 0,
-    "actionsPerHour": 7.5,
-    "skill": "Runecraft 77, Firemaking 62, Mining 38, Crafting 38, Agility 73",
-    "members": true,
-    "location": "Blood Altar (Kourend)",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_blood_runes_at_Arceuus_(max)"
-  },
-  {
-    "id": "mmg:Crafting blood runes at Arceuus (minimal requirements)",
-    "method": "money-making",
-    "name": "Crafting blood runes at Arceuus (minimal requirements)",
-    "inputs": [
-      {
-        "id": 26390,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      }
-    ],
-    "coinCost": 0,
-    "actionsPerHour": 7.5,
-    "skill": "Runecraft 77, Firemaking 62, Mining 38, Crafting 38, Agility 73",
-    "members": true,
-    "location": "Blood Altar (Kourend)",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_blood_runes_at_Arceuus_(minimal_requirements)"
-  },
-  {
-    "id": "mmg:Crafting blood runes at Arceuus (no diary)",
-    "method": "money-making",
-    "name": "Crafting blood runes at Arceuus (no diary)",
-    "inputs": [
-      {
-        "id": 26390,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      }
-    ],
-    "coinCost": 0,
-    "actionsPerHour": 7.5,
-    "skill": "Runecraft 77, Firemaking 62, Mining 38, Crafting 38, Agility 73",
-    "members": true,
-    "location": "Blood Altar (Kourend)",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_blood_runes_at_Arceuus_(no_diary)"
   },
   {
     "id": "mmg:Crafting bolts of canvas",
@@ -2187,6 +2164,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": null,
     "skill": "Crafting 39, Construction 29",
     "members": true,
@@ -2212,7 +2190,7 @@ export default [
       },
       {
         "id": 11978,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "outputs": [
@@ -2222,18 +2200,19 @@ export default [
       },
       {
         "id": 562,
-        "qty": 1
+        "qty": 80.39999999999999
       },
       {
         "id": 562,
-        "qty": 1
+        "qty": 13.4
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 50,
     "skill": "Runecraft 85, Mining 21, Hitpoints 70, Agility, Thieving",
     "members": true,
@@ -2261,6 +2240,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 42,
     "skill": "Crafting 8, Construction 25, Magic 45",
     "members": true,
@@ -2288,18 +2268,19 @@ export default [
     "outputs": [
       {
         "id": 564,
-        "qty": 1
+        "qty": 132
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 79.2
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 13.200000000000001
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 40,
     "skill": "Runecraft 27, Firemaking 75, Agility 66, Magic 67, Crafting 75, Construction 80",
     "members": true,
@@ -2325,7 +2306,7 @@ export default [
       },
       {
         "id": 11978,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "outputs": [
@@ -2335,23 +2316,72 @@ export default [
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 80.39999999999999
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 13.4
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 50,
     "skill": "Runecraft 85, Firemaking 75, Mining 21, Hitpoints 70, Agility, Thieving",
     "members": true,
     "location": "Cosmic Altar",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_cosmic_runes_through_the_Abyss"
+  },
+  {
+    "id": "mmg:Crafting death runes through the Abyss",
+    "method": "money-making",
+    "name": "Crafting death runes through the Abyss",
+    "inputs": [
+      {
+        "id": 7936,
+        "qty": 67
+      },
+      {
+        "id": 12625,
+        "qty": 0.08
+      },
+      {
+        "id": 7946,
+        "qty": 0.2
+      },
+      {
+        "id": 11978,
+        "qty": 0.16666666666666666
+      }
+    ],
+    "outputs": [
+      {
+        "id": 560,
+        "qty": 134
+      },
+      {
+        "id": 560,
+        "qty": 80.39999999999999
+      },
+      {
+        "id": 560,
+        "qty": 13.4
+      },
+      {
+        "id": 1704,
+        "qty": 0.16666666666666666
+      }
+    ],
+    "coinCost": 0,
+    "coinRevenue": 0,
+    "actionsPerHour": 1,
+    "skill": "Runecraft 65, Firemaking 75, Mining 21, Hitpoints 70, Agility, Thieving",
+    "members": true,
+    "location": "Death Altar",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_death_runes_through_the_Abyss"
   },
   {
     "id": "mmg:Crafting diamond bracelets",
@@ -2374,6 +2404,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1200,
     "skill": "Crafting 58",
     "members": true,
@@ -2391,15 +2422,15 @@ export default [
       },
       {
         "id": 12625,
-        "qty": 1
+        "qty": 0.08
       },
       {
         "id": 11978,
-        "qty": 1
+        "qty": 0.16666666666666666
       },
       {
         "id": 7946,
-        "qty": 1
+        "qty": 0.2
       }
     ],
     "outputs": [
@@ -2409,18 +2440,19 @@ export default [
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 80.39999999999999
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 13.4
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 55,
     "skill": "Runecraft 95, Firemaking 75, Hitpoints 70, Agility, Thieving",
     "members": true,
@@ -2444,6 +2476,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1100,
     "skill": "Crafting 26, Construction 29",
     "members": true,
@@ -2471,6 +2504,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1200,
     "skill": "Crafting 30",
     "members": true,
@@ -2494,6 +2528,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1400,
     "skill": "Crafting 7",
     "members": true,
@@ -2511,15 +2546,15 @@ export default [
       },
       {
         "id": 12625,
-        "qty": 1
+        "qty": 0.08
       },
       {
         "id": 11978,
-        "qty": 1
+        "qty": 0.16666666666666666
       },
       {
         "id": 7946,
-        "qty": 1
+        "qty": 0.2
       }
     ],
     "outputs": [
@@ -2529,14 +2564,15 @@ export default [
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 32.4
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 55,
     "skill": "Runecraft 54, Hitpoints 70, Agility, Thieving",
     "members": true,
@@ -2560,6 +2596,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": "Crafting 12",
     "members": true,
@@ -2585,7 +2622,7 @@ export default [
       },
       {
         "id": 11978,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "outputs": [
@@ -2595,14 +2632,15 @@ export default [
       },
       {
         "id": 561,
-        "qty": 1
+        "qty": 32.4
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 55,
     "skill": "Runecraft 44, Mining 21, Hitpoints 70, Agility",
     "members": true,
@@ -2630,11 +2668,96 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1200,
     "skill": "Crafting 42",
     "members": true,
     "location": "Edgeville",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_ruby_bracelets"
+  },
+  {
+    "id": "mmg:Crafting runes at Ourania Altar",
+    "method": "money-making",
+    "name": "Crafting runes at Ourania Altar",
+    "inputs": [
+      {
+        "id": 7936,
+        "qty": 1
+      },
+      {
+        "id": 12625,
+        "qty": 0.003076923076923077
+      },
+      {
+        "id": 558,
+        "qty": 0.923
+      },
+      {
+        "id": 9075,
+        "qty": 0.0461
+      },
+      {
+        "id": 563,
+        "qty": 0.0230769
+      }
+    ],
+    "outputs": [
+      {
+        "id": 556,
+        "qty": 0.0375
+      },
+      {
+        "id": 558,
+        "qty": 0.0375
+      },
+      {
+        "id": 555,
+        "qty": 0.0375
+      },
+      {
+        "id": 557,
+        "qty": 0.05
+      },
+      {
+        "id": 554,
+        "qty": 0.05
+      },
+      {
+        "id": 559,
+        "qty": 0.0625
+      },
+      {
+        "id": 564,
+        "qty": 0.08750000000000001
+      },
+      {
+        "id": 562,
+        "qty": 0.11249999999999999
+      },
+      {
+        "id": 9075,
+        "qty": 0.15
+      },
+      {
+        "id": 561,
+        "qty": 0.18375
+      },
+      {
+        "id": 563,
+        "qty": 0.216
+      },
+      {
+        "id": 560,
+        "qty": 0.11750000000000001
+      }
+    ],
+    "coinCost": 0,
+    "coinRevenue": 0,
+    "actionsPerHour": 1,
+    "skill": "Runecraft 70, Hitpoints, Defence, Magic 71, Agility 75",
+    "members": true,
+    "location": "Ourania Altar",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FCrafting_runes_at_Ourania_Altar"
   },
   {
     "id": "mmg:Crafting sapphire bracelets",
@@ -2657,6 +2780,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1200,
     "skill": "Crafting 23",
     "members": true,
@@ -2670,7 +2794,7 @@ export default [
     "inputs": [
       {
         "id": 11978,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "outputs": [
@@ -2680,18 +2804,19 @@ export default [
       },
       {
         "id": 566,
-        "qty": 1
+        "qty": 122.39999999999999
       },
       {
         "id": 566,
-        "qty": 1
+        "qty": 20.400000000000002
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.16666666666666666
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 8,
     "skill": "Runecraft 90, Mining 38, Crafting 38, Hitpoints 70, Agility, Thieving, Firemaking 75",
     "members": true,
@@ -2715,14 +2840,15 @@ export default [
       },
       {
         "id": 21880,
-        "qty": 1
+        "qty": 39.6
       },
       {
         "id": 21880,
-        "qty": 1
+        "qty": 6.6000000000000005
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 80,
     "skill": "Runecraft 95",
     "members": true,
@@ -2750,6 +2876,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1900,
     "skill": "Crafting 22",
     "members": true,
@@ -2777,6 +2904,7 @@ export default [
       }
     ],
     "coinCost": 5770,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Magic 51, Construction 57",
     "members": true,
@@ -2790,15 +2918,15 @@ export default [
     "inputs": [
       {
         "id": 563,
-        "qty": 1
+        "qty": 51
       },
       {
         "id": 565,
-        "qty": 1
+        "qty": 24
       },
       {
         "id": 566,
-        "qty": 1
+        "qty": 49
       },
       {
         "id": 557,
@@ -2820,6 +2948,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 12,
     "skill": "Magic 83, Mining 38, Crafting 38, Agility 73, Agility 69, Agility 52, Construction 85",
     "members": true,
@@ -2847,6 +2976,7 @@ export default [
       }
     ],
     "coinCost": 5,
+    "coinRevenue": 0,
     "actionsPerHour": 750,
     "skill": "Magic 60, Attack 30, Construction 67",
     "members": true,
@@ -2874,6 +3004,7 @@ export default [
       }
     ],
     "coinCost": 5,
+    "coinRevenue": 0,
     "actionsPerHour": 750,
     "skill": "Magic 45, Construction 57",
     "members": true,
@@ -2901,6 +3032,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": null,
     "members": true,
@@ -2920,14 +3052,15 @@ export default [
     "outputs": [
       {
         "id": 11978,
-        "qty": 1
+        "qty": 27.99888
       },
       {
         "id": 19707,
-        "qty": 1
+        "qty": 0.00116
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": null,
     "skill": null,
     "members": true,
@@ -2959,6 +3092,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1100,
     "skill": "Magic 40, Construction 67",
     "members": true,
@@ -2986,6 +3120,7 @@ export default [
       }
     ],
     "coinCost": 5,
+    "coinRevenue": 0,
     "actionsPerHour": 1100,
     "skill": "Magic 25, Construction 40",
     "members": true,
@@ -3009,50 +3144,51 @@ export default [
     "outputs": [
       {
         "id": 1391,
-        "qty": 1
+        "qty": 0.18097585140510686
       },
       {
         "id": 12851,
-        "qty": 1
+        "qty": 0.03290470025547398
       },
       {
         "id": 3470,
-        "qty": 1
+        "qty": 0.12406725627927581
       },
       {
         "id": 1303,
-        "qty": 1
+        "qty": 0.027420583546228318
       },
       {
         "id": 1941,
-        "qty": 1
+        "qty": 43.45
       },
       {
         "id": 1127,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 1093,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 1079,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 1305,
-        "qty": 1
+        "qty": 0.005484116709245664
       },
       {
         "id": 1113,
-        "qty": 1
+        "qty": 0.010968233418491328
       },
       {
         "id": 560,
-        "qty": 1
+        "qty": 0.9624624824726139
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 1837.5,
     "actionsPerHour": 300,
     "skill": "Firemaking 95",
     "members": true,
@@ -3076,6 +3212,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5000,
     "skill": null,
     "members": true,
@@ -3099,6 +3236,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": null,
     "members": true,
@@ -3122,6 +3260,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Crafting 85",
     "members": true,
@@ -3145,6 +3284,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Crafting 83",
     "members": true,
@@ -3168,6 +3308,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1150,
     "skill": "Fletching 65",
     "members": true,
@@ -3181,7 +3322,7 @@ export default [
     "inputs": [
       {
         "id": 28161,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "outputs": [
@@ -3195,6 +3336,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 130,
     "skill": "Woodcutting 75, Attack 60, Attack 70, Agility 50",
     "members": true,
@@ -3222,6 +3364,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 11000,
     "skill": "Cooking, Sailing",
     "members": true,
@@ -3245,6 +3388,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 11000,
     "skill": "Cooking, Sailing",
     "members": true,
@@ -3272,6 +3416,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 11000,
     "skill": "Cooking, Sailing",
     "members": true,
@@ -3295,6 +3440,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1150,
     "skill": "Fletching 63",
     "members": true,
@@ -3322,6 +3468,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3349,6 +3496,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 65, Magic 70",
     "members": true,
@@ -3376,6 +3524,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 70, Magic 70",
     "members": true,
@@ -3403,6 +3552,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3430,6 +3580,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3457,6 +3608,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3484,6 +3636,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 54, Magic 70",
     "members": true,
@@ -3511,6 +3664,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 67, Magic 70",
     "members": true,
@@ -3538,6 +3692,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3565,6 +3720,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3592,6 +3748,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 59, Magic 70",
     "members": true,
@@ -3619,6 +3776,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3646,6 +3804,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 50, Magic 70",
     "members": true,
@@ -3673,6 +3832,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 600,
     "skill": "Herblore 75, Magic 70",
     "members": true,
@@ -3686,104 +3846,105 @@ export default [
     "inputs": [
       {
         "id": 2217,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2213,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2205,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2209,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2277,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2255,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2253,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2281,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2259,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2191,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2195,
-        "qty": 1
+        "qty": 0.05
       },
       {
         "id": 2187,
-        "qty": 1
+        "qty": 0.05
       }
     ],
     "outputs": [
       {
         "id": 9469,
-        "qty": 1
+        "qty": 0.14973958333333331
       },
       {
         "id": 9470,
-        "qty": 1
+        "qty": 0.019965277777777776
       },
       {
         "id": 9472,
-        "qty": 1
+        "qty": 0.019965277777777776
       },
       {
         "id": 751,
-        "qty": 1
+        "qty": 0.078125
       },
       {
         "id": 9475,
-        "qty": 1
+        "qty": 0.0224609375
       },
       {
         "id": 985,
-        "qty": 1
+        "qty": 0.02495659722222222
       },
       {
         "id": 987,
-        "qty": 1
+        "qty": 0.02495659722222222
       },
       {
         "id": 2998,
-        "qty": 1
+        "qty": 0.234375
       },
       {
         "id": 3000,
-        "qty": 1
+        "qty": 0.078125
       },
       {
         "id": 1625,
-        "qty": 1
+        "qty": 0.1953125
       },
       {
         "id": 1627,
-        "qty": 1
+        "qty": 0.3515625
       },
       {
         "id": 1629,
-        "qty": 1
+        "qty": 0.078125
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 30,
     "skill": "Cooking 42, Magic 61",
     "members": true,
@@ -3807,6 +3968,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 3500,
     "skill": null,
     "members": true,
@@ -3834,6 +3996,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": null,
     "members": false,
@@ -3861,6 +4024,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1800,
     "skill": "Magic 57",
     "members": true,
@@ -3888,6 +4052,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1600,
     "skill": "Magic 27",
     "members": true,
@@ -3911,6 +4076,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 5400,
     "skill": "Magic 9",
     "members": true,
@@ -3938,6 +4104,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1600,
     "skill": "Magic 7",
     "members": true,
@@ -3961,11 +4128,84 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 56,
     "skill": "Hunter 17",
     "members": true,
     "location": "Puro-Puro, Zanaris",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FExchanging_impling_jars"
+  },
+  {
+    "id": "mmg:Exchanging mole parts",
+    "method": "money-making",
+    "name": "Exchanging mole parts",
+    "inputs": [
+      {
+        "id": 7416,
+        "qty": 50
+      },
+      {
+        "id": 7418,
+        "qty": 50
+      }
+    ],
+    "outputs": [
+      {
+        "id": 5075,
+        "qty": 100
+      },
+      {
+        "id": 5320,
+        "qty": 64.42105263157895
+      },
+      {
+        "id": 5323,
+        "qty": 63.1578947368421
+      },
+      {
+        "id": 5312,
+        "qty": 8.421052631578947
+      },
+      {
+        "id": 5100,
+        "qty": 16.842105263157894
+      },
+      {
+        "id": 5321,
+        "qty": 14.736842105263158
+      },
+      {
+        "id": 22879,
+        "qty": 8.421052631578947
+      },
+      {
+        "id": 5302,
+        "qty": 3.1578947368421053
+      },
+      {
+        "id": 5303,
+        "qty": 3.1578947368421053
+      },
+      {
+        "id": 5301,
+        "qty": 2.526315789473684
+      },
+      {
+        "id": 21486,
+        "qty": 2.1052631578947367
+      },
+      {
+        "id": 21488,
+        "qty": 2.1052631578947367
+      }
+    ],
+    "coinCost": 0,
+    "coinRevenue": 0,
+    "actionsPerHour": 1,
+    "skill": null,
+    "members": true,
+    "location": "Falador Park",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FExchanging_mole_parts"
   },
   {
     "id": "mmg:Filling buckets with water",
@@ -3988,6 +4228,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 815,
     "skill": "Magic 68",
     "members": true,
@@ -4015,6 +4256,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1000,
     "skill": null,
     "members": true,
@@ -4038,6 +4280,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2800,
     "skill": null,
     "members": false,
@@ -4065,6 +4308,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Fletching 76",
     "members": true,
@@ -4092,6 +4336,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 180000,
     "skill": "Fletching 55",
     "members": true,
@@ -4119,6 +4364,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 27000,
     "skill": "Fletching 65",
     "members": true,
@@ -4146,6 +4392,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2800,
     "skill": "Fletching 5",
     "members": true,
@@ -4173,6 +4420,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2857,
     "skill": null,
     "members": true,
@@ -4196,6 +4444,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1800,
     "skill": "Fletching 72",
     "members": true,
@@ -4223,6 +4472,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 27000,
     "skill": "Fletching 63",
     "members": true,
@@ -4246,6 +4496,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1800,
     "skill": "Fletching 62",
     "members": true,
@@ -4273,6 +4524,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1400,
     "skill": "Fletching 30",
     "members": true,
@@ -4296,6 +4548,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1500,
     "skill": "Fletching 55",
     "members": true,
@@ -4319,6 +4572,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1500,
     "skill": "Fletching 70",
     "members": true,
@@ -4342,6 +4596,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 9000,
     "skill": null,
     "members": false,
@@ -4365,6 +4620,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 9000,
     "skill": null,
     "members": true,
@@ -4388,6 +4644,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 9000,
     "skill": null,
     "members": true,
@@ -4415,6 +4672,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 815,
     "skill": "Magic 68",
     "members": true,
@@ -4438,38 +4696,12 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 300,
     "skill": "Hunter 80, Prayer 43, Defence 70",
     "members": true,
     "location": "Wilderness",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FHunting_black_chinchompas"
-  },
-  {
-    "id": "mmg:Hunting carnivorous chinchompas",
-    "method": "money-making",
-    "name": "Hunting carnivorous chinchompas",
-    "inputs": [
-      {
-        "id": 882,
-        "qty": 200
-      },
-      {
-        "id": 31235,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 10034,
-        "qty": 1
-      }
-    ],
-    "coinCost": 0,
-    "actionsPerHour": 475,
-    "skill": "Hunter 63",
-    "members": true,
-    "location": "Feldip Jungle",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FHunting_carnivorous_chinchompas"
   },
   {
     "id": "mmg:Hunting chinchompas",
@@ -4488,6 +4720,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 225,
     "skill": "Hunter 53",
     "members": true,
@@ -4547,10 +4780,11 @@ export default [
       },
       {
         "id": 21555,
-        "qty": 1
+        "qty": 13.36213102951764
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 60,
     "skill": "Hunter 80, Herblore 31, Agility 60",
     "members": true,
@@ -4578,6 +4812,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Hunter 83, Strength, Agility, Magic 50",
     "members": true,
@@ -4613,6 +4848,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 200,
     "skill": "Hunter 91, Fletching 72, Prayer 43, Magic 54",
     "members": true,
@@ -4644,6 +4880,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 350,
     "skill": "Hunter 57, Magic 54",
     "members": true,
@@ -4679,11 +4916,107 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 220,
     "skill": "Hunter 72, Fletching 62, Magic 54",
     "members": true,
     "location": "Avium Savannah",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FHunting_sunlight_antelopes"
+  },
+  {
+    "id": "mmg:Looting in Revenant Caves",
+    "method": "money-making",
+    "name": "Looting in Revenant Caves",
+    "inputs": [
+      {
+        "id": 21817,
+        "qty": 3
+      },
+      {
+        "id": 21820,
+        "qty": 5
+      },
+      {
+        "id": 21166,
+        "qty": 2
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 600000,
+    "actionsPerHour": 1,
+    "skill": "Agility, Prayer 43, Combat, Defence 40",
+    "members": true,
+    "location": "Revenant Caves",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FLooting_in_Revenant_Caves"
+  },
+  {
+    "id": "mmg:Looting ogre coffins",
+    "method": "money-making",
+    "name": "Looting ogre coffins",
+    "inputs": [
+      {
+        "id": 4850,
+        "qty": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": 4812,
+        "qty": 0.5
+      },
+      {
+        "id": 4830,
+        "qty": 0.109375
+      },
+      {
+        "id": 4832,
+        "qty": 0.078125
+      },
+      {
+        "id": 4834,
+        "qty": 0.0390625
+      },
+      {
+        "id": 1351,
+        "qty": 0.03
+      },
+      {
+        "id": 1349,
+        "qty": 0.03
+      },
+      {
+        "id": 1353,
+        "qty": 0.03
+      },
+      {
+        "id": 1265,
+        "qty": 0.03
+      },
+      {
+        "id": 1267,
+        "qty": 0.03
+      },
+      {
+        "id": 1269,
+        "qty": 0.03
+      },
+      {
+        "id": 1205,
+        "qty": 0.03
+      },
+      {
+        "id": 1203,
+        "qty": 0.03
+      }
+    ],
+    "coinCost": 0,
+    "coinRevenue": 0,
+    "actionsPerHour": 1,
+    "skill": "Agility",
+    "members": true,
+    "location": null,
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FLooting_ogre_coffins"
   },
   {
     "id": "mmg:Making adamant brutal arrows",
@@ -4706,6 +5039,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 15000,
     "skill": "Fletching 62",
     "members": true,
@@ -4733,6 +5067,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2500,
     "skill": "Cooking 55",
     "members": false,
@@ -4760,6 +5095,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 50",
     "members": true,
@@ -4787,6 +5123,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 500,
     "skill": "Mining 50",
     "members": true,
@@ -4814,6 +5151,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 66",
     "members": true,
@@ -4841,6 +5179,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2500,
     "skill": "Cooking 50",
     "members": false,
@@ -4868,6 +5207,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 72",
     "members": true,
@@ -4891,6 +5231,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1500,
     "skill": null,
     "members": true,
@@ -4918,6 +5259,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 400,
     "skill": "Cooking 32",
     "members": false,
@@ -4935,7 +5277,7 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       },
       {
         "id": 563,
@@ -4960,7 +5302,8 @@ export default [
         "qty": 13
       }
     ],
-    "coinCost": 1,
+    "coinCost": 7800,
+    "coinRevenue": 0,
     "actionsPerHour": 43,
     "skill": null,
     "members": true,
@@ -4988,6 +5331,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 3",
     "members": true,
@@ -5019,14 +5363,15 @@ export default [
     "outputs": [
       {
         "id": 4417,
-        "qty": 1
+        "qty": 0.75
       },
       {
         "id": 1980,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1400,
     "skill": "Herblore 18",
     "members": true,
@@ -5054,6 +5399,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 22",
     "members": true,
@@ -5081,6 +5427,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 45",
     "members": true,
@@ -5108,6 +5455,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 55",
     "members": true,
@@ -5135,6 +5483,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 69",
     "members": true,
@@ -5166,6 +5515,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1400,
     "skill": null,
     "members": true,
@@ -5188,7 +5538,8 @@ export default [
         "qty": 27
       }
     ],
-    "coinCost": 1,
+    "coinCost": 40500,
+    "coinRevenue": 0,
     "actionsPerHour": 104,
     "skill": null,
     "members": true,
@@ -5220,6 +5571,7 @@ export default [
       }
     ],
     "coinCost": 1500,
+    "coinRevenue": 0,
     "actionsPerHour": 6900,
     "skill": null,
     "members": true,
@@ -5259,6 +5611,7 @@ export default [
       }
     ],
     "coinCost": 1500,
+    "coinRevenue": 0,
     "actionsPerHour": 4238,
     "skill": "Woodcutting 60",
     "members": true,
@@ -5286,6 +5639,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 5",
     "members": true,
@@ -5307,7 +5661,7 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       }
     ],
     "outputs": [
@@ -5316,7 +5670,8 @@ export default [
         "qty": 27
       }
     ],
-    "coinCost": 1,
+    "coinCost": 6750,
+    "coinRevenue": 0,
     "actionsPerHour": 78,
     "skill": "Firemaking 50",
     "members": true,
@@ -5339,7 +5694,8 @@ export default [
         "qty": 27
       }
     ],
-    "coinCost": 1,
+    "coinCost": 6750,
+    "coinRevenue": 0,
     "actionsPerHour": 133,
     "skill": null,
     "members": true,
@@ -5367,6 +5723,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2450,
     "skill": null,
     "members": false,
@@ -5394,6 +5751,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2500,
     "skill": "Cooking 65",
     "members": true,
@@ -5429,6 +5787,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2400,
     "skill": null,
     "members": false,
@@ -5456,6 +5815,7 @@ export default [
       }
     ],
     "coinCost": 324000,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Woodcutting 60",
     "members": true,
@@ -5483,6 +5843,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 30",
     "members": true,
@@ -5518,6 +5879,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 840,
     "skill": "Cooking 70",
     "members": true,
@@ -5553,6 +5915,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 670,
     "skill": "Cooking 95",
     "members": true,
@@ -5588,6 +5951,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 740,
     "skill": "Cooking 85",
     "members": true,
@@ -5619,6 +5983,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1400,
     "skill": null,
     "members": true,
@@ -5658,6 +6023,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 400,
     "skill": "Crafting 20, Combat 81",
     "members": true,
@@ -5689,6 +6055,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 250,
     "skill": "Herblore 65",
     "members": true,
@@ -5716,6 +6083,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 63",
     "members": true,
@@ -5743,6 +6111,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 12",
     "members": true,
@@ -5764,7 +6133,7 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       }
     ],
     "outputs": [
@@ -5774,6 +6143,7 @@ export default [
       }
     ],
     "coinCost": 13500,
+    "coinRevenue": 0,
     "actionsPerHour": 78,
     "skill": "Firemaking 50",
     "members": true,
@@ -5801,6 +6171,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 4000,
     "skill": "Herblore 34",
     "members": true,
@@ -5827,7 +6198,8 @@ export default [
         "qty": 1
       }
     ],
-    "coinCost": 6,
+    "coinCost": 109.16666666666667,
+    "coinRevenue": 0,
     "actionsPerHour": 576,
     "skill": "Crafting 85, Construction 42, Construction 50",
     "members": true,
@@ -5859,6 +6231,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2000,
     "skill": "Cooking 68",
     "members": true,
@@ -5886,6 +6259,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2700,
     "skill": null,
     "members": true,
@@ -5913,6 +6287,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2450,
     "skill": "Cooking 30",
     "members": false,
@@ -5940,6 +6315,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2450,
     "skill": "Cooking 10",
     "members": false,
@@ -5967,6 +6343,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2450,
     "skill": "Cooking 20",
     "members": false,
@@ -5994,6 +6371,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 150,
     "skill": "Herblore 82",
     "members": true,
@@ -6007,7 +6385,7 @@ export default [
     "inputs": [
       {
         "id": 13658,
-        "qty": 1
+        "qty": 0.03571428571428571
       }
     ],
     "outputs": [
@@ -6017,22 +6395,23 @@ export default [
       },
       {
         "id": 1623,
-        "qty": 1
+        "qty": 0.0009765625
       },
       {
         "id": 1621,
-        "qty": 1
+        "qty": 0.00048828125
       },
       {
         "id": 1619,
-        "qty": 1
+        "qty": 0.000244140625
       },
       {
         "id": 1617,
-        "qty": 1
+        "qty": 0.00006103515625
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 800,
     "skill": null,
     "members": false,
@@ -6064,6 +6443,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1204,
     "skill": null,
     "members": true,
@@ -6091,6 +6471,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 60,
     "skill": "Mining 30, Mining 60, Smithing 70, Magic 43",
     "members": false,
@@ -6118,6 +6499,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 88,
     "skill": "Mining 30, Mining 60, Smithing 50, Magic 43",
     "members": false,
@@ -6145,6 +6527,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 54,
     "skill": "Mining 30, Mining 60, Smithing 85, Magic 43",
     "members": false,
@@ -6168,6 +6551,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 780,
     "skill": "Mining 15, Smithing 15, Magic 43",
     "members": false,
@@ -6181,60 +6565,61 @@ export default [
     "inputs": [
       {
         "id": 561,
-        "qty": 1
+        "qty": 0.2890625
       }
     ],
     "outputs": [
       {
         "id": 1199,
-        "qty": 1
+        "qty": 0.05467468562055768
       },
       {
         "id": 1359,
-        "qty": 1
+        "qty": 0.05467468562055768
       },
       {
         "id": 1371,
-        "qty": 1
+        "qty": 0.0390625
       },
       {
         "id": 1147,
-        "qty": 1
+        "qty": 0.03125
       },
       {
         "id": 4131,
-        "qty": 1
+        "qty": 0.0078125
       },
       {
         "id": 565,
-        "qty": 1
+        "qty": 1.5625
       },
       {
         "id": 562,
-        "qty": 1
+        "qty": 3.90625
       },
       {
         "id": 556,
-        "qty": 1
+        "qty": 7.032348804500703
       },
       {
         "id": 566,
-        "qty": 1
+        "qty": 0.9765625
       },
       {
         "id": 199,
-        "qty": 1
+        "qty": 0.013679890560875515
       },
       {
         "id": 201,
-        "qty": 1
+        "qty": 0.010256410256410256
       },
       {
         "id": 203,
-        "qty": 1
+        "qty": 0.007692307692307693
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 143,
     "skill": "Magic 55",
     "members": true,
@@ -6252,7 +6637,7 @@ export default [
       },
       {
         "id": 8013,
-        "qty": 1
+        "qty": 0.14285714285714285
       }
     ],
     "outputs": [
@@ -6262,46 +6647,47 @@ export default [
       },
       {
         "id": 1969,
-        "qty": 1
+        "qty": 0.265625
       },
       {
         "id": 556,
-        "qty": 1
+        "qty": 4.6875
       },
       {
         "id": 555,
-        "qty": 1
+        "qty": 4.6875
       },
       {
         "id": 557,
-        "qty": 1
+        "qty": 4.6875
       },
       {
         "id": 554,
-        "qty": 1
+        "qty": 4.6875
       },
       {
         "id": 559,
-        "qty": 1
+        "qty": 4.6875
       },
       {
         "id": 558,
-        "qty": 1
+        "qty": 4.6875
       },
       {
         "id": 562,
-        "qty": 1
+        "qty": 0.9375
       },
       {
         "id": 560,
-        "qty": 1
+        "qty": 0.9375
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 0.9375
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 652.34375,
     "actionsPerHour": 420,
     "skill": "Construction 10",
     "members": true,
@@ -6321,50 +6707,51 @@ export default [
     "outputs": [
       {
         "id": 6689,
-        "qty": 1
+        "qty": 0.30000000000000004
       },
       {
         "id": 3028,
-        "qty": 1
+        "qty": 0.1
       },
       {
         "id": 147,
-        "qty": 1
+        "qty": 0.4
       },
       {
         "id": 159,
-        "qty": 1
+        "qty": 0.4
       },
       {
         "id": 165,
-        "qty": 1
+        "qty": 0.8
       },
       {
         "id": 171,
-        "qty": 1
+        "qty": 0.4
       },
       {
         "id": 3026,
-        "qty": 1
+        "qty": 0.1
       },
       {
         "id": 139,
-        "qty": 1
+        "qty": 0.3
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 20
       },
       {
         "id": 560,
-        "qty": 1
+        "qty": 20
       },
       {
         "id": 9075,
-        "qty": 1
+        "qty": 20
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 800,
     "actionsPerHour": 120,
     "skill": "Thieving 57",
     "members": true,
@@ -6384,50 +6771,51 @@ export default [
     "outputs": [
       {
         "id": 24288,
-        "qty": 1
+        "qty": 0.00390625
       },
       {
         "id": 24291,
-        "qty": 1
+        "qty": 0.00390625
       },
       {
         "id": 24294,
-        "qty": 1
+        "qty": 0.00390625
       },
       {
         "id": 1617,
-        "qty": 1
+        "qty": 3.333333333333333
       },
       {
         "id": 1619,
-        "qty": 1
+        "qty": 3.333333333333333
       },
       {
         "id": 453,
-        "qty": 1
+        "qty": 45.83333333333333
       },
       {
         "id": 444,
-        "qty": 1
+        "qty": 13.333333333333334
       },
       {
         "id": 11237,
-        "qty": 1
+        "qty": 11.666666666666666
       },
       {
         "id": 440,
-        "qty": 1
+        "qty": 28.75
       },
       {
         "id": 1163,
-        "qty": 1
+        "qty": 0.2
       },
       {
         "id": 1127,
-        "qty": 1
+        "qty": 0.125
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 6250,
     "actionsPerHour": 420,
     "skill": "Fishing 70, Fishing 99",
     "members": true,
@@ -6445,7 +6833,7 @@ export default [
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 0.07692307692307693
       }
     ],
     "outputs": [
@@ -6475,6 +6863,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 500,
     "skill": "Agility 49, Magic 58",
     "members": true,
@@ -6498,6 +6887,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2000,
     "skill": null,
     "members": true,
@@ -6515,11 +6905,11 @@ export default [
       },
       {
         "id": 2552,
-        "qty": 1
+        "qty": 0.125
       },
       {
         "id": 1712,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "outputs": [
@@ -6529,15 +6919,39 @@ export default [
       },
       {
         "id": 1704,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 15,
     "skill": null,
     "members": true,
     "location": "Musa Point",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FPicking_bananas"
+  },
+  {
+    "id": "mmg:Pickpocketing Knights of Ardougne",
+    "method": "money-making",
+    "name": "Pickpocketing Knights of Ardougne",
+    "inputs": [
+      {
+        "id": 564,
+        "qty": 0.1
+      },
+      {
+        "id": 1993,
+        "qty": 0.005
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 100,
+    "actionsPerHour": 3000,
+    "skill": "Thieving 55, Hitpoints, Magic 47",
+    "members": true,
+    "location": "Ardougne Market",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FPickpocketing_Knights_of_Ardougne"
   },
   {
     "id": "mmg:Pickpocketing paladins",
@@ -6546,21 +6960,54 @@ export default [
     "inputs": [
       {
         "id": 21143,
-        "qty": 1
+        "qty": 0.007227500000000001
       }
     ],
     "outputs": [
       {
         "id": 562,
-        "qty": 1
+        "qty": 4
       }
     ],
     "coinCost": 5000,
+    "coinRevenue": 160,
     "actionsPerHour": 1145,
     "skill": "Thieving 70, Agility 50, Hitpoints",
     "members": true,
     "location": "Ardougne Market",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FPickpocketing_paladins"
+  },
+  {
+    "id": "mmg:Planting Crystal acorn",
+    "method": "money-making",
+    "name": "Planting Crystal acorn",
+    "inputs": [
+      {
+        "id": 4207,
+        "qty": 1
+      },
+      {
+        "id": 21483,
+        "qty": 1
+      },
+      {
+        "id": 12695,
+        "qty": 75
+      }
+    ],
+    "outputs": [
+      {
+        "id": 23685,
+        "qty": 75
+      }
+    ],
+    "coinCost": 0,
+    "coinRevenue": 0,
+    "actionsPerHour": 1,
+    "skill": "Herblore 97, Farming 74",
+    "members": false,
+    "location": "Prifddinas",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FPlanting_Crystal_acorn"
   },
   {
     "id": "mmg:Recharging rings of wealth",
@@ -6583,6 +7030,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 8,
     "skill": null,
     "members": true,
@@ -6596,7 +7044,7 @@ export default [
     "inputs": [
       {
         "id": 561,
-        "qty": 1
+        "qty": 0.203125
       },
       {
         "id": 2446,
@@ -6610,50 +7058,51 @@ export default [
       },
       {
         "id": 1301,
-        "qty": 1
+        "qty": 0.07874015748031496
       },
       {
         "id": 1371,
-        "qty": 1
+        "qty": 0.07874015748031496
       },
       {
         "id": 1213,
-        "qty": 1
+        "qty": 0.04724781478856603
       },
       {
         "id": 556,
-        "qty": 1
+        "qty": 20.47244094488189
       },
       {
         "id": 555,
-        "qty": 1
+        "qty": 20.47244094488189
       },
       {
         "id": 557,
-        "qty": 1
+        "qty": 20.47244094488189
       },
       {
         "id": 554,
-        "qty": 1
+        "qty": 20.47244094488189
       },
       {
         "id": 564,
-        "qty": 1
+        "qty": 0.7480314960629921
       },
       {
         "id": 562,
-        "qty": 1
+        "qty": 0.984251968503937
       },
       {
         "id": 561,
-        "qty": 1
+        "qty": 1.3779527559055118
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 1.0629921259842519
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 700,
     "skill": "Magic 55",
     "members": true,
@@ -6677,11 +7126,101 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 200,
     "skill": null,
     "members": true,
     "location": "Aldarin",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSearching_the_nice_nest"
+  },
+  {
+    "id": "mmg:Selling archery supplies",
+    "method": "money-making",
+    "name": "Selling archery supplies",
+    "inputs": [
+      {
+        "id": 888,
+        "qty": 10
+      },
+      {
+        "id": 890,
+        "qty": 10
+      },
+      {
+        "id": 845,
+        "qty": 5
+      },
+      {
+        "id": 849,
+        "qty": 5
+      },
+      {
+        "id": 847,
+        "qty": 5
+      },
+      {
+        "id": 853,
+        "qty": 5
+      },
+      {
+        "id": 851,
+        "qty": 5
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 5858,
+    "actionsPerHour": 334,
+    "skill": null,
+    "members": false,
+    "location": null,
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSelling_archery_supplies"
+  },
+  {
+    "id": "mmg:Selling hardleather bodies",
+    "method": "money-making",
+    "name": "Selling hardleather bodies",
+    "inputs": [
+      {
+        "id": 1131,
+        "qty": 625
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 10625,
+    "actionsPerHour": 1,
+    "skill": null,
+    "members": false,
+    "location": null,
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSelling_hardleather_bodies"
+  },
+  {
+    "id": "mmg:Selling silk to silk merchant",
+    "method": "money-making",
+    "name": "Selling silk to silk merchant",
+    "inputs": [
+      {
+        "id": 950,
+        "qty": 27
+      },
+      {
+        "id": 563,
+        "qty": 2
+      },
+      {
+        "id": 2552,
+        "qty": 0.125
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 1620,
+    "actionsPerHour": 190,
+    "skill": "Magic 51",
+    "members": true,
+    "location": "Ardougne",
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSelling_silk_to_silk_merchant"
   },
   {
     "id": "mmg:Smelting adamantite bars (Superheat Item)",
@@ -6708,6 +7247,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1900,
     "skill": "Smithing 70, Magic 43",
     "members": false,
@@ -6739,6 +7279,7 @@ export default [
       }
     ],
     "coinCost": 72000,
+    "coinRevenue": 0,
     "actionsPerHour": 2700,
     "skill": "Smithing 70",
     "members": true,
@@ -6766,6 +7307,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 800,
     "skill": "Smithing 1",
     "members": false,
@@ -6783,7 +7325,7 @@ export default [
       },
       {
         "id": 2568,
-        "qty": 1
+        "qty": 0.007142857142857143
       }
     ],
     "outputs": [
@@ -6793,6 +7335,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 980,
     "skill": "Smithing 15",
     "members": false,
@@ -6820,6 +7363,7 @@ export default [
       }
     ],
     "coinCost": 72000,
+    "coinRevenue": 0,
     "actionsPerHour": 6000,
     "skill": "Smithing 15",
     "members": true,
@@ -6851,6 +7395,7 @@ export default [
       }
     ],
     "coinCost": 72000,
+    "coinRevenue": 0,
     "actionsPerHour": 3600,
     "skill": "Smithing 50",
     "members": true,
@@ -6878,6 +7423,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 400,
     "skill": "Smithing 85",
     "members": false,
@@ -6909,6 +7455,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1150,
     "skill": "Smithing 85, Magic 43",
     "members": false,
@@ -6940,6 +7487,7 @@ export default [
       }
     ],
     "coinCost": 72000,
+    "coinRevenue": 0,
     "actionsPerHour": 2160,
     "skill": "Smithing 85",
     "members": true,
@@ -6963,6 +7511,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 980,
     "skill": "Smithing 20",
     "members": false,
@@ -6990,42 +7539,12 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 775,
     "skill": "Smithing 30",
     "members": false,
     "location": "Edgeville Furnace",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSmelting_steel_bars"
-  },
-  {
-    "id": "mmg:Smelting steel bars at Blast Furnace",
-    "method": "money-making",
-    "name": "Smelting steel bars at Blast Furnace",
-    "inputs": [
-      {
-        "id": 440,
-        "qty": 1
-      },
-      {
-        "id": 453,
-        "qty": 1
-      },
-      {
-        "id": 12625,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 2353,
-        "qty": 1
-      }
-    ],
-    "coinCost": 72000,
-    "actionsPerHour": 5400,
-    "skill": "Smithing 30",
-    "members": true,
-    "location": "Blast Furnace (World 352, 355, 358, 386, 387, or 494)",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSmelting_steel_bars_at_Blast_Furnace"
   },
   {
     "id": "mmg:Smithing adamant cannonballs",
@@ -7034,7 +7553,7 @@ export default [
     "inputs": [
       {
         "id": 2361,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "outputs": [
@@ -7044,6 +7563,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2400,
     "skill": "Smithing 75",
     "members": true,
@@ -7067,6 +7587,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Smithing 74",
     "members": true,
@@ -7090,6 +7611,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 950,
     "skill": "Smithing 4",
     "members": true,
@@ -7113,6 +7635,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 950,
     "skill": "Smithing 19",
     "members": true,
@@ -7136,6 +7659,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Smithing 22",
     "members": true,
@@ -7159,6 +7683,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 950,
     "skill": "Smithing 54",
     "members": true,
@@ -7182,6 +7707,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Smithing 89",
     "members": true,
@@ -7209,11 +7735,31 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1850,
     "skill": "Smithing 90",
     "members": true,
     "location": "Any Anvil",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSmithing_rune_incendiary_cannonballs"
+  },
+  {
+    "id": "mmg:Smithing rune items (Player-to-player trading)",
+    "method": "money-making",
+    "name": "Smithing rune items (Player-to-player trading)",
+    "inputs": [
+      {
+        "id": 2363,
+        "qty": 3
+      }
+    ],
+    "outputs": [],
+    "coinCost": 0,
+    "coinRevenue": 37850,
+    "actionsPerHour": 900,
+    "skill": "Smithing 99",
+    "members": false,
+    "location": null,
+    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FSmithing_rune_items_(Player-to-player_trading)"
   },
   {
     "id": "mmg:Smithing steel cannonballs",
@@ -7222,7 +7768,7 @@ export default [
     "inputs": [
       {
         "id": 2353,
-        "qty": 1
+        "qty": 0.25
       }
     ],
     "outputs": [
@@ -7232,6 +7778,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2400,
     "skill": "Smithing 35, Sailing 87",
     "members": true,
@@ -7255,6 +7802,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 950,
     "skill": "Smithing 34",
     "members": true,
@@ -7278,6 +7826,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 950,
     "skill": "Smithing 73",
     "members": true,
@@ -7301,6 +7850,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 1,
     "skill": "Smithing 53",
     "members": true,
@@ -7314,7 +7864,7 @@ export default [
     "inputs": [
       {
         "id": 31045,
-        "qty": 1
+        "qty": 0.04
       }
     ],
     "outputs": [
@@ -7324,6 +7874,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2000,
     "skill": "Crafting 10",
     "members": true,
@@ -7347,6 +7898,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 420,
     "skill": "Thieving 44",
     "members": true,
@@ -7374,50 +7926,51 @@ export default [
     "outputs": [
       {
         "id": 561,
-        "qty": 1
+        "qty": 8.333333333333334
       },
       {
         "id": 223,
-        "qty": 1
+        "qty": 1.0606060606060606
       },
       {
         "id": 563,
-        "qty": 1
+        "qty": 7.575757575757576
       },
       {
         "id": 453,
-        "qty": 1
+        "qty": 3.0303030303030303
       },
       {
         "id": 25769,
-        "qty": 1
+        "qty": 0.8181818181818182
       },
       {
         "id": 1617,
-        "qty": 1
+        "qty": 0.3181818181818182
       },
       {
         "id": 1621,
-        "qty": 1
+        "qty": 0.36363636363636365
       },
       {
         "id": 24607,
-        "qty": 1
+        "qty": 0.48484848484848486
       },
       {
         "id": 440,
-        "qty": 1
+        "qty": 0.7575757575757576
       },
       {
         "id": 562,
-        "qty": 1
+        "qty": 1.1363636363636365
       },
       {
         "id": 560,
-        "qty": 1
+        "qty": 0.9393939393939394
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 511.3636363636364,
     "actionsPerHour": 385,
     "skill": "Thieving 84, Prayer 43",
     "members": true,
@@ -7445,6 +7998,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2400,
     "skill": "Fletching 85",
     "members": true,
@@ -7472,6 +8026,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2400,
     "skill": "Fletching 55",
     "members": true,
@@ -7499,6 +8054,7 @@ export default [
       }
     ],
     "coinCost": 0,
+    "coinRevenue": 0,
     "actionsPerHour": 2400,
     "skill": "Fletching 70",
     "members": true,
@@ -7516,7 +8072,7 @@ export default [
       },
       {
         "id": 3008,
-        "qty": 1
+        "qty": 0.038461538461538464
       }
     ],
     "outputs": [
@@ -7526,6 +8082,7 @@ export default [
       }
     ],
     "coinCost": 20,
+    "coinRevenue": 0,
     "actionsPerHour": 3500,
     "skill": null,
     "members": true,
@@ -7543,7 +8100,7 @@ export default [
       },
       {
         "id": 3008,
-        "qty": 1
+        "qty": 0.038461538461538464
       }
     ],
     "outputs": [
@@ -7553,6 +8110,7 @@ export default [
       }
     ],
     "coinCost": 20,
+    "coinRevenue": 0,
     "actionsPerHour": 3500,
     "skill": null,
     "members": true,
@@ -7570,7 +8128,7 @@ export default [
       },
       {
         "id": 3008,
-        "qty": 1
+        "qty": 0.038461538461538464
       }
     ],
     "outputs": [
@@ -7580,6 +8138,7 @@ export default [
       }
     ],
     "coinCost": 20,
+    "coinRevenue": 0,
     "actionsPerHour": 3500,
     "skill": null,
     "members": true,
@@ -7597,7 +8156,7 @@ export default [
       },
       {
         "id": 3008,
-        "qty": 1
+        "qty": 0.038461538461538464
       }
     ],
     "outputs": [
@@ -7607,77 +8166,11 @@ export default [
       }
     ],
     "coinCost": 20,
+    "coinRevenue": 0,
     "actionsPerHour": 3500,
     "skill": null,
     "members": true,
     "location": "Al Kharid",
     "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FTanning_red_dragonhide"
-  },
-  {
-    "id": "mmg:Vyrecycling",
-    "method": "money-making",
-    "name": "Vyrecycling",
-    "inputs": [
-      {
-        "id": 561,
-        "qty": 1
-      }
-    ],
-    "outputs": [
-      {
-        "id": 3325,
-        "qty": 1
-      },
-      {
-        "id": 1213,
-        "qty": 1
-      },
-      {
-        "id": 1073,
-        "qty": 1
-      },
-      {
-        "id": 1123,
-        "qty": 1
-      },
-      {
-        "id": 1163,
-        "qty": 1
-      },
-      {
-        "id": 1201,
-        "qty": 1
-      },
-      {
-        "id": 560,
-        "qty": 1
-      },
-      {
-        "id": 565,
-        "qty": 1
-      },
-      {
-        "id": 561,
-        "qty": 1
-      },
-      {
-        "id": 892,
-        "qty": 1
-      },
-      {
-        "id": 830,
-        "qty": 1
-      },
-      {
-        "id": 207,
-        "qty": 1
-      }
-    ],
-    "coinCost": 0,
-    "actionsPerHour": 90,
-    "skill": "Magic 55",
-    "members": true,
-    "location": "Darkmeyer",
-    "source": "https://oldschool.runescape.wiki/w/Money_making_guide%2FVyrecycling"
   }
 ]
