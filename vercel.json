@@ -1,10 +1,8 @@
 {
   "framework": "vite",
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 30
-    }
-  },
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -14,45 +12,12 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
-    },
-    {
-      "source": "/api/health",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=60, s-maxage=300"
-        }
-      ]
-    },
-    {
-      "source": "/trpc/items\\.(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=300, s-maxage=600"
-        }
-      ]
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/blogs",
-      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
-    {
-      "source": "/trpc/(.*)",
-      "destination": "/api"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "regions": ["iad1"]
+  ]
 }

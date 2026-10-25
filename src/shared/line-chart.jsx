@@ -11,6 +11,7 @@ import { trpc } from '../utils/trpc.jsx'
 import ChartToolbar from '../components/charts/ChartToolbar.jsx'
 import IndicatorPanel from '../components/charts/IndicatorPanel.jsx'
 import logoImage from '../assets/highalch.png'
+import { BACKEND_ENABLED } from '../config/features.js'
 
 export default function LineChart ({ id, items, height = 600 }) {
   // Default chart to month
@@ -390,7 +391,7 @@ export default function LineChart ({ id, items, height = 600 }) {
       ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
       : new Date()
   }, {
-    enabled: id && (historyStatus === 'loading' || historyStatus === 'success'), // Enable during loading for parallel fetch
+    enabled: BACKEND_ENABLED && !!id && (historyStatus === 'loading' || historyStatus === 'success'), // Enable during loading for parallel fetch
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Enable mount fetching for immediate loading

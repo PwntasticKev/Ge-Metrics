@@ -49,6 +49,7 @@ import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stac
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import '../../../styles/scrollbar.css'
+import { isPathAvailable } from '../../../config/features.js'
 
 const useStyles = createStyles((theme) => ({
   control: {
@@ -144,7 +145,12 @@ const useStyles = createStyles((theme) => ({
   }
 }))
 
-function MainLink ({ icon, color, label, link, onClick, adminOnly, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
+// Hides links to pages that need the backend when running in static mode.
+function MainLink (props) {
+  return isPathAvailable(props.link) ? <MainLinkContent {...props} /> : null
+}
+
+function MainLinkContent ({ icon, color, label, link, onClick, adminOnly, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
   const { classes } = useStyles()
   const location = useLocation()
   const isActive = location.pathname === link
@@ -343,7 +349,12 @@ function SubmenuLink ({ icon, color, label, link, isOpen, onToggle, children, ex
   )
 }
 
-function SubmenuItem ({ icon, color, label, link, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
+// Hides links to pages that need the backend when running in static mode.
+function SubmenuItem (props) {
+  return isPathAvailable(props.link) ? <SubmenuItemContent {...props} /> : null
+}
+
+function SubmenuItemContent ({ icon, color, label, link, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
   const { classes } = useStyles()
 
   const handleClick = (e) => {

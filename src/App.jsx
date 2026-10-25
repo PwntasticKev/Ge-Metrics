@@ -15,6 +15,7 @@ import { useAuth } from './hooks/useAuth'
 import { TRPCProvider } from './utils/trpc.jsx' // Import the central provider
 import AuthProvider from './components/auth/AuthProvider'
 import AdminRoute from './components/auth/AdminRoute'
+import { BACKEND_ENABLED, DEFAULT_PATH, isPathAvailable } from './config/features.js'
 
 // Trial system imports
 import { TrialProvider, useTrialContext } from './contexts/TrialContext'
@@ -246,10 +247,23 @@ function RequireAuth ({ children }) {
     )
   }
 
+  if (!BACKEND_ENABLED) {
+    return children
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  return children
+}
+
+// In static mode, send DB-only routes (login, billing, admin, ...) to the default page.
+function StaticModeGuard ({ children }) {
+  const location = useLocation()
+  if (!isPathAvailable(location.pathname)) {
+    return <Navigate to={DEFAULT_PATH} replace />
+  }
   return children
 }
 
@@ -319,6 +333,7 @@ function AppContent () {
         <FavoritesProvider itemType="item">
           <MusicPlayerProvider>
             <MusicPlayerKeyboardHandler />
+            <StaticModeGuard>
             <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -336,7 +351,7 @@ function AppContent () {
               element={
                 <RequireAuth>
                   <div>
-                    {user && (
+                    {(user || !BACKEND_ENABLED) && (
                       <>
                         <HeaderNav setOpened={toggle} opened={opened} user={user} onLogout={logout} />
                         {isMobile
@@ -426,6 +441,7 @@ function AppContent () {
               <Route path="*" element={<ErrorPage />} />
             </Route>
           </Routes>
+            </StaticModeGuard>
           </MusicPlayerProvider>
         </FavoritesProvider>
       </TrialProvider>

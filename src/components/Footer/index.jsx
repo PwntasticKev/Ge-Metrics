@@ -3,6 +3,7 @@ import { Group, Text, Box, ActionIcon, Anchor } from '@mantine/core'
 import { IconUsers, IconExternalLink, IconBrandDiscord, IconBrandYoutube, IconMail, IconMusic } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { trpc } from '../../utils/trpc.jsx'
+import { BACKEND_ENABLED, isPathAvailable } from '../../config/features.js'
 import { FooterMusicPlayer } from '../MusicPlayer'
 import { useMusicPlayer } from '../../contexts/MusicPlayerContext'
 
@@ -24,6 +25,7 @@ export default function Footer() {
   const { data: activeUsersData, refetch } = trpc.sessions.getActiveUsersCount.useQuery(
     undefined,
     {
+      enabled: BACKEND_ENABLED,
       refetchInterval: 60000, // Refresh every minute
       staleTime: 30000, // Consider data stale after 30 seconds
     }
@@ -37,6 +39,7 @@ export default function Footer() {
 
   // Manual refresh for real-time feel
   useEffect(() => {
+    if (!BACKEND_ENABLED) return
     const interval = setInterval(() => {
       refetch()
     }, 45000) // Refresh every 45 seconds
@@ -62,6 +65,7 @@ export default function Footer() {
       <Box sx={{ padding: '12px 20px' }}>
       <Group position="apart" spacing="sm" noWrap>
         {/* Active Users Counter */}
+        {BACKEND_ENABLED ? (
         <Group spacing={6} noWrap>
           <Box
             style={{
@@ -84,6 +88,7 @@ export default function Footer() {
             {activeUsers} {activeUsers === 1 ? 'user' : 'users'} online
           </Text>
         </Group>
+        ) : <div />}
 
         {/* Links & Social */}
         <Group spacing="md" noWrap>
@@ -106,7 +111,7 @@ export default function Footer() {
             Contact
           </Anchor>
 
-          <Anchor
+          {isPathAvailable('/affiliate') && <Anchor
             component={Link}
             to="/affiliate"
             size="sm"
@@ -123,7 +128,7 @@ export default function Footer() {
             }}
           >
             Partner
-          </Anchor>
+          </Anchor>}
 
           <Anchor
             component={Link}

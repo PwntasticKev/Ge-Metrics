@@ -1,6 +1,7 @@
 import { trpc } from '../utils/trpc.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useState, useEffect } from 'react'
+import { BACKEND_ENABLED } from '../config/features.js'
 
 export function useFavorites (itemType) {
   const { user } = useAuth()
@@ -10,9 +11,12 @@ export function useFavorites (itemType) {
   // Only include itemType in query input if it's defined
   const queryInput = itemType ? { itemType } : undefined
   const { data: favoriteItems, isLoading: isLoadingFavorites, error } = trpc.favorites.getAll.useQuery(queryInput, {
-    initialData: [],
+    // placeholderData (not initialData) so the empty list doesn't count as fresh
+    // cached data and suppress the first fetch under the 5-minute staleTime.
+    placeholderData: [],
     retry: false,
-    enabled: !!user,
+    // Static mode keeps favorites on the device, so no login is needed.
+    enabled: !!user || !BACKEND_ENABLED,
     onError: (error) => {
       console.error('useFavorites error:', error)
     }
@@ -58,7 +62,7 @@ export function useFavorites (itemType) {
   })
 
   const toggleFavorite = (itemId, itemType) => {
-    if (!user) {
+    if (!user && BACKEND_ENABLED) {
       console.warn('[useFavorites] Cannot toggle favorite - user not logged in')
       return
     }
@@ -100,7 +104,7 @@ export function useFavorites (itemType) {
       })
     } else {
       // Optimistic update - add immediately to UI
-      const newFavorite = { itemId: numericItemId, itemType, userId: user.id }
+      const newFavorite = { itemId: numericItemId, itemType, userId: user?.id }
       setOptimisticFavorites(prev => [...prev, newFavorite])
       
       addFavorite.mutate({ itemId: numericItemId, itemType }, {

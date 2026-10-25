@@ -2,10 +2,12 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import { trpc } from '../../utils/trpc.jsx'
+import { BACKEND_ENABLED } from '../../config/features.js'
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Static mode has no accounts, so there is no session to check.
+  const [isLoading, setIsLoading] = useState(BACKEND_ENABLED)
   const navigate = useNavigate()
 
   const { data: me, refetch: refetchMe } = trpc.auth.me.useQuery(
@@ -102,6 +104,7 @@ const AuthProvider = ({ children }) => {
   }, [refetchMe])
 
   useEffect(() => {
+    if (!BACKEND_ENABLED) return
     checkSession()
   }, [checkSession])
 
