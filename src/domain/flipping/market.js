@@ -25,6 +25,7 @@ function toMarketItem (item) {
     icon: item.icon ?? null,
     members: Boolean(item.members),
     limit: positive(Number(item.limit)),
+    highalch: positive(Number(item.highalch)),
     high: positive(Number(item.high)),
     low: positive(Number(item.low)),
     highTime: positive(Number(item.highTime)),

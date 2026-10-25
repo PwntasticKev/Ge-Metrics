@@ -1,0 +1,118 @@
+import { router, type Href } from 'expo-router'
+import { useMemo } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import type { Market } from '@ge/engine'
+import { useMarket } from '../../api/useMarket'
+import { ItemIcon } from '../../components/ItemIcon'
+import { ScreenHeader } from '../../components/ScreenHeader'
+import { signed } from '../../lib/format'
+import { METHODS, PROCESSING_METHODS, rankMethod, type MethodDef } from '../../lib/methods'
+import { useSettings, type Settings } from '../../state/settings'
+import { useTheme } from '../../theme/ThemeProvider'
+import { space } from '../../theme/tokens'
+
+interface Best {
+  name: string
+  icon: string | null
+  value: string
+}
+
+function bestFor (method: MethodDef, market: Market | null, settings: Settings): Best | null {
+  if (!market) return null
+  const top = rankMethod(market, method, method.defaultSort, settings)[0]
+  if (!top) return null
+  const value = method.defaultSort === 'perHour' && top.perHour !== null ? `${signed(top.perHour)}/hr` : `${signed(top.potential)} per 4h`
+  return { name: top.name, icon: top.icon, value }
+}
+
+const FEATURED: { key: string; icon: string }[] = [
+  { key: 'money-makers', icon: 'Coins 10000.png' },
+  { key: 'decanting', icon: 'Prayer potion(4).png' }
+]
+
+function FeaturedCard ({ href, title, blurb, icon, best }: { href: Href; title: string; blurb: string; icon: string; best: Best | null }) {
+  const { palette } = useTheme()
+  return (
+      <Pressable onPress={() => router.push(href)} style={({ pressed }) => [styles.card, { backgroundColor: palette.card, borderColor: palette.rule }, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+        <View style={styles.cardTop}>
+          <ItemIcon icon={icon} size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: palette.ink }]}>{title}</Text>
+            <Text style={[styles.blurb, { color: palette.muted }]}>{blurb}</Text>
+          </View>
+          <Text style={{ color: palette.muted, fontSize: 20 }}>›</Text>
+        </View>
+        {best ? (
+          <View style={[styles.best, { borderTopColor: palette.rule }]}>
+            <Text style={[styles.bestLabel, { color: palette.muted }]} numberOfLines={1}>Best now: {best.name}</Text>
+            <Text style={[styles.bestValue, { color: palette.profit }]}>{best.value}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+  )
+}
+
+function MethodRow ({ method, best, last }: { method: MethodDef; best: Best | null; last: boolean }) {
+  const { palette } = useTheme()
+  return (
+      <Pressable onPress={() => router.push(`/tools/${method.key}`)} style={({ pressed }) => [styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.rule }, pressed && { opacity: 0.6 }]} accessibilityRole="button">
+        <ItemIcon icon={best?.icon ?? null} size={30} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[styles.rowTitle, { color: palette.ink }]} numberOfLines={1}>{method.title}</Text>
+          <Text style={[styles.rowMeta, { color: palette.muted }]} numberOfLines={1}>{best ? best.name : 'Nothing profitable right now'}</Text>
+        </View>
+        {best ? <Text style={[styles.rowValue, { color: palette.profit }]}>{best.value}</Text> : null}
+      </Pressable>
+  )
+}
+
+export default function ToolsHub () {
+  const { palette } = useTheme()
+  const { market } = useMarket()
+  const { settings } = useSettings()
+
+  const featured = useMemo(() => FEATURED.map(f => ({ ...f, method: METHODS[f.key], best: bestFor(METHODS[f.key], market, settings) })), [market, settings])
+  const processing = useMemo(
+    () => PROCESSING_METHODS
+      .map(method => ({ method, best: bestFor(method, market, settings) }))
+      .sort((a, b) => Number(Boolean(b.best)) - Number(Boolean(a.best))),
+    [market, settings]
+  )
+
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <ScreenHeader title="Tools" meta={market ? 'Live prices' : undefined} />
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.list}>
+        {featured.map(f => (
+          <FeaturedCard key={f.key} href={`/tools/${f.key}`} title={f.method.title} blurb={f.method.blurb} icon={f.icon} best={f.best} />
+        ))}
+        <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
+
+        <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
+        <View style={[styles.group, { backgroundColor: palette.card, borderColor: palette.rule }]}>
+          {processing.map((p, i) => <MethodRow key={p.method.key} method={p.method} best={p.best} last={i === processing.length - 1} />)}
+        </View>
+
+        <Text style={[styles.note, { color: palette.muted }]}>Everything here comes from the OSRS Wiki and only includes methods you can fully buy and sell on the Grand Exchange, so profits are live. GP/hour is capped by buy limits.</Text>
+      </ScrollView>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  list: { padding: space.lg, gap: space.md, paddingBottom: 120 },
+  card: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, padding: space.lg },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  title: { fontSize: 17, fontWeight: '600' },
+  blurb: { fontSize: 13, marginTop: 2, lineHeight: 18 },
+  best: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.md, borderTopWidth: StyleSheet.hairlineWidth, marginTop: space.md, paddingTop: space.sm },
+  bestLabel: { flex: 1, fontSize: 13 },
+  bestValue: { fontSize: 15, fontWeight: '700' },
+  section: { fontSize: 13, fontWeight: '600', marginTop: space.sm },
+  group: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: 11 },
+  rowTitle: { fontSize: 15, fontWeight: '600' },
+  rowMeta: { fontSize: 12.5, marginTop: 1 },
+  rowValue: { fontSize: 14, fontWeight: '700' },
+  note: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', paddingHorizontal: space.lg }
+})

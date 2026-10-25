@@ -19,6 +19,7 @@ describe('geTax', () => {
   it('caps at 5M per item', () => expect(geTax(1_000_000_000, 1)).toBe(5_000_000))
   it('exempts items under 50 gp', () => expect(geTax(49, 1)).toBe(0))
   it('exempts Old school bonds', () => expect(geTax(10_000_000, 13190)).toBe(0))
+  it('exempts teleport tablets and other wiki-listed items', () => expect(geTax(1000, 8007)).toBe(0)) // Varrock teleport
   it('handles bad input', () => expect(geTax(NaN, 1)).toBe(0))
 })
 
@@ -215,3 +216,9 @@ describe('review regressions', () => {
   })
 })
 
+describe('market items', () => {
+  it('carry the high alch value for the alchemy tool', () => {
+    const market = createMarket([item(1, 'Staff', 8000, 8600, { highalch: 9300 })], { nowSec: NOW })
+    expect(market.get(1).highalch).toBe(9300)
+  })
+})
