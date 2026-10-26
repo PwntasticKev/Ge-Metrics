@@ -1,9 +1,11 @@
-import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
+import { focusManager } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router'
 import { NativeTabs } from 'expo-router/native-tabs'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { AppState, Platform } from 'react-native'
+import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createQueryClient, persister, shouldPersist } from '../api/queryCache'
 import { useOrientationLock } from '../state/orientation'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
@@ -59,12 +61,13 @@ function OrientationLock () {
 }
 
 export default function RootLayout () {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: true } }
-  }))
+  const [queryClient] = useState(createQueryClient)
   useAppFocus()
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: CACHE_MAX_AGE_MS, buster: CACHE_BUSTER, dehydrateOptions: { shouldDehydrateQuery: shouldPersist } }}
+    >
       <SettingsProvider>
         <ThemeProvider>
           <WatchlistProvider>
@@ -73,6 +76,6 @@ export default function RootLayout () {
           </WatchlistProvider>
         </ThemeProvider>
       </SettingsProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   )
 }
