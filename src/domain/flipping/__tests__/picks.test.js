@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createMarket, rankQuickFlips, rankOvernightFlips } from '../index.js'
+import { createMarket, planCashStack, rankQuickFlips, rankOvernightFlips } from '../index.js'
 
 const NOW = 1_800_000_000
 const fresh = { highTime: NOW - 60, lowTime: NOW - 120 }
@@ -84,5 +84,34 @@ describe('rankOvernightFlips', () => {
     const h1 = { 3: avg(1000, 1100, 3000, 3000) }
     // 6 hours spans two 4h windows: 2 x 100.
     expect(rankOvernightFlips(market, { h1, h24, hours: 6 })[0].maxQty).toBe(200)
+  })
+})
+
+describe('planCashStack', () => {
+  const pick = (id, buyAt, profit, maxQty) => ({ id, name: `Item ${id}`, buyAt, profit, maxQty, potential: profit * maxQty, cost: buyAt * maxQty })
+
+  it('fills slots greedily by what each can earn with the cash left', () => {
+    const picks = [pick(1, 1_000_000, 50_000, 8), pick(2, 1000, 40, 10_000), pick(3, 100, 2, 1000)]
+    const plan = planCashStack(picks, { cash: 5_000_000, slots: 8 })
+    // With 5M: item 1 earns 5 x 50K = 250K, item 2 earns 5,000 x 40 = 200K.
+    expect(plan.map(p => [p.id, p.maxQty])).toEqual([[1, 5]])
+    expect(plan[0]).toMatchObject({ potential: 250_000, cost: 5_000_000 })
+  })
+
+  it('spreads cash across items when the best one hits its buy limit', () => {
+    const picks = [pick(1, 1_000_000, 50_000, 2), pick(2, 1000, 40, 10_000)]
+    const plan = planCashStack(picks, { cash: 5_000_000, slots: 8 })
+    expect(plan.map(p => [p.id, p.maxQty])).toEqual([[2, 3000], [1, 2]])
+  })
+
+  it('stops at the slot count', () => {
+    const picks = [pick(1, 10, 1, 10), pick(2, 10, 1, 10), pick(3, 10, 1, 10)]
+    expect(planCashStack(picks, { cash: 1e9, slots: 2 })).toHaveLength(2)
+  })
+
+  it('leaves out crumbs and lists the biggest earners first', () => {
+    const picks = [pick(1, 1000, 100, 50), pick(2, 1, 1, 10), pick(3, 2000, 300, 10)]
+    // 5,000 + 3,000 earned; item 2's 10 gp is under 1% of that.
+    expect(planCashStack(picks, { cash: 1e9 }).map(p => p.id)).toEqual([1, 3])
   })
 })

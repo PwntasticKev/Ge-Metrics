@@ -33,7 +33,7 @@ export const PickRow = memo(function PickRow ({ pick, mode, expanded, onToggle }
       name={stripUncharged(pick.name)}
       meta={`Buy ${gpFull(pick.buyAt)}, sell ${gpFull(pick.sellAt)}`}
       value={signed(pick.potential)}
-      valueCaption={`${qty(pick.maxQty)} ${mode === 'quick' ? 'in 4h' : 'overnight'}`}
+      valueCaption={`${qty(pick.maxQty)} ${mode === 'overnight' ? 'overnight' : 'in 4h'}`}
       expanded={expanded}
       onToggle={() => onToggle(pick.id)}
     >
