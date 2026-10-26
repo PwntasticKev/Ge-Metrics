@@ -1,5 +1,5 @@
 import { geTax } from '@ge/engine'
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { mergeJournal, parseJournal, realize, MAX_FLIPS, type Flip, type Journal, type Lot, type MergeResult } from '../lib/pnl/journal'
 import { BUY_LIMIT_WINDOW_MS, cancelReminder, scheduleLimitReminder } from '../lib/reminders'
 import { usePersistentState } from './usePersistentState'
@@ -45,7 +45,7 @@ const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).sli
 export function FlipsProvider ({ children }: { children: ReactNode }) {
   const [state, setState] = usePersistentState<Journal>(KEY, EMPTY, parseJournal, mergeEarly)
   const stateRef = useRef(state)
-  useEffect(() => { stateRef.current = state }, [state])
+  useLayoutEffect(() => { stateRef.current = state }, [state])
 
   const addHolding = useCallback(async (input: NewHolding) => {
     const boughtAt = Date.now()

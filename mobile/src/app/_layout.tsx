@@ -9,6 +9,7 @@ import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createQueryClient, persister, shouldPer
 import { useOrientationLock } from '../state/orientation'
 import { FlipsProvider } from '../state/flips'
 import { ItemSheetProvider } from '../state/itemSheet'
+import { MiniWindowProvider } from '../state/miniWindow'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
 import { WidgetSync } from '../state/widgetSync'
@@ -75,11 +76,13 @@ export default function RootLayout () {
         <ThemeProvider>
           <WatchlistProvider>
             <FlipsProvider>
-              <ItemSheetProvider>
-                <OrientationLock />
-                <WidgetSync />
-                <Tabs />
-              </ItemSheetProvider>
+              <MiniWindowProvider>
+                <ItemSheetProvider>
+                  <OrientationLock />
+                  <WidgetSync />
+                  <Tabs />
+                </ItemSheetProvider>
+              </MiniWindowProvider>
             </FlipsProvider>
           </WatchlistProvider>
         </ThemeProvider>
