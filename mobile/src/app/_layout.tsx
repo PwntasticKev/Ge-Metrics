@@ -4,6 +4,7 @@ import { NativeTabs } from 'expo-router/native-tabs'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { AppState, Platform } from 'react-native'
+import { useOrientationLock } from '../state/orientation'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider'
@@ -52,6 +53,11 @@ function Tabs () {
   )
 }
 
+function OrientationLock () {
+  useOrientationLock()
+  return null
+}
+
 export default function RootLayout () {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: true } }
@@ -62,6 +68,7 @@ export default function RootLayout () {
       <SettingsProvider>
         <ThemeProvider>
           <WatchlistProvider>
+            <OrientationLock />
             <Tabs />
           </WatchlistProvider>
         </ThemeProvider>

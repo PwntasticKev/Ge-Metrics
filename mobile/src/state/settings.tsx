@@ -2,9 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { loadJson, saveJson } from './storage'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
+export type OrientationPreference = 'auto' | 'portrait' | 'landscape'
+
+const ORIENTATIONS: readonly OrientationPreference[] = ['auto', 'portrait', 'landscape']
 
 export interface Settings {
   theme: ThemePreference
+  orientation: OrientationPreference
   hideStale: boolean
   hideFlukes: boolean
   membersItems: boolean
@@ -16,6 +20,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  orientation: 'portrait',
   hideStale: true,
   hideFlukes: true,
   membersItems: true,
@@ -42,7 +47,8 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadJson(KEY, {}, isSettings).then(stored => {
       const budget = typeof stored.budget === 'number' && stored.budget > 0 ? stored.budget : null
-      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget })
+      const orientation = ORIENTATIONS.includes(stored.orientation as OrientationPreference) ? stored.orientation as OrientationPreference : DEFAULT_SETTINGS.orientation
+      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation })
     })
   }, [])
 
