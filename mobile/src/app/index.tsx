@@ -8,6 +8,7 @@ import { FlipListScreen } from '../components/FlipListScreen'
 import { PickRow } from '../components/PickRow'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SlowHeader, SlowRow } from '../components/SlowToFill'
+import { SlotsCard } from '../components/slots/SlotsCard'
 import { Pills, Tabs } from '../components/Tabs'
 import { pickSlowText } from '../lib/fillText'
 import { gpShort, minutesAgo, signed } from '../lib/format'
@@ -112,6 +113,7 @@ export default function BuyNowScreen () {
       market={market}
       header={
         <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
+          <SlotsCard />
           <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null); setSlowOpen(false) }} />
           {sortable ? <Pills options={SORTS} value={sortBy} onChange={value => { setSortBy(value); setOpenId(null) }} /> : null}
         </ScreenHeader>

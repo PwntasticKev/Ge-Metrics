@@ -6,6 +6,7 @@ import { miniPayload, miniRows, type MiniSource } from '../lib/miniWindow'
 import { usePicks } from '../lib/picks'
 import { useFlips } from './flips'
 import { useSettings } from './settings'
+import { useSlots } from './slots'
 import { useWatchlist } from './watchlist'
 
 // The Picture in Picture mini window: a small live price ticker that floats
@@ -41,13 +42,14 @@ export function MiniWindowProvider ({ children }: { children: ReactNode }) {
   const picks = usePicks(source === 'picks' ? market : null, h1, h24, 'quick')
   const { entries } = useWatchlist()
   const { holdings } = useFlips()
+  const { slots } = useSlots()
   const [supported] = useState(() => PipTicker?.isSupported() ?? false)
   const [active, setActive] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
 
   const rows = useMemo(
-    () => miniRows(source, { market, h24, entries, picks, holdings }),
-    [source, market, h24, entries, picks, holdings]
+    () => miniRows(source, { market, h24, entries, picks, holdings, slots: slots.slots }),
+    [source, market, h24, entries, picks, holdings, slots.slots]
   )
 
   useEffect(() => {

@@ -10,6 +10,7 @@ import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
 import { DetailsLink } from './DetailsLink'
 import { LogBuy } from './LogBuy'
+import { PlaceOffer } from './slots/PlaceOffer'
 import { Sparkline } from './Sparkline'
 
 function whyLine (pick: BuyPick, mode: PickMode): string {
@@ -63,6 +64,7 @@ export const PickRow = memo(function PickRow ({ pick, mode, rate, bySpeed, expan
       <Text style={[styles.why, { color: palette.muted }]}>{whyLine(pick, mode)}{rate && mode !== 'overnight' ? ` ${rateLine(rate)}` : ''}</Text>
       <ProfitFooter tax={pick.tax * pick.maxQty} profit={pick.potential} starred={isStarred(entry)} onStar={() => toggle(entry)} />
       <DetailsLink itemId={pick.id} />
+      <PlaceOffer offers={[{ itemId: pick.id, name: pick.name, icon: pick.icon, side: 'buy', price: pick.buyAt, qty: pick.maxQty, target: pick.sellAt }]} />
       <LogBuy itemId={pick.id} name={pick.name} icon={pick.icon} qty={pick.maxQty} price={pick.buyAt} />
     </FlipRow>
   )
