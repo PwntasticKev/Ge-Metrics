@@ -27,6 +27,10 @@ Ground rules carried over from earlier decisions:
 | Plan my cash | Splits the cash stack across up to 8 GE slots for the most total profit. |
 | Dips | Liquid items trading 5%+ under the day's typical low for an hour, while the highs hold. |
 | Item details sheet | 1D/1W/1M/1Y chart, copyable prices, limits, per-side volume, alch profit, sets. Opens from any row or a `gemetrics:///?item=ID` link. |
+| Chart upgrade | Drag to read any point, sell and buy lines, volume bars, min/max, % change; 1D/1W/1M/3M/1Y. |
+| Game update markers | Game updates and dev blogs from the wiki as dots on the chart; posts that mention the item stand out. Tap for the post. |
+| Update movers | Tools view: items named in the latest posts with their price move since the post and current margin. |
+| Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
 
 ## Done in this round (web)
 
@@ -49,8 +53,8 @@ Ground rules carried over from earlier decisions:
    day's sell volume.
 4. **Profit history.** Chart of sales from the Bought tab by day and by item,
    plus best and worst flips. Export as CSV.
-5. **Game update awareness.** Pull the wiki's update posts and flag items
-   mentioned in the latest update; their prices move most that week.
+5. **Update alerts.** Shipped as chart markers and Update movers; next is a
+   local notification when a new post mentions a watched item.
 6. **Share a pick.** Share sheet with an image of a pick (item, prices,
    profit) for clan chats.
 7. **iPad and landscape layouts.** Two columns: list on the left, item page
