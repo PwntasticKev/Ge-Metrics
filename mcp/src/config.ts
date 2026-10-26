@@ -22,5 +22,13 @@ export const TTL = Object.freeze({
   volumes: 15 * MINUTE,
   timeseries: { '5m': 2 * MINUTE, '1h': 10 * MINUTE, '6h': 30 * MINUTE, '24h': 60 * MINUTE },
   updates: 30 * MINUTE,
-  updateMiss: 5 * MINUTE
+  updateMiss: 5 * MINUTE,
+  // Past /1h and /24h snapshots never change; keep them a while.
+  snapshot: 2 * 60 * MINUTE,
+  comingUp: 60 * MINUTE
 })
+
+// Per-item and historical requests (timeseries, past snapshots) go through one
+// limiter: at most 2 at a time, starts at least 300 ms apart.
+export const HISTORY_CONCURRENCY = 2
+export const HISTORY_GAP_MS = 300
