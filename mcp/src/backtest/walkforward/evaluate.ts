@@ -63,6 +63,14 @@ export interface Marginal {
   readonly lossPct: number | null
 }
 
+/** One grid variant held fixed over every test window (not re-tuned). */
+export interface FixedVariant {
+  readonly key: string
+  /** Test-window profit per fold, in fold order. */
+  readonly tests: readonly number[]
+  readonly lossPct: number | null
+}
+
 export interface FamilyReport {
   readonly family: Family
   readonly folds: readonly FoldOutcome[]
@@ -75,6 +83,8 @@ export interface FamilyReport {
   readonly consensusWins: number
   readonly regimes: readonly RegimeRow[]
   readonly marginals: readonly Marginal[]
+  /** Every variant's fixed-parameter OOS, for comparisons the tables don't show. */
+  readonly fixed: readonly FixedVariant[]
 }
 
 const DAY_SEC = 86_400
@@ -179,9 +189,15 @@ export function evaluateFamily (family: Family, results: readonly SimResult[], f
     const stats = oosStats(folds.map(f => ({ result: get(k), window: f.test })), cash)
     return { profit: stats.profit, lossPct: stats.lossPct, wins: folds.filter(f => windowProfit(get(k).equity, f.test) > windowProfit(def.equity, f.test)).length }
   }
+  const fixed: FixedVariant[] = results.map(r => ({
+    key: r.key,
+    tests: folds.map(f => Math.round(windowProfit(r.equity, f.test))),
+    lossPct: oosStats(folds.map(f => ({ result: r, window: f.test })), cash).lossPct
+  }))
   return {
     family,
     folds: outcomes,
+    fixed,
     marginals: [...marginals(family, family.defaultKey, 'default', fixedOos), ...marginals(family, cKey, 'consensus', fixedOos)],
     wf: oosStats(wfPieces, cash),
     baseline: oosStats(basePieces, cash),

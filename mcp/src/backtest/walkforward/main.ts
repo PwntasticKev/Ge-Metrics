@@ -67,8 +67,12 @@ export async function walkForwardMain (a: WalkForwardArgs): Promise<void> {
     baseline: r.baseline,
     consensus: r.consensus,
     consensusWins: r.consensusWins,
-    folds: r.folds.map(o => ({ ...o, chosen: paramsOf(r.family, o.chosenKey) }))
+    folds: r.folds.map(o => ({ ...o, chosen: paramsOf(r.family, o.chosenKey) })),
+    fixed: r.fixed.map(v => ({ ...v, params: paramsOf(r.family, v.key) }))
   }))
-  await writeFile(join(BACKTEST_CACHE_DIR, 'last-walk-forward.json'), JSON.stringify({ config: a.config, dump, sensitivity: result.sensitivity }, null, 1))
+  const body = JSON.stringify({ config: a.config, firstDecision: t.decisions[0], lastDecision: t.decisions[t.decisions.length - 1], endT: t.endT, dump, sensitivity: result.sensitivity }, null, 1)
+  await writeFile(join(BACKTEST_CACHE_DIR, 'last-walk-forward.json'), body)
+  // Kept per end date so runs over different periods can be compared later.
+  await writeFile(join(BACKTEST_CACHE_DIR, `walk-forward-${date}.json`), body)
   log(`wrote ${out}`)
 }
