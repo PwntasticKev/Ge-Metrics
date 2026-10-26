@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { scrollToTopIfCurrent } from '../../utils/scrollToTop.js'
 import { Group, UnstyledButton, ThemeIcon, Text, Box, Transition, Badge } from '@mantine/core'
 import {
   IconHome,
@@ -172,7 +173,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     if (item.path === '#') {
       onMenuToggle?.()
     } else if (!item.requiresAuth || user) {
-      navigate(item.path)
+      if (!scrollToTopIfCurrent(item.path, location.pathname)) navigate(item.path)
     } else {
       navigate('/login')
     }

@@ -47,6 +47,7 @@ import {
 } from '@tabler/icons-react'
 import { Button, Group, Text, ThemeIcon, Tooltip, UnstyledButton, Collapse, Stack, ScrollArea, createStyles } from '@mantine/core'
 import { Link, useLocation } from 'react-router-dom'
+import { scrollToTopIfCurrent } from '../../../utils/scrollToTop.js'
 import { useAuth } from '../../../hooks/useAuth'
 import '../../../styles/scrollbar.css'
 import { isPathAvailable } from '../../../config/features.js'
@@ -158,6 +159,10 @@ function MainLinkContent ({ icon, color, label, link, onClick, adminOnly, expand
   const handleClick = (e) => {
     if (onClick) {
       onClick(e)
+    }
+    if (scrollToTopIfCurrent(link, location.pathname) && !(isMobile && onNavigate)) {
+      e.preventDefault()
+      return
     }
     if (isMobile && onNavigate) {
       e.preventDefault()
@@ -356,8 +361,13 @@ function SubmenuItem (props) {
 
 function SubmenuItemContent ({ icon, color, label, link, expanded, isMobile, onNavigate, isPremium, hasAccess }) {
   const { classes } = useStyles()
+  const location = useLocation()
 
   const handleClick = (e) => {
+    if (scrollToTopIfCurrent(link, location.pathname) && !(isMobile && onNavigate)) {
+      e.preventDefault()
+      return
+    }
     if (isMobile && onNavigate) {
       e.preventDefault()
       onNavigate(link)

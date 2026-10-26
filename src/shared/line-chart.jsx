@@ -7,11 +7,11 @@ import { transformToLine, transformToVolume } from '../utils/chartDataTransform.
 import { calculateSMA, calculateEMA } from '../utils/indicators.js'
 import { Badge, Group, Text, Loader, Center, Button, Checkbox, Stack, ActionIcon, Tooltip, Box } from '@mantine/core'
 import { IconRefresh, IconDownload, IconInfoCircle } from '@tabler/icons-react'
-import { trpc } from '../utils/trpc.jsx'
+import { useGameEvents } from '../hooks/useGameEvents.js'
+import { mentionsItem } from '../domain/gameUpdates/index.js'
 import ChartToolbar from '../components/charts/ChartToolbar.jsx'
 import IndicatorPanel from '../components/charts/IndicatorPanel.jsx'
 import logoImage from '../assets/highalch.png'
-import { BACKEND_ENABLED } from '../config/features.js'
 
 export default function LineChart ({ id, items, height = 600 }) {
   // Default chart to month
@@ -383,29 +383,25 @@ export default function LineChart ({ id, items, height = 600 }) {
   }, [])
 
   // Fetch blogs for annotations (load in parallel with chart data)
-  const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
-    startDate: historyData.length > 0 
-      ? new Date(Math.min(...historyData.map(d => d.timestamp * 1000)))
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default to 30 days for better coverage
-    endDate: historyData.length > 0
-      ? new Date(Math.max(...historyData.map(d => d.timestamp * 1000)))
-      : new Date()
-  }, {
-    enabled: BACKEND_ENABLED && !!id && (historyStatus === 'loading' || historyStatus === 'success'), // Enable during loading for parallel fetch
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: true, // Enable mount fetching for immediate loading
-    retry: 1, // Allow one retry for better reliability
-    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
-  })
+  const eventRange = useMemo(() => {
+    if (historyData.length === 0) {
+      // Default to 30 days for better coverage
+      return { startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), endDate: new Date() }
+    }
+    const times = historyData.map(d => d.timestamp * 1000)
+    return { startDate: new Date(Math.min(...times)), endDate: new Date(Math.max(...times)) }
+  }, [historyData])
 
-  const blogs = blogsQuery.data?.data?.blogs || []
-  const updates = blogsQuery.data?.data?.updates || []
-  
-  // Debug blog/update data
-  console.log('LineChart: Blog/update query status:', blogsQuery.status)
-  if (blogsQuery.error) console.log('LineChart: Blog/update query error:', blogsQuery.error)
-  console.log('LineChart: Blogs fetched:', blogs.length, 'Updates fetched:', updates.length)
+  const { blogs, updates } = useGameEvents({
+    ...eventRange,
+    enabled: !!id && (historyStatus === 'loading' || historyStatus === 'success'), // Enable during loading for parallel fetch
+    queryOptions: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true, // Enable mount fetching for immediate loading
+      retry: 1 // Allow one retry for better reliability
+    }
+  })
 
   const normalizedEvents = useMemo(() => {
     const normalizeDateToUnixSec = (value) => {
@@ -425,7 +421,8 @@ export default function LineChart ({ id, items, height = 600 }) {
         time,
         kind: 'blog',
         title: b.title ?? 'Developer Blog',
-        date: b.date
+        date: b.date,
+        mentionsItem: mentionsItem(b, id)
       })
     }
 
@@ -436,7 +433,8 @@ export default function LineChart ({ id, items, height = 600 }) {
         time,
         kind: 'update',
         title: u.title ?? 'Game Update',
-        date: u.updateDate ?? u.date
+        date: u.updateDate ?? u.date,
+        mentionsItem: mentionsItem(u, id)
       })
     }
 
@@ -451,7 +449,7 @@ export default function LineChart ({ id, items, height = 600 }) {
     }
 
     return deduped.sort((a, b) => a.time - b.time)
-  }, [blogs, updates])
+  }, [blogs, updates, id])
 
   // Update chart data when historyData changes
   useEffect(() => {
@@ -578,16 +576,17 @@ export default function LineChart ({ id, items, height = 600 }) {
 
       // Limit number of markers so dense historical data doesn't overwhelm UI
       const MAX_EVENT_DOTS = 60
-      const limitedEvents =
-        inRangeEvents.length > MAX_EVENT_DOTS
-          ? inRangeEvents.slice(inRangeEvents.length - MAX_EVENT_DOTS)
-          : inRangeEvents
+      // Always keep events that mention this item; fill the rest with the latest.
+      const mentioning = inRangeEvents.filter((ev) => ev.mentionsItem)
+      const others = inRangeEvents.filter((ev) => !ev.mentionsItem)
+      const otherSlots = Math.max(0, MAX_EVENT_DOTS - mentioning.length)
+      const limitedEvents = [...mentioning, ...(otherSlots > 0 ? others.slice(-otherSlots) : [])]
 
       for (const ev of limitedEvents) {
         const snapped = snapToNearestTime(highPriceData, ev.time)
         if (!snapped) continue
         const existing = eventMap.get(snapped) || []
-        existing.push({ title: ev.title, kind: ev.kind, date: ev.date })
+        existing.push({ title: ev.title, kind: ev.kind, date: ev.date, mentionsItem: ev.mentionsItem })
         eventMap.set(snapped, existing)
       }
 
@@ -604,6 +603,8 @@ export default function LineChart ({ id, items, height = 600 }) {
         const events = eventMap.get(time) || []
         const hasBlogs = events.some(e => e.kind === 'blog')
         const hasUpdates = events.some(e => e.kind === 'update')
+        // Bigger marker when an event at this time mentions the charted item
+        const markerSize = kind => (events.some(e => e.kind === kind && e.mentionsItem) ? 2 : 1)
         
         if (hasBlogs) {
           blogMarkers.push({
@@ -611,7 +612,8 @@ export default function LineChart ({ id, items, height = 600 }) {
             position: 'inBar',
             color: '#3b82f6', // Blue for blogs
             shape: 'circle',
-            text: ''
+            text: '',
+            size: markerSize('blog')
           })
         }
         
@@ -621,7 +623,8 @@ export default function LineChart ({ id, items, height = 600 }) {
             position: 'inBar',
             color: '#f59e0b', // Orange for updates
             shape: 'circle',
-            text: ''
+            text: '',
+            size: markerSize('update')
           })
         }
       })
@@ -645,7 +648,8 @@ export default function LineChart ({ id, items, height = 600 }) {
             value: highVal,
             title: meta[0]?.title ?? 'Event',
             kind: meta[0]?.kind ?? 'event',
-            date: meta[0]?.date
+            date: meta[0]?.date,
+            mentionsItem: meta.some(e => e.mentionsItem)
           })
         }
         if (typeof lowVal === 'number') {
@@ -656,7 +660,8 @@ export default function LineChart ({ id, items, height = 600 }) {
             value: lowVal,
             title: meta[0]?.title ?? 'Event',
             kind: meta[0]?.kind ?? 'event',
-            date: meta[0]?.date
+            date: meta[0]?.date,
+            mentionsItem: meta.some(e => e.mentionsItem)
           })
         }
       }
@@ -904,19 +909,21 @@ export default function LineChart ({ id, items, height = 600 }) {
               const series = d.series === 'high' ? highPriceSeriesRef.current : lowPriceSeriesRef.current
               const y = series?.priceToCoordinate?.(d.value)
               if (typeof x !== 'number' || typeof y !== 'number') return null
+              // Events that mention the charted item are bigger and bolder
+              const size = d.mentionsItem ? 12 : 8
 
               return (
                 <Box
                   key={d.id}
                   style={{
                     position: 'absolute',
-                    left: x - 4,
-                    top: y - 4,
-                    width: 8,
-                    height: 8,
+                    left: x - size / 2,
+                    top: y - size / 2,
+                    width: size,
+                    height: size,
                     borderRadius: 999,
                     background: d.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
-                    boxShadow: '0 0 0 2px rgba(0,0,0,0.35)',
+                    boxShadow: d.mentionsItem ? '0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,0.35)' : '0 0 0 2px rgba(0,0,0,0.35)',
                     pointerEvents: 'none'
                   }}
                 />
@@ -1014,9 +1021,14 @@ export default function LineChart ({ id, items, height = 600 }) {
                         flexShrink: 0
                       }}
                     />
-                    <Text size="sm" style={{ lineHeight: 1.2, flex: 1 }}>
-                      {e.title}
-                    </Text>
+                    <Box style={{ flex: 1 }}>
+                      <Text size="sm" weight={e.mentionsItem ? 700 : undefined} style={{ lineHeight: 1.2 }}>
+                        {e.title}
+                      </Text>
+                      {e.mentionsItem && (
+                        <Text size="xs" color="dimmed">Mentions {currentItem?.name || 'this item'}</Text>
+                      )}
+                    </Box>
                   </Group>
                 ))}
                 {hoveredEvents.items.length > 4 && (

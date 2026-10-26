@@ -53,8 +53,8 @@ import { useQuery } from '@tanstack/react-query'
 import { getItemHistoryById } from '../../api/rs-wiki-api.jsx'
 import { getItemById } from '../../utils/utils.jsx'
 import { calculateSMA, calculateEMA } from '../../utils/indicators.js'
-import { trpc } from '../../utils/trpc.jsx'
-import { BACKEND_ENABLED } from '../../config/features.js'
+import { useGameEvents } from '../../hooks/useGameEvents.js'
+import { mentionsItem } from '../../domain/gameUpdates/index.js'
 
 // Color Constants
 const COLORS = {
@@ -146,18 +146,15 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     return eventEnd
   }, [historyData])
 
-  const blogsQuery = trpc.gameEvents.getByDateRange.useQuery({
-    startDate, 
-    endDate
-  }, {
-    enabled: BACKEND_ENABLED && !!historyData && historyData.length > 0 && seriesVisibility.updates,
-    staleTime: 5 * 60 * 1000
+  const { blogs, updates } = useGameEvents({
+    startDate,
+    endDate,
+    enabled: !!historyData && historyData.length > 0 && seriesVisibility.updates
   })
 
+  const chartedItemId = Number(itemId ?? item?.id)
+
   const gameUpdates = useMemo(() => {
-    const blogs = blogsQuery.data?.data?.blogs || []
-    const updates = blogsQuery.data?.data?.updates || []
-    
     const combined = [
         ...blogs.map(b => ({
             id: `blog_${b.date}`,
@@ -165,7 +162,8 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
             title: b.title || 'Developer Blog',
             description: 'Read more on the OSRS homepage',
             type: 'blog',
-            color: COLORS.blog
+            color: COLORS.blog,
+            mentionsItem: mentionsItem(b, chartedItemId)
         })),
         ...updates.map(u => ({
             id: `update_${u.updateDate || u.date}`,
@@ -173,12 +171,13 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
             title: u.title || 'Game Update',
             description: u.category || 'Game Update',
             type: 'update',
-            color: COLORS.update
+            color: COLORS.update,
+            mentionsItem: mentionsItem(u, chartedItemId)
         }))
     ]
     
     return combined.sort((a, b) => a.date - b.date)
-  }, [blogsQuery.data])
+  }, [blogs, updates, chartedItemId])
 
   // Helper for date formatting
   const formatDateForTimeframe = (date, rng) => {
@@ -308,7 +307,14 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     const priceRange = maxPrice - minPrice
     const dotY = minPrice + (priceRange * 0.05)
     
-    const mapped = gameUpdates.map(u => ({
+    // Only events inside the visible window, so the events strip lines up
+    // with the price chart's x-axis.
+    const mapped = gameUpdates
+      .filter(u => {
+        const ts = u.date.getTime() / 1000
+        return ts >= leftBound && ts <= rightBound
+      })
+      .map(u => ({
         timestamp: u.date.getTime() / 1000, // Match chartData timestamp format (seconds)
         y: dotY,                            // Position at bottom of visible chart
         updateData: u,
@@ -317,8 +323,17 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
     }))
     
     
-    return mapped
+    // Draw events that mention this item last so they sit on top of neighbours
+    return [
+      ...mapped.filter(m => !m.updateData.mentionsItem),
+      ...mapped.filter(m => m.updateData.mentionsItem)
+    ]
   }, [gameUpdates, range, chartData, left, right, seriesVisibility])
+
+  const eventsDomain = useMemo(() => [
+    left === 'dataMin' ? (chartData[0]?.timestamp ?? 'dataMin') : left,
+    right === 'dataMax' ? (chartData[chartData.length - 1]?.timestamp ?? 'dataMax') : right
+  ], [left, right, chartData])
 
   // Update hover data
   useEffect(() => {
@@ -486,11 +501,17 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
         let nearbyEvent = null
         let closestEventDiff = Infinity
         
+        // Prefer events that mention this item, then the closest one
+        let nearbyMentionsItem = false
         updatesData.forEach(event => {
           const timeDiff = Math.abs(currentTimestamp - event.timestamp)
-          if (timeDiff <= gracePeriod && timeDiff < closestEventDiff) {
+          if (timeDiff > gracePeriod) return
+          const mentions = !!event.updateData.mentionsItem
+          const better = mentions !== nearbyMentionsItem ? mentions : timeDiff < closestEventDiff
+          if (better) {
             closestEventDiff = timeDiff
             nearbyEvent = event
+            nearbyMentionsItem = mentions
           }
         })
         
@@ -818,6 +839,9 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                     {data.updateData.type}
                 </Badge>
                 <Text size="sm" weight={600} color="white">{data.updateData.title}</Text>
+                {data.updateData.mentionsItem && (
+                    <Text size="xs" weight={700} color={data.updateData.color} mt={2}>Mentions {item?.name || 'this item'}</Text>
+                )}
                 <Text size="xs" color="dimmed" mt={2}>{data.updateData.description}</Text>
             </Box>
         )}
@@ -928,24 +952,23 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                 {/* Events Area using Recharts for proper alignment */}
                 {seriesVisibility.updates && (
                   <div style={{ height: 40, width: '100%', marginTop: -1, backgroundColor: 'rgba(26, 27, 30, 0.8)', position: 'relative', zIndex: 10 }}>
+                    {/* Same width, margins and right-hand y-axis gutter as the price chart so dots line up */}
+                    <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart 
                         {...commonChartProps} 
-                        width={800} 
-                        height={40} 
                         margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
                         data={updatesData.map(u => ({ timestamp: u.timestamp, y: 50, updateData: u.updateData }))}
                       >
-                        {/* Invisible axis */}
+                        {/* Invisible axes (hidden x-axis takes no height) */}
                         <XAxis
                           dataKey="timestamp" 
                           type="number"
-                          domain={[left, right]}
-                          tick={false}
-                          axisLine={false}
-                          tickLine={false}
+                          domain={eventsDomain}
+                          hide
                           allowDataOverflow
                         />
                         <YAxis 
+                          orientation="right"
                           domain={[0, 100]} 
                           tick={false}
                           axisLine={false}
@@ -974,6 +997,8 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                                 const isWithinGracePeriod = timeDiff <= gracePeriod
                                 const isHovered = activeTimestamp && isWithinGracePeriod
                                 const dotColor = payload.updateData.type === 'blog' ? '#3b82f6' : '#f59e0b'
+                                // Updates that mention the charted item are drawn bigger and bolder.
+                                const emphasis = payload.updateData.mentionsItem ? 1.5 : 1
                                 
                                 return (
                                   <g>
@@ -981,14 +1006,14 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                                     <circle 
                                       cx={cx} 
                                       cy={cy} 
-                                      r={isHovered ? 12 : 8}
+                                      r={(isHovered ? 12 : 8) * emphasis}
                                       fill={dotColor}
                                       opacity={isHovered ? 0.5 : 0.3}
                                     />
                                     <circle 
                                       cx={cx} 
                                       cy={cy} 
-                                      r={isHovered ? 7 : 5}
+                                      r={(isHovered ? 7 : 5) * emphasis}
                                       fill={dotColor}
                                       opacity={isHovered ? 0.8 : 0.6}
                                     />
@@ -996,10 +1021,10 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                                     <circle 
                                       cx={cx} 
                                       cy={cy} 
-                                      r={isHovered ? 4 : 3}
+                                      r={(isHovered ? 4 : 3) * emphasis}
                                       fill={dotColor}
                                       stroke="white"
-                                      strokeWidth={isHovered ? 2 : 1}
+                                      strokeWidth={(isHovered ? 2 : 1) * emphasis}
                                       style={{ cursor: 'pointer' }}
                                       opacity={1}
                                     />
@@ -1034,6 +1059,7 @@ const AdvancedChart = ({ itemId, items, item: itemProp, height = 600, showContro
                             />
                         )}
                       </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
 

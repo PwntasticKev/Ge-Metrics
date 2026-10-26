@@ -1,0 +1,46 @@
+name: Refresh Game Updates
+
+# Rebuilds public/data/game-updates.json (OSRS game updates and dev blogs from
+# the OSRS Wiki, used for chart markers) and opens a PR when it changed.
+
+on:
+  schedule:
+    # Daily at 7 AM UTC, after most Jagex news posts have been mirrored on the wiki
+    - cron: '0 7 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh-game-updates
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Regenerate game updates dataset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The generator only uses Node built-ins and src/domain/gameUpdates, so no npm install is needed.
+      - name: Generate game updates
+        run: node scripts/generate-game-updates.js
+
+      - name: Open or update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/refresh-game-updates
+          delete-branch: true
+          add-paths: public/data/game-updates.json
+          commit-message: 'chore: refresh game updates dataset'
+          title: 'chore: refresh game updates dataset'
+          body: |
+            Automated refresh of `public/data/game-updates.json` from the OSRS Wiki `Update:` pages
+            by `.github/workflows/refresh-game-updates.yml` (`npm run data:updates`).
