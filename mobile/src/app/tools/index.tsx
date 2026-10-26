@@ -130,10 +130,10 @@ export default function ToolsHub () {
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <ScreenHeader title="Tools" meta={market ? 'Live prices' : undefined} />
       <ScrollView ref={scrollRef} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.list}>
+        <Text style={[styles.section, styles.firstSection, { color: palette.muted }]}>Market</Text>
         <FeaturedCard href="/tools/scanner" title="Market scanner" blurb="Margins that just opened, steady 7-day trends, dips below the 30-day mean, and whether the market is up or down today." icon="Market stall.png" best={null} />
-        {featured.map(f => (
-          <FeaturedCard key={f.key} href={`/tools/${f.key}`} title={f.method.title} blurb={f.method.blurb} icon={f.icon} best={f.best} />
-        ))}
+        <FeaturedCard href="/tools/coming-up" title="Coming up" blurb="Items named in dev blogs, polls and next-week news, before they ship. Buy early; see what already moved." icon="Spyglass.png" best={null} />
+        <FeaturedCard href="/tools/pumps" title="Pumps & dumps" blurb="Sharp price moves on few trades. They often snap back, so don't buy into them." icon="Grand Exchange icon.png" best={null} />
         <FeaturedCard
           href="/tools/update-movers"
           title="Update movers"
@@ -142,10 +142,15 @@ export default function ToolsHub () {
           best={latestPost}
           bestLabel="Latest"
         />
-        <FeaturedCard href="/tools/mini-window" title="Mini window" blurb="Live prices in a small floating window over the game. Picture in Picture, like a video." icon="Watch.png" best={null} />
+
+        <Text style={[styles.section, { color: palette.muted }]}>While you play</Text>
         <AlertsCard />
-        <FeaturedCard href="/tools/coming-up" title="Coming up" blurb="Items named in dev blogs, polls and next-week news, before they ship. Buy early; see what already moved." icon="Spyglass.png" best={null} />
-        <FeaturedCard href="/tools/pumps" title="Pumps & dumps" blurb="Sharp price moves on few trades. They often snap back, so don't buy into them." icon="Grand Exchange icon.png" best={null} />
+        <FeaturedCard href="/tools/mini-window" title="Mini window" blurb="Live prices in a small floating window over the game. Picture in Picture, like a video." icon="Watch.png" best={null} />
+
+        <Text style={[styles.section, { color: palette.muted }]}>Money making</Text>
+        {featured.map(f => (
+          <FeaturedCard key={f.key} href={`/tools/${f.key}`} title={f.method.title} blurb={f.method.blurb} icon={f.icon} best={f.best} />
+        ))}
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
@@ -171,6 +176,7 @@ const styles = StyleSheet.create({
   bestLabel: { flex: 1, fontSize: 13 },
   bestValue: { fontSize: 15, fontWeight: '700' },
   section: { fontSize: 13, fontWeight: '600', marginTop: space.sm },
+  firstSection: { marginTop: 0 },
   group: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: 11 },
   rowTitle: { fontSize: 15, fontWeight: '600' },
