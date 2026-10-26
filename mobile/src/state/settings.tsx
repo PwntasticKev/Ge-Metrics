@@ -1,10 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { DEFAULT_MAX_SELL_HOURS, isMaxSellHours } from '../lib/fillAware'
+import { isMiniSource, type MiniSource } from '../lib/miniWindow'
 import { loadJson, saveJson } from './storage'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
+export type OrientationPreference = 'auto' | 'portrait' | 'landscape'
+
+const ORIENTATIONS: readonly OrientationPreference[] = ['auto', 'portrait', 'landscape']
 
 export interface Settings {
   theme: ThemePreference
+  orientation: OrientationPreference
   hideStale: boolean
   hideFlukes: boolean
   membersItems: boolean
@@ -12,15 +18,25 @@ export interface Settings {
   budget: number | null
   /** The one-time "tap a set" tip has been dismissed. */
   seenSetsTip: boolean
+  /** What the Picture in Picture mini window shows. */
+  miniSource: MiniSource
+  /** Open the mini window when you leave the app. */
+  miniAutoStart: boolean
+  /** Picks and scanner rows whose sell takes longer than this go to "Slow to fill". */
+  maxSellHours: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  orientation: 'portrait',
   hideStale: true,
   hideFlukes: true,
   membersItems: true,
   budget: null,
-  seenSetsTip: false
+  seenSetsTip: false,
+  miniSource: 'watchlist',
+  miniAutoStart: false,
+  maxSellHours: DEFAULT_MAX_SELL_HOURS
 }
 
 const KEY = 'gem.settings.v1'
@@ -42,7 +58,11 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadJson(KEY, {}, isSettings).then(stored => {
       const budget = typeof stored.budget === 'number' && stored.budget > 0 ? stored.budget : null
-      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget })
+      const orientation = ORIENTATIONS.includes(stored.orientation as OrientationPreference) ? stored.orientation as OrientationPreference : DEFAULT_SETTINGS.orientation
+      const miniSource = isMiniSource(stored.miniSource) ? stored.miniSource : DEFAULT_SETTINGS.miniSource
+      const miniAutoStart = stored.miniAutoStart === true
+      const maxSellHours = isMaxSellHours(stored.maxSellHours) ? stored.maxSellHours : DEFAULT_MAX_SELL_HOURS
+      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours })
     })
   }, [])
 

@@ -1,4 +1,6 @@
+import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
+import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { gpFull } from '../lib/format'
 import { useTheme } from '../theme/ThemeProvider'
@@ -13,8 +15,34 @@ export function PriceLine ({ tag, icon, label, price, divider = false }: { tag: 
       <Text style={[styles.tag, { color: palette.muted }]}>{tag}</Text>
       {icon !== undefined ? <ItemIcon icon={icon} size={20} framed={false} /> : null}
       <Text style={[styles.label, { color: palette.ink }]} numberOfLines={1}>{label}</Text>
-      <Text style={[styles.price, { color: palette.ink }]} selectable>{gpFull(price)}</Text>
+      <CopyPrice price={price} />
     </View>
+  )
+}
+
+const COPIED_MS = 1200
+
+// Tap a price to copy it, ready to paste into the GE on OSRS mobile.
+export function CopyPrice ({ price }: { price: number }) {
+  const { palette } = useTheme()
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), COPIED_MS)
+    return () => clearTimeout(timer)
+  }, [copied])
+  const copy = () => {
+    Clipboard.setStringAsync(String(Math.round(price)))
+      .then(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        setCopied(true)
+      })
+      .catch(error => console.warn('Could not copy the price', error))
+  }
+  return (
+    <Pressable onPress={copy} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Copy ${gpFull(price)}`}>
+      <Text style={[styles.price, { color: copied ? palette.brand : palette.ink }]}>{copied ? 'Copied' : gpFull(price)}</Text>
+    </Pressable>
   )
 }
 
@@ -32,7 +60,7 @@ export function ProfitFooter ({ tax, profit, starred, onStar }: { tax: number; p
         <Text style={[styles.star, { color: starred ? palette.brand : palette.muted }]}>{starred ? '★ Watching' : '☆ Watch'}</Text>
       </Pressable>
       <Text style={[styles.tax, { color: palette.muted }]}>After {gpFull(tax)} tax</Text>
-      <Text style={[styles.profit, { color: palette.profit }]}>{profit >= 0 ? '+' : ''}{gpFull(profit)}</Text>
+      <Text style={[styles.profit, { color: profit > 0 ? palette.profit : palette.ink }]}>{profit >= 0 ? '+' : ''}{gpFull(profit)}</Text>
     </View>
   )
 }

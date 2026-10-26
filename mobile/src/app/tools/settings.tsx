@@ -1,17 +1,25 @@
 import Constants from 'expo-constants'
+import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { useSettings, type Settings, type ThemePreference } from '../state/settings'
-import { useWatchlist } from '../state/watchlist'
-import { useTheme } from '../theme/ThemeProvider'
-import { space } from '../theme/tokens'
+import { MAX_SELL_HOUR_OPTIONS } from '../../lib/fillAware'
+import { useMiniWindow } from '../../state/miniWindow'
+import { useSettings, type OrientationPreference, type Settings, type ThemePreference } from '../../state/settings'
+import { useWatchlist } from '../../state/watchlist'
+import { useTheme } from '../../theme/ThemeProvider'
+import { space } from '../../theme/tokens'
 
 const WEBSITE = 'https://ge-metrics.vercel.app'
 const THEMES: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' }
+]
+
+const ORIENTATIONS: { value: OrientationPreference; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'portrait', label: 'Vertical' },
+  { value: 'landscape', label: 'Horizontal' }
 ]
 
 const BUDGETS: { value: number | null; label: string }[] = [
@@ -21,6 +29,8 @@ const BUDGETS: { value: number | null; label: string }[] = [
   { value: 1e8, label: '100M' },
   { value: 1e9, label: '1B' }
 ]
+
+const SELL_HOURS: { value: number; label: string }[] = MAX_SELL_HOUR_OPTIONS.map(h => ({ value: h, label: `${h}h` }))
 
 function Section ({ title, children }: { title: string; children: React.ReactNode }) {
   const { palette } = useTheme()
@@ -81,9 +91,43 @@ function Segmented<T> ({ options, value, onChange }: { options: { value: T; labe
   )
 }
 
+function MiniAutoStartToggle () {
+  const { settings, update } = useSettings()
+  const { palette } = useTheme()
+  return (
+    <Switch
+      value={settings.miniAutoStart}
+      onValueChange={value => update({ miniAutoStart: value })}
+      trackColor={{ true: palette.brand, false: palette.well }}
+    />
+  )
+}
+
+function MiniWindowSection () {
+  const { palette } = useTheme()
+  const { supported } = useMiniWindow()
+  if (!supported) return null
+  return (
+    <Section title="Mini window">
+      <Row label="Open when I leave the app" detail="Live prices float over the game in Picture in Picture" right={<MiniAutoStartToggle />} />
+      <Row label="Choose what it shows" onPress={() => router.push('/tools/mini-window')} right={<Text style={{ color: palette.brand }}>›</Text>} last />
+    </Section>
+  )
+}
+
 function ThemePicker () {
   const { settings, update } = useSettings()
   return <Segmented options={THEMES} value={settings.theme} onChange={theme => update({ theme })} />
+}
+
+function OrientationPicker () {
+  const { settings, update } = useSettings()
+  return <Segmented options={ORIENTATIONS} value={settings.orientation} onChange={orientation => update({ orientation })} />
+}
+
+function SellHoursPicker () {
+  const { settings, update } = useSettings()
+  return <Segmented options={SELL_HOURS} value={settings.maxSellHours} onChange={maxSellHours => update({ maxSellHours })} />
 }
 
 function BudgetPicker () {
@@ -91,26 +135,28 @@ function BudgetPicker () {
   return <Segmented options={BUDGETS} value={settings.budget} onChange={budget => update({ budget })} />
 }
 
-export default function MeScreen () {
+export default function SettingsScreen () {
   const { palette } = useTheme()
   const { entries } = useWatchlist()
   const version = Constants.expoConfig?.version ?? ''
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
-      <ScreenHeader title="Me" />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: space.xl }}>
         <Section title="Display">
-          <Row label="Theme" right={<ThemePicker />} last />
+          <Row label="Theme" right={<ThemePicker />} />
+          <Row label="Orientation" detail="Auto follows how you hold the phone" below={<OrientationPicker />} last />
         </Section>
         <Section title="Your cash">
-          <Row label="Cash stack" detail="Only show what you can afford, and cap 4h profit to it" below={<BudgetPicker />} last />
+          <Row label="Cash stack" detail="Only show what you can afford, and cap 4h profit to it" below={<BudgetPicker />} />
+          <Row label="Slowest sell to show" detail="Picks and scanner rows that would take longer to sell move to Slow to fill" below={<SellHoursPicker />} last />
         </Section>
         <Section title="Prices">
           <Row label="Hide stale prices" detail="Older than 6 hours" right={<Toggle setting="hideStale" />} />
           <Row label="Hide fluke trades" detail="Margins over 25% are almost always one odd trade" right={<Toggle setting="hideFlukes" />} />
           <Row label="Members items" right={<Toggle setting="membersItems" />} last />
         </Section>
+        <MiniWindowSection />
         <Section title="About">
           <Row label="Watchlist" detail="Saved on this phone, no account needed" right={<Text style={{ color: palette.muted }}>{entries.length}</Text>} />
           <Row label="Prices from" detail="OSRS Wiki real-time prices, refreshed every minute" />

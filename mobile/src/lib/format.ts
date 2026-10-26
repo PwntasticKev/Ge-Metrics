@@ -52,3 +52,60 @@ export function shortSetName (name: string): string {
 export function stripUncharged (name: string): string {
   return name.replace(/ \(uncharged\)$/i, '')
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+// "14 Oct 2026" for a UTC day (wiki post dates).
+export function utcDay (ms: number): string {
+  const d = new Date(ms)
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+}
+
+// A chart point in local time, as precise as its step: "14 Oct 14:35" or "14 Oct 2026".
+export function chartTime (ms: number, withTime: boolean): string {
+  const d = new Date(ms)
+  const day = `${d.getDate()} ${MONTHS[d.getMonth()]}`
+  return withTime ? `${day} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` : `${day} ${d.getFullYear()}`
+}
+
+// Exact under 10M (what you type into the GE), short above.
+export function gpPrice (n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return '–'
+  return Math.abs(n) < 1e7 ? gpFull(n) : gpShort(n)
+}
+
+// "▲ 4.2%" / "▼ 1.3%"
+export function changeText (ratio: number): string {
+  return `${ratio >= 0 ? '▲' : '▼'} ${(Math.abs(ratio) * 100).toFixed(1)}%`
+}
+
+// Expected waits: "~5m", "~40m", "~1.5h", "~9h", "~2d", "rarely fills".
+export function duration (hours: number): string {
+  if (!Number.isFinite(hours)) return 'rarely fills'
+  const mins = hours * 60
+  if (mins < 57.5) return `~${Math.max(5, Math.round(mins / 5) * 5)}m`
+  if (hours < 9.95) return `~${trim(hours.toFixed(1))}h`
+  if (hours < 47.5) return `~${Math.round(hours)}h`
+  return `~${Math.round(hours / 24)}d`
+}
+
+// "0.8%" for small timing edges, which round to 0 with percent().
+export function edgePercent (ratio: number): string {
+  return Number.isFinite(ratio) ? `${trim((Math.abs(ratio) * 100).toFixed(1))}%` : '–'
+}
+
+// Time held, no "~": "35m", "2.5h", "18h", "3d".
+export function heldFor (hours: number | null): string {
+  if (hours === null || !Number.isFinite(hours)) return '–'
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}m`
+  if (hours < 10) return `${trim(hours.toFixed(1))}h`
+  if (hours < 48) return `${Math.round(hours)}h`
+  return `${Math.round(hours / 24)}d`
+}
+
+// "14 Oct" in local time.
+export function shortDay (ms: number): string {
+  const d = new Date(ms)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}

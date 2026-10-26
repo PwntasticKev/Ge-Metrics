@@ -1,4 +1,5 @@
-import { type ReactElement, type ReactNode } from 'react'
+import { useScrollToTop } from 'expo-router'
+import { useRef, type ReactElement, type ReactNode } from 'react'
 import { FlatList, RefreshControl, View } from 'react-native'
 import type { MarketState } from '../api/useMarket'
 import { minutesAgo } from '../lib/format'
@@ -17,9 +18,13 @@ interface Props<T> {
 }
 
 // Shared shell for the Sets and Items lists: fixed header, pull to refresh,
-// and the loading / error / empty states.
+// and the loading / error / empty states. Tapping the active tab scrolls the
+// list back to the top (iOS convention); the native tabs can't find this list
+// themselves because the header sits above it.
 export function FlipListScreen<T> ({ header, market, data, keyOf, renderRow, extraData, empty, footer }: Props<T>) {
   const { palette } = useTheme()
+  const listRef = useRef<FlatList<T>>(null)
+  useScrollToTop(listRef)
   const refreshFailed = market.error && market.market
 
   let body: ReactNode
@@ -28,6 +33,7 @@ export function FlipListScreen<T> ({ header, market, data, keyOf, renderRow, ext
   else {
     body = (
       <FlatList
+        ref={listRef}
         data={data}
         keyExtractor={keyOf}
         renderItem={({ item }) => renderRow(item)}
@@ -36,6 +42,9 @@ export function FlipListScreen<T> ({ header, market, data, keyOf, renderRow, ext
         windowSize={9}
         contentInsetAdjustmentBehavior="automatic"
         keyboardDismissMode="on-drag"
+        // Forms in expanded rows (alerts, "I bought these") stay above the keyboard.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={<EmptyState {...empty} />}
         ListFooterComponent={footer ? <View>{footer}</View> : undefined}
         refreshControl={<RefreshControl refreshing={market.isRefreshing} onRefresh={market.refresh} tintColor={palette.brand} />}

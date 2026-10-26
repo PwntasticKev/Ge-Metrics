@@ -1,11 +1,21 @@
-import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
+// Defines the background alert task before any navigation runs.
+import '../lib/alertTask'
+import { focusManager } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router'
 import { NativeTabs } from 'expo-router/native-tabs'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { AppState, Platform } from 'react-native'
+import { AlertsWatcher } from '../components/AlertsWatcher'
+import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createQueryClient, persister, shouldPersist } from '../api/queryCache'
+import { useOrientationLock } from '../state/orientation'
+import { FlipsProvider } from '../state/flips'
+import { ItemSheetProvider } from '../state/itemSheet'
+import { MiniWindowProvider } from '../state/miniWindow'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
+import { WidgetSync } from '../state/widgetSync'
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider'
 
 // Refetch prices when the app comes back to the foreground.
@@ -28,6 +38,10 @@ function Tabs () {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NativeTabs tintColor={palette.brand} backgroundColor={palette.bar}>
         <NativeTabs.Trigger name="index">
+          <NativeTabs.Trigger.Label>Buy now</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'cart', selected: 'cart.fill' }} md="shopping_cart" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="sets">
           <NativeTabs.Trigger.Label>Sets</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: 'square.grid.2x2', selected: 'square.grid.2x2.fill' }} md="grid_view" />
         </NativeTabs.Trigger>
@@ -43,29 +57,40 @@ function Tabs () {
           <NativeTabs.Trigger.Label>Tools</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: 'wand.and.stars', selected: 'wand.and.stars' }} md="auto_fix_high" />
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="me">
-          <NativeTabs.Trigger.Label>Me</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
-        </NativeTabs.Trigger>
       </NativeTabs>
     </NavigationThemeProvider>
   )
 }
 
+function OrientationLock () {
+  useOrientationLock()
+  return null
+}
+
 export default function RootLayout () {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: true } }
-  }))
+  const [queryClient] = useState(createQueryClient)
   useAppFocus()
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: CACHE_MAX_AGE_MS, buster: CACHE_BUSTER, dehydrateOptions: { shouldDehydrateQuery: shouldPersist } }}
+    >
       <SettingsProvider>
         <ThemeProvider>
           <WatchlistProvider>
-            <Tabs />
+            <FlipsProvider>
+              <MiniWindowProvider>
+                <ItemSheetProvider>
+                  <OrientationLock />
+                  <WidgetSync />
+                  <AlertsWatcher />
+                  <Tabs />
+                </ItemSheetProvider>
+              </MiniWindowProvider>
+            </FlipsProvider>
           </WatchlistProvider>
         </ThemeProvider>
       </SettingsProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   )
 }

@@ -12,6 +12,8 @@ export interface Palette {
   profit: string
   bar: string
   onBrand: string
+  /** Second chart series (buy / low price); the sell line uses `brand`. */
+  buyLine: string
 }
 
 export const LIGHT: Palette = {
@@ -24,7 +26,8 @@ export const LIGHT: Palette = {
   brand: '#3355FF',
   profit: '#2541E8',
   bar: '#FFFFFF',
-  onBrand: '#FFFFFF'
+  onBrand: '#FFFFFF',
+  buyLine: '#1A9BD7'
 }
 
 export const DARK: Palette = {
@@ -37,7 +40,8 @@ export const DARK: Palette = {
   brand: '#8EA2FF',
   profit: '#A9B8FF',
   bar: '#121A3D',
-  onBrand: '#0E1430'
+  onBrand: '#0E1430',
+  buyLine: '#5CC8F5'
 }
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const

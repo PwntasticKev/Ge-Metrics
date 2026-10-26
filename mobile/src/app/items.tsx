@@ -17,6 +17,12 @@ const SORTS = [
   { value: 'roi', label: 'ROI' }
 ] as const
 
+function headerMeta (total: number, query: string, budget: number | null): string {
+  const count = total.toLocaleString('en-US')
+  if (query.trim()) return `${count} ${total === 1 ? 'match' : 'matches'}`
+  return `${count} profitable${budget ? ` with ${gpShort(budget)}` : ''}`
+}
+
 export default function ItemsScreen () {
   const market = useMarket()
   const { palette } = useTheme()
@@ -33,7 +39,7 @@ export default function ItemsScreen () {
       header={
         <ScreenHeader
           title="Items"
-          meta={market.market ? `${total.toLocaleString('en-US')} profitable${settings.budget ? ` with ${gpShort(settings.budget)}` : ''}` : undefined}
+          meta={market.market ? headerMeta(total, query, settings.budget) : undefined}
           search={{ value: query, onChange: setQuery, placeholder: 'Search items' }}
         >
           <Tabs options={SORTS} value={sortBy} onChange={setSortBy} />
