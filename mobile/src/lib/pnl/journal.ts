@@ -193,3 +193,18 @@ export function mergeJournal (base: Journal, extra: Journal): MergeResult {
     skipped: extra.lots.length - newLots.length + extra.flips.length - newFlips.length
   }
 }
+
+/**
+ * Removes a lot. Lots bought in the same buy-limit window share one reminder,
+ * stored on the first lot; when that lot goes while others in the window are
+ * still open, the reminder moves to one of them instead of being cancelled.
+ * Returns the reminder to cancel, if nothing is left to carry it.
+ */
+export function dropLot (lots: readonly Lot[], id: string): { lots: Lot[]; cancel: string | null } {
+  const lot = lots.find(h => h.id === id)
+  const rest = lots.filter(h => h.id !== id)
+  if (!lot?.reminderId) return { lots: rest, cancel: null }
+  const heir = rest.find(h => h.itemId === lot.itemId && h.windowStart === lot.windowStart)
+  if (!heir) return { lots: rest, cancel: lot.reminderId }
+  return { lots: rest.map(h => (h === heir ? { ...h, reminderId: h.reminderId ?? lot.reminderId } : h)), cancel: null }
+}

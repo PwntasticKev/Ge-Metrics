@@ -9,6 +9,7 @@ import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
 import { space } from '../theme/tokens'
 import { PriceLine } from './DetailLines'
+import { ItemAlerts } from './alerts/ItemAlerts'
 import { ItemIcon } from './ItemIcon'
 import { LogBuy } from './LogBuy'
 import { ItemChart, type Timestep } from './chart/ItemChart'
@@ -107,7 +108,7 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} scrollEnabled={!scrubbing}>
+    <ScrollView contentContainerStyle={styles.content} scrollEnabled={!scrubbing} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <ItemIcon icon={item.icon} size={44} />
         <View style={{ flex: 1 }}>
@@ -148,6 +149,7 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
           <Text style={[styles.action, { color: palette.brand }]}>{isStarred({ kind: 'item', id: item.id }) ? '★ Watching' : '☆ Watch'}</Text>
         </Pressable>
       </View>
+      <ItemAlerts item={{ itemId: item.id, name: item.name, icon: item.icon, high: item.high, low: item.low, margin: flip?.profit ?? null }} />
       {flip ? <LogBuy itemId={item.id} name={item.name} icon={item.icon} qty={flip.maxQty || 1} price={flip.buyAt} /> : null}
     </ScrollView>
   )

@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, type ReactNode } from 'react'
 import type { ItemFlip } from '@ge/engine'
 import { gpShort, signed, stripUncharged } from '../lib/format'
 import { useWatchlist } from '../state/watchlist'
@@ -8,7 +8,7 @@ import { DetailsLink } from './DetailsLink'
 import { LogBuy } from './LogBuy'
 import { Sparkline } from './Sparkline'
 
-export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle }: { flip: ItemFlip; expanded: boolean; onToggle: (id: number) => void }) {
+export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle, footer }: { flip: ItemFlip; expanded: boolean; onToggle: (id: number) => void; footer?: ReactNode }) {
   const { isStarred, toggle } = useWatchlist()
   const entry = { kind: 'item', id: flip.id } as const
   const losing = flip.profit <= 0
@@ -30,6 +30,7 @@ export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle
       <ProfitFooter tax={flip.tax} profit={flip.profit} starred={isStarred(entry)} onStar={() => toggle(entry)} />
       <DetailsLink itemId={flip.id} />
       <LogBuy itemId={flip.id} name={flip.name} icon={flip.icon} qty={flip.maxQty || 1} price={flip.buyAt} />
+      {footer}
     </FlipRow>
   )
 })

@@ -18,7 +18,9 @@
       "infoPlist": {
         "CFBundleDisplayName": "GE Metrics",
         "UIBackgroundModes": [
-          "audio"
+          "audio",
+          "fetch",
+          "processing"
         ]
       },
       "icon": {
@@ -68,7 +70,8 @@
       ],
       "expo-sharing",
       "./plugins/withAppStoreSigning",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -5,7 +5,7 @@ import { profitChartGeometry } from '../pnl/chart.ts'
 import { sampleJournal } from '../pnl/sample.ts'
 import { csvToJournal, journalToCsv, parseCsvRows } from '../pnl/csv.ts'
 import { holdVsLimit, losingItems, unrealized } from '../pnl/insights.ts'
-import { flipProfit, MAX_GE_INT, mergeJournal, parseJournal, realize, saleTax, toFlip, type Flip, type ItemTaxOf, type Journal, type Lot } from '../pnl/journal.ts'
+import { dropLot, flipProfit, MAX_GE_INT, mergeJournal, parseJournal, realize, saleTax, toFlip, type Flip, type ItemTaxOf, type Journal, type Lot } from '../pnl/journal.ts'
 import { flipRoi, gpPerHour, holdHours, MIN_HOLD_HOURS } from '../pnl/metrics.ts'
 import { bestAndWorst, dailyBars, itemLeaderboard, localDayStart, periodTotals, totals } from '../pnl/summary.ts'
 
@@ -323,5 +323,31 @@ describe('sample flips', () => {
     assert.ok(a.flips.length > 30)
     assert.ok(a.flips.every(f => f.soldAt < now && (f.boughtAt ?? 0) <= f.soldAt))
     assert.ok(a.flips.some(f => f.profit < 0) && a.flips.some(f => f.profit > 0))
+  })
+})
+
+describe('dropLot', () => {
+  const lot = (id: string, itemId: number, windowStart: number, reminderId: string | null): Lot => ({
+    id, itemId, name: 'Item', icon: null, qty: 1, buyPrice: 100, boughtAt: windowStart, windowStart, reminderId
+  })
+
+  it('cancels the reminder when no other lot shares its window', () => {
+    const { lots, cancel } = dropLot([lot('a', WHIP, 1, 'r1'), lot('b', WHIP, 2, null)], 'a')
+    assert.equal(cancel, 'r1')
+    assert.deepEqual(lots.map(l => l.id), ['b'])
+  })
+
+  it('moves a shared window reminder to a lot still open in that window', () => {
+    const before = [lot('a', WHIP, 1, 'r1'), lot('b', WHIP, 1, null), lot('c', BOND, 1, null)]
+    const { lots, cancel } = dropLot(before, 'a')
+    assert.equal(cancel, null)
+    assert.deepEqual(lots.map(l => [l.id, l.reminderId]), [['b', 'r1'], ['c', null]])
+    assert.equal(before[1].reminderId, null, 'input left untouched')
+  })
+
+  it('does nothing to reminders for a lot without one', () => {
+    const { lots, cancel } = dropLot([lot('a', WHIP, 1, 'r1'), lot('b', WHIP, 1, null)], 'b')
+    assert.equal(cancel, null)
+    assert.deepEqual(lots.map(l => [l.id, l.reminderId]), [['a', 'r1']])
   })
 })

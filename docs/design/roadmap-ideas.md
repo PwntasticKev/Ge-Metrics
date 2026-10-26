@@ -40,6 +40,7 @@ Ground rules carried over from earlier decisions:
 | CSV export and restore | Share sheet export of the whole journal; restore from a picked CSV adds what's missing without duplicating. |
 | Home and lock screen widget (iOS) | Small, medium and lock screen sizes. Edit the widget to show Buy now picks, Watchlist or Bought items. The app shares which items to show through an App Group; the widget fetches live wiki prices itself every ~20 minutes. Tap opens the item. |
 | Mini window (PiP) | Up to 5 live prices (watchlist items, Buy now picks or holdings) in a Picture in Picture window over the game. Optional auto-open when leaving the app. Native refresh every minute while it's up. |
+| Price and margin alerts | Per-item rules (price at/below or at/above on the buy or sell side, margin after tax, 1h dump/pump %) with a cooldown. Checked on every refresh while open and by `expo-background-task` when iOS allows; local notification opens the item. Tools, Alerts lists rules, buy limit resets and recent triggers. |
 
 ## Done in this round (web)
 
@@ -50,10 +51,8 @@ Ground rules carried over from earlier decisions:
 
 ## Next for the app, highest value first
 
-1. **Margin alerts without a server.** iOS background fetch
-   (`expo-background-task`) checks watched items every ~15 to 30 minutes and
-   fires a local notification when a margin crosses a threshold you set. Not
-   real time (iOS decides when it runs), but no server.
+1. **Alerts follow-ups.** Price and margin alerts shipped (see above). Next:
+   alerts for a whole watchlist at once, and a widget showing the last trigger.
 2. **Profit history follow-ups.** Shipped as the Profit view; next is a
    widget line for today's profit and per-item notes ("why I
    bought") on journal entries.

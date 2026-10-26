@@ -1,6 +1,6 @@
 import { geTax } from '@ge/engine'
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
-import { mergeJournal, parseJournal, realize, MAX_FLIPS, type Flip, type Journal, type Lot, type MergeResult } from '../lib/pnl/journal'
+import { dropLot, mergeJournal, parseJournal, realize, MAX_FLIPS, type Flip, type Journal, type Lot, type MergeResult } from '../lib/pnl/journal'
 import { BUY_LIMIT_WINDOW_MS, cancelReminder, scheduleLimitReminder } from '../lib/reminders'
 import { usePersistentState } from './usePersistentState'
 
@@ -64,7 +64,7 @@ export function FlipsProvider ({ children }: { children: ReactNode }) {
     const flipId = newId()
     const check = lot ? realize(lot, sellPrice, qty ?? lot.qty, soldAt, geTax, flipId) : null
     if (!lot || !check) return false
-    if (!check.remaining) cancelReminder(lot.reminderId)
+    if (!check.remaining) cancelReminder(dropLot(stateRef.current.lots, id).cancel)
     // Realized again from the latest state, so two quick sells can't both sell the same items.
     setState(prev => {
       const current = prev.lots.find(h => h.id === id)
@@ -72,7 +72,7 @@ export function FlipsProvider ({ children }: { children: ReactNode }) {
       if (!result) return prev
       const { remaining } = result
       return {
-        lots: remaining ? prev.lots.map(h => (h.id === id ? remaining : h)) : prev.lots.filter(h => h.id !== id),
+        lots: remaining ? prev.lots.map(h => (h.id === id ? remaining : h)) : dropLot(prev.lots, id).lots,
         flips: [result.flip, ...prev.flips].slice(0, MAX_FLIPS)
       }
     })
@@ -80,8 +80,8 @@ export function FlipsProvider ({ children }: { children: ReactNode }) {
   }, [setState])
 
   const removeHolding = useCallback((id: string) => {
-    cancelReminder(stateRef.current.lots.find(h => h.id === id)?.reminderId ?? null)
-    setState(prev => ({ ...prev, lots: prev.lots.filter(h => h.id !== id) }))
+    cancelReminder(dropLot(stateRef.current.lots, id).cancel)
+    setState(prev => ({ ...prev, lots: dropLot(prev.lots, id).lots }))
   }, [setState])
 
   const removeFlip = useCallback((id: string) => {
