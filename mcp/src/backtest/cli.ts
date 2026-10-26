@@ -1,6 +1,9 @@
 // `npm run backtest`: runs every strategy variant over the last N days and
 // writes mcp/reports/backtest-YYYY-MM-DD.md. Flags: --days 14 --cash 50000000
-// --slots 8 --strategy all --every 4 --out <file>.
+// --slots 8 --strategy all --every 4 --out <file> --now <ISO time or unix sec>.
+// `--walk-forward` instead tunes on rolling training windows and scores on the
+// following unseen ones (walkforward/): --days 60 --train 7 --test 2 --step 2
+// --grid full|smoke.
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -15,6 +18,8 @@ import { DEFAULT_RULES } from './simulate.js'
 import { selectStrategies } from './strategies/index.js'
 import { sensitivitySection } from './sensitivity.js'
 import { diagnosticsSection } from './diagnostics.js'
+import { WF_DEFAULTS } from './walkforward/run.js'
+import { walkForwardMain } from './walkforward/main.js'
 
 const SENSITIVITY_PARTICIPATION = [0.1, 0.5] as const
 
@@ -24,10 +29,26 @@ function positive (name: string, raw: string): number {
   return v
 }
 
+function nowFrom (raw: string | undefined): number {
+  if (raw === undefined) return Math.floor(Date.now() / 1000)
+  const sec = /^\d+$/.test(raw) ? Number(raw) : Math.floor(Date.parse(raw) / 1000)
+  if (!Number.isFinite(sec) || sec <= 0) throw new Error(`--now must be an ISO time or unix seconds (got "${raw}")`)
+  return sec
+}
+
+// The wiki's /1h?timestamp= served full snapshots 2 years back when this was written (probed 2026-10-26).
+const HISTORY_NOTE = 'the wiki\'s /1h?timestamp= (and /5m) returned full snapshots (~3,000 items) at every probe back to 730 days ago, so history is not the limit; this run uses the last ~60 days plus 7 days of lookback.'
+
 async function main (): Promise<void> {
   const { values } = parseArgs({
     options: {
-      days: { type: 'string', default: '14' },
+      days: { type: 'string' },
+      now: { type: 'string' },
+      'walk-forward': { type: 'boolean', default: false },
+      train: { type: 'string', default: String(WF_DEFAULTS.trainDays) },
+      test: { type: 'string', default: String(WF_DEFAULTS.testDays) },
+      step: { type: 'string', default: String(WF_DEFAULTS.stepDays) },
+      grid: { type: 'string', default: 'full' },
       cash: { type: 'string', default: '50000000' },
       slots: { type: 'string', default: '8' },
       every: { type: 'string', default: '4' },
@@ -35,15 +56,33 @@ async function main (): Promise<void> {
       out: { type: 'string' }
     }
   })
+  const nowSec = nowFrom(values.now)
+  if (values['walk-forward']) {
+    if (values.grid !== 'full' && values.grid !== 'smoke') throw new Error(`--grid must be full or smoke (got "${values.grid}")`)
+    return walkForwardMain({
+      config: {
+        days: positive('days', values.days ?? String(WF_DEFAULTS.days)),
+        cash: positive('cash', values.cash),
+        slots: Math.min(8, Math.floor(positive('slots', values.slots))),
+        decisionEveryHours: Math.floor(positive('every', values.every)),
+        trainDays: positive('train', values.train),
+        testDays: positive('test', values.test),
+        stepDays: positive('step', values.step)
+      },
+      nowSec,
+      grid: values.grid,
+      out: values.out,
+      historyNote: HISTORY_NOTE
+    })
+  }
   const config: BacktestConfig = {
-    days: positive('days', values.days),
+    days: positive('days', values.days ?? '14'),
     cash: positive('cash', values.cash),
     slots: Math.min(8, Math.floor(positive('slots', values.slots))),
     decisionEveryHours: Math.floor(positive('every', values.every))
   }
   const strategies = selectStrategies(values.strategy)
   if (!strategies.length) throw new Error(`No strategy matches "${values.strategy}"`)
-  const nowSec = Math.floor(Date.now() / 1000)
   const store = createDiskSnapshotStore({ dir: BACKTEST_CACHE_DIR, limiter: createLimiter({ concurrency: HISTORY_CONCURRENCY, gapMs: HISTORY_GAP_MS }) })
   const t = timeline(config, strategies, nowSec)
   console.error(`[backtest] ${strategies.length} strategies, ${t.decisions.length} decisions, loading ${t.hourWindows.length} 1h + ${t.fiveMinWindows.length} 5m snapshots (cache: ${BACKTEST_CACHE_DIR})`)

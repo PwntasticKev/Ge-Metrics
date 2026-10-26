@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { marketBreadth, moodOf, weightedChange } from '../breadth.ts'
+import { marketBreadth, moodOf, riskOffNote, weightedChange } from '../breadth.ts'
 import { hourStartAgo, liquidMoves, moveFor, type Move } from '../marketMoves.ts'
 
 const avg = (mid: number, vol = 200) => ({ avgHighPrice: mid + 1, avgLowPrice: mid - 1, highPriceVolume: vol, lowPriceVolume: vol })
@@ -54,5 +54,17 @@ describe('marketBreadth', () => {
     assert.equal(moodOf(0.01, 5, 10), 'mixed')
     assert.equal(moodOf(-0.02, 3, 9), 'risk-off')
     assert.equal(moodOf(null, 9, 3), 'mixed')
+  })
+})
+
+describe('riskOffNote', () => {
+  it('warns on Next 4 hours and Plan only when the market is risk-off', () => {
+    assert.match(riskOffNote('risk-off', 'quick') ?? '', /^Market is risk-off: quick flips lose more often today/)
+    assert.ok(riskOffNote('risk-off', 'plan'))
+    assert.equal(riskOffNote('risk-off', 'overnight'), null)
+    assert.equal(riskOffNote('risk-off', 'dips'), null)
+    assert.equal(riskOffNote('mixed', 'quick'), null)
+    assert.equal(riskOffNote('risk-on', 'quick'), null)
+    assert.equal(riskOffNote(null, 'quick'), null)
   })
 })

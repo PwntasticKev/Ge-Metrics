@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { MAX_SELL_HOUR_OPTIONS } from '../../lib/fillAware'
+import { heldFor } from '../../lib/format'
 import { useMiniWindow } from '../../state/miniWindow'
 import { useSettings, type OrientationPreference, type Settings, type ThemePreference } from '../../state/settings'
 import { useWatchlist } from '../../state/watchlist'
@@ -30,7 +31,7 @@ const BUDGETS: { value: number | null; label: string }[] = [
   { value: 1e9, label: '1B' }
 ]
 
-const SELL_HOURS: { value: number; label: string }[] = MAX_SELL_HOUR_OPTIONS.map(h => ({ value: h, label: `${h}h` }))
+const SELL_HOURS: { value: number; label: string }[] = MAX_SELL_HOUR_OPTIONS.map(h => ({ value: h, label: heldFor(h) }))
 
 function Section ({ title, children }: { title: string; children: React.ReactNode }) {
   const { palette } = useTheme()
@@ -149,7 +150,7 @@ export default function SettingsScreen () {
         </Section>
         <Section title="Your cash">
           <Row label="Cash stack" detail="Only show what you can afford, and cap 4h profit to it" below={<BudgetPicker />} />
-          <Row label="Slowest sell to show" detail="Picks and scanner rows that would take longer to sell move to Slow to fill" below={<SellHoursPicker />} last />
+          <Row label="Slowest sell to show" detail="Picks and scanner rows that would take longer to sell move to Slow to fill. 30m is the default: in a 60-day out-of-sample test it lost less often than 1h" below={<SellHoursPicker />} last />
         </Section>
         <Section title="Prices">
           <Row label="Hide stale prices" detail="Older than 6 hours" right={<Toggle setting="hideStale" />} />

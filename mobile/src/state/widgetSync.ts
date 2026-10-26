@@ -1,5 +1,6 @@
 import type { ExtensionStorage as ExtensionStorageClass } from '@bacons/apple-targets'
 import { geTax, type Market } from '@ge/engine'
+import Constants from 'expo-constants'
 import { useEffect, useMemo, useRef } from 'react'
 import { Platform } from 'react-native'
 import { useAverages } from '../api/useAverages'
@@ -15,10 +16,12 @@ import { useWatchlist } from './watchlist'
 // advice the app last computed) into the App Group the
 // iOS widget reads, then asks WidgetKit to redraw. Reloads requested while
 // the app is in the foreground don't count against the widget's budget.
-const IS_IOS = Platform.OS === 'ios'
+// Builds made with GEM_DISABLE_WIDGET=1 (app.config.js) have no widget and
+// no App Group, so sync is a no-op there.
+const SYNC_ENABLED = Platform.OS === 'ios' && Constants.expoConfig?.extra?.widgetEnabled !== false
 // Loaded on iOS only: the module reads the native `expo` global at import.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const ExtensionStorage: typeof ExtensionStorageClass | null = IS_IOS ? require('@bacons/apple-targets').ExtensionStorage : null
+const ExtensionStorage: typeof ExtensionStorageClass | null = SYNC_ENABLED ? require('@bacons/apple-targets').ExtensionStorage : null
 const storage = ExtensionStorage ? new ExtensionStorage(WIDGET_APP_GROUP) : null
 
 // Any price over 50 gp pays tax unless the item is on the exemption list.
@@ -52,7 +55,7 @@ export function useWidgetSync (): void {
   useEffect(() => {
     // Wait for picks (cached averages load in about a second) so a cold
     // start doesn't blank the widget's last picks.
-    if (!IS_IOS || !market || !picks) return
+    if (!SYNC_ENABLED || !market || !picks) return
     const payload = buildWidgetPayload({
       picks,
       watchlistIds,

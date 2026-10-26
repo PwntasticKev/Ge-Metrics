@@ -116,16 +116,32 @@ function closeOut (s: State, endT: number, history: History): State {
 }
 
 export function simulate (strategy: Strategy, history: History, viewAt: (t: number) => MarketView, o: SimOptions): SimResult {
+  return simulateAll([strategy], history, viewAt, o)[0] as SimResult
+}
+
+/**
+ * Several strategies walked through the same hours side by side (each with its
+ * own cash and slots). Same result as simulating each alone, but a decision
+ * time's MarketView is built once for all of them and dropped after that
+ * hour, so long runs with many variants don't hold every view in memory.
+ */
+export function simulateAll (strategies: readonly Strategy[], history: History, viewAt: (t: number) => MarketView, o: SimOptions): SimResult[] {
   const rules: Rules = { ...DEFAULT_RULES, ...o.rules }
   const decisions = new Set(o.decisions)
   const startT = o.decisions[0] ?? o.endT
-  let state: State = { cash: o.cash, open: [], ledger: new Map(), trades: [] }
-  const equity: EquityPoint[] = [{ t: startT, value: o.cash }]
+  let states: State[] = strategies.map(() => ({ cash: o.cash, open: [], ledger: new Map(), trades: [] }))
+  const equity: EquityPoint[][] = strategies.map(() => [{ t: startT, value: o.cash }])
   for (let w = startT; w < o.endT; w += HOUR_SEC) {
-    if (decisions.has(w)) state = decide(state, strategy, viewAt(w), o.slots)
-    state = advance(state, w, history, rules)
-    equity.push({ t: w + HOUR_SEC, value: equityOf(state, w, history) })
+    const view = decisions.has(w) ? viewAt(w) : null
+    states = states.map((s, i) => {
+      const decided = view ? decide(s, strategies[i] as Strategy, view, o.slots) : s
+      const next = advance(decided, w, history, rules)
+      equity[i]?.push({ t: w + HOUR_SEC, value: equityOf(next, w, history) })
+      return next
+    })
   }
-  state = closeOut(state, o.endT, history)
-  return { key: strategy.key, label: strategy.label, cash: o.cash, slots: o.slots, rules, startT, endT: o.endT, decisions: o.decisions.length, trades: state.trades, equity }
+  return strategies.map((strategy, i) => {
+    const state = closeOut(states[i] as State, o.endT, history)
+    return { key: strategy.key, label: strategy.label, cash: o.cash, slots: o.slots, rules, startT, endT: o.endT, decisions: o.decisions.length, trades: state.trades, equity: equity[i] ?? [] }
+  })
 }

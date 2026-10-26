@@ -7,9 +7,9 @@ import type { SnapshotStore } from './diskCache.js'
 import { FIVE_MIN_SEC, HOUR_SEC, type History, type Snapshot, type SnapshotWindow, alignDown, createHistory, windowStarts } from './history.js'
 import { type Summary, summarize } from './metrics.js'
 import type { Rules } from './position.js'
-import { DEFAULT_RULES, type SimResult, simulate } from './simulate.js'
+import { DEFAULT_RULES, type SimResult, simulateAll } from './simulate.js'
 import type { Strategy } from './strategies/types.js'
-import { DAY_HOURS, LATEST_5M_WINDOWS, LATEST_HOURS, type MarketView, viewAt } from './view.js'
+import { DAY_HOURS, LATEST_5M_WINDOWS, LATEST_HOURS, viewAt } from './view.js'
 
 /** The newest /1h snapshot is published about two hours after its start. */
 export const PUBLISH_LAG_HOURS = 2
@@ -95,14 +95,6 @@ export interface BacktestRun {
 }
 
 export function runBacktest (history: History, mapping: readonly MappingEntry[], strategies: readonly Strategy[], t: Timeline, config: BacktestConfig): BacktestRun {
-  const views = new Map<number, MarketView>()
-  const viewFor = (at: number): MarketView => {
-    const cached = views.get(at)
-    if (cached) return cached
-    const view = viewAt(history, at, mapping)
-    views.set(at, view)
-    return view
-  }
-  const results = strategies.map(s => simulate(s, history, viewFor, { cash: config.cash, slots: config.slots, decisions: t.decisions, endT: t.endT, rules: config.rules }))
+  const results = simulateAll(strategies, history, at => viewAt(history, at, mapping), { cash: config.cash, slots: config.slots, decisions: t.decisions, endT: t.endT, rules: config.rules })
   return { results, summaries: results.map(summarize) }
 }
