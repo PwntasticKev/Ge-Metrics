@@ -19,7 +19,7 @@ const flow: MarketFlow = {
 }
 
 const market = (low: [number | null, number | null], high: [number | null, number | null], f: MarketFlow | null = flow): SlotMarket =>
-  ({ low: { live: low[0], hour: low[1] }, high: { live: high[0], hour: high[1] }, flow: f })
+  ({ low: { live: low[0], traded: low[1] }, high: { live: high[0], traded: high[1] }, flow: f })
 
 const buy = (over: Partial<AdviceInput['slot']> = {}): AdviceInput['slot'] =>
   ({ side: 'buy', price: 1000, qty: 1000, filled: 0, updatedAt: NOW - HOUR, costBasis: null, target: 1100, ...over })
@@ -108,10 +108,16 @@ describe('slot advice: sell offers', () => {
     const a = run(sell({ price: 1100 }), market([1000, 1000], [1060, 1080]))
     assert.equal(a.kind, 'lower')
     assert.equal(a.headline, 'Market fell')
-    // Dearest candidate that fills in time.
-    assert.equal(a.price, 1080)
-    assert.equal(a.delta, -20)
-    assert.match(a.detail, /Lower ask to 1,080 \(-20 each\), still \+59K profit, or hold\./)
+    // Capped at the realistic ask, the lower of live and traded (as picks quote).
+    assert.equal(a.price, 1060)
+    assert.equal(a.delta, -40)
+    assert.match(a.detail, /Lower ask to 1,060 \(-40 each\), still \+39K profit, or hold\./)
+  })
+
+  it('says lower when the ask sits between the live and traded highs', () => {
+    const a = run(sell({ price: 1070 }), market([1000, 1000], [1060, 1080]))
+    assert.equal(a.kind, 'lower')
+    assert.equal(a.price, 1060)
   })
 
   it('calls an ask over a flat market "above market"', () => {
@@ -145,13 +151,23 @@ describe('slot advice: sell offers', () => {
 
 describe('slotMarket', () => {
   it('drops live prices older than the cut-off', () => {
-    const m = slotMarket({ high: 1100, low: 1000, highTime: (NOW - 7 * HOUR) / 1000, lowTime: NOW / 1000 }, { avgHighPrice: 1090, avgLowPrice: null }, null, NOW)
-    assert.deepEqual(m.high, { live: null, hour: 1090 })
-    assert.deepEqual(m.low, { live: 1000, hour: null })
+    const hour = { avgHighPrice: 1090, avgLowPrice: null, highPriceVolume: 500, lowPriceVolume: 0 }
+    const m = slotMarket({ high: 1100, low: 1000, highTime: (NOW - 7 * HOUR) / 1000, lowTime: NOW / 1000 }, hour, undefined, null, NOW)
+    assert.deepEqual(m.high, { live: null, traded: 1090 })
+    assert.deepEqual(m.low, { live: 1000, traded: null })
+  })
+
+  it('ignores a last hour that was a few prints and uses the day, like fill-aware picks', () => {
+    const day = { avgHighPrice: 1100, avgLowPrice: 1000, highPriceVolume: 24_000, lowPriceVolume: 24_000 }
+    // 3 items at 1300 in the hour: under 5 and under a quarter of a normal hour.
+    const hour = { avgHighPrice: 1300, avgLowPrice: 1010, highPriceVolume: 3, lowPriceVolume: 600 }
+    const m = slotMarket(null, hour, day, null, NOW)
+    assert.equal(m.high.traded, 1100)
+    assert.equal(m.low.traded, 1010)
   })
 
   it('handles a missing item', () => {
-    const m = slotMarket(null, undefined, null, NOW)
-    assert.deepEqual(m.low, { live: null, hour: null })
+    const m = slotMarket(null, undefined, undefined, null, NOW)
+    assert.deepEqual(m.low, { live: null, traded: null })
   })
 })

@@ -7,11 +7,16 @@
 // asks have to follow a falling market. So:
 // - a bid under every recent instant-sell price won't fill: raise it, if the
 //   margin survives, else cancel;
-// - an ask over every recent instant-buy price won't fill: lower it or hold;
+// - an ask over the realistic sell price won't fill: lower it or hold;
 // - anything up for more than 4h without filling gets relisted.
-// "Recent" is the live price and the last hour's average, per side.
+// "Recent" is the live price and the side's traded price, using the same
+// rule as fill-aware picks (fillAware.tradedPrice): the last hour only when
+// that side traded a fair share of a normal hour, else the day. The realistic
+// ask is the lower of the two (fillAware.careful), as in Buy now and the
+// scanner, so a slot is never told to ask more than a pick would quote.
 
 import { buyFillHours, flowFromAverages, sellFillHours, type MarketFlow } from '../analytics/fillTime.ts'
+import { careful, tradedPrice } from '../fillAware.ts'
 import type { AverageLike, TaxOf } from '../analytics/types.ts'
 import { gpFull, gpShort, signed, duration } from '../format.ts'
 import { remaining, type Slot } from './slots.ts'
@@ -26,8 +31,8 @@ export const ACTION_KINDS: ReadonlySet<AdviceKind> = new Set(['raise', 'lower', 
 export interface SidePrices {
   /** Live price, null when missing or too old to trust. */
   live: number | null
-  /** Last hour's average. */
-  hour: number | null
+  /** Last hour's average if this side traded enough in it, else the day's (fillAware.tradedPrice). */
+  traded: number | null
 }
 
 export interface SlotMarket {
@@ -65,7 +70,7 @@ export interface AdviceInput {
 }
 
 const isPrice = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0
-const pricesOf = (side: SidePrices): number[] => [side.live, side.hour].filter(isPrice)
+const pricesOf = (side: SidePrices): number[] => [side.live, side.traded].filter(isPrice)
 const net = (price: number, taxOf: TaxOf) => price - taxOf(price)
 
 function advice (kind: AdviceKind, headline: string, detail: string, extra: Partial<SlotAdvice> = {}): SlotAdvice {
@@ -97,8 +102,8 @@ function buyAdvice ({ slot, market, now, taxOf }: AdviceInput, left: number): Sl
   const lows = pricesOf(market.low)
   const highs = pricesOf(market.high)
   if (!lows.length) return advice('unknown', 'No recent trades', 'Nothing sold into buy offers lately to compare with.')
-  // What you can sell for: the more careful of live and last hour, then the pick's plan.
-  const sellAt = highs.length ? Math.min(...highs) : slot.target
+  // What you can sell for: the realistic ask (worse of live and traded), then the pick's plan.
+  const sellAt = careful(market.high.live, market.high.traded, 'sell') ?? slot.target
   const profitEach = (bid: number) => (sellAt ? net(sellAt, taxOf) - bid : null)
   const flow = recentFlow(market.flow, lows, highs)
   const etaOf = (bid: number) => (flow ? buyFillHours(flow, bid, left) : null)
@@ -144,20 +149,19 @@ function sellAdvice ({ slot, market, now, taxOf }: AdviceInput, left: number): S
   const flow = recentFlow(market.flow, lows, highs)
   const etaOf = (ask: number) => (flow ? sellFillHours(flow, ask, left) : null)
 
-  const ceiling = Math.max(...highs)
-  const candidates = [...new Set([ceiling, Math.min(...highs)])].sort((a, b) => b - a)
-  const above = slot.price > ceiling
+  // The realistic ask: the worse of live and traded, same as picks quote.
+  const ask = careful(market.high.live, market.high.traded, 'sell') as number
+  const above = slot.price > ask
   const stale = now - slot.updatedAt > STALE_HOURS * HOUR_MS
   if (above || stale) {
-    const pick = pickPrice(candidates, etaOf)
-    const price = Math.min(pick.price, slot.price)
+    const price = Math.min(ask, slot.price)
     const profit = profitAt(price)
-    const eta = price === pick.price ? pick.eta : etaOf(price)
+    const eta = etaOf(price)
     const delta = price - slot.price
     const change = delta ? ` (${gpFull(delta)} each)` : ''
     if (above) {
-      // Live high under the last hour's average: the market is sliding.
-      const fell = market.high.live !== null && market.high.hour !== null && market.high.live < market.high.hour
+      // Live high under the traded price: the market is sliding.
+      const fell = market.high.live !== null && market.high.traded !== null && market.high.live < market.high.traded
       return advice('lower', fell ? 'Market fell' : 'Above market', `Lower ask to ${gpFull(price)}${change}${profitText(profit)}, or hold.`, { price, delta, profit, etaHours: eta })
     }
     const hours = Math.floor((now - slot.updatedAt) / HOUR_MS)
@@ -186,19 +190,15 @@ export interface LiveLike {
   lowTime: number | null
 }
 
-export interface HourLike {
-  avgHighPrice: number | null
-  avgLowPrice: number | null
-}
 
 const fresh = (price: number | null, timeSec: number | null, now: number): number | null =>
   isPrice(price) && (timeSec === null || now - timeSec * 1000 <= LIVE_STALE_MS) ? price : null
 
-/** Builds the per-side view advice needs from the live price, the 1h average and a flow. */
-export function slotMarket (live: LiveLike | null, hour: HourLike | undefined, flow: MarketFlow | null, now: number): SlotMarket {
+/** Builds the per-side view advice needs from the live price, the /1h and /24h averages and a flow. */
+export function slotMarket (live: LiveLike | null, hour: AverageLike | undefined, day: AverageLike | undefined, flow: MarketFlow | null, now: number): SlotMarket {
   return {
-    low: { live: live ? fresh(live.low, live.lowTime, now) : null, hour: isPrice(hour?.avgLowPrice) ? hour.avgLowPrice : null },
-    high: { live: live ? fresh(live.high, live.highTime, now) : null, hour: isPrice(hour?.avgHighPrice) ? hour.avgHighPrice : null },
+    low: { live: live ? fresh(live.low, live.lowTime, now) : null, traded: tradedPrice('buy', hour, day) },
+    high: { live: live ? fresh(live.high, live.highTime, now) : null, traded: tradedPrice('sell', hour, day) },
     flow
   }
 }
@@ -213,6 +213,7 @@ export interface LivePrices {
 export function adviceFromPrices (slot: Slot, prices: LivePrices, now: number, taxOf: (price: number, itemId: number) => number): SlotAdvice {
   const key = String(slot.itemId)
   const hour = prices.h1?.[key]
-  const market = slotMarket(prices.live(slot.itemId), hour, flowFromAverages(hour, prices.h24?.[key]), now)
+  const day = prices.h24?.[key]
+  const market = slotMarket(prices.live(slot.itemId), hour, day, flowFromAverages(hour, day), now)
   return slotAdvice({ slot, market, now, taxOf: price => taxOf(price, slot.itemId) })
 }

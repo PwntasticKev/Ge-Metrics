@@ -62,7 +62,7 @@ export function windowCounts (volume: number, normalPerHour: number): boolean {
 const positive = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0
 
 /** Worse of a live price and a traded price: lower to sell, higher to buy. */
-function careful (live: number | null, traded: number | null, side: Side): number | null {
+export function careful (live: number | null, traded: number | null, side: Side): number | null {
   if (!positive(traded)) return positive(live) ? live : null
   if (!positive(live)) return traded
   return side === 'sell' ? Math.min(live, traded) : Math.max(live, traded)
@@ -76,11 +76,24 @@ function careful (live: number | null, traded: number | null, side: Side): numbe
  */
 export function pricesFromAverages (live: LivePrices, hour: SideAverages | undefined, day: SideAverages | undefined): TradePrices | null {
   if (!day) return null
-  const pick = (hourPrice: number | null | undefined, hourVolume: number, dayPrice: number | null, dayVolume: number) =>
-    positive(hourPrice) && windowCounts(hourVolume, dayVolume / 24) ? hourPrice : dayPrice
-  const sell = careful(live.high, pick(hour?.avgHighPrice, hour?.highPriceVolume ?? 0, day.avgHighPrice, day.highPriceVolume), 'sell')
-  const buy = careful(live.low, pick(hour?.avgLowPrice, hour?.lowPriceVolume ?? 0, day.avgLowPrice, day.lowPriceVolume), 'buy')
+  const sell = careful(live.high, tradedPrice('sell', hour, day), 'sell')
+  const buy = careful(live.low, tradedPrice('buy', hour, day), 'buy')
   return sell !== null && buy !== null ? { buyAt: Math.round(buy), sellAt: Math.round(sell) } : null
+}
+
+/**
+ * One side's traded price from the /1h and /24h averages: the last hour's
+ * average when that side traded a fair share of a normal hour (and at least
+ * MIN_WINDOW_ITEMS), otherwise the day's. Shared by picks, the scanner and
+ * GE slot advice so they all name the same price. Null when neither traded.
+ */
+export function tradedPrice (side: Side, hour: SideAverages | undefined, day: SideAverages | undefined): number | null {
+  const price = (a: SideAverages | undefined) => (side === 'sell' ? a?.avgHighPrice : a?.avgLowPrice)
+  const volume = (a: SideAverages | undefined) => (side === 'sell' ? a?.highPriceVolume : a?.lowPriceVolume) ?? 0
+  const hourPrice = price(hour)
+  if (positive(hourPrice) && windowCounts(volume(hour), volume(day) / 24)) return hourPrice
+  const dayPrice = price(day)
+  return positive(dayPrice) ? dayPrice : null
 }
 
 function sidePrice (series: readonly SideAverages[], side: Side): number | null {
