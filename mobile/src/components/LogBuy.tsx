@@ -1,14 +1,9 @@
 import * as Haptics from 'expo-haptics'
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useFlips } from '../state/flips'
 import { useTheme } from '../theme/ThemeProvider'
-import { space } from '../theme/tokens'
-
-const toInt = (text: string) => {
-  const n = Number(text.replace(/[^0-9]/g, ''))
-  return Number.isInteger(n) && n > 0 ? n : null
-}
+import { formStyles, NumberField as Field, toInt } from './NumberField'
 
 // "I bought these": logs a purchase to the Bought tab, prefilled with the
 // suggested amount and price, and sets a buy-limit reminder.
@@ -60,32 +55,9 @@ export function LogBuy ({ itemId, name, icon, qty, price }: { itemId: number; na
   )
 }
 
-function Field ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const { palette } = useTheme()
-  return (
-    <View style={styles.field}>
-      <Text style={[styles.label, { color: palette.muted }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        keyboardType="number-pad"
-        selectTextOnFocus
-        style={[styles.input, { backgroundColor: palette.well, color: palette.ink }]}
-        accessibilityLabel={label}
-      />
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
+  ...formStyles,
   link: { paddingTop: 8, alignSelf: 'flex-start' },
-  linkText: { fontSize: 13, fontWeight: '600' },
   done: { fontSize: 12.5, paddingTop: 8 },
-  form: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 8, paddingTop: 8, gap: 6 },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  label: { width: 80, fontSize: 13 },
-  input: { flex: 1, fontSize: 15, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, fontVariant: ['tabular-nums'] },
-  buttons: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: space.lg, paddingTop: 2 },
-  save: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8 },
-  saveText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' }
+  saveText: { ...formStyles.saveText, color: '#FFFFFF' }
 })

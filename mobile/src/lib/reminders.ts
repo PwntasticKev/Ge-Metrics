@@ -8,7 +8,7 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false })
 })
 
-async function canNotify (): Promise<boolean> {
+export async function canNotify (): Promise<boolean> {
   const current = await Notifications.getPermissionsAsync()
   if (current.granted) return true
   if (!current.canAskAgain) return false

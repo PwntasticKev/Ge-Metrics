@@ -1,75 +1,21 @@
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+import { geTax } from '@ge/engine'
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
+import { dropLot, mergeJournal, parseJournal, realize, MAX_FLIPS, type Flip, type Journal, type Lot, type MergeResult } from '../lib/pnl/journal'
 import { BUY_LIMIT_WINDOW_MS, cancelReminder, scheduleLimitReminder } from '../lib/reminders'
+import { applySlotFill, type SlotFill } from '../lib/slots/fills'
 import { usePersistentState } from './usePersistentState'
 
-// Items you've actually bought and are holding to sell, kept on the device.
-export interface Holding {
-  id: string
-  itemId: number
-  name: string
-  icon: string | null
-  qty: number
-  buyPrice: number
-  boughtAt: number
-  /** Start of the buy-limit window this purchase counts against. */
-  windowStart: number
-  reminderId: string | null
-}
-
-// Sold holdings, kept so the Bought tab can show what you've made.
-export interface Sale {
-  itemId: number
-  name: string
-  qty: number
-  profit: number
-  soldAt: number
-}
-
-interface FlipsState {
-  holdings: Holding[]
-  sales: Sale[]
-}
+// The flip journal, kept on the device: what you bought and still hold
+// (lots, shown on the Bought tab) and every completed flip (Profit tab).
+// Stored under the original key; `parseJournal` migrates the version 1
+// shape (`holdings` + price-less `sales`) on load.
+export type Holding = Lot
+export type { Flip }
 
 const KEY = 'gem.flips.v1'
-const MAX_SALES = 200
-const EMPTY: FlipsState = { holdings: [], sales: [] }
+const EMPTY: Journal = { lots: [], flips: [] }
 
-const isPositiveInt = (v: unknown): v is number => Number.isInteger(v) && (v as number) > 0
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
-
-function toHolding (v: unknown): Holding | null {
-  if (!isObject(v) || typeof v.id !== 'string' || !isPositiveInt(v.itemId) || typeof v.name !== 'string' ||
-    !isPositiveInt(v.qty) || !isPositiveInt(v.buyPrice) || typeof v.boughtAt !== 'number') return null
-  return {
-    id: v.id,
-    itemId: v.itemId,
-    name: v.name,
-    icon: typeof v.icon === 'string' ? v.icon : null,
-    qty: v.qty,
-    buyPrice: v.buyPrice,
-    boughtAt: v.boughtAt,
-    windowStart: typeof v.windowStart === 'number' ? v.windowStart : v.boughtAt,
-    reminderId: typeof v.reminderId === 'string' ? v.reminderId : null
-  }
-}
-
-function toSale (v: unknown): Sale | null {
-  if (!isObject(v) || !isPositiveInt(v.itemId) || typeof v.name !== 'string' || !isPositiveInt(v.qty) ||
-    typeof v.profit !== 'number' || !Number.isFinite(v.profit) || typeof v.soldAt !== 'number') return null
-  return { itemId: v.itemId, name: v.name, qty: v.qty, profit: v.profit, soldAt: v.soldAt }
-}
-
-// Keeps every valid record; one bad entry doesn't wipe the rest.
-function parseFlips (raw: unknown): FlipsState {
-  if (!isObject(raw)) return EMPTY
-  const list = <T,>(v: unknown, to: (x: unknown) => T | null) => (Array.isArray(v) ? v.map(to).filter((x): x is T => x !== null) : [])
-  return { holdings: list(raw.holdings, toHolding), sales: list(raw.sales, toSale) }
-}
-
-const mergeFlips = (saved: FlipsState, early: FlipsState): FlipsState => ({
-  holdings: [...early.holdings, ...saved.holdings],
-  sales: [...early.sales, ...saved.sales].slice(0, MAX_SALES)
-})
+const mergeEarly = (saved: Journal, early: Journal): Journal => mergeJournal(saved, early).journal
 
 export interface NewHolding {
   itemId: number
@@ -79,11 +25,20 @@ export interface NewHolding {
   buyPrice: number
 }
 
-interface FlipsContextValue extends FlipsState {
+interface FlipsContextValue {
+  holdings: Lot[]
+  /** Completed flips, newest first. */
+  flips: Flip[]
   /** Resolves true when a buy-limit reminder was scheduled. */
   addHolding: (holding: NewHolding) => Promise<boolean>
-  sellHolding: (id: string, sellPrice: number, tax: number) => void
+  /** Sells `qty` (all of it by default) at `sellPrice` each. False on bad input. */
+  sellHolding: (id: string, sellPrice: number, qty?: number) => boolean
   removeHolding: (id: string) => void
+  removeFlip: (id: string) => void
+  /** Adds records from a restore; ids already here are skipped. */
+  importJournal: (journal: Journal) => MergeResult
+  /** A GE slot's buy fill (or a correction to it) on the slot's Bought lot. */
+  applyFill: (fill: SlotFill) => void
 }
 
 const FlipsContext = createContext<FlipsContextValue | null>(null)
@@ -91,35 +46,79 @@ const FlipsContext = createContext<FlipsContextValue | null>(null)
 const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
 export function FlipsProvider ({ children }: { children: ReactNode }) {
-  const [state, setState] = usePersistentState<FlipsState>(KEY, EMPTY, parseFlips, mergeFlips)
+  const [state, setState] = usePersistentState<Journal>(KEY, EMPTY, parseJournal, mergeEarly)
   const stateRef = useRef(state)
-  stateRef.current = state
+  useLayoutEffect(() => { stateRef.current = state }, [state])
 
   const addHolding = useCallback(async (input: NewHolding) => {
     const boughtAt = Date.now()
     // The limit resets 4h after the first buy in a window, not the latest one.
-    const open = stateRef.current.holdings.find(h => h.itemId === input.itemId && h.windowStart + BUY_LIMIT_WINDOW_MS > boughtAt)
+    const open = stateRef.current.lots.find(h => h.itemId === input.itemId && h.windowStart + BUY_LIMIT_WINDOW_MS > boughtAt)
     const windowStart = open?.windowStart ?? boughtAt
     const reminderId = open ? null : await scheduleLimitReminder(input.name, windowStart)
-    const holding: Holding = { ...input, id: newId(), boughtAt, windowStart, reminderId }
-    setState(prev => ({ ...prev, holdings: [holding, ...prev.holdings] }))
+    const lot: Lot = { ...input, id: newId(), boughtAt, windowStart, reminderId }
+    setState(prev => ({ ...prev, lots: [lot, ...prev.lots] }))
     return Boolean(open?.reminderId ?? reminderId)
   }, [setState])
 
-  const sellHolding = useCallback((id: string, sellPrice: number, tax: number) => {
-    const holding = stateRef.current.holdings.find(h => h.id === id)
-    if (!holding) return
-    cancelReminder(holding.reminderId)
-    const sale: Sale = { itemId: holding.itemId, name: holding.name, qty: holding.qty, profit: (sellPrice - tax - holding.buyPrice) * holding.qty, soldAt: Date.now() }
-    setState(prev => ({ holdings: prev.holdings.filter(h => h.id !== id), sales: [sale, ...prev.sales].slice(0, MAX_SALES) }))
+  const sellHolding = useCallback((id: string, sellPrice: number, qty?: number) => {
+    const lot = stateRef.current.lots.find(h => h.id === id)
+    const soldAt = Date.now()
+    const flipId = newId()
+    const check = lot ? realize(lot, sellPrice, qty ?? lot.qty, soldAt, geTax, flipId) : null
+    if (!lot || !check) return false
+    if (!check.remaining) cancelReminder(dropLot(stateRef.current.lots, id).cancel)
+    // Realized again from the latest state, so two quick sells can't both sell the same items.
+    setState(prev => {
+      const current = prev.lots.find(h => h.id === id)
+      const result = current ? realize(current, sellPrice, qty ?? current.qty, soldAt, geTax, flipId) : null
+      if (!result) return prev
+      const { remaining } = result
+      return {
+        lots: remaining ? prev.lots.map(h => (h.id === id ? remaining : h)) : dropLot(prev.lots, id).lots,
+        flips: [result.flip, ...prev.flips].slice(0, MAX_FLIPS)
+      }
+    })
+    return true
   }, [setState])
 
   const removeHolding = useCallback((id: string) => {
-    cancelReminder(stateRef.current.holdings.find(h => h.id === id)?.reminderId ?? null)
-    setState(prev => ({ ...prev, holdings: prev.holdings.filter(h => h.id !== id) }))
+    cancelReminder(dropLot(stateRef.current.lots, id).cancel)
+    setState(prev => ({ ...prev, lots: dropLot(prev.lots, id).lots }))
   }, [setState])
 
-  const value = useMemo(() => ({ ...state, addHolding, sellHolding, removeHolding }), [state, addHolding, sellHolding, removeHolding])
+  const removeFlip = useCallback((id: string) => {
+    setState(prev => ({ ...prev, flips: prev.flips.filter(f => f.id !== id) }))
+  }, [setState])
+
+  const importJournal = useCallback((journal: Journal) => {
+    const result = mergeJournal(stateRef.current, journal)
+    setState(prev => mergeJournal(prev, journal).journal)
+    return result
+  }, [setState])
+
+  const applyFill = useCallback((fill: SlotFill) => {
+    const now = Date.now()
+    const lots = stateRef.current.lots
+    // Same buy-limit window rule as addHolding.
+    const open = lots.find(h => h.itemId === fill.itemId && h.id !== fill.lotId && h.windowStart + BUY_LIMIT_WINDOW_MS > now)
+    const windowStart = open?.windowStart ?? now
+    const preview = applySlotFill(lots, fill, now, windowStart)
+    if (preview.removed) cancelReminder(dropLot(lots, fill.lotId).cancel)
+    setState(prev => {
+      const result = applySlotFill(prev.lots, fill, now, windowStart)
+      return { ...prev, lots: result.removed ? dropLot(prev.lots, fill.lotId).lots : result.lots }
+    })
+    if (!preview.created || open) return
+    scheduleLimitReminder(fill.name, windowStart).then(reminderId => {
+      if (!reminderId) return
+      setState(prev => ({ ...prev, lots: prev.lots.map(l => (l.id === fill.lotId && !l.reminderId ? { ...l, reminderId } : l)) }))
+    })
+  }, [setState])
+
+  const value = useMemo(() => ({
+    holdings: state.lots, flips: state.flips, addHolding, sellHolding, removeHolding, removeFlip, importJournal, applyFill
+  }), [state, addHolding, sellHolding, removeHolding, removeFlip, importJournal, applyFill])
   return <FlipsContext.Provider value={value}>{children}</FlipsContext.Provider>
 }
 

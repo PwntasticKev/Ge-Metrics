@@ -1,3 +1,5 @@
+// Defines the background alert task before any navigation runs.
+import '../lib/alertTask'
 import { focusManager } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router'
@@ -5,12 +7,15 @@ import { NativeTabs } from 'expo-router/native-tabs'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { AppState, Platform } from 'react-native'
+import { AlertsWatcher } from '../components/AlertsWatcher'
 import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createQueryClient, persister, shouldPersist } from '../api/queryCache'
 import { useOrientationLock } from '../state/orientation'
 import { FlipsProvider } from '../state/flips'
 import { ItemSheetProvider } from '../state/itemSheet'
+import { MiniWindowProvider } from '../state/miniWindow'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
+import { WidgetSync } from '../state/widgetSync'
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider'
 
 // Refetch prices when the app comes back to the foreground.
@@ -74,10 +79,14 @@ export default function RootLayout () {
         <ThemeProvider>
           <WatchlistProvider>
             <FlipsProvider>
-              <ItemSheetProvider>
-                <OrientationLock />
-                <Tabs />
-              </ItemSheetProvider>
+              <MiniWindowProvider>
+                <ItemSheetProvider>
+                  <OrientationLock />
+                  <WidgetSync />
+                  <AlertsWatcher />
+                  <Tabs />
+                </ItemSheetProvider>
+              </MiniWindowProvider>
             </FlipsProvider>
           </WatchlistProvider>
         </ThemeProvider>

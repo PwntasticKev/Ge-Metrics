@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { DEFAULT_MAX_SELL_HOURS, isMaxSellHours } from '../lib/fillAware'
+import { isMiniSource, type MiniSource } from '../lib/miniWindow'
 import { loadJson, saveJson } from './storage'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
@@ -16,6 +18,12 @@ export interface Settings {
   budget: number | null
   /** The one-time "tap a set" tip has been dismissed. */
   seenSetsTip: boolean
+  /** What the Picture in Picture mini window shows. */
+  miniSource: MiniSource
+  /** Open the mini window when you leave the app. */
+  miniAutoStart: boolean
+  /** Picks and scanner rows whose sell takes longer than this go to "Slow to fill". */
+  maxSellHours: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,7 +33,10 @@ export const DEFAULT_SETTINGS: Settings = {
   hideFlukes: true,
   membersItems: true,
   budget: null,
-  seenSetsTip: false
+  seenSetsTip: false,
+  miniSource: 'watchlist',
+  miniAutoStart: false,
+  maxSellHours: DEFAULT_MAX_SELL_HOURS
 }
 
 const KEY = 'gem.settings.v1'
@@ -48,7 +59,10 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
     loadJson(KEY, {}, isSettings).then(stored => {
       const budget = typeof stored.budget === 'number' && stored.budget > 0 ? stored.budget : null
       const orientation = ORIENTATIONS.includes(stored.orientation as OrientationPreference) ? stored.orientation as OrientationPreference : DEFAULT_SETTINGS.orientation
-      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation })
+      const miniSource = isMiniSource(stored.miniSource) ? stored.miniSource : DEFAULT_SETTINGS.miniSource
+      const miniAutoStart = stored.miniAutoStart === true
+      const maxSellHours = isMaxSellHours(stored.maxSellHours) ? stored.maxSellHours : DEFAULT_MAX_SELL_HOURS
+      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours })
     })
   }, [])
 

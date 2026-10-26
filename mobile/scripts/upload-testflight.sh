@@ -3,8 +3,12 @@
 #
 # Prereqs (one-time):
 #   - App record "GE Metrics" (bundle id com.gemetrics.app) exists in App Store Connect.
-#   - "Apple Distribution" cert in the login keychain and the
-#     "com.gemetrics.app AppStore" provisioning profile installed.
+#   - "Apple Distribution" cert in the login keychain.
+#   - App Group group.com.gemetrics.app created at developer.apple.com and
+#     assigned to com.gemetrics.app and com.gemetrics.app.widget.
+#   - App Store provisioning profiles for both bundle ids installed:
+#     `node scripts/appstore-profiles.mjs` creates and installs them. The newest
+#     installed App Store profile per bundle id is used, whatever its name.
 #   - An App Store Connect API key at ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8
 #
 # Usage:
@@ -20,7 +24,7 @@ cd "$(dirname "$0")/.."
 
 TEAM_ID="${GEM_TEAM_ID:-XJBL9CTNPM}"
 BUNDLE_ID="com.gemetrics.app"
-PROFILE_NAME="com.gemetrics.app AppStore"
+WIDGET_BUNDLE_ID="${BUNDLE_ID}.widget"
 ASC_KEY_ID="${GEM_ASC_KEY_ID:?Set GEM_ASC_KEY_ID to your App Store Connect API key id}"
 ASC_ISSUER_ID="${GEM_ASC_ISSUER_ID:?Set GEM_ASC_ISSUER_ID to your App Store Connect issuer id}"
 ASC_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
@@ -29,13 +33,45 @@ ARCHIVE="$BUILD_DIR/GEMetrics.xcarchive"
 
 [ -f "$ASC_KEY_PATH" ] || { echo "ERROR: API key not found at $ASC_KEY_PATH" >&2; exit 1; }
 
-echo "==> Generating native project"
-CI=1 npx expo prebuild --platform ios --no-install
+# Name of the newest installed App Store (no device list, not debuggable)
+# profile for a bundle id.
+appstore_profile_name() {
+  local app_id="$TEAM_ID.$1" newest="" newest_date="" file plist
+  plist=$(mktemp)
+  for file in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision \
+              "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"/*.mobileprovision; do
+    [ -f "$file" ] || continue
+    security cms -D -i "$file" > "$plist" 2>/dev/null || continue
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$plist" 2>/dev/null)" = "$app_id" ] || continue
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$plist" 2>/dev/null)" = "false" ] || continue
+    /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$plist" >/dev/null 2>&1 && continue
+    local created
+    created=$(date -j -f "%a %b %d %T %Z %Y" "$(/usr/libexec/PlistBuddy -c 'Print :CreationDate' "$plist")" +%s)
+    if [ -z "$newest_date" ] || [ "$created" -gt "$newest_date" ]; then
+      newest_date=$created
+      newest=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$plist")
+    fi
+  done
+  rm -f "$plist"
+  [ -n "$newest" ] || { echo "ERROR: no App Store profile installed for $1 (run node scripts/appstore-profiles.mjs)" >&2; return 1; }
+  echo "$newest"
+}
+
+APP_PROFILE=$(appstore_profile_name "$BUNDLE_ID")
+WIDGET_PROFILE=$(appstore_profile_name "$WIDGET_BUNDLE_ID")
+echo "==> Profiles: \"$APP_PROFILE\", \"$WIDGET_PROFILE\""
+
+echo "==> Generating native project (manual App Store signing per target)"
+CI=1 GEM_APPSTORE_SIGNING=1 GEM_TEAM_ID="$TEAM_ID" GEM_APP_PROFILE="$APP_PROFILE" GEM_WIDGET_PROFILE="$WIDGET_PROFILE" \
+  npx expo prebuild --platform ios --no-install
 (cd ios && pod install)
 
 WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
 SCHEME=$(basename "$WORKSPACE" .xcworkspace)
 
+# Signing settings (profile per target) come from plugins/withAppStoreSigning.js;
+# a command-line PROVISIONING_PROFILE_SPECIFIER would apply one profile to
+# both the app and the widget.
 echo "==> Archiving $SCHEME (Release, manual signing)"
 rm -rf "$ARCHIVE"
 xcodebuild archive \
@@ -44,10 +80,6 @@ xcodebuild archive \
   -configuration Release \
   -destination "generic/platform=iOS" \
   -archivePath "$ARCHIVE" \
-  CODE_SIGN_STYLE=Manual \
-  DEVELOPMENT_TEAM="$TEAM_ID" \
-  CODE_SIGN_IDENTITY="Apple Distribution" \
-  PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
   | tail -n 40
 
 [ -d "$ARCHIVE" ] || { echo "ERROR: archive was not produced" >&2; exit 1; }
@@ -63,7 +95,8 @@ cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST
   <key>signingStyle</key><string>manual</string>
   <key>signingCertificate</key><string>Apple Distribution</string>
   <key>provisioningProfiles</key><dict>
-    <key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string>
+    <key>${BUNDLE_ID}</key><string>${APP_PROFILE}</string>
+    <key>${WIDGET_BUNDLE_ID}</key><string>${WIDGET_PROFILE}</string>
   </dict>
   <key>manageAppVersionAndBuildNumber</key><true/>
 </dict></plist>

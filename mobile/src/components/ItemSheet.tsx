@@ -9,26 +9,32 @@ import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
 import { space } from '../theme/tokens'
 import { PriceLine } from './DetailLines'
+import { ItemAlerts } from './alerts/ItemAlerts'
 import { ItemIcon } from './ItemIcon'
 import { LogBuy } from './LogBuy'
-import { PriceChart, type Timestep } from './Sparkline'
+import { PlaceOffer } from './slots/PlaceOffer'
+import { SpikeWarning } from './SpikeWarning'
+import { ItemChart, type Timestep } from './chart/ItemChart'
 import { Tabs } from './Tabs'
+import { TimingSection } from './timing/TimingSection'
 
 const NATURE_RUNE_ID = 561
 
-type Range = 'day' | 'week' | 'month' | 'year'
+type Range = 'day' | 'week' | 'month' | 'quarter' | 'year'
 const RANGES = [
   { value: 'day', label: '1D' },
   { value: 'week', label: '1W' },
   { value: 'month', label: '1M' },
+  { value: 'quarter', label: '3M' },
   { value: 'year', label: '1Y' }
 ] as const
-// The wiki returns up to 365 points per timestep.
+// The wiki returns up to 365 points per timestep; 1M and 3M share the 6h series.
 const RANGE_SERIES: Record<Range, { timestep: Timestep; points: number; label: string }> = {
-  day: { timestep: '5m', points: 288, label: '24h' },
-  week: { timestep: '1h', points: 168, label: '7d' },
-  month: { timestep: '6h', points: 120, label: '30d' },
-  year: { timestep: '24h', points: 365, label: '1y' }
+  day: { timestep: '5m', points: 288, label: 'Last 24 hours' },
+  week: { timestep: '1h', points: 168, label: 'Last 7 days' },
+  month: { timestep: '6h', points: 120, label: 'Last 30 days' },
+  quarter: { timestep: '6h', points: 365, label: 'Last 3 months' },
+  year: { timestep: '24h', points: 365, label: 'Last year' }
 }
 
 function Stat ({ label, value, tone }: { label: string; value: string; tone?: 'profit' }) {
@@ -79,6 +85,7 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
   const { h24 } = useAverages()
   const { isStarred, toggle } = useWatchlist()
   const [range, setRange] = useState<Range>('week')
+  const [scrubbing, setScrubbing] = useState(false)
 
   const item = market ? market.get(itemId) : null
   const flip = useMemo(() => (item && market ? computeItemFlip(item, { nowSec: market.nowSec }) : null), [item, market])
@@ -103,7 +110,7 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={styles.content} scrollEnabled={!scrubbing} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <ItemIcon icon={item.icon} size={44} />
         <View style={{ flex: 1 }}>
@@ -112,9 +119,10 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
         </View>
         {close}
       </View>
+      <SpikeWarning itemId={item.id} />
 
       <Tabs options={RANGES} value={range} onChange={setRange} />
-      <PriceChart itemId={item.id} timestep={series.timestep} points={series.points} height={150} label={series.label} />
+      <ItemChart key={range} itemId={item.id} timestep={series.timestep} points={series.points} label={series.label} onScrubbingChange={setScrubbing} />
 
       {flip ? (
         <View style={styles.block}>
@@ -135,6 +143,8 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
         <Stat label="Alch profit" value={signed(alchProfit(item, market))} />
       </View>
 
+      {flip ? <TimingSection itemId={item.id} buyAt={flip.buyAt} sellAt={flip.sellAt} profitEach={flip.profit} limit={item.limit ?? flip.limit} /> : null}
+
       {sets.length ? <Text style={[styles.sub, { color: palette.muted }]}>Part of: {sets.join(', ')}</Text> : null}
 
       <View style={styles.actions}>
@@ -142,6 +152,13 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
           <Text style={[styles.action, { color: palette.brand }]}>{isStarred({ kind: 'item', id: item.id }) ? '★ Watching' : '☆ Watch'}</Text>
         </Pressable>
       </View>
+      <ItemAlerts item={{ itemId: item.id, name: item.name, icon: item.icon, high: item.high, low: item.low, margin: flip?.profit ?? null }} />
+      {flip ? (
+        <PlaceOffer offers={[
+          { itemId: item.id, name: item.name, icon: item.icon, side: 'buy', price: flip.buyAt, qty: flip.maxQty || 1, target: flip.sellAt },
+          { itemId: item.id, name: item.name, icon: item.icon, side: 'sell', price: flip.sellAt, qty: flip.maxQty || 1 }
+        ]} />
+      ) : null}
       {flip ? <LogBuy itemId={item.id} name={item.name} icon={item.icon} qty={flip.maxQty || 1} price={flip.buyAt} /> : null}
     </ScrollView>
   )

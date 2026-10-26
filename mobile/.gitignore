@@ -42,3 +42,6 @@ example
 /ios
 /android
 /build
+
+# widget assets generated from targets/*/expo-target.config.js at prebuild
+/targets/*/Assets.xcassets

@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Linking, Pressable, StyleSheet, Text } from 'react-native'
 import type { ProcessFlip } from '@ge/engine'
 import { gpFull, qty, signed } from '../lib/format'
 import { recipeMeta, type ProcessSort } from '../lib/methods'

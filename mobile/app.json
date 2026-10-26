@@ -9,18 +9,29 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.gemetrics.app",
+      "appleTeamId": "XJBL9CTNPM",
       "buildNumber": "1",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "CFBundleDisplayName": "GE Metrics"
+        "CFBundleDisplayName": "GE Metrics",
+        "UIBackgroundModes": [
+          "audio",
+          "fetch",
+          "processing"
+        ]
       },
       "icon": {
         "light": "./assets/images/icon.png",
         "dark": "./assets/images/ios-dark.png",
         "tinted": "./assets/images/ios-tinted.png"
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.gemetrics.app"
+        ]
       }
     },
     "android": {
@@ -56,7 +67,11 @@
             "backgroundColor": "#0E1430"
           }
         }
-      ]
+      ],
+      "expo-sharing",
+      "./plugins/withAppStoreSigning",
+      "@bacons/apple-targets",
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,
