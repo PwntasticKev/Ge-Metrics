@@ -51,7 +51,7 @@ export const ComingItemRow = memo(function ComingItemRow ({ row, expanded, onTog
       </View>
       <Line>{sinceText(row)}</Line>
       <Line>{`Traded ${gpShort(row.dayVolume)} a day`}</Line>
-      <Line>{row.releasedIn ? `Out in: ${row.releasedIn}` : 'No game update has named it since'}</Line>
+      <Line>{row.releasedIn ? `Named in a later game update: ${row.releasedIn}` : 'No game update has named it since'}</Line>
       {row.late ? <Text style={[styles.note, { color: palette.muted }]}>Already moved 10%+ since the post; the news may be priced in.</Text> : null}
       <Sparkline itemId={row.id} />
       <DetailsLink itemId={row.id} />

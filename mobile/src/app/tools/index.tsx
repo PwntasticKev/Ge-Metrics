@@ -121,7 +121,7 @@ export default function ToolsHub () {
           bestLabel="Latest"
         />
         <FeaturedCard href="/tools/coming-up" title="Coming up" blurb="Items named in dev blogs, polls and next-week news, before they ship. Buy early; see what already moved." icon="Spyglass.png" best={null} />
-        <FeaturedCard href="/tools/pumps" title="Pumps & dumps" blurb="Sharp price moves on few trades. They often snap back, so don't buy into them." icon="Stats icon.png" best={null} />
+        <FeaturedCard href="/tools/pumps" title="Pumps & dumps" blurb="Sharp price moves on few trades. They often snap back, so don't buy into them." icon="Grand Exchange icon.png" best={null} />
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
