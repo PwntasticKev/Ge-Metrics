@@ -3,7 +3,7 @@ const { defineConfig, globalIgnores } = require('eslint/config')
 const expoConfig = require('eslint-config-expo/flat')
 
 module.exports = defineConfig([
-  globalIgnores(['dist/*', 'ios/*', 'android/*']),
+  globalIgnores(['dist/*', 'ios/*', 'android/*', '.expo/*']),
   expoConfig,
   {
     // The shared engine is a Metro alias (metro.config.js) typed by src/engine/ge-engine.d.ts.
