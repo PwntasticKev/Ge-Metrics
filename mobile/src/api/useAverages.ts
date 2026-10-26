@@ -10,6 +10,10 @@ const DAY_REFRESH_MS = 15 * 60_000
 export interface AveragesState {
   h1: Record<string, WikiAverage> | undefined
   h24: Record<string, WikiAverage> | undefined
+  h1UpdatedAt: number | null
+  h24UpdatedAt: number | null
+  /** Includes failed background refreshes even while cached averages remain. */
+  refreshError: Error | null
   isLoading: boolean
   isRefreshing: boolean
   error: Error | null
@@ -22,6 +26,9 @@ export function useAverages (): AveragesState {
   return {
     h1: h1.data,
     h24: h24.data,
+    h1UpdatedAt: h1.dataUpdatedAt || null,
+    h24UpdatedAt: h24.dataUpdatedAt || null,
+    refreshError: h1.error ?? h24.error ?? null,
     isLoading: h1.isLoading || h24.isLoading,
     isRefreshing: h1.isRefetching || h24.isRefetching,
     // A failed background refresh keeps the older averages, which are still
