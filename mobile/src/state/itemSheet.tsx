@@ -1,5 +1,5 @@
 import { router, useGlobalSearchParams } from 'expo-router'
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ItemSheet } from '../components/ItemSheet'
 
 // One item details sheet for the whole app; any row can open it.
@@ -14,7 +14,7 @@ export function ItemSheetProvider ({ children }: { children: ReactNode }) {
   const [itemId, setItemId] = useState<number | null>(null)
   const [visible, setVisible] = useState(false)
   const visibleRef = useRef(visible)
-  visibleRef.current = visible
+  useLayoutEffect(() => { visibleRef.current = visible }, [visible])
   const openItem = useCallback((id: number) => {
     setItemId(id)
     setVisible(true)
@@ -27,6 +27,8 @@ export function ItemSheetProvider ({ children }: { children: ReactNode }) {
   useEffect(() => {
     const id = Number(item)
     if (!Number.isInteger(id) || id <= 0) return
+    // The URL is the external system here; opening the sheet is the sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     openItem(id)
     router.setParams({ item: undefined })
   }, [item, openItem])

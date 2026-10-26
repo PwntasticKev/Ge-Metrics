@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { BUY_LIMIT_WINDOW_MS, cancelReminder, scheduleLimitReminder } from '../lib/reminders'
 import { usePersistentState } from './usePersistentState'
 
@@ -93,7 +93,7 @@ const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).sli
 export function FlipsProvider ({ children }: { children: ReactNode }) {
   const [state, setState] = usePersistentState<FlipsState>(KEY, EMPTY, parseFlips, mergeFlips)
   const stateRef = useRef(state)
-  stateRef.current = state
+  useLayoutEffect(() => { stateRef.current = state }, [state])
 
   const addHolding = useCallback(async (input: NewHolding) => {
     const boughtAt = Date.now()
