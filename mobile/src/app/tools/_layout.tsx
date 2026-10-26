@@ -16,6 +16,7 @@ export default function ToolsLayout () {
       <Stack.Screen name="index" options={{ headerShown: false, title: 'Tools' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       <Stack.Screen name="high-alchemy" options={{ title: 'High Alchemy' }} />
+      <Stack.Screen name="mini-window" options={{ title: 'Mini window' }} />
       <Stack.Screen name="[method]" />
     </Stack>
   )

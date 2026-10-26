@@ -15,7 +15,10 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "CFBundleDisplayName": "GE Metrics"
+        "CFBundleDisplayName": "GE Metrics",
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "icon": {
         "light": "./assets/images/icon.png",

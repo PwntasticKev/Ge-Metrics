@@ -101,6 +101,7 @@ export default function ToolsHub () {
         {featured.map(f => (
           <FeaturedCard key={f.key} href={`/tools/${f.key}`} title={f.method.title} blurb={f.method.blurb} icon={f.icon} best={f.best} />
         ))}
+        <FeaturedCard href="/tools/mini-window" title="Mini window" blurb="Live prices in a small floating window over the game. Picture in Picture, like a video." icon="Watch.png" best={null} />
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
