@@ -23,7 +23,7 @@ export function PriceLine ({ tag, icon, label, price, divider = false }: { tag: 
 const COPIED_MS = 1200
 
 // Tap a price to copy it, ready to paste into the GE on OSRS mobile.
-function CopyPrice ({ price }: { price: number }) {
+export function CopyPrice ({ price }: { price: number }) {
   const { palette } = useTheme()
   const [copied, setCopied] = useState(false)
   useEffect(() => {

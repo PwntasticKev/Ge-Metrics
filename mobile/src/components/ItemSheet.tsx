@@ -12,6 +12,7 @@ import { PriceLine } from './DetailLines'
 import { ItemAlerts } from './alerts/ItemAlerts'
 import { ItemIcon } from './ItemIcon'
 import { LogBuy } from './LogBuy'
+import { PlaceOffer } from './slots/PlaceOffer'
 import { SpikeWarning } from './SpikeWarning'
 import { ItemChart, type Timestep } from './chart/ItemChart'
 import { Tabs } from './Tabs'
@@ -152,6 +153,12 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
         </Pressable>
       </View>
       <ItemAlerts item={{ itemId: item.id, name: item.name, icon: item.icon, high: item.high, low: item.low, margin: flip?.profit ?? null }} />
+      {flip ? (
+        <PlaceOffer offers={[
+          { itemId: item.id, name: item.name, icon: item.icon, side: 'buy', price: flip.buyAt, qty: flip.maxQty || 1, target: flip.sellAt },
+          { itemId: item.id, name: item.name, icon: item.icon, side: 'sell', price: flip.sellAt, qty: flip.maxQty || 1 }
+        ]} />
+      ) : null}
       {flip ? <LogBuy itemId={item.id} name={item.name} icon={item.icon} qty={flip.maxQty || 1} price={flip.buyAt} /> : null}
     </ScrollView>
   )

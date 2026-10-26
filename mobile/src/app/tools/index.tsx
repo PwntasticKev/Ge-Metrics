@@ -5,6 +5,7 @@ import type { Market } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
 import { ItemIcon } from '../../components/ItemIcon'
 import { ScreenHeader } from '../../components/ScreenHeader'
+import { useSlotsSummary } from '../../components/slots/useSlotAdvice'
 import { useGameUpdates } from '../../api/gameUpdates'
 import { gpShort, signed, utcDay } from '../../lib/format'
 import { PRICE_MOVING_KINDS } from '../../lib/gameUpdates'
@@ -90,6 +91,21 @@ function AlertsCard () {
   )
 }
 
+function SlotsToolCard () {
+  const summary = useSlotsSummary()
+  const best = summary.active ? { name: summary.text, icon: null, value: summary.needsAction ? 'Act now' : 'On track' } : null
+  return (
+    <FeaturedCard
+      href="/tools/slots"
+      title="My GE slots"
+      blurb="Your offers in the GE with live advice: raise a bid that fell behind, lower an ask in a falling market, relist after 4h."
+      icon="Grand Exchange icon.png"
+      best={best}
+      bestLabel="Now"
+    />
+  )
+}
+
 function MethodRow ({ method, best, last }: { method: MethodDef; best: Best | null; last: boolean }) {
   const { palette } = useTheme()
   return (
@@ -144,6 +160,7 @@ export default function ToolsHub () {
         />
 
         <Text style={[styles.section, { color: palette.muted }]}>While you play</Text>
+        <SlotsToolCard />
         <AlertsCard />
         <FeaturedCard href="/tools/mini-window" title="Mini window" blurb="Live prices in a small floating window over the game. Picture in Picture, like a video." icon="Watch.png" best={null} />
 

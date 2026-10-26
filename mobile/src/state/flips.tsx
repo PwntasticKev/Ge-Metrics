@@ -2,6 +2,7 @@ import { geTax } from '@ge/engine'
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { dropLot, mergeJournal, parseJournal, realize, MAX_FLIPS, type Flip, type Journal, type Lot, type MergeResult } from '../lib/pnl/journal'
 import { BUY_LIMIT_WINDOW_MS, cancelReminder, scheduleLimitReminder } from '../lib/reminders'
+import { applySlotFill, type SlotFill } from '../lib/slots/fills'
 import { usePersistentState } from './usePersistentState'
 
 // The flip journal, kept on the device: what you bought and still hold
@@ -36,6 +37,8 @@ interface FlipsContextValue {
   removeFlip: (id: string) => void
   /** Adds records from a restore; ids already here are skipped. */
   importJournal: (journal: Journal) => MergeResult
+  /** A GE slot's buy fill (or a correction to it) on the slot's Bought lot. */
+  applyFill: (fill: SlotFill) => void
 }
 
 const FlipsContext = createContext<FlipsContextValue | null>(null)
@@ -94,9 +97,28 @@ export function FlipsProvider ({ children }: { children: ReactNode }) {
     return result
   }, [setState])
 
+  const applyFill = useCallback((fill: SlotFill) => {
+    const now = Date.now()
+    const lots = stateRef.current.lots
+    // Same buy-limit window rule as addHolding.
+    const open = lots.find(h => h.itemId === fill.itemId && h.id !== fill.lotId && h.windowStart + BUY_LIMIT_WINDOW_MS > now)
+    const windowStart = open?.windowStart ?? now
+    const preview = applySlotFill(lots, fill, now, windowStart)
+    if (preview.removed) cancelReminder(dropLot(lots, fill.lotId).cancel)
+    setState(prev => {
+      const result = applySlotFill(prev.lots, fill, now, windowStart)
+      return { ...prev, lots: result.removed ? dropLot(prev.lots, fill.lotId).lots : result.lots }
+    })
+    if (!preview.created || open) return
+    scheduleLimitReminder(fill.name, windowStart).then(reminderId => {
+      if (!reminderId) return
+      setState(prev => ({ ...prev, lots: prev.lots.map(l => (l.id === fill.lotId && !l.reminderId ? { ...l, reminderId } : l)) }))
+    })
+  }, [setState])
+
   const value = useMemo(() => ({
-    holdings: state.lots, flips: state.flips, addHolding, sellHolding, removeHolding, removeFlip, importJournal
-  }), [state, addHolding, sellHolding, removeHolding, removeFlip, importJournal])
+    holdings: state.lots, flips: state.flips, addHolding, sellHolding, removeHolding, removeFlip, importJournal, applyFill
+  }), [state, addHolding, sellHolding, removeHolding, removeFlip, importJournal, applyFill])
   return <FlipsContext.Provider value={value}>{children}</FlipsContext.Provider>
 }
 
