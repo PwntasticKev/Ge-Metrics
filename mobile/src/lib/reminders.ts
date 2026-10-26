@@ -15,12 +15,12 @@ async function canNotify (): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted
 }
 
-export async function scheduleLimitReminder (name: string, qty: number, boughtAt: number): Promise<string | null> {
+export async function scheduleLimitReminder (name: string, windowStart: number): Promise<string | null> {
   try {
     if (!(await canNotify())) return null
-    const date = new Date(boughtAt + BUY_LIMIT_WINDOW_MS)
+    const date = new Date(windowStart + BUY_LIMIT_WINDOW_MS)
     return await Notifications.scheduleNotificationAsync({
-      content: { title: 'Buy limit reset', body: `You can buy ${name} again. You bought ${qty.toLocaleString('en-US')} 4 hours ago.` },
+      content: { title: 'Buy limit reset', body: `You can buy a full limit of ${name} again.` },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date }
     })
   } catch (error) {

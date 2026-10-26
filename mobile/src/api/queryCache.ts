@@ -11,17 +11,25 @@ const PERSISTED_KEYS = new Set(['mapping', 'latest', 'volumes', 'averages'])
 
 export function createQueryClient (): QueryClient {
   return new QueryClient({
-    defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: true, gcTime: CACHE_MAX_AGE_MS } }
+    defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: true } }
   })
 }
 
 export const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: 'gem.query-cache',
-  // Prices refresh every minute; writing more often buys nothing.
-  throttleTime: 5_000
+  // Writing ~2 MB of JSON blocks the JS thread for a moment, so do it at most
+  // twice a minute; prices only refresh once a minute anyway.
+  throttleTime: 30_000
 })
 
+// Persisted queries must outlive a restart in memory too.
+export const PERSISTED_GC_TIME_MS = CACHE_MAX_AGE_MS
+
 export function shouldPersist (query: Query): boolean {
-  return query.state.status === 'success' && PERSISTED_KEYS.has(String(query.queryKey[0]))
+  // Judge age by when the data was fetched, not when the cache was last
+  // written, so opening the app offline every day can't keep old prices alive.
+  return query.state.status === 'success' &&
+    Date.now() - query.state.dataUpdatedAt < CACHE_MAX_AGE_MS &&
+    PERSISTED_KEYS.has(String(query.queryKey[0]))
 }

@@ -16,14 +16,18 @@ export function LogBuy ({ itemId, name, icon, qty, price }: { itemId: number; na
   const { palette } = useTheme()
   const { addHolding } = useFlips()
   const [open, setOpen] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState<'reminder' | 'no-reminder' | null>(null)
+  const [saving, setSaving] = useState(false)
   const [qtyText, setQtyText] = useState(String(qty))
   const [priceText, setPriceText] = useState(String(price))
   const qtyValue = toInt(qtyText)
   const priceValue = toInt(priceText)
-  const valid = qtyValue !== null && priceValue !== null
+  const valid = qtyValue !== null && priceValue !== null && !saving
 
-  if (saved) return <Text style={[styles.done, { color: palette.muted }]}>Saved to Watchlist, Bought. We'll remind you when the buy limit resets.</Text>
+  if (saved) {
+    const reminder = saved === 'reminder' ? ' We\'ll remind you when the buy limit resets.' : ' Turn on notifications in iOS Settings to get buy-limit reminders.'
+    return <Text style={[styles.done, { color: palette.muted }]}>Saved to Watchlist, Bought.{reminder}</Text>
+  }
   if (!open) {
     return (
       <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityRole="button" style={styles.link}>
@@ -33,10 +37,11 @@ export function LogBuy ({ itemId, name, icon, qty, price }: { itemId: number; na
   }
 
   const save = async () => {
-    if (qtyValue === null || priceValue === null) return
+    if (qtyValue === null || priceValue === null || saving) return
+    setSaving(true)
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    await addHolding({ itemId, name, icon, qty: qtyValue, buyPrice: priceValue })
-    setSaved(true)
+    const reminded = await addHolding({ itemId, name, icon, qty: qtyValue, buyPrice: priceValue })
+    setSaved(reminded ? 'reminder' : 'no-reminder')
   }
 
   return (

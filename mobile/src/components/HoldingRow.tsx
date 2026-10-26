@@ -12,8 +12,8 @@ import { Sparkline } from './Sparkline'
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
-function limitText (boughtAt: number, now: number): string {
-  const resetAt = boughtAt + BUY_LIMIT_WINDOW_MS
+function limitText (windowStart: number, now: number): string {
+  const resetAt = windowStart + BUY_LIMIT_WINDOW_MS
   return resetAt > now ? `limit resets ${clock(resetAt)}` : 'limit has reset'
 }
 
@@ -25,12 +25,26 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, now, expand
   const tax = sellAt === null ? 0 : geTax(sellAt, holding.itemId)
   const profitNow = sellAt === null ? null : (sellAt - tax - holding.buyPrice) * holding.qty
 
+  // Asks what it actually sold for, prefilled with the current price.
   const confirmSold = () => {
-    if (sellAt === null) return
-    Alert.alert('Mark as sold?', `${qty(holding.qty)} ${holding.name} at ${gpFull(sellAt)} each, ${signed(profitNow)} after tax.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sold', onPress: () => sellHolding(holding.id, sellAt, tax) }
-    ])
+    Alert.prompt(
+      'Sold for how much each?',
+      `${qty(holding.qty)} ${holding.name}, bought at ${gpFull(holding.buyPrice)}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sold',
+          onPress: (text?: string) => {
+            const price = Number((text ?? '').replace(/[^0-9]/g, ''))
+            if (!Number.isInteger(price) || price <= 0) return
+            sellHolding(holding.id, price, geTax(price, holding.itemId))
+          }
+        }
+      ],
+      'plain-text',
+      sellAt === null ? '' : String(sellAt),
+      'number-pad'
+    )
   }
   const confirmRemove = () => {
     Alert.alert('Remove without selling?', 'It won\'t count toward what you\'ve made.', [
@@ -43,7 +57,7 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, now, expand
     <FlipRow
       icon={holding.icon}
       name={stripUncharged(holding.name)}
-      meta={`${qty(holding.qty)} at ${gpFull(holding.buyPrice)}, ${limitText(holding.boughtAt, now)}`}
+      meta={`${qty(holding.qty)} at ${gpFull(holding.buyPrice)}, ${limitText(holding.windowStart, now)}`}
       value={signed(profitNow)}
       valueCaption="if sold now"
       valueTone={profitNow !== null && profitNow > 0 ? 'profit' : 'ink'}
@@ -57,13 +71,9 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, now, expand
         <Pressable onPress={confirmRemove} hitSlop={8} accessibilityRole="button">
           <Text style={[styles.action, { color: palette.muted }]}>Remove</Text>
         </Pressable>
-        {sellAt !== null
-          ? (
-            <Pressable onPress={confirmSold} hitSlop={8} accessibilityRole="button">
-              <Text style={[styles.action, { color: palette.brand }]}>Mark sold</Text>
-            </Pressable>
-            )
-          : null}
+        <Pressable onPress={confirmSold} hitSlop={8} accessibilityRole="button">
+          <Text style={[styles.action, { color: palette.brand }]}>Mark sold</Text>
+        </Pressable>
       </View>
     </FlipRow>
   )

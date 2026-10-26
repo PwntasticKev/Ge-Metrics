@@ -10,6 +10,7 @@ import { SetFlipRow } from '../components/SetFlipRow'
 import { Tabs } from '../components/Tabs'
 import { signed } from '../lib/format'
 import { findProcessRecipe } from '../lib/methods'
+import { startOfToday, useNow } from '../lib/useNow'
 import { RECIPES } from '../lib/ranking'
 import { useFlips, type Holding } from '../state/flips'
 import { useWatchlist } from '../state/watchlist'
@@ -28,7 +29,6 @@ const VIEWS = [
 ] as const
 
 const recipeById = new Map(RECIPES.map(r => [r.id, r]))
-const DAY_MS = 24 * 60 * 60 * 1000
 
 // Starred sets and items, priced live, plus what you've bought and still hold.
 // Unlike the ranked lists, nothing here hides when the margin is gone.
@@ -60,9 +60,12 @@ export default function WatchlistScreen () {
   }, [market.market, entries])
 
   const holdingRows = useMemo<Row[]>(() => holdings.map(holding => ({ key: holding.id, holding })), [holdings])
-  // Recomputed with each price refresh, so "limit resets" stays current.
-  const now = market.updatedAt ?? Date.now()
-  const madeToday = useMemo(() => sales.filter(s => s.soldAt > now - DAY_MS).reduce((sum, s) => sum + s.profit, 0), [sales, now])
+  // Ticks every minute even offline, so "limit resets" and today's total stay right.
+  const now = useNow()
+  const madeToday = useMemo(() => {
+    const since = startOfToday(now)
+    return sales.filter(s => s.soldAt >= since).reduce((sum, s) => sum + s.profit, 0)
+  }, [sales, now])
 
   const toggle = useCallback((key: string) => setOpenKey(prev => (prev === key ? null : key)), [])
   const meta = view === 'watching'
