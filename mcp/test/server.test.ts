@@ -120,14 +120,19 @@ describe('MCP server', () => {
       timeseries: async () => flatSeries({ low: 900_000, high: 1_000_000, volume: 100 }),
       averages: async () => new Map([[4151, avg(1_000_000, 900_000, 2400, 2400)]])
     }))
-    const top = await call(client, 'top_flips', { min_volume: 0, budget: 50_000_000 })
+    // Defaults from the walk-forward: 10k/day floor and 2h patience demote this 3k/day, 4.4h whip.
+    expect((await call(client, 'top_flips', { budget: 50_000_000, max_fill_hours: 8 })).data).toMatchObject({ flips: [] })
+    expect((await call(client, 'top_flips', { min_volume: 0, budget: 50_000_000 })).data).toMatchObject({ maxFillHours: 2, flips: [] })
+    const top = await call(client, 'top_flips', { min_volume: 0, budget: 50_000_000, max_fill_hours: 8 })
     expect(top.data.flips[0]).toMatchObject({
       id: 4151, buyAt: 900_000, sellAt: 1_000_000, marginAfterTax: 80_000, qty: 55, demoted: false, priceBasis: 'hourly series (24h)',
       expectedFillHours: { buy: 2.2, sell: 2.2 }, realisticProfitPerLimit: 4_400_000
     })
     // Default volume floor (10k/day, backtest finding) excludes the 3k/day whip.
     expect((await call(client, 'plan_flips', { cash: 50_000_000 })).data).toMatchObject({ totals: { slotsUsed: 0 } })
-    const plan = await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 1000 })
+    // Default 2h patience: only what buys and sells within 2h (25 of the 55 limit).
+    expect((await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 1000 })).data).toMatchObject({ maxFillHours: 2, slotsPlan: [{ id: 4151, qty: 25 }] })
+    const plan = await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 1000, max_fill_hours: 8 })
     expect(plan.data).toMatchObject({ slots: 8, maxFillHours: 8, totals: { slotsUsed: 1, cost: 49_500_000, expectedProfit: 4_400_000 } })
     expect(plan.data.slotsPlan[0]).toMatchObject({ id: 4151, buyAt: 900_000, sellAt: 1_000_000, qty: 55, taxEach: 20_000, expectedHours: 4.4 })
     expect((await call(client, 'plan_flips', { cash: 50_000_000, members: false })).data).toMatchObject({ slots: 3, totals: { slotsUsed: 0 } })
