@@ -1,9 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Outlet, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import ErrorPage from './pages/error-page.jsx'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import SignupSuccess from './pages/Signup/SignupSuccess.jsx'
 import { MantineProvider, createStyles, Box, LoadingOverlay, Drawer } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { getTheme } from './theme/index.js'
@@ -24,7 +21,6 @@ import TrialBanner from './components/Trial/TrialBanner'
 // Favorites system import
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import TrialExpiredModal from './components/Trial/TrialExpiredModal'
-import HerbCleaning from './pages/HerbCleaning/index.jsx'
 
 // Bottom navigation imports
 import BottomNavBar from './components/Navigation/BottomNavBar'
@@ -91,9 +87,15 @@ const AdminGlobalRecipes = lazy(() => import('./pages/Admin/GlobalRecipes.jsx'))
 const AdminMoneyMakingMethods = lazy(() => import('./pages/Admin/MoneyMakingMethods.jsx'))
 const MoneyMakingMethods = lazy(() => import('./pages/MoneyMakingMethods/index.jsx'))
 const GlobalMoneyMakingMethods = lazy(() => import('./pages/GlobalMoneyMakingMethods/index.jsx'))
-import TermsAndConditions from './pages/TermsAndConditions/index.jsx'
-import Contact from './pages/Contact/index.jsx'
-import Affiliate from './pages/Affiliate/index.jsx'
+// Public and rarely visited pages load on demand too, keeping the charts
+// and auth forms out of the first download.
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const SignupSuccess = lazy(() => import('./pages/Signup/SignupSuccess.jsx'))
+const HerbCleaning = lazy(() => import('./pages/HerbCleaning/index.jsx'))
+const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions/index.jsx'))
+const Contact = lazy(() => import('./pages/Contact/index.jsx'))
+const Affiliate = lazy(() => import('./pages/Affiliate/index.jsx'))
 
 const useStyles = createStyles((theme) => ({
   appShell: {
@@ -334,6 +336,7 @@ function AppContent () {
           <MusicPlayerProvider>
             <MusicPlayerKeyboardHandler />
             <StaticModeGuard>
+            <Suspense fallback={null}>
             <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -441,6 +444,7 @@ function AppContent () {
               <Route path="*" element={<ErrorPage />} />
             </Route>
           </Routes>
+            </Suspense>
             </StaticModeGuard>
           </MusicPlayerProvider>
         </FavoritesProvider>
