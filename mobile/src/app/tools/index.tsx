@@ -1,11 +1,13 @@
-import { router, type Href } from 'expo-router'
-import { useMemo } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { router, useScrollToTop, type Href } from 'expo-router'
+import { useMemo, useRef } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native'
 import type { Market } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
 import { ItemIcon } from '../../components/ItemIcon'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { gpShort, signed } from '../../lib/format'
+import { useGameUpdates } from '../../api/gameUpdates'
+import { gpShort, signed, utcDay } from '../../lib/format'
+import { PRICE_MOVING_KINDS } from '../../lib/gameUpdates'
 import { METHODS, PROCESSING_METHODS, rankMethod, type MethodDef } from '../../lib/methods'
 import { useSettings, type Settings } from '../../state/settings'
 import { useTheme } from '../../theme/ThemeProvider'
@@ -30,7 +32,7 @@ const FEATURED: { key: string; icon: string }[] = [
   { key: 'decanting', icon: 'Prayer potion(4).png' }
 ]
 
-function FeaturedCard ({ href, title, blurb, icon, best }: { href: Href; title: string; blurb: string; icon: string; best: Best | null }) {
+function FeaturedCard ({ href, title, blurb, icon, best, bestLabel = 'Best now' }: { href: Href; title: string; blurb: string; icon: string; best: Best | null; bestLabel?: string }) {
   const { palette } = useTheme()
   return (
       <Pressable onPress={() => router.push(href)} style={({ pressed }) => [styles.card, { backgroundColor: palette.card, borderColor: palette.rule }, pressed && { opacity: 0.7 }]} accessibilityRole="button">
@@ -44,7 +46,7 @@ function FeaturedCard ({ href, title, blurb, icon, best }: { href: Href; title: 
         </View>
         {best ? (
           <View style={[styles.best, { borderTopColor: palette.rule }]}>
-            <Text style={[styles.bestLabel, { color: palette.muted }]} numberOfLines={1}>Best now: {best.name}</Text>
+            <Text style={[styles.bestLabel, { color: palette.muted }]} numberOfLines={1}>{bestLabel}: {best.name}</Text>
             <Text style={[styles.bestValue, { color: palette.profit }]}>{best.value}</Text>
           </View>
         ) : null}
@@ -85,6 +87,15 @@ export default function ToolsHub () {
   const { palette } = useTheme()
   const { market } = useMarket()
   const { settings } = useSettings()
+  // Tapping Tools again pops back here (native), then scrolls to the top.
+  const scrollRef = useRef<ScrollViewInstance>(null)
+  useScrollToTop(scrollRef)
+
+  const updates = useGameUpdates()
+  const latestPost = useMemo<Best | null>(() => {
+    const post = updates.data?.find(u => PRICE_MOVING_KINDS.includes(u.kind))
+    return post ? { name: post.title, icon: null, value: utcDay(post.date).replace(/ \d{4}$/, '') } : null
+  }, [updates.data])
 
   const featured = useMemo(() => FEATURED.map(f => ({ ...f, method: METHODS[f.key], best: bestFor(METHODS[f.key], market, settings) })), [market, settings])
   const processing = useMemo(
@@ -97,10 +108,18 @@ export default function ToolsHub () {
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <ScreenHeader title="Tools" meta={market ? 'Live prices' : undefined} />
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.list}>
+      <ScrollView ref={scrollRef} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.list}>
         {featured.map(f => (
           <FeaturedCard key={f.key} href={`/tools/${f.key}`} title={f.method.title} blurb={f.method.blurb} icon={f.icon} best={f.best} />
         ))}
+        <FeaturedCard
+          href="/tools/update-movers"
+          title="Update movers"
+          blurb="Items named in the latest game updates and dev blogs, and how far their price moved since."
+          icon="Newspaper.png"
+          best={latestPost}
+          bestLabel="Latest"
+        />
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
