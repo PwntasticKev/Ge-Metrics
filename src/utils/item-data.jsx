@@ -115,7 +115,7 @@ const ItemData = () => {
     }
 
     // Return visit: paint the last saved prices right away, then refresh.
-    const cached = pricesCache.readSnapshot()
+    const cached = hasDataRef.current ? null : pricesCache.readSnapshot()
     if (cached) {
       applyPrices({ mappingData: cached.mapping, pricesById: cached.latest, volumesById: cached.volumes, fetchedAt: cached.savedAt })
     }

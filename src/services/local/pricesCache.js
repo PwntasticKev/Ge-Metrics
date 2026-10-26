@@ -50,6 +50,9 @@ function defaultStorage () {
 
 export function createPricesCache ({ storage = defaultStorage(), now = () => Date.now() } = {}) {
   const keyOf = name => `${PRICE_CACHE_KEY_PREFIX}${name}`
+  // Last parsed entry per name, so the 60s refresh doesn't re-parse ~1 MB of
+  // unchanged mapping JSON every time.
+  let parsed = new Map()
 
   const remove = name => {
     try {
@@ -73,13 +76,16 @@ export function createPricesCache ({ storage = defaultStorage(), now = () => Dat
     const raw = readRaw(name)
     if (raw === null) return null
 
-    let entry
-    try {
-      entry = JSON.parse(raw)
-    } catch {
-      console.warn('[pricesCache] dropping corrupted entry', name)
-      remove(name)
-      return null
+    let entry = parsed.get(name)?.raw === raw ? parsed.get(name).entry : undefined
+    if (entry === undefined) {
+      try {
+        entry = JSON.parse(raw)
+      } catch {
+        console.warn('[pricesCache] dropping corrupted entry', name)
+        remove(name)
+        return null
+      }
+      parsed = new Map(parsed).set(name, { raw, entry })
     }
 
     const age = now() - entry?.savedAt
