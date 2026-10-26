@@ -31,6 +31,7 @@ Ground rules carried over from earlier decisions:
 | Game update markers | Game updates and dev blogs from the wiki as dots on the chart; posts that mention the item stand out. Tap for the post. |
 | Update movers | Tools view: items named in the latest posts with their price move since the post and current margin. |
 | Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
+| Mini window (PiP) | Up to 5 live prices (watchlist items, Buy now picks or holdings) in a Picture in Picture window over the game. Optional auto-open when leaving the app. Native refresh every minute while it's up. |
 
 ## Done in this round (web)
 
@@ -59,6 +60,30 @@ Ground rules carried over from earlier decisions:
    profit) for clan chats.
 7. **iPad and landscape layouts.** Two columns: list on the left, item page
     on the right.
+
+## Mini window notes (Picture in Picture)
+
+iOS has no floating windows for normal apps, so the mini window is a
+Picture in Picture "video" whose frames are the ticker
+(`AVPictureInPictureController` with a sample-buffer content source, iOS 15+).
+Native code lives in `mobile/modules/pip-ticker`.
+
+- **Background refresh is native.** While the app is in the background the
+  JS side can't be relied on: React Query stops refetching when the app loses
+  focus (see `useAppFocus` in `_layout.tsx`), and iOS may suspend the JS
+  thread. So the Swift side fetches `/latest?id=` for each shown item every
+  60 s (same User-Agent as the app) and redraws. JS pushes fresh rows
+  whenever it has them, e.g. after you come back to the app.
+- **Audio session.** PiP needs the `.playback` category and the `audio`
+  background mode. We use `.mixWithOthers` and never play sound, so the
+  game's audio keeps playing.
+- **Pause** in the PiP window pauses the price refresh.
+- **App Review risk.** Apple documents PiP for video. Ticker-style PiP apps
+  exist on the store, but a reviewer could cite guideline 2.5.4 (background
+  modes used only for their intended purpose). Mention in review notes that
+  the mini window is user-started and shows live prices.
+- **Device only.** Must be checked on a real iPhone (TestFlight) for
+  auto-start and background refresh; see the PR for steps.
 
 ## Next for the website (no visual change unless asked)
 
