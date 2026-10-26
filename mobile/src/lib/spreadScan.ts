@@ -3,11 +3,14 @@
 // - screenSpreads: cheap, from /latest plus the bulk /1h and /24h averages.
 //   "Now" is the careful margin: the lower of live and last-hour sell price
 //   against the higher of live and last-hour buy price, so one odd trade in
-//   /latest can't fake a gap (same rule as Buy now). The norm is the margin
-//   between the day's average buy and sell prices.
+//   /latest can't fake a gap (same rule as Buy now). A side whose last hour
+//   was thin (a print or two) uses the day's average instead, so a spike
+//   can't fake one either (see fillAware). The norm is the margin between
+//   the day's average buy and sell prices.
 // - spreadHistory: from an item's 7-day hourly series. The norm becomes the
 //   median hourly margin, and the live margin gets a robust z-score.
 // Pure; tax and the thin-spike check are passed in.
+import { pricesFromAverages } from './fillAware.ts'
 import { median, robustSigma, tradesOf, type Averages, type SideAverages } from './scanMath.ts'
 
 export interface LiveItem {
@@ -44,6 +47,9 @@ const MIN_HOURS = 24
 
 export interface SpreadRow {
   item: LiveItem
+  /** Prices behind `live`: what traded with volume, held to the worse of that and live. */
+  buyAt: number
+  sellAt: number
   /** Careful margin after tax: worse of live and last-hour prices on each side. */
   live: number
   /** Margin between the two live prices, after tax. */
@@ -94,16 +100,17 @@ export function screenSpread (item: LiveItem, { h1, h24, nowSec, tax, isPump }: 
   const hour = h1[String(item.id)]
   if (!hour || !hour.avgHighPrice || !hour.avgLowPrice) return null
   if (hour.highPriceVolume < SPREAD_MIN_HOUR_TRADES || hour.lowPriceVolume < SPREAD_MIN_HOUR_TRADES) return null
-  const sell = Math.min(high, hour.avgHighPrice)
-  const buy = Math.max(low, hour.avgLowPrice)
-  const live = marginAfterTax(sell, buy, item.id, tax)
+  const prices = pricesFromAverages(item, hour, day)
+  if (!prices) return null
+  const { buyAt, sellAt } = prices
+  const live = marginAfterTax(sellAt, buyAt, item.id, tax)
   if (live <= 0) return null
   const multiple = live / Math.max(dayNorm, normFloor(low))
   if (multiple < SPREAD_MULTIPLE) return null
   const profitPerLimit = item.limit ? live * item.limit : null
   if (profitPerLimit !== null && profitPerLimit < SPREAD_MIN_PROFIT_PER_LIMIT) return null
   if (isPump(item.id)) return null
-  return { item, live, rawLive: marginAfterTax(high, low, item.id, tax), dayNorm, hourMargin: averageMargin(hour, item.id, tax), multiple, profitPerLimit, dayTrades: tradesOf(day) }
+  return { item, buyAt, sellAt, live, rawLive: marginAfterTax(high, low, item.id, tax), dayNorm, hourMargin: averageMargin(hour, item.id, tax), multiple, profitPerLimit, dayTrades: tradesOf(day) }
 }
 
 /** Every item that passes, most profit per buy limit first (unknown limits last, by multiple). */
