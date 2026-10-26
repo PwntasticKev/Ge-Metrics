@@ -1,20 +1,19 @@
 import type { MarketItem } from '@ge/engine'
 import { memo } from 'react'
 import { StyleSheet, Text } from 'react-native'
-import { gpFull, gpPrice, gpShort, stripUncharged } from '../../lib/format'
+import { fillsIn } from '../../lib/fillText'
+import { duration, gpFull, gpPrice, gpShort, stripUncharged } from '../../lib/format'
 import type { Move } from '../../lib/marketMoves'
 import { multipleText, signedPct } from '../../lib/scanText'
-import { SPREAD_Z, type SpreadHistory, type SpreadRow } from '../../lib/spreadScan'
+import type { SpreadCheck } from '../../lib/spreadFill'
+import { SPREAD_Z, type SpreadHistory } from '../../lib/spreadScan'
 import type { Reversion, Trend } from '../../lib/trendScan'
 import { useTheme } from '../../theme/ThemeProvider'
 import { DetailsLink } from '../DetailsLink'
 import { FlipRow } from '../FlipRow'
 import { Sparkline } from '../Sparkline'
 
-export interface SpreadEntry {
-  row: SpreadRow
-  /** 7-day hourly check; undefined while loading, null without enough history. */
-  history: SpreadHistory | null | undefined
+export interface SpreadEntry extends SpreadCheck {
   dump: boolean
 }
 export interface TrendEntry { item: MarketItem; move: Move; trend: Trend }
@@ -29,38 +28,57 @@ function Line ({ text, muted = false }: { text: string; muted?: boolean }) {
 
 function historyMeta (h: SpreadHistory | null | undefined): string {
   if (h === undefined) return 'checking 7d'
-  if (h === null) return 'no 7d history'
+  if (h === null) return 'no 7d check'
   return `z ${h.z.toFixed(1)} vs 7d`
 }
 
+function priceLine ({ row, fill }: SpreadEntry): string {
+  const basis = fill.basis === 'series'
+    ? 'the median of the last few hours that traded with volume on each side'
+    : 'the last hour\'s average where it traded with volume, else the day\'s'
+  return `Buy ${gpPrice(fill.buyAt)}, sell ${gpPrice(fill.sellAt)}: ${basis}, held to the worse of that and live (live buy ${gpPrice(row.item.low)}, sell ${gpPrice(row.item.high)}, ${gpFull(row.rawLive)} after tax). Margin ${gpFull(fill.margin)} each.`
+}
+
+function fillLine ({ row, fill }: SpreadEntry): string {
+  const lot = row.item.limit ? `One buy limit (${row.item.limit.toLocaleString('en-US')})` : 'One item (limit unknown)'
+  const rate = fill.rate
+  return `${lot}: buy ${duration(rate.buyHours)}, sell ${duration(rate.sellHours)}${rate.gpPerHour > 0 ? `, ${gpShort(rate.gpPerHour)}/h for the GE slot` : ''}.`
+}
+
 export const SpreadScanRow = memo(function SpreadScanRow ({ entry, expanded, onToggle }: RowProps<SpreadEntry>) {
-  const { row, history, dump } = entry
+  const { row, fill, history, dump } = entry
   const { item } = row
   const norm = history ? history.norm : row.dayNorm
-  const multiple = history ? history.multiple : row.multiple
   return (
     <FlipRow
       icon={item.icon}
       name={stripUncharged(item.name)}
       badges={dump ? ['Thin dump'] : undefined}
-      meta={`Norm ${gpShort(norm)} → now ${gpShort(row.live)} · ${multipleText(multiple)} · ${historyMeta(history)}`}
-      value={row.profitPerLimit !== null ? `+${gpShort(row.profitPerLimit)}` : `+${gpShort(row.live)}`}
-      valueCaption={row.profitPerLimit !== null ? 'per limit' : 'each'}
+      meta={`Norm ${gpShort(norm)} → now ${gpShort(fill.margin)} · ${multipleText(fill.multiple)} · ${historyMeta(history)}`}
+      note={fillsIn(fill.rate)}
+      value={fill.profitPerLimit !== null ? `+${gpShort(fill.profitPerLimit)}` : `+${gpShort(fill.margin)}`}
+      valueCaption={fill.profitPerLimit !== null ? 'per limit' : 'each'}
       valueTone={history === null || history?.unusual !== false ? 'profit' : 'ink'}
       expanded={expanded}
       onToggle={() => onToggle(item.id)}
     >
       <Sparkline itemId={item.id} />
-      <Line text={`Live: buy ${gpPrice(item.low)}, sell ${gpPrice(item.high)} (${gpFull(row.rawLive)} after tax). Careful margin with the last hour's averages: ${gpFull(row.live)}.`} />
+      <Line text={priceLine(entry)} />
+      <Line text={fillLine(entry)} />
       <Line text={`Day average margin ${gpFull(row.dayNorm)}; last hour ${row.hourMargin !== null ? gpFull(row.hourMargin) : 'no two-sided trades'}.`} />
       {history ? (
         <Line text={`Median hourly margin over ${history.hours}h: ${gpFull(history.norm)}. Now is ${history.z.toFixed(1)} robust σ above it${history.unusual ? '' : ` (under ${SPREAD_Z}σ, within its usual range)`}.`} />
       ) : null}
-      <Line muted text={`Buy limit ${item.limit ?? 'unknown'}; ${gpShort(row.dayTrades)} traded in 24h.`} />
+      <Line muted text={`${gpShort(row.dayTrades)} traded in 24h.`} />
       <DetailsLink itemId={item.id} />
     </FlipRow>
   )
 })
+
+/** Detail line for a scanner row in Slow to fill. */
+export function slowSpreadDetail (entry: SpreadEntry): string {
+  return `${priceLine(entry)} ${fillLine(entry)}`
+}
 
 export const TrendScanRow = memo(function TrendScanRow ({ entry, expanded, onToggle }: RowProps<TrendEntry>) {
   const { item, move, trend } = entry

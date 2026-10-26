@@ -18,6 +18,7 @@ Ground rules carried over from earlier decisions:
 | Buy now tab | Home screen. Ranked picks for the next 4 hours and for overnight, with buy price, sell price and amount. |
 | Last-hour check | A pick's prices are the more careful of live and last-hour average, so one spike can't fake a margin. |
 | Overnight picks | Offers at the 24h typical low/high, sized to fill over 8 hours; skips items that moved away. |
+| Fill-aware picks and scanner | Prices come from recent hours that traded with volume (never one print); Buy now amounts are cut to what the fill-time model says buys and sells within the list's window (Plan my cash splits those), and scanner rows show fill time for one buy limit. Anything whose sell takes longer than the Settings limit (default 8h) sits in a collapsed Slow to fill section with the reason. |
 | Bought tab + reminders | Log what you bought; see profit if sold now; local notification when the buy limit resets. |
 | Tap to copy prices | Tap a price in any expanded row to copy it for the GE on OSRS mobile. |
 | Instant start | Last prices cached on the phone; lists draw in about a second, then refresh. Works offline. |

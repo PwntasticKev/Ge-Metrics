@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { DEFAULT_MAX_SELL_HOURS, isMaxSellHours } from '../lib/fillAware'
 import { isMiniSource, type MiniSource } from '../lib/miniWindow'
 import { loadJson, saveJson } from './storage'
 
@@ -21,6 +22,8 @@ export interface Settings {
   miniSource: MiniSource
   /** Open the mini window when you leave the app. */
   miniAutoStart: boolean
+  /** Picks and scanner rows whose sell takes longer than this go to "Slow to fill". */
+  maxSellHours: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,7 +35,8 @@ export const DEFAULT_SETTINGS: Settings = {
   budget: null,
   seenSetsTip: false,
   miniSource: 'watchlist',
-  miniAutoStart: false
+  miniAutoStart: false,
+  maxSellHours: DEFAULT_MAX_SELL_HOURS
 }
 
 const KEY = 'gem.settings.v1'
@@ -57,7 +61,8 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
       const orientation = ORIENTATIONS.includes(stored.orientation as OrientationPreference) ? stored.orientation as OrientationPreference : DEFAULT_SETTINGS.orientation
       const miniSource = isMiniSource(stored.miniSource) ? stored.miniSource : DEFAULT_SETTINGS.miniSource
       const miniAutoStart = stored.miniAutoStart === true
-      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart })
+      const maxSellHours = isMaxSellHours(stored.maxSellHours) ? stored.maxSellHours : DEFAULT_MAX_SELL_HOURS
+      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours })
     })
   }, [])
 
