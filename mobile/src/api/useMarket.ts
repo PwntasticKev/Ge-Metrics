@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createMarketFromWiki, type Market } from '@ge/engine'
+import { PERSISTED_GC_TIME_MS } from './queryCache'
 import { fetchLatest, fetchMapping, fetchVolumes } from './wiki'
 
 const PRICE_REFRESH_MS = 60_000
@@ -16,9 +17,9 @@ export interface MarketState {
 }
 
 export function useMarket (): MarketState {
-  const mapping = useQuery({ queryKey: ['mapping'], queryFn: fetchMapping, staleTime: MAPPING_STALE_MS })
-  const latest = useQuery({ queryKey: ['latest'], queryFn: fetchLatest, refetchInterval: PRICE_REFRESH_MS, staleTime: PRICE_REFRESH_MS / 2 })
-  const volumes = useQuery({ queryKey: ['volumes'], queryFn: fetchVolumes, refetchInterval: PRICE_REFRESH_MS * 5, staleTime: PRICE_REFRESH_MS })
+  const mapping = useQuery({ queryKey: ['mapping'], queryFn: fetchMapping, staleTime: MAPPING_STALE_MS, gcTime: PERSISTED_GC_TIME_MS })
+  const latest = useQuery({ queryKey: ['latest'], queryFn: fetchLatest, refetchInterval: PRICE_REFRESH_MS, staleTime: PRICE_REFRESH_MS / 2, gcTime: PERSISTED_GC_TIME_MS })
+  const volumes = useQuery({ queryKey: ['volumes'], queryFn: fetchVolumes, refetchInterval: PRICE_REFRESH_MS * 5, staleTime: PRICE_REFRESH_MS, gcTime: PERSISTED_GC_TIME_MS })
 
   const market = useMemo(() => {
     if (!mapping.data || !latest.data) return null

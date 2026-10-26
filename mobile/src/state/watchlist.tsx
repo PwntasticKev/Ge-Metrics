@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { loadJson, saveJson } from './storage'
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { usePersistentState } from './usePersistentState'
 
 // Starred sets (by recipe id), items (by item id) and processing methods
 // (by recipe id), kept on the device.
@@ -7,14 +7,20 @@ export type WatchEntry = { kind: 'set'; id: string } | { kind: 'item'; id: numbe
 
 const KEY = 'gem.watchlist.v1'
 
-function isEntryList (value: unknown): value is WatchEntry[] {
-  return Array.isArray(value) && value.every(e =>
-    typeof e === 'object' && e !== null &&
-    (((e.kind === 'set' || e.kind === 'process') && typeof e.id === 'string') || (e.kind === 'item' && Number.isInteger(e.id)))
-  )
+function isEntry (e: unknown): e is WatchEntry {
+  if (typeof e !== 'object' || e === null) return false
+  const { kind, id } = e as { kind?: unknown; id?: unknown }
+  return ((kind === 'set' || kind === 'process') && typeof id === 'string') || (kind === 'item' && Number.isInteger(id))
 }
 
+const NONE: readonly WatchEntry[] = []
+// Keeps every valid entry; one bad entry doesn't wipe the list.
+const parseEntries = (raw: unknown): readonly WatchEntry[] => (Array.isArray(raw) ? raw.filter(isEntry) : NONE)
+
 const sameEntry = (a: WatchEntry, b: WatchEntry) => a.kind === b.kind && a.id === b.id
+
+const mergeEntries = (saved: readonly WatchEntry[], early: readonly WatchEntry[]) =>
+  [...saved, ...early.filter(e => !saved.some(s => sameEntry(s, e)))]
 
 interface WatchlistContextValue {
   entries: readonly WatchEntry[]
@@ -25,19 +31,11 @@ interface WatchlistContextValue {
 const WatchlistContext = createContext<WatchlistContextValue | null>(null)
 
 export function WatchlistProvider ({ children }: { children: ReactNode }) {
-  const [entries, setEntries] = useState<readonly WatchEntry[]>([])
-
-  useEffect(() => {
-    loadJson<WatchEntry[]>(KEY, [], isEntryList).then(setEntries)
-  }, [])
+  const [entries, setEntries] = usePersistentState<readonly WatchEntry[]>(KEY, NONE, parseEntries, mergeEntries)
 
   const toggle = useCallback((entry: WatchEntry) => {
-    setEntries(prev => {
-      const next = prev.some(e => sameEntry(e, entry)) ? prev.filter(e => !sameEntry(e, entry)) : [...prev, entry]
-      saveJson(KEY, next)
-      return next
-    })
-  }, [])
+    setEntries(prev => (prev.some(e => sameEntry(e, entry)) ? prev.filter(e => !sameEntry(e, entry)) : [...prev, entry]))
+  }, [setEntries])
 
   const value = useMemo(() => ({
     entries,
