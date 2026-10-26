@@ -110,6 +110,55 @@ export function rankOvernightFlips (market, { h1 = {}, h24 = {}, budget = null, 
   return picks.filter(p => p.maxQty > 0).sort(byPotential)
 }
 
+// Dips: the live buy price has fallen well under the day's typical low on a
+// liquid item. Buy now, sell back at the day's middle once it recovers.
+export const DIP_MIN_DROP = 0.05
+export const DIP_MIN_DAILY_TRADES = 100
+export const DIP_MIN_HOUR_TRADES = 5
+
+export function rankDips (market, { h1 = {}, h24 = {}, budget = null } = {}) {
+  const picks = []
+  for (const item of market.all()) {
+    const day = h24[item.id]
+    const hour = h1[item.id]
+    if (!hasPrices(day) || !hasPrices(hour) || !item.low || !item.lowTime) continue
+    if (market.nowSec - item.lowTime > QUICK_MAX_AGE_SEC) continue
+    // The whole last hour must be down, not one panic sale: quote the more
+    // cautious of the live and last-hour low, and require several trades.
+    if (hour.lowPriceVolume < DIP_MIN_HOUR_TRADES) continue
+    const buyAt = Math.max(item.low, Math.round(hour.avgLowPrice))
+    const drop = 1 - buyAt / day.avgLowPrice
+    if (drop < DIP_MIN_DROP) continue
+    const dayVolume = sideVolume(day)
+    if (dayVolume < DIP_MIN_DAILY_TRADES) continue
+    const sellAt = Math.round((day.avgLowPrice + day.avgHighPrice) / 2)
+    // Buyers must still be paying the target this hour. If the highs fell too,
+    // it's a crash, not a dip.
+    if (hour.avgHighPrice < sellAt) continue
+    const tax = geTax(sellAt, item.id)
+    const profit = sellAt - tax - buyAt
+    if (profit <= 0 || profit / buyAt > MAX_PLAUSIBLE_ROI) continue
+    const maxQty = Math.min(buyLimitOf(item), Math.floor(dayVolume / QUICK_VOLUME_MULTIPLE))
+    if (maxQty < 1) continue
+    picks.push(finalize({
+      id: item.id,
+      name: item.name,
+      icon: item.icon,
+      members: item.members,
+      buyAt,
+      sellAt,
+      tax,
+      profit,
+      roi: profit / buyAt,
+      maxQty,
+      potential: profit * maxQty,
+      dayVolume,
+      drop: Math.round(drop * 1000) / 1000
+    }, budget))
+  }
+  return picks.filter(p => p.maxQty > 0).sort(byPotential)
+}
+
 // GE offer slots: members get 8, free-to-play 3.
 export const MEMBERS_SLOTS = 8
 export const F2P_SLOTS = 3
