@@ -34,6 +34,10 @@ Ground rules carried over from earlier decisions:
 | Trade timing | Item details: best buy and sell hour (local time) when the pattern held on most of the last 15 days, a 24-bar hour heatmap, a steady weekday, fill time for one buy limit and GP/h per GE slot. |
 | GP/h per slot sort | Buy now (Next 4 hours, Dips): sort by profit per hour a GE slot is busy, from each side's trade flow. |
 | Sell helper | Bought tab: "Sell now X or list Y, ~2h (+Z)" per holding, using the 24h typical high and the sell-side flow. |
+| Flip journal | "Mark sold" asks how many and at what price; partial sells keep the rest open. Every sale is kept with buy and sell price, GE tax, hold time, ROI and GP/h of hold. Older saved sales migrate in place. |
+| Profit view | Watchlist, Profit: realized profit for today / 7 / 30 days / all, daily bars (blue up, grey down) with a running total, best and worst flips, per-item leaderboard (profit, flips, win rate, average hold), open lots at the instant-sell price after tax. |
+| Trading insights | Items you lose on (negative average over 2+ flips), hold time against the 4h buy-limit window and what long holds earn, GE tax paid as a share of margin. |
+| CSV export and restore | Share sheet export of the whole journal; restore from a picked CSV adds what's missing without duplicating. |
 
 ## Done in this round (web)
 
@@ -51,8 +55,9 @@ Ground rules carried over from earlier decisions:
    (`expo-background-task`) checks watched items every ~15 to 30 minutes and
    fires a local notification when a margin crosses a threshold you set. Not
    real time (iOS decides when it runs), but no server.
-3. **Profit history.** Chart of sales from the Bought tab by day and by item,
-   plus best and worst flips. Export as CSV.
+3. **Profit history follow-ups.** Shipped as the Profit view; next is a
+   home-screen widget line for today's profit and per-item notes ("why I
+   bought") on journal entries.
 4. **Update alerts.** Shipped as chart markers and Update movers; next is a
    local notification when a new post mentions a watched item.
 5. **Share a pick.** Share sheet with an image of a pick (item, prices,
