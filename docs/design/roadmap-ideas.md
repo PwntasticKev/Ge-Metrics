@@ -30,6 +30,8 @@ Ground rules carried over from earlier decisions:
 | Chart upgrade | Drag to read any point, sell and buy lines, volume bars, min/max, % change; 1D/1W/1M/3M/1Y. |
 | Game update markers | Game updates and dev blogs from the wiki as dots on the chart; posts that mention the item stand out. Tap for the post. |
 | Update movers | Tools view: items named in the latest posts with their price move since the post and current margin. |
+| Coming up | Tools view: items named in dev blogs, polls and "next week" news before they ship, with the sentence, a direction guess, 7d change, volume, a Late flag (10%+ since the post) and released vs not out yet. |
+| Pumps & dumps | Thin-volume spike detector: badge on item rows and the item sheet, pumps left out of Buy now, Tools list with a 7-day sigma check. |
 | Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
 
 ## Done in this round (web)
