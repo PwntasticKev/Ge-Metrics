@@ -10,8 +10,14 @@ import type { BuyPick, WikiAverage } from '@ge/engine'
 import { flowFromAverages, slotRate, type SlotRate } from './analytics/fillTime.ts'
 import { dayTrades, fillableQty, MIN_DAY_TRADES, type SlowReason } from './fillAware.ts'
 
-/** Hours each list's offers have to buy and sell: one buy-limit window, or a night. */
-export const PICK_HORIZON_HOURS = { quick: 4, plan: 4, dips: 4, overnight: 8 } as const
+/**
+ * Hours each list's offers have to buy and sell. Next 4 hours and Plan size
+ * for 2h: in a 60-day walk-forward (26 out-of-sample folds, PR #33,
+ * mcp/reports/walk-forward-2026-10-26.md) 2h instead of 4h added +16.9M,
+ * won 19/26 test windows and cut losing picks from 22% to 16%. Dips keep 4h
+ * and Overnight 8h: re-tuning those didn't beat them out of sample.
+ */
+export const PICK_HORIZON_HOURS = { quick: 2, plan: 2, dips: 4, overnight: 8 } as const
 export type HorizonMode = keyof typeof PICK_HORIZON_HOURS
 
 export interface SlowPick {

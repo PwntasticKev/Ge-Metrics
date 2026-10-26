@@ -1,15 +1,18 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import type { BuyPick } from '@ge/engine'
 import type { SlotRate } from '../lib/analytics/fillTime'
 import { duration, gpFull, gpShort, percent, qty, signed, stripUncharged } from '../lib/format'
+import { PICK_HORIZON_HOURS } from '../lib/pickFill'
 import type { PickMode } from '../lib/picks'
+import type { SharePick } from '../lib/shareCard'
 import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
 import { DetailsLink } from './DetailsLink'
 import { LogBuy } from './LogBuy'
+import { ShareLink } from './share/ShareLink'
 import { PlaceOffer } from './slots/PlaceOffer'
 import { Sparkline } from './Sparkline'
 
@@ -48,13 +51,14 @@ export const PickRow = memo(function PickRow ({ pick, mode, rate, bySpeed, expan
   const { palette } = useTheme()
   const { isStarred, toggle } = useWatchlist()
   const entry = { kind: 'item', id: pick.id } as const
+  const share = useMemo<SharePick>(() => ({ itemId: pick.id, name: pick.name, icon: pick.icon, buyAt: pick.buyAt, sellAt: pick.sellAt, qty: pick.maxQty, profitEach: pick.profit, fillHours: rate?.cycleHours ?? null, at: Date.now() }), [pick, rate])
   return (
     <FlipRow
       icon={pick.icon}
       name={stripUncharged(pick.name)}
       meta={`Buy ${gpFull(pick.buyAt)}, sell ${gpFull(pick.sellAt)}`}
       value={bySpeed && rate ? `${gpShort(rate.gpPerHour)}/h` : signed(pick.potential)}
-      valueCaption={bySpeed && rate ? `${signed(pick.potential)}, ${duration(rate.cycleHours)}` : `${qty(pick.maxQty)} ${mode === 'overnight' ? 'overnight' : 'in 4h'}`}
+      valueCaption={bySpeed && rate ? `${signed(pick.potential)}, ${duration(rate.cycleHours)}` : `${qty(pick.maxQty)} ${mode === 'overnight' ? 'overnight' : `in ${PICK_HORIZON_HOURS[mode]}h`}`}
       expanded={expanded}
       onToggle={() => onToggle(pick.id)}
     >
@@ -66,6 +70,7 @@ export const PickRow = memo(function PickRow ({ pick, mode, rate, bySpeed, expan
       <DetailsLink itemId={pick.id} />
       <PlaceOffer offers={[{ itemId: pick.id, name: pick.name, icon: pick.icon, side: 'buy', price: pick.buyAt, qty: pick.maxQty, target: pick.sellAt }]} />
       <LogBuy itemId={pick.id} name={pick.name} icon={pick.icon} qty={pick.maxQty} price={pick.buyAt} />
+      {expanded ? <ShareLink pick={share} /> : null}
     </FlipRow>
   )
 })

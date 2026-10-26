@@ -18,12 +18,14 @@ import type { SideAverages } from './scanMath.ts'
 /**
  * Default for "slowest sell to show". In the MCP backtest, sells predicted to
  * take 2-4h were dumped 39% of the time and 4h+ 56% (both lost money), while
- * sells under 2h were dumped 10-13%. Replaying the app's own lists, a 1h cap
- * beat 2h: quick +15.4M vs +9.8M, overnight +43.9M vs +33.6M, dips +3.1M vs
- * +3.5M (50M stack, 8 slots, 14 days).
+ * sells under 2h were dumped 10-13%. The 60-day walk-forward (PR #33) then
+ * favoured 30 minutes over 1h out of sample: +7.7M for Next 4 hours (at its
+ * 2h sizing) and +10.6M for Overnight (losing picks 7% to 4%), -0.7M for
+ * Dips. Confidence is moderate (Overnight won 16/26 windows), so it stays a
+ * setting.
  */
-export const DEFAULT_MAX_SELL_HOURS = 1
-export const MAX_SELL_HOUR_OPTIONS = [1, 2, 4, 8] as const
+export const DEFAULT_MAX_SELL_HOURS = 0.5
+export const MAX_SELL_HOUR_OPTIONS = [0.5, 1, 2, 4, 8] as const
 /**
  * Items trading fewer than this a day (both sides, /24h) are left out of
  * picks and the scanner: in the backtest, items under 10K a day lost money
