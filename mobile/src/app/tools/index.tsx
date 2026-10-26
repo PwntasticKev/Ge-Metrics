@@ -9,6 +9,9 @@ import { useGameUpdates } from '../../api/gameUpdates'
 import { gpShort, signed, utcDay } from '../../lib/format'
 import { PRICE_MOVING_KINDS } from '../../lib/gameUpdates'
 import { METHODS, PROCESSING_METHODS, rankMethod, type MethodDef } from '../../lib/methods'
+import { agoText, enabledCount } from '../../lib/alertState'
+import { useNow } from '../../lib/useNow'
+import { useAlerts } from '../../state/alerts'
 import { useSettings, type Settings } from '../../state/settings'
 import { useTheme } from '../../theme/ThemeProvider'
 import { space } from '../../theme/tokens'
@@ -69,6 +72,24 @@ function SettingsLink () {
   )
 }
 
+function AlertsCard () {
+  const { alerts } = useAlerts()
+  const now = useNow()
+  const on = enabledCount(alerts)
+  const latest = alerts.log[0]
+  const best = on ? { name: latest ? latest.name : `${on} on`, icon: null, value: latest ? agoText(latest.at, now) : 'Watching' } : null
+  return (
+    <FeaturedCard
+      href="/tools/alerts"
+      title="Alerts"
+      blurb="Price, margin and 1h dump or pump alerts for any item, checked on your phone. No account."
+      icon="Bell.png"
+      best={best}
+      bestLabel={latest ? 'Last fired' : 'Alerts'}
+    />
+  )
+}
+
 function MethodRow ({ method, best, last }: { method: MethodDef; best: Best | null; last: boolean }) {
   const { palette } = useTheme()
   return (
@@ -120,6 +141,7 @@ export default function ToolsHub () {
           best={latestPost}
           bestLabel="Latest"
         />
+        <AlertsCard />
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>

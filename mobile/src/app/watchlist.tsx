@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { computeItemFlip, computeProcessFlip, computeSetFlip, type ItemFlip, type ProcessFlip, type SetFlip } from '@ge/engine'
 import { useMarket } from '../api/useMarket'
 import { FlipListScreen } from '../components/FlipListScreen'
+import { ItemAlerts, alertItemFromFlip } from '../components/alerts/ItemAlerts'
 import { HoldingRow } from '../components/HoldingRow'
 import { ItemFlipRow } from '../components/ItemFlipRow'
 import { ProcessFlipRow } from '../components/ProcessFlipRow'
@@ -87,7 +88,7 @@ export default function WatchlistScreen () {
         if ('holding' in r) return <HoldingRow holding={r.holding} item={market.market?.get(r.holding.itemId) ?? null} now={now} expanded={openKey === r.key} onToggle={toggle} />
         if ('set' in r) return <SetFlipRow flip={r.set} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />
         if ('process' in r) return <ProcessFlipRow flip={r.process} sortBy={r.process.perHour !== null ? 'perHour' : 'profit'} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />
-        return <ItemFlipRow flip={r.item} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />
+        return <ItemFlipRow flip={r.item} expanded={openKey === r.key} onToggle={() => toggle(r.key)} footer={<ItemAlerts item={alertItemFromFlip(r.item)} />} />
       }}
       empty={view === 'watching'
         ? { title: 'Nothing starred yet', body: 'Open any set, item or tool and tap Watch to keep it here.' }
