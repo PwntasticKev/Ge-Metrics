@@ -42,6 +42,7 @@ export function FlipListScreen<T> ({ header, market, data, keyOf, renderRow, ext
         windowSize={9}
         contentInsetAdjustmentBehavior="automatic"
         keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={<EmptyState {...empty} />}
         ListFooterComponent={footer ? <View>{footer}</View> : undefined}
         refreshControl={<RefreshControl refreshing={market.isRefreshing} onRefresh={market.refresh} tintColor={palette.brand} />}

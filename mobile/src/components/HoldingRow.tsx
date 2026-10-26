@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { geTax, type MarketItem, type WikiAverage } from '@ge/engine'
 import { flowFromAverages } from '../lib/analytics/fillTime'
@@ -11,6 +11,7 @@ import { space } from '../theme/tokens'
 import { PriceLine } from './DetailLines'
 import { DetailsLink } from './DetailsLink'
 import { FlipRow } from './FlipRow'
+import { SellForm } from './SellForm'
 import { Sparkline } from './Sparkline'
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -42,7 +43,8 @@ interface Props {
 // whether listing at the day's typical high is worth the wait.
 export const HoldingRow = memo(function HoldingRow ({ holding, item, h1, h24, now, expanded, onToggle }: Props) {
   const { palette } = useTheme()
-  const { sellHolding, removeHolding } = useFlips()
+  const { removeHolding } = useFlips()
+  const [selling, setSelling] = useState(false)
   const advice = useMemo(() => sellAdvice({
     qty: holding.qty,
     instantSell: item?.low ?? null,
@@ -57,27 +59,6 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, h1, h24, no
   const profitNow = sellAt === null ? null : (sellAt - tax - holding.buyPrice) * holding.qty
   const listProfit = advice ? (advice.listPrice - geTax(advice.listPrice, holding.itemId) - holding.buyPrice) * holding.qty : null
 
-  // Asks what it actually sold for, prefilled with the current price.
-  const confirmSold = () => {
-    Alert.prompt(
-      'Sold for how much each?',
-      `${qty(holding.qty)} ${holding.name}, bought at ${gpFull(holding.buyPrice)}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sold',
-          onPress: (text?: string) => {
-            const price = Number((text ?? '').replace(/[^0-9]/g, ''))
-            if (!Number.isInteger(price) || price <= 0) return
-            sellHolding(holding.id, price, geTax(price, holding.itemId))
-          }
-        }
-      ],
-      'plain-text',
-      item?.high ? String(item.high) : '',
-      'number-pad'
-    )
-  }
   const confirmRemove = () => {
     Alert.alert('Remove without selling?', 'It won\'t count toward what you\'ve made.', [
       { text: 'Cancel', style: 'cancel' },
@@ -102,14 +83,16 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, h1, h24, no
       {sellAt !== null ? <PriceLine tag="Sell" label={`now, ${signed(profitNow)} profit`} price={sellAt} /> : null}
       {advice && advice.extraGp > 0 ? <PriceLine tag="Sell" label={`list, ${duration(advice.waitHours)}, ${signed(listProfit)} profit`} price={advice.listPrice} /> : null}
       <DetailsLink itemId={holding.itemId} />
-      <View style={styles.actions}>
-        <Pressable onPress={confirmRemove} hitSlop={8} accessibilityRole="button">
-          <Text style={[styles.action, { color: palette.muted }]}>Remove</Text>
-        </Pressable>
-        <Pressable onPress={confirmSold} hitSlop={8} accessibilityRole="button">
-          <Text style={[styles.action, { color: palette.brand }]}>Mark sold</Text>
-        </Pressable>
-      </View>
+      {selling ? <SellForm holding={holding} suggestedPrice={item?.high ?? null} onDone={() => setSelling(false)} /> : (
+        <View style={styles.actions}>
+          <Pressable onPress={confirmRemove} hitSlop={8} accessibilityRole="button">
+            <Text style={[styles.action, { color: palette.muted }]}>Remove</Text>
+          </Pressable>
+          <Pressable onPress={() => setSelling(true)} hitSlop={8} accessibilityRole="button">
+            <Text style={[styles.action, { color: palette.brand }]}>Mark sold</Text>
+          </Pressable>
+        </View>
+      )}
     </FlipRow>
   )
 })
