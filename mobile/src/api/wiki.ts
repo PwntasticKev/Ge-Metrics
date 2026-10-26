@@ -63,6 +63,12 @@ export async function fetchDayAveragesAt (timestamp: number): Promise<Record<str
   return dataMap<WikiAverage>(await getJson(`/24h?timestamp=${timestamp}`), '/24h')
 }
 
+// The 1h average for one past hour; `timestamp` is that hour's start (UTC seconds).
+export async function fetchHourAveragesAt (timestamp: number): Promise<Record<string, WikiAverage>> {
+  if (!Number.isInteger(timestamp) || timestamp % 3600 !== 0) throw new WikiError('Hour timestamps must start on the hour')
+  return dataMap<WikiAverage>(await getJson(`/1h?timestamp=${timestamp}`), '/1h')
+}
+
 export interface PricePoint {
   timestamp: number
   avgHighPrice: number | null

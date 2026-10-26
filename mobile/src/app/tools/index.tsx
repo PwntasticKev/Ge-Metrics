@@ -130,6 +130,7 @@ export default function ToolsHub () {
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <ScreenHeader title="Tools" meta={market ? 'Live prices' : undefined} />
       <ScrollView ref={scrollRef} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.list}>
+        <FeaturedCard href="/tools/scanner" title="Market scanner" blurb="Margins that just opened, steady 7-day trends, dips below the 30-day mean, and whether the market is up or down today." icon="Market stall.png" best={null} />
         {featured.map(f => (
           <FeaturedCard key={f.key} href={`/tools/${f.key}`} title={f.method.title} blurb={f.method.blurb} icon={f.icon} best={f.best} />
         ))}
