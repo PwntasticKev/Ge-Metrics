@@ -146,7 +146,7 @@ export default function SlotsScreen () {
         <Text style={[styles.small, { color: palette.muted }]}>{market ? `Prices ${minutesAgo(prices.updatedAt, now)}` : 'Loading prices'}</Text>
       </View>
       <Text style={[styles.body, { color: palette.muted }]}>
-        Mirror the offers you have up in the GE. Tap the steppers as they fill; buys land on your Bought list. Advice uses live and last-hour prices on each side and the fill-time model.
+        Mirror the offers you have up in the GE. Tap the steppers as they fill; buys land on your Bought list. Advice uses the same prices as Buy now on each side (live, and the last hour only if it traded enough, else the day) and the fill-time model.
       </Text>
 
       {slots.slots.map((slot, i) => (
