@@ -9,13 +9,15 @@ import { Sparkline } from './Sparkline'
 export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle }: { flip: ItemFlip; expanded: boolean; onToggle: (id: number) => void }) {
   const { isStarred, toggle } = useWatchlist()
   const entry = { kind: 'item', id: flip.id } as const
+  const losing = flip.profit <= 0
   const limit = flip.limitAssumed ? `${flip.maxQty ?? '?'} per 4h (limit assumed)` : `${flip.maxQty ?? '?'} per 4h`
   return (
     <FlipRow
       icon={flip.icon}
       name={stripUncharged(flip.name)}
-      meta={`${limit}, ${signed(flip.potential)}${flip.dailyVolume ? `, ${gpShort(flip.dailyVolume)}/day` : ''}`}
+      meta={`${losing ? 'No margin right now' : `${limit}, ${signed(flip.potential)}`}${flip.dailyVolume ? `, ${gpShort(flip.dailyVolume)}/day` : ''}`}
       value={signed(flip.profit)}
+      valueTone={losing ? 'ink' : 'profit'}
       valueCaption="each"
       expanded={expanded}
       onToggle={() => onToggle(flip.id)}

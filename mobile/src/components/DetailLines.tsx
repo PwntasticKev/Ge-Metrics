@@ -32,7 +32,7 @@ export function ProfitFooter ({ tax, profit, starred, onStar }: { tax: number; p
         <Text style={[styles.star, { color: starred ? palette.brand : palette.muted }]}>{starred ? '★ Watching' : '☆ Watch'}</Text>
       </Pressable>
       <Text style={[styles.tax, { color: palette.muted }]}>After {gpFull(tax)} tax</Text>
-      <Text style={[styles.profit, { color: palette.profit }]}>{profit >= 0 ? '+' : ''}{gpFull(profit)}</Text>
+      <Text style={[styles.profit, { color: profit > 0 ? palette.profit : palette.ink }]}>{profit >= 0 ? '+' : ''}{gpFull(profit)}</Text>
     </View>
   )
 }
