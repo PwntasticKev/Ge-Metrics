@@ -14,7 +14,7 @@ export function ItemSheetProvider ({ children }: { children: ReactNode }) {
   const [itemId, setItemId] = useState<number | null>(null)
   const [visible, setVisible] = useState(false)
   const visibleRef = useRef(visible)
-  visibleRef.current = visible
+  useEffect(() => { visibleRef.current = visible }, [visible])
   const openItem = useCallback((id: number) => {
     setItemId(id)
     setVisible(true)
@@ -27,6 +27,8 @@ export function ItemSheetProvider ({ children }: { children: ReactNode }) {
   useEffect(() => {
     const id = Number(item)
     if (!Number.isInteger(id) || id <= 0) return
+    // Syncing from the URL, an external source, is what effects are for.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     openItem(id)
     router.setParams({ item: undefined })
   }, [item, openItem])
