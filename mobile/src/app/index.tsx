@@ -1,55 +1,69 @@
 import { useCallback, useState } from 'react'
-import type { SetFlip, SortMetric } from '@ge/engine'
-import { useMarket } from '../api/useMarket'
+import { StyleSheet, Text } from 'react-native'
+import type { BuyPick } from '@ge/engine'
+import { useAverages } from '../api/useAverages'
+import { useMarket, type MarketState } from '../api/useMarket'
 import { FlipListScreen } from '../components/FlipListScreen'
-import { Notice } from '../components/ListStates'
+import { PickRow } from '../components/PickRow'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { SetFlipRow } from '../components/SetFlipRow'
-import { Pills, Tabs } from '../components/Tabs'
-import { useRankedSets, type SetKind } from '../lib/ranking'
+import { Tabs } from '../components/Tabs'
 import { gpShort, minutesAgo } from '../lib/format'
+import { usePicks, type PickMode } from '../lib/picks'
 import { useSettings } from '../state/settings'
+import { useTheme } from '../theme/ThemeProvider'
 
-const SORTS = [
-  { value: 'potential', label: '4h profit' },
-  { value: 'profit', label: 'Each' },
-  { value: 'roi', label: 'ROI' }
+const MODES = [
+  { value: 'quick', label: 'Next 4 hours' },
+  { value: 'overnight', label: 'Overnight' }
 ] as const
 
-const KINDS = [
-  { value: 'all', label: 'All' },
-  { value: 'ge-set', label: 'GE sets' },
-  { value: 'combine', label: 'Crafted' }
-] as const
+const FOOTERS: Record<PickMode, string> = {
+  quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day.',
+  overnight: 'Offers at the typical low and high of the last 24 hours, sized to fill over 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
+}
 
-export default function SetsScreen () {
-  const market = useMarket()
-  const { settings, update } = useSettings()
-  const [sortBy, setSortBy] = useState<SortMetric>('potential')
-  const [kind, setKind] = useState<SetKind>('all')
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
-  const flips = useRankedSets(market.market, sortBy, kind, query)
-  const onToggle = useCallback((id: string) => {
-    setOpenId(prev => (prev === id ? null : id))
-    if (!settings.seenSetsTip) update({ seenSetsTip: true })
-  }, [settings.seenSetsTip, update])
+// Home tab: open the app, see exactly what to buy and what to sell it for.
+export default function BuyNowScreen () {
+  const prices = useMarket()
+  const averages = useAverages()
+  const { palette } = useTheme()
+  const { settings } = useSettings()
+  const [mode, setMode] = useState<PickMode>('quick')
+  const [openId, setOpenId] = useState<number | null>(null)
+  const picks = usePicks(prices.market, averages.h1, averages.h24, mode)
+  const onToggle = useCallback((id: number) => setOpenId(prev => (prev === id ? null : id)), [])
+
+  // The list needs both live prices and averages before it can rank anything.
+  const market: MarketState = {
+    ...prices,
+    market: picks ? prices.market : null,
+    isLoading: prices.isLoading || (!picks && averages.isLoading),
+    error: prices.error ?? averages.error,
+    isRefreshing: prices.isRefreshing || averages.isRefreshing,
+    refresh: () => {
+      prices.refresh()
+      averages.refresh()
+    }
+  }
 
   return (
-    <FlipListScreen<SetFlip>
+    <FlipListScreen<BuyPick>
       market={market}
       header={
-        <ScreenHeader title="Sets" meta={market.market ? `${flips.length} profitable${settings.budget ? ` with ${gpShort(settings.budget)}` : ''}, ${minutesAgo(market.updatedAt)}` : undefined} search={{ value: query, onChange: setQuery, placeholder: 'Search sets' }}>
-          <Tabs options={SORTS} value={sortBy} onChange={setSortBy} />
-          <Pills options={KINDS} value={kind} onChange={setKind} />
-          {!settings.seenSetsTip ? <Notice text="Tap a set to see what to pay for each part and what to sell the set for." /> : null}
+        <ScreenHeader title="Buy now" meta={picks ? `${settings.budget ? `With ${gpShort(settings.budget)}, ` : ''}${minutesAgo(prices.updatedAt)}` : undefined}>
+          <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null) }} />
         </ScreenHeader>
       }
-      data={flips}
-      keyOf={f => f.id}
-      extraData={openId}
-      renderRow={f => <SetFlipRow flip={f} expanded={openId === f.id} onToggle={onToggle} />}
-      empty={{ title: 'No profitable sets right now', body: 'Prices move all day. Pull down to refresh.' }}
+      data={picks ?? []}
+      keyOf={p => String(p.id)}
+      extraData={`${openId}:${mode}`}
+      renderRow={p => <PickRow pick={p} mode={mode} expanded={openId === p.id} onToggle={onToggle} />}
+      empty={{ title: 'Nothing worth buying right now', body: 'Prices move all day. Pull down to refresh.' }}
+      footer={<Text style={[styles.note, { color: palette.muted }]}>{FOOTERS[mode]}</Text>}
     />
   )
 }
+
+const styles = StyleSheet.create({
+  note: { fontSize: 12.5, textAlign: 'center', padding: 20, lineHeight: 18 }
+})

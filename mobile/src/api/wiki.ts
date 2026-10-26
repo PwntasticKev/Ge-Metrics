@@ -1,4 +1,4 @@
-import type { WikiMappingEntry, WikiPrice } from '@ge/engine'
+import type { WikiAverage, WikiMappingEntry, WikiPrice } from '@ge/engine'
 
 // OSRS Wiki real-time prices API. The wiki asks clients to send a
 // descriptive User-Agent; native fetch lets us set one.
@@ -45,6 +45,11 @@ export async function fetchLatest (): Promise<Record<string, WikiPrice>> {
 
 export async function fetchVolumes (): Promise<Record<string, number>> {
   return dataMap<number>(await getJson('/volumes'), '/volumes')
+}
+
+// Average prices and trade counts over the last hour or day.
+export async function fetchAverages (window: '1h' | '24h'): Promise<Record<string, WikiAverage>> {
+  return dataMap<WikiAverage>(await getJson(`/${window}`), `/${window}`)
 }
 
 export interface PricePoint {

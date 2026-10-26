@@ -29,6 +29,10 @@ function Tabs () {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NativeTabs tintColor={palette.brand} backgroundColor={palette.bar}>
         <NativeTabs.Trigger name="index">
+          <NativeTabs.Trigger.Label>Buy now</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'cart', selected: 'cart.fill' }} md="shopping_cart" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="sets">
           <NativeTabs.Trigger.Label>Sets</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: 'square.grid.2x2', selected: 'square.grid.2x2.fill' }} md="grid_view" />
         </NativeTabs.Trigger>
@@ -43,10 +47,6 @@ function Tabs () {
         <NativeTabs.Trigger name="tools">
           <NativeTabs.Trigger.Label>Tools</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: 'wand.and.stars', selected: 'wand.and.stars' }} md="auto_fix_high" />
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="me">
-          <NativeTabs.Trigger.Label>Me</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
         </NativeTabs.Trigger>
       </NativeTabs>
     </NavigationThemeProvider>

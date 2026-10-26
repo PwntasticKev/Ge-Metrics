@@ -1,11 +1,10 @@
 import Constants from 'expo-constants'
 import * as Haptics from 'expo-haptics'
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { useSettings, type OrientationPreference, type Settings, type ThemePreference } from '../state/settings'
-import { useWatchlist } from '../state/watchlist'
-import { useTheme } from '../theme/ThemeProvider'
-import { space } from '../theme/tokens'
+import { useSettings, type OrientationPreference, type Settings, type ThemePreference } from '../../state/settings'
+import { useWatchlist } from '../../state/watchlist'
+import { useTheme } from '../../theme/ThemeProvider'
+import { space } from '../../theme/tokens'
 
 const WEBSITE = 'https://ge-metrics.vercel.app'
 const THEMES: { value: ThemePreference; label: string }[] = [
@@ -102,14 +101,13 @@ function BudgetPicker () {
   return <Segmented options={BUDGETS} value={settings.budget} onChange={budget => update({ budget })} />
 }
 
-export default function MeScreen () {
+export default function SettingsScreen () {
   const { palette } = useTheme()
   const { entries } = useWatchlist()
   const version = Constants.expoConfig?.version ?? ''
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
-      <ScreenHeader title="Me" />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: space.xl }}>
         <Section title="Display">
           <Row label="Theme" right={<ThemePicker />} />

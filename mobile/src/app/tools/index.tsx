@@ -5,7 +5,7 @@ import type { Market } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
 import { ItemIcon } from '../../components/ItemIcon'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { signed } from '../../lib/format'
+import { gpShort, signed } from '../../lib/format'
 import { METHODS, PROCESSING_METHODS, rankMethod, type MethodDef } from '../../lib/methods'
 import { useSettings, type Settings } from '../../state/settings'
 import { useTheme } from '../../theme/ThemeProvider'
@@ -52,6 +52,21 @@ function FeaturedCard ({ href, title, blurb, icon, best }: { href: Href; title: 
   )
 }
 
+function SettingsLink () {
+  const { palette } = useTheme()
+  const { settings } = useSettings()
+  const cash = settings.budget ? `Cash stack ${gpShort(settings.budget)}` : 'No cash stack set'
+  return (
+    <Pressable onPress={() => router.push('/tools/settings')} style={({ pressed }) => [styles.group, styles.row, { backgroundColor: palette.card, borderColor: palette.rule }, pressed && { opacity: 0.6 }]} accessibilityRole="button">
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.rowTitle, { color: palette.ink }]}>Settings</Text>
+        <Text style={[styles.rowMeta, { color: palette.muted }]}>{cash}, theme, orientation, filters</Text>
+      </View>
+      <Text style={{ color: palette.muted, fontSize: 20 }}>›</Text>
+    </Pressable>
+  )
+}
+
 function MethodRow ({ method, best, last }: { method: MethodDef; best: Best | null; last: boolean }) {
   const { palette } = useTheme()
   return (
@@ -92,6 +107,8 @@ export default function ToolsHub () {
         <View style={[styles.group, { backgroundColor: palette.card, borderColor: palette.rule }]}>
           {processing.map((p, i) => <MethodRow key={p.method.key} method={p.method} best={p.best} last={i === processing.length - 1} />)}
         </View>
+
+        <SettingsLink />
 
         <Text style={[styles.note, { color: palette.muted }]}>Everything here comes from the OSRS Wiki and only includes methods you can fully buy and sell on the Grand Exchange, so profits are live. GP/hour is capped by buy limits.</Text>
       </ScrollView>
