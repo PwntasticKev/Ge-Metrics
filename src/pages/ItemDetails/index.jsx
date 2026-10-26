@@ -317,7 +317,7 @@ export default function ItemDetails () {
               <Badge color="green" variant="light">High Volume</Badge>
             </Group>
           </Group>
-          <div style={{ height: '600px', width: '100%' }}>
+          <div style={{ minHeight: '600px', width: '100%' }}>
             <LineChart id={id} items={items} />
           </div>
         </Card>

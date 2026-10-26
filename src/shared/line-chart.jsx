@@ -1,17 +1,42 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react'
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 // @ts-ignore - lightweight-charts uses CommonJS
 import { createChart, ColorType } from 'lightweight-charts'
 import { getItemHistoryById } from '../api/rs-wiki-api.jsx'
 import { getItemById, getRelativeTime } from '../utils/utils.jsx'
-import { transformToLine, transformToVolume } from '../utils/chartDataTransform.js'
+import { transformToLine } from '../utils/chartDataTransform.js'
 import { calculateSMA, calculateEMA } from '../utils/indicators.js'
 import { Badge, Group, Text, Loader, Center, Button, Checkbox, Stack, ActionIcon, Tooltip, Box } from '@mantine/core'
 import { IconRefresh, IconDownload, IconInfoCircle } from '@tabler/icons-react'
 import { useGameEvents } from '../hooks/useGameEvents.js'
-import { mentionsItem } from '../domain/gameUpdates/index.js'
-import ChartToolbar from '../components/charts/ChartToolbar.jsx'
-import IndicatorPanel from '../components/charts/IndicatorPanel.jsx'
-import logoImage from '../assets/highalch.png'
+import {
+  DEFAULT_MARKER_FILTER,
+  MARKER_GROUPS,
+  rangeConfig,
+  rangeCutoff,
+  normalizeTimeseries,
+  sliceWindow,
+  readout,
+  rangeStats,
+  stackedVolumeBars,
+  toMarkers,
+  filterMarkers,
+  groupMarkersByTime,
+  formatCompact
+} from '../domain/priceChart/index.js'
+import PriceReadout from '../components/charts/detail/PriceReadout.jsx'
+import MarkerFilterChips from '../components/charts/detail/MarkerFilterChips.jsx'
+import MarkerPopover from '../components/charts/detail/MarkerPopover.jsx'
+import RangeStatsBar from '../components/charts/detail/RangeStatsBar.jsx'
+import NewsHoverCard from '../components/charts/detail/NewsHoverCard.jsx'
+import EventDotsOverlay from '../components/charts/detail/EventDotsOverlay.jsx'
+import useBrushZoom from '../components/charts/detail/useBrushZoom.js'
+import { CHART_COLORS } from '../components/charts/detail/chartTheme.js'
+
+// Timeframe buttons -> shared chart ranges (timestep + cutoff)
+const TIMEFRAME_RANGE = { day: '1D', week: '1W', month: '1M', quarter: '3M', year: '1Y', alltime: 'All' }
+const ALL_GROUPS = MARKER_GROUPS.map(group => group.key)
+const MAX_EVENT_DOTS = 60
+const READOUT_WIDTH = 230
 
 export default function LineChart ({ id, items, height = 600 }) {
   // Default chart to month
@@ -20,9 +45,10 @@ export default function LineChart ({ id, items, height = 600 }) {
   const [historyStatus, setHistoryStatus] = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
   const [lastUpdateTime, setLastUpdateTime] = useState(null)
   const [hoveredEvents, setHoveredEvents] = useState(null) // { x, y, items: Array<{ title, kind, date }> } | null
-  const [hoveredPrices, setHoveredPrices] = useState(null) // { x, y, time, buyPrice, sellPrice } | null
-  const [eventDots, setEventDots] = useState([]) // Array<{ id, time, series, value, title, kind, date }>
-  const [hoveredDotId, setHoveredDotId] = useState(null)
+  const [hoveredPrices, setHoveredPrices] = useState(null) // { x, y, time } | null
+  const [visibleWindow, setVisibleWindow] = useState(null) // { from, to } unix seconds
+  const [markerFilter, setMarkerFilter] = useState(DEFAULT_MARKER_FILTER)
+  const [selectedEvent, setSelectedEvent] = useState(null) // { time, markers, x, y } | null
   
   const chartContainerRef = useRef(null)
   const chartRef = useRef(null)
@@ -32,7 +58,9 @@ export default function LineChart ({ id, items, height = 600 }) {
   const emaSeriesRef = useRef(null)
   const buyVolumeSeriesRef = useRef(null)
   const sellVolumeSeriesRef = useRef(null)
-  const eventsByTimeRef = useRef(new Map()) // Map<number, Array<{title, kind, date}>>
+  const eventsByTimeRef = useRef(new Map()) // Map<time, markers[]>
+  const pointByTimeRef = useRef(new Map()) // Map<time, normalized point>
+  const { brush, handlers: brushHandlers } = useBrushZoom(chartRef)
 
   const [seriesVisibility, setSeriesVisibility] = useState({
     highPrice: true,
@@ -44,7 +72,6 @@ export default function LineChart ({ id, items, height = 600 }) {
     ema20: false
   })
 
-  const [activeDrawingTool, setActiveDrawingTool] = useState(null)
   const [indicators, setIndicators] = useState({
     sma: { enabled: false, period: 20 },
     ema: { enabled: false, period: 20 }
@@ -52,46 +79,8 @@ export default function LineChart ({ id, items, height = 600 }) {
 
   const currentItem = useMemo(() => getItemById(id, items) || {}, [id, items])
 
-  // Convert our timeframe to RS Wiki API timestep
-  const getApiTimestep = (timeframe) => {
-    switch (timeframe) {
-      case 'day':
-        return '1h'        // Hourly data for 1 day
-      case 'week':
-        return '6h'        // 6-hour data for 1 week
-      case 'month':
-        return '24h'       // Daily data for 1 month
-      case 'quarter':
-        return '24h'       // Daily data for 3 months
-      case 'year':
-        return '24h'       // Daily data for 1 year
-      case 'alltime':
-        return '24h'       // All available daily data
-      default:
-        return '24h'
-    }
-  }
-
-  // Get the cutoff timestamp for filtering data based on timeframe
-  const getCutoffTimestamp = (timeframe) => {
-    const now = Math.floor(Date.now() / 1000) // Current Unix timestamp in seconds
-    switch (timeframe) {
-      case 'day':
-        return now - (24 * 60 * 60)           // 1 day ago
-      case 'week':
-        return now - (7 * 24 * 60 * 60)       // 1 week ago
-      case 'month':
-        return now - (30 * 24 * 60 * 60)      // 30 days ago
-      case 'quarter':
-        return now - (90 * 24 * 60 * 60)      // 90 days ago
-      case 'year':
-        return now - (365 * 24 * 60 * 60)     // 365 days ago
-      case 'alltime':
-        return 0                              // No cutoff, show all data
-      default:
-        return now - (7 * 24 * 60 * 60)       // Default to 1 week
-    }
-  }
+  const getApiTimestep = (tf) => rangeConfig(TIMEFRAME_RANGE[tf]).timestep
+  const getCutoffTimestamp = (tf) => rangeCutoff(TIMEFRAME_RANGE[tf])
 
   // Fetch data from API
   const fetchData = async () => {
@@ -213,6 +202,9 @@ export default function LineChart ({ id, items, height = 600 }) {
           visible: true,
           entireTextOnly: false,
         },
+        // Dragging draws a zoom selection (useBrushZoom); the wheel still pans/zooms.
+        handleScroll: { mouseWheel: true, pressedMouseMove: false, horzTouchDrag: true, vertTouchDrag: false },
+        handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
         timeScale: {
           borderColor: '#373A40',
           timeVisible: true,
@@ -243,31 +235,9 @@ export default function LineChart ({ id, items, height = 600 }) {
           return
         }
 
-        // Handle price tooltip
-        const seriesData = param.seriesData
-        let buyPrice = null
-        let sellPrice = null
-        
-        if (seriesData) {
-          // Get prices from the series data
-          if (lowPriceSeriesRef.current && seriesData.has(lowPriceSeriesRef.current)) {
-            buyPrice = seriesData.get(lowPriceSeriesRef.current)?.value
-          }
-          if (highPriceSeriesRef.current && seriesData.has(highPriceSeriesRef.current)) {
-            sellPrice = seriesData.get(highPriceSeriesRef.current)?.value
-          }
-        }
-
-        // Show price tooltip if we have price data
-        if (buyPrice !== null || sellPrice !== null) {
-          const date = new Date(t * 1000)
-          setHoveredPrices({
-            x: param.point.x,
-            y: param.point.y,
-            time: date,
-            buyPrice,
-            sellPrice
-          })
+        // Price readout (values come from the point map, incl. volume)
+        if (pointByTimeRef.current.has(t)) {
+          setHoveredPrices({ x: param.point.x, y: param.point.y, time: t })
         } else {
           setHoveredPrices(null)
         }
@@ -318,20 +288,28 @@ export default function LineChart ({ id, items, height = 600 }) {
         priceFormat: { type: 'price', precision: 0, minMove: 1 }
       })
 
-      buyVolumeSeriesRef.current = chart.addHistogramSeries({
-        color: '#f59e0b',
+      // Per-side volume, drawn as a stack: sell bar = buy + sell, buy in front
+      sellVolumeSeriesRef.current = chart.addHistogramSeries({
+        color: 'rgba(245, 158, 11, 0.55)',
         priceFormat: { type: 'volume' },
         priceScaleId: 'volume',
-        scaleMargins: { top: 0.8, bottom: 0 },
+        lastValueVisible: false,
+        priceLineVisible: false,
+        title: 'Sell Volume'
+      })
+
+      buyVolumeSeriesRef.current = chart.addHistogramSeries({
+        color: 'rgba(59, 130, 246, 0.7)',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+        lastValueVisible: false,
+        priceLineVisible: false,
         title: 'Buy Volume'
       })
 
-      sellVolumeSeriesRef.current = chart.addHistogramSeries({
-        color: '#22c55e',
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
-        scaleMargins: { top: 0.8, bottom: 0 },
-        title: 'Sell Volume'
+      // Visible range -> stats bar + overlay dot positions
+      chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
+        setVisibleWindow(range ? { from: range.from, to: range.to } : null)
       })
 
       chart.priceScale('volume').applyOptions({
@@ -403,53 +381,41 @@ export default function LineChart ({ id, items, height = 600 }) {
     }
   })
 
-  const normalizedEvents = useMemo(() => {
-    const normalizeDateToUnixSec = (value) => {
-      if (!value) return null
-      const d = value instanceof Date ? value : new Date(value)
-      const ts = d.getTime()
-      if (!Number.isFinite(ts)) return null
-      return Math.floor(ts / 1000)
-    }
+  const markers = useMemo(() => toMarkers({ blogs, updates }, id), [blogs, updates, id])
 
-    const out = []
+  // Normalized per-side series (no back-filled sides) for readout/stats/impact
+  const points = useMemo(() => normalizeTimeseries(historyData), [historyData])
+  const pointByTime = useMemo(() => new Map(points.map(p => [p.timestamp, p])), [points])
+  useEffect(() => { pointByTimeRef.current = pointByTime }, [pointByTime])
 
-    for (const b of blogs) {
-      const time = normalizeDateToUnixSec(b.date)
-      if (!time) continue
-      out.push({
-        time,
-        kind: 'blog',
-        title: b.title ?? 'Developer Blog',
-        date: b.date,
-        mentionsItem: mentionsItem(b, id)
-      })
-    }
+  const windowFrom = visibleWindow?.from ?? points[0]?.timestamp
+  const windowTo = visibleWindow?.to ?? points[points.length - 1]?.timestamp
+  const stats = useMemo(() => rangeStats(sliceWindow(points, windowFrom, windowTo)), [points, windowFrom, windowTo])
+  const isZoomed = points.length > 1 && visibleWindow != null &&
+    (visibleWindow.from > points[0].timestamp || visibleWindow.to < points[points.length - 1].timestamp)
 
-    for (const u of updates) {
-      const time = normalizeDateToUnixSec(u.updateDate ?? u.date)
-      if (!time) continue
-      out.push({
-        time,
-        kind: 'update',
-        title: u.title ?? 'Game Update',
-        date: u.updateDate ?? u.date,
-        mentionsItem: mentionsItem(u, id)
-      })
-    }
+  const markerCounts = useMemo(() => {
+    const inView = filterMarkers(markers, ALL_GROUPS, windowFrom, windowTo)
+    return Object.fromEntries(ALL_GROUPS.map(key => [key, inView.filter(m => m.group === key).length]))
+  }, [markers, windowFrom, windowTo])
 
-    // Deduplicate exact (time,title,kind)
-    const seen = new Set()
-    const deduped = []
-    for (const e of out) {
-      const key = `${e.time}|${e.kind}|${e.title}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      deduped.push(e)
-    }
+  // Enabled markers snapped onto bars, with the line values to sit on
+  const eventGroups = useMemo(() => {
+    const times = points.map(p => p.timestamp)
+    const lineValue = value => (Number.isFinite(value) ? Math.round(value) : null)
+    return groupMarkersByTime(filterMarkers(markers, markerFilter), times, MAX_EVENT_DOTS).map(group => {
+      const point = pointByTime.get(group.time)
+      return {
+        ...group,
+        high: seriesVisibility.highPrice ? lineValue(point?.sell ?? point?.buy) : null,
+        low: seriesVisibility.lowPrice ? lineValue(point?.buy ?? point?.sell) : null
+      }
+    })
+  }, [markers, markerFilter, points, pointByTime, seriesVisibility.highPrice, seriesVisibility.lowPrice])
 
-    return deduped.sort((a, b) => a.time - b.time)
-  }, [blogs, updates, id])
+  useEffect(() => {
+    eventsByTimeRef.current = new Map(eventGroups.map(group => [group.time, group.markers]))
+  }, [eventGroups])
 
   // Update chart data when historyData changes
   useEffect(() => {
@@ -516,156 +482,13 @@ export default function LineChart ({ id, items, height = 600 }) {
         emaSeriesRef.current.setData([])
       }
 
-      // Update volume series if enabled
-      if (seriesVisibility.buyVolume && buyVolumeSeriesRef.current) {
-        const buyVolumeData = transformToVolume(historyData, 'buy')
-        if (buyVolumeData.length > 0) {
-          buyVolumeSeriesRef.current.setData(buyVolumeData)
-        }
-      }
-      if (buyVolumeSeriesRef.current && !seriesVisibility.buyVolume) {
-        buyVolumeSeriesRef.current.setData([])
-      }
-
-      if (seriesVisibility.sellVolume && sellVolumeSeriesRef.current) {
-        const sellVolumeData = transformToVolume(historyData, 'sell')
-        if (sellVolumeData.length > 0) {
-          sellVolumeSeriesRef.current.setData(sellVolumeData)
-        }
-      }
-      if (sellVolumeSeriesRef.current && !seriesVisibility.sellVolume) {
-        sellVolumeSeriesRef.current.setData([])
-      }
-
-      // Event markers (blogs + updates) as small circles on both series.
-      // We "snap" each event to the nearest available bar time so it aligns with chart data.
-      const snapToNearestTime = (data, targetTime) => {
-        if (!Array.isArray(data) || data.length === 0) return null
-        // data is sorted by time
-        let lo = 0
-        let hi = data.length - 1
-        while (lo <= hi) {
-          const mid = Math.floor((lo + hi) / 2)
-          const t = data[mid].time
-          if (t === targetTime) return t
-          if (t < targetTime) lo = mid + 1
-          else hi = mid - 1
-        }
-        const left = Math.max(0, Math.min(data.length - 1, hi))
-        const right = Math.max(0, Math.min(data.length - 1, lo))
-        const lt = data[left]?.time
-        const rt = data[right]?.time
-        if (typeof lt !== 'number') return rt ?? null
-        if (typeof rt !== 'number') return lt ?? null
-        return Math.abs(lt - targetTime) <= Math.abs(rt - targetTime) ? lt : rt
-      }
-
-      const markerColor = '#f59e0b'     // Use app's warning color for markers
-      const eventMap = new Map()
-      const minSeriesTime = highPriceData[0]?.time
-      const maxSeriesTime = highPriceData[highPriceData.length - 1]?.time
-
-      // Build lookup maps for value at time
-      const highByTime = new Map(highPriceData.map((p) => [p.time, p.value]))
-      const lowByTime = new Map(lowPriceData.map((p) => [p.time, p.value]))
-
-      const inRangeEvents = normalizedEvents.filter((ev) => {
-        if (typeof minSeriesTime !== 'number' || typeof maxSeriesTime !== 'number') return false
-        return ev.time >= minSeriesTime && ev.time <= maxSeriesTime
+      // Per-side volume (stacked)
+      const { buyBars, sellBars } = stackedVolumeBars(normalizeTimeseries(historyData), {
+        showBuy: seriesVisibility.buyVolume,
+        showSell: seriesVisibility.sellVolume
       })
-
-      // Limit number of markers so dense historical data doesn't overwhelm UI
-      const MAX_EVENT_DOTS = 60
-      // Always keep events that mention this item; fill the rest with the latest.
-      const mentioning = inRangeEvents.filter((ev) => ev.mentionsItem)
-      const others = inRangeEvents.filter((ev) => !ev.mentionsItem)
-      const otherSlots = Math.max(0, MAX_EVENT_DOTS - mentioning.length)
-      const limitedEvents = [...mentioning, ...(otherSlots > 0 ? others.slice(-otherSlots) : [])]
-
-      for (const ev of limitedEvents) {
-        const snapped = snapToNearestTime(highPriceData, ev.time)
-        if (!snapped) continue
-        const existing = eventMap.get(snapped) || []
-        existing.push({ title: ev.title, kind: ev.kind, date: ev.date, mentionsItem: ev.mentionsItem })
-        eventMap.set(snapped, existing)
-      }
-
-      eventsByTimeRef.current = eventMap
-
-      // Lightweight Charts markers with different colors for blogs vs updates
-      const markerTimes = Array.from(eventMap.keys()).sort((a, b) => a - b)
-      
-      // Create separate markers for blogs and updates
-      const blogMarkers = []
-      const updateMarkers = []
-      
-      markerTimes.forEach(time => {
-        const events = eventMap.get(time) || []
-        const hasBlogs = events.some(e => e.kind === 'blog')
-        const hasUpdates = events.some(e => e.kind === 'update')
-        // Bigger marker when an event at this time mentions the charted item
-        const markerSize = kind => (events.some(e => e.kind === kind && e.mentionsItem) ? 2 : 1)
-        
-        if (hasBlogs) {
-          blogMarkers.push({
-            time,
-            position: 'inBar',
-            color: '#3b82f6', // Blue for blogs
-            shape: 'circle',
-            text: '',
-            size: markerSize('blog')
-          })
-        }
-        
-        if (hasUpdates) {
-          updateMarkers.push({
-            time,
-            position: 'inBar',
-            color: '#f59e0b', // Orange for updates
-            shape: 'circle',
-            text: '',
-            size: markerSize('update')
-          })
-        }
-      })
-
-      // Apply markers to series
-      const allMarkers = [...blogMarkers, ...updateMarkers]
-      if (highPriceSeriesRef.current?.setMarkers) highPriceSeriesRef.current.setMarkers(allMarkers)
-      if (lowPriceSeriesRef.current?.setMarkers) lowPriceSeriesRef.current.setMarkers(allMarkers)
-
-      // Build overlay dots (two per event time, one for each series)
-      const dots = []
-      for (const time of markerTimes) {
-        const meta = eventMap.get(time) || []
-        const highVal = highByTime.get(time)
-        const lowVal = lowByTime.get(time)
-        if (typeof highVal === 'number') {
-          dots.push({
-            id: `high-${time}`,
-            time,
-            series: 'high',
-            value: highVal,
-            title: meta[0]?.title ?? 'Event',
-            kind: meta[0]?.kind ?? 'event',
-            date: meta[0]?.date,
-            mentionsItem: meta.some(e => e.mentionsItem)
-          })
-        }
-        if (typeof lowVal === 'number') {
-          dots.push({
-            id: `low-${time}`,
-            time,
-            series: 'low',
-            value: lowVal,
-            title: meta[0]?.title ?? 'Event',
-            kind: meta[0]?.kind ?? 'event',
-            date: meta[0]?.date,
-            mentionsItem: meta.some(e => e.mentionsItem)
-          })
-        }
-      }
-      setEventDots(dots)
+      buyVolumeSeriesRef.current?.setData(buyBars)
+      sellVolumeSeriesRef.current?.setData(sellBars)
 
       // Auto-fit time scale
       if (chartRef.current && highPriceData.length > 0) {
@@ -676,7 +499,39 @@ export default function LineChart ({ id, items, height = 600 }) {
     } catch (error) {
       console.error('LineChart: Error updating chart data:', error)
     }
-  }, [historyData, seriesVisibility, indicators, normalizedEvents])
+  }, [historyData, seriesVisibility, indicators])
+
+  // Min/max markers for the visible window (highest sell, lowest buy)
+  useEffect(() => {
+    const high = highPriceSeriesRef.current
+    const low = lowPriceSeriesRef.current
+    if (!high?.setMarkers || !low?.setMarkers) return
+    try {
+      high.setMarkers(stats && seriesVisibility.highPrice
+        ? [{ time: stats.max.timestamp, position: 'aboveBar', color: CHART_COLORS.sell, shape: 'arrowDown', text: `High ${formatCompact(stats.max.price)}` }]
+        : [])
+      low.setMarkers(stats && seriesVisibility.lowPrice
+        ? [{ time: stats.min.timestamp, position: 'belowBar', color: CHART_COLORS.buy, shape: 'arrowUp', text: `Low ${formatCompact(stats.min.price)}` }]
+        : [])
+    } catch (error) {
+      console.error('LineChart: Error setting min/max markers:', error)
+    }
+  }, [stats, seriesVisibility.highPrice, seriesVisibility.lowPrice, historyData])
+
+  // Close the marker popover when the data set changes
+  useEffect(() => { setSelectedEvent(null) }, [timeframe, id])
+
+  const handleSelectEvent = useCallback((group, x, y) => {
+    setSelectedEvent({ time: group.time, markers: group.markers, x, y })
+  }, [])
+
+  const handleResetZoom = () => chartRef.current?.timeScale().fitContent()
+
+  // Readout sits right of the crosshair, flipping left near the price axis
+  const readoutLeft = (x) => {
+    const width = chartContainerRef.current?.clientWidth ?? 800
+    return x + 16 + READOUT_WIDTH > width - 80 ? Math.max(8, x - READOUT_WIDTH - 16) : x + 16
+  }
 
   // Fetch data when id or timeframe changes
   useEffect(() => {
@@ -883,8 +738,21 @@ export default function LineChart ({ id, items, height = 600 }) {
         </Group>
       </Stack>
 
-      {/* Chart Container (always mounted so the chart can initialize reliably, incl. inside modals) */}
-      <div style={{ position: 'relative', width: '100%', height }}>
+      {/* News marker filters + visible-range stats */}
+      <Group position="apart" spacing="xs" mb="xs">
+        <MarkerFilterChips value={markerFilter} onChange={setMarkerFilter} counts={markerCounts} label="News" />
+        {historyStatus === 'success' && (
+          <RangeStatsBar stats={stats} zoomed={isZoomed} onReset={handleResetZoom} />
+        )}
+      </Group>
+
+      {/* Chart Container (always mounted so the chart can initialize reliably, incl. inside modals).
+          Drag across the chart to zoom into a spike; wheel pans/zooms. */}
+      <div
+        data-testid="price-chart"
+        style={{ position: 'relative', width: '100%', height, cursor: 'crosshair', userSelect: 'none' }}
+        {...brushHandlers}
+      >
         <div
           ref={chartContainerRef}
           style={{
@@ -894,149 +762,71 @@ export default function LineChart ({ id, items, height = 600 }) {
           }}
         />
 
-        {/* Event dots overlay (visible circles on both High + Low series). */}
-        {historyStatus === 'success' && chartRef.current && eventDots.length > 0 && (
+        {/* Drag-to-zoom selection */}
+        {brush && Math.abs(brush.x1 - brush.x0) > 2 && (
           <Box
             style={{
               position: 'absolute',
-              inset: 0,
-              zIndex: 4,
+              top: 0,
+              bottom: 0,
+              left: Math.min(brush.x0, brush.x1),
+              width: Math.abs(brush.x1 - brush.x0),
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderLeft: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRight: '1px solid rgba(59, 130, 246, 0.3)',
+              zIndex: 3,
               pointerEvents: 'none'
             }}
-          >
-            {eventDots.map((d) => {
-              const x = chartRef.current?.timeScale()?.timeToCoordinate?.(d.time)
-              const series = d.series === 'high' ? highPriceSeriesRef.current : lowPriceSeriesRef.current
-              const y = series?.priceToCoordinate?.(d.value)
-              if (typeof x !== 'number' || typeof y !== 'number') return null
-              // Events that mention the charted item are bigger and bolder
-              const size = d.mentionsItem ? 12 : 8
-
-              return (
-                <Box
-                  key={d.id}
-                  style={{
-                    position: 'absolute',
-                    left: x - size / 2,
-                    top: y - size / 2,
-                    width: size,
-                    height: size,
-                    borderRadius: 999,
-                    background: d.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
-                    boxShadow: d.mentionsItem ? '0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,0.35)' : '0 0 0 2px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none'
-                  }}
-                />
-              )
-            })}
-          </Box>
+          />
         )}
 
-        {/* Price tooltip */}
-        {hoveredPrices && historyStatus === 'success' && (
-          <Box
+        {/* News marker dots on both lines (click for details); visibleWindow
+            state re-renders them when the chart is panned/zoomed. */}
+        {historyStatus === 'success' && (
+          <EventDotsOverlay
+            groups={eventGroups}
+            chart={chartRef.current}
+            highSeries={highPriceSeriesRef.current}
+            lowSeries={lowPriceSeriesRef.current}
+            selectedTime={selectedEvent?.time}
+            onSelect={handleSelectEvent}
+          />
+        )}
+
+        {selectedEvent && (
+          <MarkerPopover
+            markers={selectedEvent.markers}
+            x={selectedEvent.x}
+            top={Math.max(8, Math.min(selectedEvent.y + 14, height - 230))}
+            containerWidth={chartContainerRef.current?.clientWidth}
+            itemName={currentItem?.name}
+            points={points}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
+
+        {/* Crosshair readout: time, buy/sell, margin after tax, volume per side */}
+        {hoveredPrices && historyStatus === 'success' && !brush && (
+          <PriceReadout
+            data={readout(pointByTime.get(hoveredPrices.time), id)}
             style={{
               position: 'absolute',
-              left: Math.min(Math.max(hoveredPrices.x + 12, 8), 760),
-              top: Math.min(Math.max(hoveredPrices.y - (hoveredEvents ? 140 : 60), 8), 520), // Adjust position if event tooltip is also present
+              left: readoutLeft(hoveredPrices.x),
+              top: 8,
+              width: READOUT_WIDTH,
               zIndex: 6,
-              pointerEvents: 'none',
-              maxWidth: 280
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              style={{
-                background: 'rgba(26,27,30,0.95)',
-                border: '1px solid rgba(59, 130, 246, 0.4)',
-                borderRadius: 8,
-                padding: '8px 10px',
-                boxShadow: '0 8px 25px rgba(0,0,0,0.4)'
-              }}
-            >
-              <Text size="xs" color="dimmed" mb={4}>
-                {hoveredPrices.time.toLocaleDateString()} {hoveredPrices.time.toLocaleTimeString()}
-              </Text>
-              <Stack spacing={2}>
-                {hoveredPrices.buyPrice && (
-                  <Group spacing={8}>
-                    <Text size="sm" color="#3b82f6" style={{ fontWeight: 500 }}>Buy:</Text>
-                    <Text size="sm" style={{ fontWeight: 600 }}>
-                      {hoveredPrices.buyPrice.toLocaleString()} gp
-                    </Text>
-                  </Group>
-                )}
-                {hoveredPrices.sellPrice && (
-                  <Group spacing={8}>
-                    <Text size="sm" color="#f59e0b" style={{ fontWeight: 500 }}>Sell:</Text>
-                    <Text size="sm" style={{ fontWeight: 600 }}>
-                      {hoveredPrices.sellPrice.toLocaleString()} gp
-                    </Text>
-                  </Group>
-                )}
-                {hoveredPrices.buyPrice && hoveredPrices.sellPrice && (
-                  <Group spacing={8}>
-                    <Text size="xs" color="dimmed">Margin:</Text>
-                    <Text size="xs" color={hoveredPrices.sellPrice > hoveredPrices.buyPrice ? '#10b981' : '#ef4444'}>
-                      {(hoveredPrices.sellPrice - hoveredPrices.buyPrice).toLocaleString()} gp
-                    </Text>
-                  </Group>
-                )}
-              </Stack>
-            </Box>
-          </Box>
+          />
         )}
 
-        {/* Game events tooltip */}
-        {hoveredEvents && historyStatus === 'success' && (
-          <Box
-            style={{
-              position: 'absolute',
-              left: Math.min(Math.max(hoveredEvents.x + 12, 8), 760),
-              top: Math.min(Math.max(hoveredEvents.y + 20, 8), 520), // Slight offset down
-              zIndex: 5,
-              pointerEvents: 'none',
-              maxWidth: 320
-            }}
-          >
-            <Box
-              style={{
-                background: 'rgba(26,27,30,0.92)',
-                border: '1px solid rgba(245, 158, 11, 0.35)',    // Use app warning color
-                borderRadius: 10,
-                padding: '10px 12px',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.35)'
-              }}
-            >
-              <Text size="xs" color="dimmed" mb={6}>Game event</Text>
-              <Stack spacing={6}>
-                {hoveredEvents.items.slice(0, 4).map((e, idx) => (
-                  <Group key={`${e.kind}-${idx}`} spacing={8} align="flex-start">
-                    <Box
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: e.kind === 'blog' ? '#3b82f6' : '#f59e0b', // Blue for blogs, orange for updates
-                        marginTop: 4,
-                        flexShrink: 0
-                      }}
-                    />
-                    <Box style={{ flex: 1 }}>
-                      <Text size="sm" weight={e.mentionsItem ? 700 : undefined} style={{ lineHeight: 1.2 }}>
-                        {e.title}
-                      </Text>
-                      {e.mentionsItem && (
-                        <Text size="xs" color="dimmed">Mentions {currentItem?.name || 'this item'}</Text>
-                      )}
-                    </Box>
-                  </Group>
-                ))}
-                {hoveredEvents.items.length > 4 && (
-                  <Text size="xs" color="dimmed">+{hoveredEvents.items.length - 4} more</Text>
-                )}
-              </Stack>
-            </Box>
-          </Box>
+        {/* News posts under the crosshair */}
+        {hoveredEvents && historyStatus === 'success' && !selectedEvent && (
+          <NewsHoverCard
+            markers={hoveredEvents.items}
+            itemName={currentItem?.name}
+            style={{ position: 'absolute', left: readoutLeft(hoveredPrices?.x ?? hoveredEvents.x), top: 200, width: READOUT_WIDTH, zIndex: 5, pointerEvents: 'none' }}
+          />
         )}
 
         {historyStatus === 'loading' && (
