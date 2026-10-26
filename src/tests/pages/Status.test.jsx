@@ -314,17 +314,13 @@ describe('Status Component Logic', () => {
 
   describe('Performance tests', () => {
     it('should measure latency accurately', async () => {
-      // Mock a delayed response
-      fetch.mockImplementationOnce(() =>
-        new Promise(resolve =>
-          setTimeout(() => resolve({ ok: true, status: 200 }), 100)
-        )
-      )
+      // Control elapsed time: real timers can fire early or be delayed on CI.
+      vi.spyOn(Date, 'now').mockReturnValueOnce(1_000).mockReturnValueOnce(1_100)
+      fetch.mockResolvedValueOnce({ ok: true, status: 200 })
 
       const result = await checkEndpoint('https://example.com/api', 'test')
 
-      expect(result.latency).toBeGreaterThanOrEqual(100)
-      expect(result.latency).toBeLessThan(200) // Allow some margin for test execution
+      expect(result.latency).toBe(100)
     })
 
     it('should handle parallel endpoint checks efficiently', async () => {
