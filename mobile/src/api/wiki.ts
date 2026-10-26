@@ -52,8 +52,8 @@ export async function fetchVolumes (): Promise<Record<string, number>> {
   return dataMap<number>(await getJson('/volumes'), '/volumes')
 }
 
-// Average prices and trade counts over the last hour or day.
-export async function fetchAverages (window: '1h' | '24h'): Promise<Record<string, WikiAverage>> {
+// Average prices and trade counts over the last 5 minutes, hour or day.
+export async function fetchAverages (window: '5m' | '1h' | '24h'): Promise<Record<string, WikiAverage>> {
   return dataMap<WikiAverage>(await getJson(`/${window}`), `/${window}`)
 }
 

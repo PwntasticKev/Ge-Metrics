@@ -14,11 +14,13 @@ interface Props {
   valueTone?: 'profit' | 'ink'
   expanded: boolean
   onToggle: () => void
+  /** Small pills after the name, e.g. "Thin-volume spike". */
+  badges?: readonly string[]
   children?: ReactNode
 }
 
 // One slim list row. Tapping opens the detail block in place.
-export const FlipRow = memo(function FlipRow ({ icon, name, meta, value, valueCaption, valueTone = 'profit', expanded, onToggle, children }: Props) {
+export const FlipRow = memo(function FlipRow ({ icon, name, meta, value, valueCaption, valueTone = 'profit', expanded, onToggle, badges, children }: Props) {
   const { palette } = useTheme()
   return (
     <View style={[styles.wrap, { borderBottomColor: palette.rule, backgroundColor: expanded ? palette.card : palette.bg }]}>
@@ -31,11 +33,14 @@ export const FlipRow = memo(function FlipRow ({ icon, name, meta, value, valueCa
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${name}, ${value} ${valueCaption}`}
+        accessibilityLabel={`${name}, ${badges?.length ? `${badges.join(', ')}, ` : ''}${value} ${valueCaption}`}
       >
         <ItemIcon icon={icon} />
         <View style={styles.text}>
-          <Text style={[type.name, { color: palette.ink }]} numberOfLines={1}>{name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={[type.name, styles.name, { color: palette.ink }]} numberOfLines={1}>{name}</Text>
+            {badges?.map(b => <Text key={b} style={[styles.badge, { color: palette.brand, backgroundColor: palette.well }]}>{b}</Text>)}
+          </View>
           <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>{meta}</Text>
         </View>
         <View style={styles.right}>
@@ -52,6 +57,9 @@ const styles = StyleSheet.create({
   wrap: { borderBottomWidth: StyleSheet.hairlineWidth },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: 10 },
   text: { flex: 1, minWidth: 0 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { flexShrink: 1 },
+  badge: { fontSize: 10.5, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 99, overflow: 'hidden' },
   right: { alignItems: 'flex-end' },
   detail: { paddingLeft: 60, paddingRight: space.lg, paddingBottom: space.md }
 })
