@@ -31,7 +31,16 @@ const calls = [
   ['find_dips', { limit: 3 }],
   ['game_updates', { limit: 3 }],
   ['game_updates', { item: 'dragon bones', limit: 2 }],
-  ['update_impact', { item: 'twisted bow', update: 'Fractured Archive', window_days: 3 }]
+  ['update_impact', { item: 'twisted bow', update: 'Fractured Archive', window_days: 3 }],
+  ['market_breadth', {}],
+  ['pump_dump_scan', { limit: 3 }],
+  ['margin_scan', { limit: 3 }],
+  ['trend_scan', { direction: 'both', limit: 3 }],
+  ['trend_scan', { direction: 'below_mean', limit: 3 }],
+  ['coming_up', { limit: 2, pending_only: true }],
+  ['best_trade_hours', { item: 'dragon bones' }],
+  ['fill_estimate', { item: 'dragon bones', qty: 7500 }],
+  ['sell_or_hold', { item: 'abyssal whip', qty: 5, paid: 1_400_000 }]
 ]
 
 let failures = 0
@@ -44,6 +53,6 @@ for (const [name, args] of calls) {
 }
 
 const prompt = await client.getPrompt({ name: 'flip-analyst', arguments: { budget: '25m' } })
-console.log(`\n## prompt flip-analyst\n${trim(prompt.messages[0].content.text, 300)}`)
+console.log(`\n## prompt flip-analyst\n${trim(prompt.messages[0].content.text, 600)}`)
 await client.close()
 process.exit(failures ? 1 : 0)
