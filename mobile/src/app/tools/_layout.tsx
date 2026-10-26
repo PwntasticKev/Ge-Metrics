@@ -19,6 +19,7 @@ export default function ToolsLayout () {
       <Stack.Screen name="update-movers" options={{ title: 'Update movers' }} />
       <Stack.Screen name="coming-up" options={{ title: 'Coming up' }} />
       <Stack.Screen name="pumps" options={{ title: 'Pumps & dumps' }} />
+      <Stack.Screen name="scanner" options={{ title: 'Market scanner' }} />
       <Stack.Screen name="[method]" />
     </Stack>
   )

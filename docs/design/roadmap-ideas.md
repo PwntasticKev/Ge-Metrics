@@ -32,6 +32,7 @@ Ground rules carried over from earlier decisions:
 | Update movers | Tools view: items named in the latest posts with their price move since the post and current margin. |
 | Coming up | Tools view: items named in dev blogs, polls and "next week" news before they ship, with the sentence, a direction guess, 7d change, volume, a Late flag (10%+ since the post) and released vs not out yet. |
 | Pumps & dumps | Thin-volume spike detector: badge on item rows and the item sheet, pumps left out of Buy now, Tools list with a 7-day sigma check. |
+| Market scanner | Tools view: margins well above the item's own norm (24h, then 7-day hourly median with a robust z), steady 7-day trends (line fit with R²), range-bound items sharply under their 30-day mean, and a market card (share of liquid items up vs down, top-100 value-weighted index vs 24h and 7d, index movers, risk-on/off). |
 | Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
 
 ## Done in this round (web)
