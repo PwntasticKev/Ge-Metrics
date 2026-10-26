@@ -4,12 +4,15 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Platform } from 'react-native'
 import { useAverages } from '../api/useAverages'
 import { useMarket } from '../api/useMarket'
+import { useSlotAdvice } from '../components/slots/useSlotAdvice'
 import { usePicks } from '../lib/picks'
 import { buildWidgetPayload, payloadContentKey, WIDGET_APP_GROUP, WIDGET_STORAGE_KEY } from '../lib/widget/payload'
 import { useFlips } from './flips'
+import { useSlots } from './slots'
 import { useWatchlist } from './watchlist'
 
-// Mirrors Buy now picks, starred items and holdings into the App Group the
+// Mirrors Buy now picks, starred items, holdings and GE slots (with the
+// advice the app last computed) into the App Group the
 // iOS widget reads, then asks WidgetKit to redraw. Reloads requested while
 // the app is in the foreground don't count against the widget's budget.
 const IS_IOS = Platform.OS === 'ios'
@@ -40,6 +43,8 @@ export function useWidgetSync (): void {
   const picks = usePicks(market, h1, h24, 'quick')
   const { entries } = useWatchlist()
   const { holdings } = useFlips()
+  const { slots } = useSlots()
+  const advice = useSlotAdvice(slots.slots)
   const lastKey = useRef<string | null>(null)
 
   const watchlistIds = useMemo(() => entries.flatMap(e => (e.kind === 'item' ? [e.id] : [])), [entries])
@@ -48,12 +53,21 @@ export function useWidgetSync (): void {
     // Wait for picks (cached averages load in about a second) so a cold
     // start doesn't blank the widget's last picks.
     if (!IS_IOS || !market || !picks) return
-    const payload = buildWidgetPayload({ picks, watchlistIds, lots: holdings, nameOf: nameOf(market), isTaxExempt, now: Date.now() })
+    const payload = buildWidgetPayload({
+      picks,
+      watchlistIds,
+      lots: holdings,
+      slots: slots.slots,
+      adviceOf: id => advice.get(id) ?? null,
+      nameOf: nameOf(market),
+      isTaxExempt,
+      now: Date.now()
+    })
     const key = payloadContentKey(payload)
     if (key === lastKey.current) return
     lastKey.current = key
     writePayload(JSON.stringify(payload))
-  }, [market, picks, watchlistIds, holdings])
+  }, [market, picks, watchlistIds, holdings, slots.slots, advice])
 }
 
 export function WidgetSync (): null {

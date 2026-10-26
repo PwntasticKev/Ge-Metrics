@@ -2,22 +2,41 @@ import Foundation
 
 /// One line in the widget, already worded for display.
 struct WidgetRow: Hashable, Identifiable {
-  let id: Int
+  let id: String
   let name: String
   /// e.g. "Buy 1.2M · Sell 1.25M"
   let detail: String
   /// Signed GP, e.g. "+12K". Nil when there's no live price.
   let value: String?
-  /// Blue when up; losses are muted grey, never red.
+  /// Blue when up (or a GE slot needs action); otherwise muted grey, never red.
   let isGain: Bool
   let caption: String
+  let url: URL
 
-  var url: URL { DeepLink.item(id) }
+  init(itemId: Int, name: String, detail: String, value: String?, isGain: Bool, caption: String) {
+    self.init(id: String(itemId), name: name, detail: detail, value: value, isGain: isGain, caption: caption, url: DeepLink.item(itemId))
+  }
+
+  init(id: String, name: String, detail: String, value: String?, isGain: Bool, caption: String, url: URL) {
+    self.id = id
+    self.name = name
+    self.detail = detail
+    self.value = value
+    self.isGain = isGain
+    self.caption = caption
+    self.url = url
+  }
 }
 
 enum DeepLink {
   static let home = URL(string: "gemetrics:///")!
   static func item(_ id: Int) -> URL { URL(string: "gemetrics:///?item=\(id)")! }
+  static let slots = URL(string: "gemetrics:///tools/slots")!
+  static func slot(_ id: String) -> URL {
+    var parts = URLComponents(url: slots, resolvingAgainstBaseURL: false)
+    parts?.queryItems = [URLQueryItem(name: "slot", value: id)]
+    return parts?.url ?? slots
+  }
 }
 
 /// Matches gpShort in src/lib/format.ts: 1.23B, 53.3M, 6.66M, 981K, 950.
@@ -49,6 +68,7 @@ enum RowBuilder {
     case .buyNow: return payload.picks.map { pick($0, prices[$0.id]) }
     case .watchlist: return payload.watchlist.map { watched($0, prices[$0.id]) }
     case .holdings: return payload.holdings.map { holding($0, prices[$0.id]) }
+    case .slots: return SlotRows.rows(payload.slots ?? [], prices: prices, now: Date())
     }
   }
 
@@ -60,17 +80,17 @@ enum RowBuilder {
     } else {
       caption = "per item"
     }
-    return WidgetRow(id: p.id, name: p.name, detail: "Buy \(GP.short(p.buy)) · Sell \(GP.short(p.sell))",
+    return WidgetRow(itemId: p.id, name: p.name, detail: "Buy \(GP.short(p.buy)) · Sell \(GP.short(p.sell))",
                      value: GP.signed(p.profit), isGain: p.profit > 0, caption: caption)
   }
 
   /// Buy at the instant-sell price, sell at the instant-buy price, after tax.
   static func watched(_ item: WidgetItem, _ live: LivePrice?) -> WidgetRow {
     guard let high = live?.high, let low = live?.low else {
-      return WidgetRow(id: item.id, name: item.name, detail: "No recent trades", value: nil, isGain: false, caption: "")
+      return WidgetRow(itemId: item.id, name: item.name, detail: "No recent trades", value: nil, isGain: false, caption: "")
     }
     let margin = high - low - GETax.of(high, noTax: item.noTax)
-    return WidgetRow(id: item.id, name: item.name, detail: "Buy \(GP.short(low)) · Sell \(GP.short(high))",
+    return WidgetRow(itemId: item.id, name: item.name, detail: "Buy \(GP.short(low)) · Sell \(GP.short(high))",
                      value: GP.signed(margin), isGain: margin > 0, caption: "margin")
   }
 
@@ -78,9 +98,9 @@ enum RowBuilder {
   static func holding(_ h: WidgetHolding, _ live: LivePrice?) -> WidgetRow {
     let detail = "\(h.qty.formatted()) × \(GP.short(h.buyPrice))"
     guard let price = live?.low, price > 0 else {
-      return WidgetRow(id: h.id, name: h.name, detail: detail, value: nil, isGain: false, caption: "")
+      return WidgetRow(itemId: h.id, name: h.name, detail: detail, value: nil, isGain: false, caption: "")
     }
     let profit = (price - GETax.of(price, noTax: h.noTax) - h.buyPrice) * h.qty
-    return WidgetRow(id: h.id, name: h.name, detail: detail, value: GP.signed(profit), isGain: profit >= 0, caption: "if sold now")
+    return WidgetRow(itemId: h.id, name: h.name, detail: detail, value: GP.signed(profit), isGain: profit >= 0, caption: "if sold now")
   }
 }

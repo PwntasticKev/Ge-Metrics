@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildWidgetPayload, groupHoldings, MAX_WIDGET_ITEMS, MAX_WIDGET_PICKS, payloadContentKey, WIDGET_PAYLOAD_VERSION, type PayloadInput } from '../widget/payload.ts'
+import { buildWidgetPayload, groupHoldings, MAX_WIDGET_ITEMS, MAX_WIDGET_PICKS, MAX_WIDGET_SLOTS, payloadContentKey, WIDGET_PAYLOAD_VERSION, type PayloadInput } from '../widget/payload.ts'
 
 const BOND = 13190
 const names: Record<number, string> = { 4151: 'Abyssal whip', 13190: 'Old school bond', 11802: 'Armadyl godsword' }
@@ -38,6 +38,33 @@ describe('buildWidgetPayload', () => {
   it('caps the watchlist', () => {
     const ids = Array.from({ length: 20 }, () => 4151)
     assert.equal(buildWidgetPayload(base({ watchlistIds: ids })).watchlist.length, MAX_WIDGET_ITEMS)
+  })
+})
+
+describe('widget slots', () => {
+  const slot = (id: string, over = {}) => ({ id, itemId: 4151, name: 'Abyssal whip', side: 'buy' as const, price: 1_450_000, qty: 10, filled: 3, updatedAt: 1_700_000_000_000, ...over })
+
+  it('carries each slot with the advice the app computed', () => {
+    const p = buildWidgetPayload(base({
+      slots: [slot('a'), slot('b', { side: 'sell', price: 1_500_000 })],
+      adviceOf: id => (id === 'a' ? { kind: 'raise', action: true, price: 1_460_000 } : null)
+    }))
+    assert.deepEqual(p.slots[0], { id: 'a', itemId: 4151, name: 'Abyssal whip', side: 'buy', price: 1_450_000, qty: 10, filled: 3, updatedAt: 1_700_000_000_000, advice: 'raise', action: true, suggested: 1_460_000 })
+    assert.equal(p.slots[1].advice, 'unknown')
+    assert.equal(p.slots[1].action, false)
+    assert.equal(p.slots[1].suggested, null)
+  })
+
+  it('has no slots when none are given, and caps them at 8', () => {
+    assert.deepEqual(buildWidgetPayload(base()).slots, [])
+    const many = Array.from({ length: 12 }, (_, i) => slot(String(i)))
+    assert.equal(buildWidgetPayload(base({ slots: many })).slots.length, MAX_WIDGET_SLOTS)
+  })
+
+  it('changes the content key when advice changes', () => {
+    const a = buildWidgetPayload(base({ slots: [slot('a')], adviceOf: () => ({ kind: 'filling', action: false, price: null }) }))
+    const b = buildWidgetPayload(base({ slots: [slot('a')], adviceOf: () => ({ kind: 'relist', action: true, price: null }) }))
+    assert.notEqual(payloadContentKey(a), payloadContentKey(b))
   })
 })
 
