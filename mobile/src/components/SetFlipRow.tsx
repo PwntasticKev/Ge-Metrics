@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import type { SetFlip } from '@ge/engine'
-import { signed, shortSetName } from '../lib/format'
+import { gpFull, signed, shortSetName } from '../lib/format'
 import { useWatchlist } from '../state/watchlist'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
@@ -23,7 +23,8 @@ export const SetFlipRow = memo(function SetFlipRow ({ flip, expanded, onToggle }
       name={name}
       meta={flip.direction === 'split' ? `Split. ${meta}` : meta}
       value={signed(flip.profit)}
-      valueCaption="each"
+      // Sell price on the collapsed row, for when you already hold the set.
+      valueCaption={`Sell ${gpFull(flip.revenue)}`}
       expanded={expanded}
       onToggle={() => onToggle(flip.id)}
     >
