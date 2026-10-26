@@ -17,6 +17,7 @@ import { ItemIcon } from './ItemIcon'
 import { LogBuy } from './LogBuy'
 import { PlaceOffer } from './slots/PlaceOffer'
 import { SheetPrices } from './sheet/SheetPrices'
+import { ExitRehearsal } from './sheet/ExitRehearsal'
 import { useSheetFill } from './sheet/useSheetFill'
 import { useSharePick } from './share/useSharePick'
 import { SpikeWarning } from './SpikeWarning'
@@ -169,6 +170,8 @@ function ItemSheetBody ({ itemId, exportCard, onClose }: { itemId: number; expor
         <Stat label="High alch" value={item.highalch ? gpFull(item.highalch) : '–'} />
         <Stat label="Alch profit" value={signed(alchProfit(item, market))} />
       </View>
+
+      {fill ? <ExitRehearsal itemId={item.id} buyAt={fill.buyAt} sellAt={fill.sellAt} nowSec={market.nowSec} /> : null}
 
       {deal ? <TimingSection itemId={item.id} buyAt={deal.buyAt} sellAt={deal.sellAt} profitEach={deal.margin} limit={item.limit ?? flip?.limit ?? null} /> : null}
 
