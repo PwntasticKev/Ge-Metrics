@@ -52,3 +52,30 @@ export function shortSetName (name: string): string {
 export function stripUncharged (name: string): string {
   return name.replace(/ \(uncharged\)$/i, '')
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+// "14 Oct 2026" for a UTC day (wiki post dates).
+export function utcDay (ms: number): string {
+  const d = new Date(ms)
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+}
+
+// A chart point in local time, as precise as its step: "14 Oct 14:35" or "14 Oct 2026".
+export function chartTime (ms: number, withTime: boolean): string {
+  const d = new Date(ms)
+  const day = `${d.getDate()} ${MONTHS[d.getMonth()]}`
+  return withTime ? `${day} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` : `${day} ${d.getFullYear()}`
+}
+
+// Exact under 10M (what you type into the GE), short above.
+export function gpPrice (n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return '–'
+  return Math.abs(n) < 1e7 ? gpFull(n) : gpShort(n)
+}
+
+// "▲ 4.2%" / "▼ 1.3%"
+export function changeText (ratio: number): string {
+  return `${ratio >= 0 ? '▲' : '▼'} ${(Math.abs(ratio) * 100).toFixed(1)}%`
+}
