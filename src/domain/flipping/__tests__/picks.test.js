@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createMarket, planCashStack, rankQuickFlips, rankOvernightFlips } from '../index.js'
+import { createMarket, planCashStack, rankDips, rankQuickFlips, rankOvernightFlips } from '../index.js'
 
 const NOW = 1_800_000_000
 const fresh = { highTime: NOW - 60, lowTime: NOW - 120 }
@@ -109,9 +109,52 @@ describe('planCashStack', () => {
     expect(planCashStack(picks, { cash: 1e9, slots: 2 })).toHaveLength(2)
   })
 
+  it('buys fewer of one item when that frees cash for a better mix', () => {
+    const picks = [pick(1, 3_000_000, 300_000, 3), pick(2, 4_000_000, 360_000, 2)]
+    // 3 of item 1 earns 900K and strands 1M; 2 of item 1 plus 1 of item 2 earns 960K.
+    const plan = planCashStack(picks, { cash: 10_000_000 })
+    expect(plan.map(p => [p.id, p.maxQty]).sort()).toEqual([[1, 2], [2, 1]])
+    expect(plan.reduce((s, p) => s + p.cost, 0)).toBeLessThanOrEqual(10_000_000)
+  })
+
   it('leaves out crumbs and lists the biggest earners first', () => {
     const picks = [pick(1, 1000, 100, 50), pick(2, 1, 1, 10), pick(3, 2000, 300, 10)]
     // 5,000 + 3,000 earned; item 2's 10 gp is under 1% of that.
     expect(planCashStack(picks, { cash: 1e9 }).map(p => p.id)).toEqual([1, 3])
+  })
+})
+
+describe('rankDips', () => {
+  const day = avg(1000, 1100, 50_000, 50_000)
+
+  it('finds items trading well under their 24h price and targets the day\'s middle', () => {
+    const market = createMarket([item(1, { low: 900, high: 960, dailyVolume: 100_000 })], { nowSec: NOW })
+    // Sell at the day's mid (1,050): 1,050 - 21 tax - 900 = 129 each.
+    const h1 = { 1: avg(890, 1060, 3000, 400) }
+    expect(rankDips(market, { h1, h24: { 1: day } })[0]).toMatchObject({ id: 1, buyAt: 900, sellAt: 1050, profit: 129, drop: 0.1 })
+  })
+
+  it('ignores small dips, thin markets and old prices', () => {
+    const market = createMarket([
+      item(1, { low: 980, high: 1000, dailyVolume: 100_000 }),
+      item(2, { low: 900, high: 960, dailyVolume: 100_000 }),
+      item(3, { low: 900, high: 960, dailyVolume: 100_000, lowTime: NOW - 7200 })
+    ], { nowSec: NOW })
+    const h24 = { 1: day, 2: avg(1000, 1100, 20, 20), 3: day }
+    const h1 = { 1: avg(980, 1100, 3000, 400), 2: avg(900, 1100, 3000, 400), 3: avg(900, 1100, 3000, 400) }
+    expect(rankDips(market, { h1, h24 })).toEqual([])
+  })
+
+  it('ignores crashes where the highs fell too', () => {
+    const market = createMarket([item(1, { low: 900, high: 960, dailyVolume: 100_000 })], { nowSec: NOW })
+    expect(rankDips(market, { h1: { 1: avg(890, 1000, 3000, 400) }, h24: { 1: day } })).toEqual([])
+  })
+
+  it('ignores a single panic sale the last hour did not confirm', () => {
+    const market = createMarket([item(1, { low: 900, high: 960, dailyVolume: 100_000 })], { nowSec: NOW })
+    expect(rankDips(market, { h1: { 1: avg(995, 1090, 3000, 400) }, h24: { 1: day } })).toEqual([])
+    expect(rankDips(market, { h1: { 1: avg(890, 1090, 2, 400) }, h24: { 1: day } })).toEqual([])
+    // 1,000 items in the hour against a normal 2,083 an hour: one dumped stack.
+    expect(rankDips(market, { h1: { 1: avg(890, 1090, 1000, 400) }, h24: { 1: day } })).toEqual([])
   })
 })

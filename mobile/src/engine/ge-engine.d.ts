@@ -217,10 +217,13 @@ declare module '@ge/engine' {
     readonly liveProfit?: number
     /** Overnight flips: last hour's price vs the day's average. */
     readonly trend?: number
+    /** Dips: how far the buy price sits under the day's typical low (0.1 = 10%). */
+    readonly drop?: number
   }
 
   export function rankQuickFlips (market: Market, options?: PickOptions): BuyPick[]
   export function rankOvernightFlips (market: Market, options?: PickOptions & { hours?: number }): BuyPick[]
+  export function rankDips (market: Market, options?: PickOptions): BuyPick[]
   export const MEMBERS_SLOTS: number
   export const F2P_SLOTS: number
   export const PLAN_POOL_SIZE: number

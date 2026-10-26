@@ -7,11 +7,15 @@ import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
+import { DetailsLink } from './DetailsLink'
 import { LogBuy } from './LogBuy'
 import { Sparkline } from './Sparkline'
 
 function whyLine (pick: BuyPick, mode: PickMode): string {
   const volume = `${gpShort(pick.dayVolume)} trade a day`
+  if (mode === 'dips') {
+    return `Down ${percent(pick.drop ?? 0)} from the day's typical low. Sell target is the day's middle price. ${volume}.`
+  }
   if (mode === 'overnight') {
     const trend = pick.trend ?? 0
     return `Typical low and high over 24h. ${volume}. Price ${trend >= 0 ? 'up' : 'down'} ${percent(Math.abs(trend))} in the last hour.`
@@ -42,6 +46,7 @@ export const PickRow = memo(function PickRow ({ pick, mode, expanded, onToggle }
       <PriceLine tag="Sell" label={`${signed(pick.profit)} each after tax`} price={pick.sellAt} />
       <Text style={[styles.why, { color: palette.muted }]}>{whyLine(pick, mode)}</Text>
       <ProfitFooter tax={pick.tax * pick.maxQty} profit={pick.potential} starred={isStarred(entry)} onStar={() => toggle(entry)} />
+      <DetailsLink itemId={pick.id} />
       <LogBuy itemId={pick.id} name={pick.name} icon={pick.icon} qty={pick.maxQty} price={pick.buyAt} />
     </FlipRow>
   )

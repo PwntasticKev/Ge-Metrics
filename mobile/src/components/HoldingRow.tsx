@@ -7,6 +7,7 @@ import { useFlips, type Holding } from '../state/flips'
 import { useTheme } from '../theme/ThemeProvider'
 import { space } from '../theme/tokens'
 import { PriceLine } from './DetailLines'
+import { DetailsLink } from './DetailsLink'
 import { FlipRow } from './FlipRow'
 import { Sparkline } from './Sparkline'
 
@@ -67,6 +68,7 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, now, expand
       <Sparkline itemId={holding.itemId} />
       <PriceLine tag="Buy" label={`${qty(holding.qty)} paid`} price={holding.buyPrice} />
       {sellAt !== null ? <PriceLine tag="Sell" label="now at" price={sellAt} /> : null}
+      <DetailsLink itemId={holding.itemId} />
       <View style={styles.actions}>
         <Pressable onPress={confirmRemove} hitSlop={8} accessibilityRole="button">
           <Text style={[styles.action, { color: palette.muted }]}>Remove</Text>

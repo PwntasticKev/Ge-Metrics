@@ -15,11 +15,13 @@ import { useTheme } from '../theme/ThemeProvider'
 const MODES = [
   { value: 'quick', label: 'Next 4 hours' },
   { value: 'overnight', label: 'Overnight' },
-  { value: 'plan', label: 'Plan my cash' }
+  { value: 'dips', label: 'Dips' },
+  { value: 'plan', label: 'Plan' }
 ] as const
 
 const FOOTERS: Record<PickMode, string> = {
   quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day.',
+  dips: 'Liquid items whose price fell at least 5% under the day\'s typical low over the last hour, while buyers still pay the usual price. Buy the dip, sell back at the day\'s middle.',
   plan: 'Your whole cash stack split across your GE slots for the most total profit in the next 4 hours, using the same picks as Next 4 hours.',
   overnight: 'Offers at the typical low and high of the last 24 hours, sized to fill over 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
 }
