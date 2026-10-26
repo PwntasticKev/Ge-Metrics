@@ -19,7 +19,7 @@ import GraphModal from '../../shared/modals/graph-modal.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 export default function CombinationItems () {
-  const { items, mapStatus, priceStatus } = ItemData()
+  const { items, mapStatus, priceStatus, pricesUpdatedAt } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [itemSets, setItemSets] = useState([])
@@ -34,11 +34,12 @@ export default function CombinationItems () {
 
   useEffect(() => {
     if (priceStatus === 'success' && items.length > 0) {
-      setLastFetchTime(new Date())
+      // Prices painted from the saved copy show their real age.
+      setLastFetchTime(pricesUpdatedAt ? new Date(pricesUpdatedAt) : new Date())
       // Shared flipping engine (same as the app); sorted by profit, highest first.
       setItemSets(buildCombinationRows(itemRecipes, items))
     }
-  }, [priceStatus, items])
+  }, [priceStatus, items, pricesUpdatedAt])
 
   // Update current time every second for live ticker
   useEffect(() => {

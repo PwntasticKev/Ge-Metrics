@@ -9,7 +9,7 @@ import { trpc } from '../../utils/trpc.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 
 export default function AllItems () {
-  const { items, mapStatus, priceStatus } = ItemData()
+  const { items, mapStatus, priceStatus, pricesUpdatedAt } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
@@ -28,9 +28,10 @@ export default function AllItems () {
 
   useEffect(() => {
     if (priceStatus === 'success') {
-      setLastFetchTime(new Date())
+      // Prices painted from the saved copy show their real age.
+      setLastFetchTime(pricesUpdatedAt ? new Date(pricesUpdatedAt) : new Date())
     }
-  }, [priceStatus, items])
+  }, [priceStatus, items, pricesUpdatedAt])
 
   // Update current time every 30 seconds to refresh relative time
   useEffect(() => {
