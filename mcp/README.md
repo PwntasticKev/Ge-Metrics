@@ -50,8 +50,8 @@ All tools are read-only and return compact JSON. Every profit is after the 2% GE
 | `search_items(query, limit)` | Find items by name: id, buy/sell, margin after tax, ROI, buy limit, daily volume. |
 | `get_item(item)` | One item by id or name: latest prices + trade age, 5m/1h/24h averages and volumes, alch values and high-alch profit, limit, tax, margin, ROI, profit per buy limit. |
 | `price_history(item, timestep, points)` | Series (`5m`, `1h`, `6h`, `24h`) plus min/max/mean, % change, volatility, spread and volume. |
-| `plan_flips(cash, slots?, max_fill_hours, members, min_volume)` | Start here. Splits a cash stack across GE slots (8, or 3 free-to-play) for the most profit that should fill within `max_fill_hours` (default 8) among items trading `min_volume`+ a day (default 10k, from the backtest): per slot item, buy, sell, qty, cost, profit after tax, expected buy/sell hours, GP/hour. Fillable prices, pumps excluded. |
-| `top_flips(min_volume, max_price, budget, sort, max_fill_hours, include_demoted, members, limit)` | Best single-item flips at fillable prices; `sort` = `gp_per_hour` (default, recommended), `profit`, `roi` or `profit_per_limit`. Rows carry `expectedFillHours`, `gpPerHourPerSlot`, `realisticProfitPerLimit`; unfillable rows and pumps are demoted. |
+| `plan_flips(cash, slots?, max_fill_hours, members, min_volume)` | Start here. Splits a cash stack across GE slots (8, or 3 free-to-play) for the most profit that should fill within `max_fill_hours` (default 2, from the walk-forward) among items trading `min_volume`+ a day (default 10k, from the backtest): per slot item, buy, sell, qty, cost, profit after tax, expected buy/sell hours, GP/hour. Fillable prices, pumps excluded. |
+| `top_flips(min_volume, max_price, budget, sort, max_fill_hours, include_demoted, members, limit)` | Best single-item flips at fillable prices; `sort` = `gp_per_hour` (default, recommended), `profit`, `roi` or `profit_per_limit`. Rows carry `expectedFillHours`, `gpPerHourPerSlot`, `realisticProfitPerLimit`; unfillable rows and pumps are demoted. Defaults `min_volume` 10k and `max_fill_hours` 2 (walk-forward). |
 | `set_arbitrage(sort, budget, limit)` | GE item sets and crafted combinations vs their parts, combine or split. |
 | `processing_methods(method, sort, budget, limit)` | Sawmill, plank make, enchanting, tanning, decanting, herb cleaning, Sailing methods and more; profit per action, per 4h and per hour. |
 | `find_dips(min_drop_pct, ..., max_fill_hours, include_demoted)` | Liquid items whose last-hour average low is 5%+ under the 24h average low while the high side holds; fill-checked (exit capped at the fillable high). |
@@ -102,9 +102,12 @@ npm run typecheck
 npm run build
 npm run smoke       # spawns dist/index.js over stdio and calls every tool against the live APIs
 npm run backtest    # 14-day backtest of every strategy variant -> reports/backtest-YYYY-MM-DD.md
+npm run backtest -- --walk-forward   # 60-day walk-forward: tune on 7d, score the next 2d -> reports/walk-forward-YYYY-MM-DD.md
 ```
 
 `npm run backtest` flags: `-- --days 14 --cash 50000000 --slots 8 --every 4 --strategy all|app|plan_flips|top_flips|find_dips|margin_scan|<variant key> --out file.md`. A cold 14-day run fetches ~870 snapshots through the polite throttle (~10 min); later runs read the disk cache. Backtest code lives in `src/backtest` (`view.ts` = what a strategy could see at t, `position.ts` / `simulate.ts` = fills and portfolio, `strategies/` = the replayed pickers).
+
+`--walk-forward` flags: `--days 60 --train 7 --test 2 --step 2 --grid full|smoke --now <ISO|unix>`. It runs every grid variant of `plan_flips`, `top_flips` and the app's fill-aware Buy now lists (quick, overnight, dips; `src/backtest/vendor/mobile-fill` is the app's code from `mobile/src/lib` on master, copied unchanged) once over the whole period, picks the best on each training window and scores it on the next unseen window. A cold run fetches ~3,000 snapshots (~25 min); the wiki serves `/1h?timestamp=` and `/5m?timestamp=` at least 2 years back. `--now` pins the end so a run is reproducible.
 
 Layout: `src/wiki` (fetching, validation, throttle), `src/analysis` (pure analysis functions; `timing/`, `scanner/`, `coming/` hold the trader analytics), `src/updates` (game update sources and parsing), `src/tools` (MCP tool registration), `src/server.ts` and `src/index.ts` (entry). Engine types come from `mobile/src/engine/ge-engine.d.ts`; `@ge/engine` is aliased to `src/domain/flipping` in `tsup.config.ts` and `vitest.config.ts`.
 

@@ -5,7 +5,7 @@ import { PROCESSING_METHOD_KEYS, processing, setArbitrage, topFlips } from '../a
 import { ToolInputError } from '../analysis/resolve.js'
 import type { ToolDeps } from './deps.js'
 import { guarded } from './result.js'
-import { READ_ONLY, budget, flipSort, includeDemoted, includeStale, limit, maxFillHours } from './schemas.js'
+import { READ_ONLY, budget, flipSort, includeDemoted, includeStale, limit, maxFillHours, maxFillHoursWithDefault } from './schemas.js'
 import { loadFillData, tax } from './fillData.js'
 import { seriesFor } from './series.js'
 import { bulkRows, flipRowJson, rankRows, refineRows } from '../analysis/fills/flipRows.js'
@@ -16,16 +16,23 @@ import { dipFill, scanFillJson } from '../analysis/fills/scanFills.js'
 const REFINE_MAX = 15
 const REFINE_EXTRA = 5
 
+// 60-day walk-forward (reports/walk-forward-2026-10-26.md): the training
+// windows picked a floor of 5k+ a day in 25 of 26 folds; 10k alone beat 1k
+// on 22 of 26 unseen test windows (+79M vs +21M). A 2h horizon alone beat 8h
+// on 22 of 26 (losing picks 5% vs 12%) and was the most chosen.
+export const TOP_MIN_VOLUME = 10_000
+export const TOP_MAX_FILL_HOURS = 2
+
 const TAX_NOTE = 'All profits are after the 2% GE tax (capped at 5M/item; items under 50gp and the official exemption list are untaxed).'
 
 export function registerOpportunityTools (server: McpServer, { prices }: ToolDeps): void {
   const flipsInput = z.object({
-    min_volume: z.number().int().min(0).default(1000).describe('Minimum daily GE volume (filters illiquid items)'),
+    min_volume: z.number().int().min(0).default(TOP_MIN_VOLUME).describe(`Minimum daily GE volume (default ${TOP_MIN_VOLUME}: in backtests thinner items were often dumped at a loss)`),
     max_price: z.number().int().positive().optional().describe('Maximum buy price per item in gp'),
     budget,
     sort: z.enum(['gp_per_hour', 'profit', 'roi', 'profit_per_limit']).default('gp_per_hour')
       .describe('gp_per_hour (recommended) = profit of one buy-limit cycle / hours to buy and sell it at fillable prices (a full limit counts as 4h+); profit = gp per item after tax; roi = profit / cost; profit_per_limit = profit x one buy limit (budget capped). All on fillable prices.'),
-    max_fill_hours: maxFillHours,
+    max_fill_hours: maxFillHoursWithDefault(TOP_MAX_FILL_HOURS),
     include_demoted: includeDemoted,
     members: z.boolean().default(true).describe('Include members items'),
     include_stale: includeStale,
