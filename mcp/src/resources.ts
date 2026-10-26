@@ -16,7 +16,13 @@ export const GUIDE = `# GE Metrics glossary
 Trader analytics:
 - Per-side volume: lowPriceVolume = items instant-sold (they fill buy offers); highPriceVolume = items instant-bought (they fill sell offers).
 - best_trade_hours confidence: high / medium = the hour beat the rest of its day on most days (sign test, corrected for testing 24 hours). low = no reliable pattern.
-- fill_estimate gpPerHour: profit of one buy-limit cycle / hours to buy and sell it; the best use of a GE slot.
+- fill_estimate gpPerHour: profit of one buy-limit cycle / hours to buy and sell it (a cycle that uses the full limit counts as at least 4h, since the limit resets every 4h); the best use of a GE slot.
+
+Fill-aware listings (plan_flips, top_flips, margin_scan, find_dips):
+- Fillable prices: a window's average counts only with enough trades on that side (5+ in the hour, 24+ in the day); buy at the highest qualifying low, sell at the lowest qualifying high. Short-listed items are re-priced from their 24h hourly series (median of qualifying hours, checked against the last 3). A single high print can't create a margin.
+- expectedFillHours {buy, sell}: hours for one buy limit (budget capped) at those prices. gpPerHourPerSlot: as fill_estimate gpPerHour. realisticProfitPerLimit: margin x that quantity. qtyWithinMaxHours: most items that buy and sell within max_fill_hours.
+- demoted / demotedReason: won't fill within max_fill_hours, thin-volume pump, or no per-side volume. Dropped unless include_demoted; counted under "demoted".
+- live (top_flips): the raw latest instant-buy/sell prices, for reference only.
 - margin_scan multipleOfNorm: careful live margin / the item's normal margin; week.z = robust z-score vs its 7-day hourly margins.
 - pump_dump_scan: thin-volume moves that tend to snap back. Don't buy pumps.
 - coming_up late: the item already moved 10%+ the way the news points since the post.

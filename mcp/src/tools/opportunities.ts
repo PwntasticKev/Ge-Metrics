@@ -5,7 +5,16 @@ import { PROCESSING_METHOD_KEYS, processing, setArbitrage, topFlips } from '../a
 import { ToolInputError } from '../analysis/resolve.js'
 import type { ToolDeps } from './deps.js'
 import { guarded } from './result.js'
-import { READ_ONLY, budget, flipSort, includeStale, limit } from './schemas.js'
+import { READ_ONLY, budget, flipSort, includeDemoted, includeStale, limit, maxFillHours } from './schemas.js'
+import { loadFillData, tax } from './fillData.js'
+import { seriesFor } from './series.js'
+import { bulkRows, flipRowJson, rankRows, refineRows } from '../analysis/fills/flipRows.js'
+import { demotedSummary } from '../analysis/fills/metrics.js'
+import { dipFill, scanFillJson } from '../analysis/fills/scanFills.js'
+
+// Rows per listing re-priced from their own hourly series (throttled requests).
+const REFINE_MAX = 15
+const REFINE_EXTRA = 5
 
 const TAX_NOTE = 'All profits are after the 2% GE tax (capped at 5M/item; items under 50gp and the official exemption list are untaxed).'
 
@@ -14,22 +23,38 @@ export function registerOpportunityTools (server: McpServer, { prices }: ToolDep
     min_volume: z.number().int().min(0).default(1000).describe('Minimum daily GE volume (filters illiquid items)'),
     max_price: z.number().int().positive().optional().describe('Maximum buy price per item in gp'),
     budget,
-    sort: flipSort,
+    sort: z.enum(['gp_per_hour', 'profit', 'roi', 'profit_per_limit']).default('gp_per_hour')
+      .describe('gp_per_hour (recommended) = profit of one buy-limit cycle / hours to buy and sell it at fillable prices (a full limit counts as 4h+); profit = gp per item after tax; roi = profit / cost; profit_per_limit = profit x one buy limit (budget capped). All on fillable prices.'),
+    max_fill_hours: maxFillHours,
+    include_demoted: includeDemoted,
     members: z.boolean().default(true).describe('Include members items'),
     include_stale: includeStale,
     limit: limit(100, 20)
   })
   server.registerTool('top_flips', {
     title: 'Top item flips',
-    description: `Best single-item flips right now: buy at the instant-sell price, sell at the instant-buy price. Buy-limit aware: qtyPer4h = min(4h buy limit, ~1/6 of daily volume, what the budget affords); profitPer4h = margin x qtyPer4h. ${TAX_NOTE} Items with implausible spreads (>25% ROI, usually one-off trades) are excluded.`,
+    description: `Best single-item flips, fill-aware. Prices are what actually traded recently with enough volume per side (5+ trades in the last hour or 24+ in the day; never a single print): buy at the highest qualifying low, sell at the lowest qualifying high. The top ${REFINE_MAX} are re-priced from their own 24h hourly series (median of qualifying hours). Each row: buyAt, sellAt, qty (one buy limit, budget capped), expectedFillHours {buy, sell}, gpPerHourPerSlot, realisticProfitPerLimit, and the raw live prices under "live". Rows whose buy or sell would take longer than max_fill_hours, thin-volume pumps and items without per-side volume are demoted (dropped unless include_demoted; summarised under "demoted"). ${TAX_NOTE} Live spreads over 25% ROI are excluded.`,
     inputSchema: flipsInput,
     annotations: READ_ONLY
   }, guarded('top_flips', async (a: z.infer<typeof flipsInput>) => {
-    const flips = topFlips(await prices.market(), {
-      minVolume: a.min_volume, maxPrice: a.max_price, budget: a.budget, sort: a.sort,
-      limit: a.limit, includeMembers: a.members, includeStale: a.include_stale
+    const [market, data] = await Promise.all([prices.market(), loadFillData(prices)])
+    const live = topFlips(market, {
+      minVolume: a.min_volume, maxPrice: a.max_price, budget: a.budget, sort: a.sort === 'gp_per_hour' ? 'profit_per_limit' : a.sort,
+      limit: Number.MAX_SAFE_INTEGER, includeMembers: a.members, includeStale: a.include_stale
     })
-    return { sort: a.sort, count: flips.length, flips }
+    const ctx = { ...data, tax, budget: a.budget, maxFillHours: a.max_fill_hours }
+    const first = rankRows(bulkRows(live, ctx), a.sort)
+    const refineCount = Math.min(a.limit + REFINE_EXTRA, REFINE_MAX)
+    const series = await seriesFor(prices, first.slice(0, refineCount).map(r => r.live.id), '1h')
+    const ranked = rankRows(refineRows(first, series, ctx), a.sort)
+    const flips = (a.include_demoted ? ranked : ranked.filter(r => !r.demotedReason)).slice(0, a.limit).map(flipRowJson)
+    return {
+      sort: a.sort,
+      maxFillHours: a.max_fill_hours,
+      count: flips.length,
+      flips,
+      demoted: demotedSummary(ranked.map(r => ({ id: r.live.id, name: r.live.name, demotedReason: r.demotedReason })))
+    }
   }))
 
   const setInput = z.object({ sort: flipSort, budget, include_stale: includeStale, limit: limit(50, 15) })
@@ -75,11 +100,13 @@ export function registerOpportunityTools (server: McpServer, { prices }: ToolDep
     min_price: z.number().int().min(1).default(DEFAULT_DIP_OPTIONS.minPrice).describe('Minimum 24h average low price in gp'),
     sort: z.enum(['potential', 'drop']).default(DEFAULT_DIP_OPTIONS.sort)
       .describe('potential = profitIfRecovers x min(buy limit, last hour\'s dumped volume); drop = largest % drop'),
+    max_fill_hours: maxFillHours,
+    include_demoted: includeDemoted,
     limit: limit(50, DEFAULT_DIP_OPTIONS.limit)
   })
   server.registerTool('find_dips', {
     title: 'Find dips',
-    description: 'Liquid items whose last-hour average instant-sell price is 5%+ (configurable) under their 24h average low while the instant-buy side holds near its 24h average (not falling more than 2%, not spiking): typical dump/panic selling. profitIfRecovers = sell at the 24h average high after tax, buying at the dipped 1h low.',
+    description: `Liquid items whose last-hour average instant-sell price is 5%+ (configurable) under their 24h average low while the instant-buy side holds near its 24h average (not falling more than 2%, not spiking): typical dump/panic selling. profitIfRecovers = sell at the 24h average high after tax, buying at the dipped 1h low. Fill-aware: "fill" runs the fill model on one buy limit at the dipped buy and the exit capped at the typical fillable high (the top ${REFINE_MAX} from their 24h hourly series), with expectedFillHours, gpPerHourPerSlot and realisticProfitPerLimit; dips that won't fill within max_fill_hours are demoted (dropped unless include_demoted).`,
     inputSchema: dipsInput,
     annotations: READ_ONLY
   }, guarded('find_dips', async (a: z.infer<typeof dipsInput>) => {
@@ -90,9 +117,19 @@ export function registerOpportunityTools (server: McpServer, { prices }: ToolDep
       maxHighDrop: a.max_high_drop_pct / 100,
       minDailyVolume: a.min_daily_volume,
       minPrice: a.min_price,
-      limit: a.limit,
+      limit: Math.max(a.limit * 3, REFINE_MAX),
       sort: a.sort
     })
-    return { count: dips.length, dips }
+    const byId = new Map(mapping.map(m => [m.id, m]))
+    const series = await seriesFor(prices, dips.slice(0, REFINE_MAX).map(d => d.id), '1h')
+    const rows = dips.flatMap(d => {
+      const item = byId.get(d.id)
+      if (!item) return []
+      const market = { item, h1: hour.get(d.id), h24: day.get(d.id), latest: latest.get(d.id), series: series.get(d.id) }
+      return [{ ...d, ...scanFillJson(dipFill(market, { buyAt: d.hourAvgLow, sellAt: d.dayAvgHigh }, tax, a.max_fill_hours)) }]
+    })
+    const fillableFirst = [...rows].sort((x, y) => Number(x.demoted) - Number(y.demoted))
+    const shown = (a.include_demoted ? fillableFirst : fillableFirst.filter(r => !r.demoted)).slice(0, a.limit)
+    return { maxFillHours: a.max_fill_hours, count: shown.length, dips: shown, demoted: demotedSummary(fillableFirst) }
   }))
 }

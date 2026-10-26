@@ -26,6 +26,8 @@ const calls = [
   ['get_item', { item: 'abyssal whip' }],
   ['price_history', { item: 4151, timestep: '1h', points: 6 }],
   ['top_flips', { min_volume: 5000, budget: 50_000_000, sort: 'profit_per_limit', limit: 3 }],
+  ['top_flips', { budget: 50_000_000, sort: 'gp_per_hour', limit: 3 }],
+  ['plan_flips', { cash: 50_000_000 }],
   ['set_arbitrage', { limit: 3 }],
   ['processing_methods', { limit: 3, sort: 'per_hour' }],
   ['find_dips', { limit: 3 }],

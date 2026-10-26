@@ -9,6 +9,7 @@ import { LATEST, MAPPING, NOW, VOLUMES, avg, hourly, market } from './fixtures/m
 import { DATASET } from './fixtures/updates.js'
 import { comingFromPages } from '../src/updates/coming.js'
 import { series } from './fixtures/series.js'
+import { flatSeries } from './fixtures/fills.js'
 
 const updates = parseDataset(DATASET)
 const deps = (overrides: Partial<ToolDeps['prices']> = {}): ToolDeps => ({
@@ -55,7 +56,7 @@ describe('MCP server', () => {
     const client = await connect(deps())
     const { tools } = await client.listTools()
     expect(tools.map(t => t.name).sort()).toEqual([
-      'best_trade_hours', 'coming_up', 'fill_estimate', 'find_dips', 'game_updates', 'get_item', 'margin_scan', 'market_breadth', 'price_history',
+      'best_trade_hours', 'coming_up', 'fill_estimate', 'find_dips', 'game_updates', 'get_item', 'margin_scan', 'market_breadth', 'plan_flips', 'price_history',
       'processing_methods', 'pump_dump_scan', 'search_items', 'sell_or_hold', 'set_arbitrage', 'top_flips', 'trend_scan', 'update_impact'
     ])
     expect(tools.every(t => (t.description ?? '').length > 40)).toBe(true)
@@ -64,7 +65,7 @@ describe('MCP server', () => {
     expect(JSON.stringify(guide.contents)).toContain('GE tax')
     const prompt = await client.getPrompt({ name: 'flip-analyst', arguments: { budget: '25m' } })
     expect(JSON.stringify(prompt.messages)).toContain('25m gp')
-    expect(JSON.stringify(prompt.messages)).toMatch(/market_breadth[\s\S]*pump_dump_scan[\s\S]*fill_estimate/)
+    expect(JSON.stringify(prompt.messages)).toMatch(/market_breadth[\s\S]*plan_flips[\s\S]*gp_per_hour[\s\S]*margin_scan[\s\S]*fill_estimate/)
   })
 
   it('answers every tool with JSON', async () => {
@@ -72,7 +73,10 @@ describe('MCP server', () => {
     expect((await call(client, 'search_items', { query: 'whip' })).data.results[0].id).toBe(4151)
     expect((await call(client, 'get_item', { item: 'abyssal whip' })).data.flip.marginAfterTax).toBe(80_000)
     expect((await call(client, 'price_history', { item: 4151, points: 5 })).data.series).toHaveLength(5)
-    expect((await call(client, 'top_flips', { min_volume: 0 })).data.flips[0].id).toBe(4151)
+    // The fixture whip's hourly series has no margin after tax: demoted, not handed out.
+    expect((await call(client, 'top_flips', { min_volume: 0 })).data).toMatchObject({ sort: 'gp_per_hour', flips: [], demoted: { count: expect.any(Number) } })
+    const all = await call(client, 'top_flips', { min_volume: 0, include_demoted: true })
+    expect(all.data.flips[0]).toMatchObject({ id: 4151, demoted: true, demotedReason: expect.stringMatching(/No margin/) })
     expect((await call(client, 'set_arbitrage', {})).data.sets[0].setId).toBe(13012)
     expect((await call(client, 'processing_methods', { method: 'sawmill' })).data.count).toBeGreaterThan(0)
     expect((await call(client, 'find_dips', {})).data.dips).toEqual([])
@@ -103,6 +107,25 @@ describe('MCP server', () => {
     expect(coming.data.groups[0]).toMatchObject({ title: 'Whip blog', kind: 'future', date: '2026-10-20', items: [{ id: 4151, signal: 'up (new use)', status: 'pending' }] })
     expect((await call(client, 'fill_estimate', { item: 4151, qty: 0 })).isError).toBe(true)
     expect((await call(client, 'trend_scan', { direction: 'sideways' })).isError).toBe(true)
+  })
+
+  it('plans and lists fill-aware flips', async () => {
+    const client = await connect(deps({
+      timeseries: async () => flatSeries({ low: 900_000, high: 1_000_000, volume: 100 }),
+      averages: async () => new Map([[4151, avg(1_000_000, 900_000, 2400, 2400)]])
+    }))
+    const top = await call(client, 'top_flips', { min_volume: 0, budget: 50_000_000 })
+    expect(top.data.flips[0]).toMatchObject({
+      id: 4151, buyAt: 900_000, sellAt: 1_000_000, marginAfterTax: 80_000, qty: 55, demoted: false, priceBasis: 'hourly series (24h)',
+      expectedFillHours: { buy: 2.2, sell: 2.2 }, realisticProfitPerLimit: 4_400_000
+    })
+    const plan = await call(client, 'plan_flips', { cash: 50_000_000 })
+    expect(plan.data).toMatchObject({ slots: 8, maxFillHours: 8, totals: { slotsUsed: 1, cost: 49_500_000, expectedProfit: 4_400_000 } })
+    expect(plan.data.slotsPlan[0]).toMatchObject({ id: 4151, buyAt: 900_000, sellAt: 1_000_000, qty: 55, taxEach: 20_000, expectedHours: 4.4 })
+    expect((await call(client, 'plan_flips', { cash: 50_000_000, members: false })).data).toMatchObject({ slots: 3, totals: { slotsUsed: 0 } })
+    expect((await call(client, 'plan_flips', { cash: 0 })).isError).toBe(true)
+    expect((await call(client, 'margin_scan', { max_fill_hours: 4 })).data).toMatchObject({ maxFillHours: 4, items: [] })
+    expect((await call(client, 'find_dips', {})).data).toMatchObject({ dips: [], demoted: { count: 0 } })
   })
 
   it('returns readable tool errors', async () => {

@@ -78,7 +78,7 @@ function queueShare (outbid: number, spread: number): number {
   return QUEUE_SHARE + (1 - QUEUE_SHARE) * position
 }
 
-function hoursFor (qty: number, perHour: number): number {
+export function hoursFor (qty: number, perHour: number): number {
   if (qty <= 0) return 0
   return perHour > 0 ? Math.max(MIN_FILL_HOURS, qty / perHour) : Infinity
 }
@@ -87,18 +87,34 @@ function reach (samples: readonly number[], hit: (v: number) => boolean, fallbac
   return samples.length ? samples.filter(hit).length / samples.length : fallback
 }
 
-/** Hours for a buy offer of `qty` at `price` to fill. Infinity if it won't. */
-export function buyFillHours (flow: MarketFlow, price: number, qty: number): number {
+/** Items per hour a buy offer at `price` can expect to get. */
+export function buyFillRate (flow: MarketFlow, price: number): number {
   const spread = flow.typicalHigh - flow.typicalLow
   const reached = reach(flow.recentLows, v => v <= price, price >= flow.typicalLow ? 1 : 0)
-  return hoursFor(qty, flow.instantSellsPerHour * reached * queueShare(price - flow.typicalLow, spread))
+  return flow.instantSellsPerHour * reached * queueShare(price - flow.typicalLow, spread)
 }
 
-/** Hours for a sell offer of `qty` at `price` to fill. Infinity if it won't. */
-export function sellFillHours (flow: MarketFlow, price: number, qty: number): number {
+/** Items per hour a sell offer at `price` can expect to get. */
+export function sellFillRate (flow: MarketFlow, price: number): number {
   const spread = flow.typicalHigh - flow.typicalLow
   const reached = reach(flow.recentHighs, v => v >= price, price <= flow.typicalHigh ? 1 : 0)
-  return hoursFor(qty, flow.instantBuysPerHour * reached * queueShare(flow.typicalHigh - price, spread))
+  return flow.instantBuysPerHour * reached * queueShare(flow.typicalHigh - price, spread)
+}
+
+/** Hours for a buy offer of `qty` at `price` to fill. Infinity if it won't. */
+export const buyFillHours = (flow: MarketFlow, price: number, qty: number): number => hoursFor(qty, buyFillRate(flow, price))
+
+/** Hours for a sell offer of `qty` at `price` to fill. Infinity if it won't. */
+export const sellFillHours = (flow: MarketFlow, price: number, qty: number): number => hoursFor(qty, sellFillRate(flow, price))
+
+/**
+ * GP per hour a GE slot earns on one cycle. A full buy limit can't be bought
+ * again for 4h, so a cycle that uses the whole limit counts as at least 4h.
+ */
+export function slotGpPerHour (profit: number, cycleHours: number, units: number, limit: number | null): number {
+  if (!Number.isFinite(cycleHours) || cycleHours <= 0) return 0
+  const fullLimit = limit !== null && limit > 0 && units >= limit
+  return profit / (fullLimit ? Math.max(cycleHours, BUY_LIMIT_HOURS) : cycleHours)
 }
 
 export interface SlotRate {
@@ -108,7 +124,7 @@ export interface SlotRate {
   readonly sellHours: number
   readonly cycleHours: number
   readonly profit: number
-  /** Profit per hour the GE slot is busy; 0 when it would never fill. */
+  /** Profit per hour of the slot (a full buy limit counts as at least 4h); 0 when it would never fill. */
   readonly gpPerHour: number
 }
 
@@ -131,6 +147,6 @@ export function slotRate (flow: MarketFlow, input: SlotInput): SlotRate {
   const sellHours = sellFillHours(flow, input.sellAt, units)
   const cycleHours = buyHours + sellHours
   const profit = input.profitEach * units
-  const gpPerHour = Number.isFinite(cycleHours) && cycleHours > 0 ? profit / cycleHours : 0
+  const gpPerHour = slotGpPerHour(profit, cycleHours, units, input.limit)
   return { units, buyHours, sellHours, cycleHours, profit, gpPerHour }
 }

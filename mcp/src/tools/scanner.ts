@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server'
-import { geTax } from '@ge/engine'
+import { tax } from './fillData.js'
 import { z } from 'zod'
 import { marketBreadth } from '../analysis/scanner/breadth.js'
 import { type Move, hourStartAgo, liquidMoves } from '../analysis/scanner/marketMoves.js'
@@ -7,25 +7,18 @@ import { breadthReport, flagSpikes, keepMarginRow, marginRow, reversionRows, spi
 import { screenSpreads } from '../analysis/scanner/spreadScan.js'
 import { dipCandidates, trendCandidates } from '../analysis/scanner/trendScan.js'
 import type { PriceSource } from '../wiki/prices.js'
-import type { Timestep, TimeseriesPoint } from '../wiki/types.js'
 import type { ToolDeps } from './deps.js'
 import { guarded } from './result.js'
-import { READ_ONLY, limit } from './schemas.js'
+import { seriesFor } from './series.js'
+import { READ_ONLY, includeDemoted, limit, maxFillHours } from './schemas.js'
+import { demotedSummary } from '../analysis/fills/metrics.js'
+import { quoteFill, scanFillJson } from '../analysis/fills/scanFills.js'
 
 // How many items per scan get a per-item history check (throttled requests).
 const CHECK_SPIKES = 10
 const CHECK_SPREADS = 25
 const CHECK_CANDIDATES = 20
 
-const tax = (price: number, id: number) => geTax(price, id)
-
-/** Per-item series for a short list, through the price source's throttle. */
-async function seriesFor (prices: PriceSource, ids: readonly number[], step: Timestep): Promise<Map<number, readonly TimeseriesPoint[]>> {
-  const settled = await Promise.allSettled(ids.map(async id => [id, await prices.timeseries(id, step)] as const))
-  const failed = settled.filter(s => s.status === 'rejected')
-  if (failed.length) console.error(`[ge-metrics-mcp] ${failed.length}/${ids.length} ${step} series failed; scanning without them`)
-  return new Map(settled.flatMap(s => (s.status === 'fulfilled' ? [s.value] : [])))
-}
 
 async function loadMoves (prices: PriceSource, nowSec: number): Promise<Move[]> {
   const [mapping, hour, day, hourDayAgo, hourWeekAgo] = await Promise.all([
@@ -62,20 +55,27 @@ export function registerScannerTools (server: McpServer, { prices, now }: ToolDe
     }
   }))
 
-  const marginInput = z.object({ limit: limit(50, 10) })
+  const marginInput = z.object({ max_fill_hours: maxFillHours, include_demoted: includeDemoted, limit: limit(50, 10) })
   server.registerTool('margin_scan', {
     title: 'Margins opened',
-    description: `Items whose live margin after tax is 2x+ their normal margin right now. Guards: both live prices traded in the last 20 min; the "careful" margin uses the worse of live and last-hour average on each side (a stray print can't fake a gap); each side traded 3+ times in the last hour; 240+ trades/day; profit per buy limit >= 20k; thin-volume pumps excluded. The top ${CHECK_SPREADS} are checked against their 7-day median hourly margin (robust z); rows with z < 2 are dropped as normal for the item.`,
+    description: `Items whose live margin after tax is 2x+ their normal margin right now. Guards: both live prices traded in the last 20 min; the "careful" margin uses the worse of live and last-hour average on each side (a stray print can't fake a gap); each side traded 3+ times in the last hour; 240+ trades/day; profit per buy limit >= 20k; thin-volume pumps excluded. The top ${CHECK_SPREADS} are checked against their 7-day median hourly margin (robust z); rows with z < 2 are dropped as normal for the item. Fill-aware: each row's quoted buyAt/sellAt is run through the fill model on one buy limit using the item's last 24h of per-side volume and how often the price was actually reached ("fill": expectedFillHours, gpPerHourPerSlot, realisticProfitPerLimit). A margin whose buy or sell won't fill within max_fill_hours (typically a one-off spike) is demoted, with the trade at typical fillable prices under "atTypicalPrices"; demoted rows are dropped unless include_demoted. This is a check: confirm any pick with fill_estimate at your quantity.`,
     inputSchema: marginInput,
     annotations: READ_ONLY
-  }, guarded('margin_scan', async ({ limit }: z.infer<typeof marginInput>) => {
+  }, guarded('margin_scan', async (a: z.infer<typeof marginInput>) => {
     const [mapping, latest, h1, h24, m5] = await Promise.all([prices.mapping(), prices.latest(), prices.averages('1h'), prices.averages('24h'), prices.averages('5m')])
     const pumps = new Set(flagSpikes({ mapping, h1, h24, m5 }).filter(f => f.flag.kind === 'pump').map(f => f.entry.id))
     const screened = screenSpreads(mapping, { latest, h1, h24, nowSec: now(), tax, isPump: id => pumps.has(id) })
-    const checked = screened.slice(0, Math.min(CHECK_SPREADS, Math.max(limit * 2, 10)))
+    const checked = screened.slice(0, Math.min(CHECK_SPREADS, Math.max(a.limit * 2, 10)))
     const series = await seriesFor(prices, checked.map(r => r.item.id), '1h')
-    const rows = checked.map(r => marginRow(r, series.get(r.item.id), tax)).filter(keepMarginRow)
-    return { screened: screened.length, checked: checked.length, count: Math.min(rows.length, limit), items: rows.slice(0, limit) }
+    const rows = checked.flatMap(r => {
+      const row = marginRow(r, series.get(r.item.id), tax)
+      if (!keepMarginRow(row)) return []
+      const market = { item: r.item, h1: h1.get(r.item.id), h24: h24.get(r.item.id), latest: latest.get(r.item.id), series: series.get(r.item.id) }
+      return [{ ...row, ...scanFillJson(quoteFill(market, { buyAt: r.carefulBuy, sellAt: r.carefulSell }, tax, a.max_fill_hours)) }]
+    })
+    const ranked = [...rows].sort((x, y) => Number(x.demoted) - Number(y.demoted) || (y.fill?.gpPerHourPerSlot ?? 0) - (x.fill?.gpPerHourPerSlot ?? 0))
+    const items = (a.include_demoted ? ranked : ranked.filter(r => !r.demoted)).slice(0, a.limit)
+    return { screened: screened.length, checked: checked.length, maxFillHours: a.max_fill_hours, count: items.length, items, demoted: demotedSummary(ranked) }
   }))
 
   const trendInput = z.object({

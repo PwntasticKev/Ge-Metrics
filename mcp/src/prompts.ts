@@ -10,12 +10,13 @@ export function flipAnalystPrompt ({ budget, focus, members }: { budget?: string
     '',
     'Workflow:',
     '1. Read the market: market_breadth. Risk-off (index falling, more fallers than risers): favour fast, high-volume flips, smaller positions, no overnight holds. Risk-on: trend-following and pre-positioning are fine.',
-    '2. Scan: top_flips (sort profit_per_limit, then roi), margin_scan (margins opened vs their norm), find_dips and trend_scan (direction "up" for momentum, "below_mean" for mean reversion), set_arbitrage and processing_methods. Use coming_up for items named in upcoming content; skip rows flagged late (already priced in) or released.',
-    '3. Avoid pumps: run pump_dump_scan and drop any candidate flagged as a pump (thin-volume spike that tends to snap back). A dump on an otherwise healthy, liquid item can be a buy.',
-    '4. Vet the best 3-5 candidates: get_item (both prices recent? 1h average near the latest price? volume?), price_history (1h, ~48 points), best_trade_hours (only act on high/medium confidence: place buys in the buyAt hour, sells in the sellAt hour, UTC) and fill_estimate at the quantity you plan (buy and sell hours, GP/hour per GE slot). Prefer the highest GP/hour per slot, not just the biggest margin.',
-    '5. Size: quantity = min(4h buy limit, what fill_estimate says fills in a few hours, budget / buy price). Spread the stack over several items rather than one; keep total cost within the cash stack and leave room for 8 GE slots.',
-    '6. Context: game_updates / update_impact when an update might explain a move.',
-    '7. Recommend a short list. For each: buy price, sell price, quantity, expected profit after GE tax, ROI, expected fill time and GP/hour per slot, best hours if any, and the main risk (thin volume, pump, falling trend, risk-off market, stale prices, update-driven repricing).',
+    '2. Plan first: plan_flips (cash = my stack, slots = 8, or 3 if free-to-play; max_fill_hours = how long I can wait, default 8). It already uses fillable prices (what actually traded with volume on each side, never one-off prints), sizes each slot by buy limit, fill time and cash, and excludes pumps. For a ranked list use top_flips with sort "gp_per_hour" (the recommended sort) and budget.',
+    '3. Look for extra edges, then check them: margin_scan (margins opened vs their norm), find_dips, trend_scan (direction "up" for momentum, "below_mean" for mean reversion), set_arbitrage and processing_methods; coming_up for items named in upcoming content (skip rows flagged late or released). Rows from margin_scan, find_dips and top_flips carry expectedFillHours, gpPerHourPerSlot and realisticProfitPerLimit; anything demoted (would not fill within max_fill_hours, pump, no per-side volume) is not a trade. Treat margin_scan as a check: verify any pick with fill_estimate at the exact buy price, sell price and quantity before swapping it into the plan.',
+    '4. Avoid pumps: plan_flips and top_flips already exclude/demote them; for other candidates run pump_dump_scan and drop anything flagged as a pump. A dump on an otherwise healthy, liquid item can be a buy.',
+    '5. Vet the final picks: fill_estimate at the planned quantity and prices (buy and sell hours, GP/hour per GE slot); best_trade_hours (only act on high/medium confidence: buys in the buyAt hour, sells in the sellAt hour, UTC); get_item / price_history if a price looks off. Never quote a sell price that fill_estimate says takes longer than max_fill_hours: re-price at the 24h typical range instead.',
+    '6. Size: use the plan_flips quantities (min of buy limit, what fills within max_fill_hours, cash). Keep total cost within the cash stack, one item per GE slot.',
+    '7. Context: game_updates / update_impact when an update might explain a move.',
+    '8. Recommend per slot: item, buy price, sell price, quantity, cost, expected profit after GE tax, ROI, expected hours to buy and sell, GP/hour per slot, best hours if any, and the main risk (thin volume, pump, falling trend, risk-off market, stale prices, update-driven repricing). Finish with totals: cash used, expected profit, longest slot time.',
     'For items already held, use sell_or_hold (qty, price paid) to decide between selling now and listing.',
     '',
     'Rules: profits are after the 2% GE tax (5M cap per item; some items are exempt). Buy limits reset every 4 hours. Treat margins on items with stale trades (old priceAgeMin) or tiny volume as unreliable. Never invent prices: quote tool output.'
@@ -26,7 +27,7 @@ export function flipAnalystPrompt ({ budget, focus, members }: { budget?: string
 export function registerPrompts (server: McpServer): void {
   server.registerPrompt('flip-analyst', {
     title: 'Flip analyst',
-    description: 'Analyze the Grand Exchange (market mood, scans, timing, fill times, pump checks) and recommend sized flips, set arbitrage, processing methods and pre-positions for a given budget.',
+    description: 'Analyze the Grand Exchange (market mood, fill-aware flip plan across GE slots, scans, timing, fill times, pump checks) and recommend sized flips, set arbitrage, processing methods and pre-positions for a given budget.',
     argsSchema: z.object({
       budget: z.string().optional().describe('Cash stack in gp, e.g. "25000000" or "25m"'),
       focus: z.string().optional().describe('Optional focus, e.g. "high-volume flips", "sets", "processing", "dips", "trends", "upcoming updates", "a specific item"'),
