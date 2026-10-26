@@ -31,6 +31,9 @@ Ground rules carried over from earlier decisions:
 | Game update markers | Game updates and dev blogs from the wiki as dots on the chart; posts that mention the item stand out. Tap for the post. |
 | Update movers | Tools view: items named in the latest posts with their price move since the post and current margin. |
 | Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
+| Trade timing | Item details: best buy and sell hour (local time) when the pattern held on most of the last 15 days, a 24-bar hour heatmap, a steady weekday, fill time for one buy limit and GP/h per GE slot. |
+| GP/h per slot sort | Buy now (Next 4 hours, Dips): sort by profit per hour a GE slot is busy, from each side's trade flow. |
+| Sell helper | Bought tab: "Sell now X or list Y, ~2h (+Z)" per holding, using the 24h typical high and the sell-side flow. |
 
 ## Done in this round (web)
 
@@ -48,16 +51,13 @@ Ground rules carried over from earlier decisions:
    (`expo-background-task`) checks watched items every ~15 to 30 minutes and
    fires a local notification when a margin crosses a threshold you set. Not
    real time (iOS decides when it runs), but no server.
-3. **Sell-side helper for holdings.** For each holding: "sell now at X" vs
-   "list at the 24h high Y and wait". Show the expected wait from the last
-   day's sell volume.
-4. **Profit history.** Chart of sales from the Bought tab by day and by item,
+3. **Profit history.** Chart of sales from the Bought tab by day and by item,
    plus best and worst flips. Export as CSV.
-5. **Update alerts.** Shipped as chart markers and Update movers; next is a
+4. **Update alerts.** Shipped as chart markers and Update movers; next is a
    local notification when a new post mentions a watched item.
-6. **Share a pick.** Share sheet with an image of a pick (item, prices,
+5. **Share a pick.** Share sheet with an image of a pick (item, prices,
    profit) for clan chats.
-7. **iPad and landscape layouts.** Two columns: list on the left, item page
+6. **iPad and landscape layouts.** Two columns: list on the left, item page
     on the right.
 
 ## Next for the website (no visual change unless asked)
