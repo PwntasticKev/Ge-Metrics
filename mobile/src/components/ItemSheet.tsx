@@ -12,6 +12,7 @@ import { PriceLine } from './DetailLines'
 import { ItemAlerts } from './alerts/ItemAlerts'
 import { ItemIcon } from './ItemIcon'
 import { LogBuy } from './LogBuy'
+import { SpikeWarning } from './SpikeWarning'
 import { ItemChart, type Timestep } from './chart/ItemChart'
 import { Tabs } from './Tabs'
 import { TimingSection } from './timing/TimingSection'
@@ -117,6 +118,7 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
         </View>
         {close}
       </View>
+      <SpikeWarning itemId={item.id} />
 
       <Tabs options={RANGES} value={range} onChange={setRange} />
       <ItemChart key={range} itemId={item.id} timestep={series.timestep} points={series.points} label={series.label} onScrubbingChange={setScrubbing} />

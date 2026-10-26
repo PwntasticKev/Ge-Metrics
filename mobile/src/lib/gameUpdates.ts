@@ -104,7 +104,7 @@ export function buildMentionIndex (items: Iterable<{ name: string }>): Map<strin
 }
 
 /** Readable text of a page: link labels kept, files, templates and markup removed. */
-function plainText (content: string): string {
+export function plainText (content: string): string {
   return content
     .replace(/\[\[(?:file|image|category):[^\]]*\]\]/gi, ' ')
     .replace(/\[\[[^[\]|]*\|([^[\]]*)\]\]/g, '$1')
@@ -200,6 +200,7 @@ export const PRICE_MOVING_KINDS: readonly string[] = ['game', 'future']
 export function kindLabel (kind: string): string {
   if (kind === 'game') return 'Game update'
   if (kind === 'future') return 'Dev blog'
+  if (kind === 'bts') return 'Behind the scenes'
   return kind ? kind[0].toUpperCase() + kind.slice(1) : 'Update'
 }
 

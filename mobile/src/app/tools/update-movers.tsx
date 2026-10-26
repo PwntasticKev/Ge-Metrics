@@ -1,7 +1,6 @@
 import { useQueries } from '@tanstack/react-query'
-import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useMemo, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { computeItemFlip, type Market } from '@ge/engine'
 import { useGameUpdates, useItemNameIndex } from '../../api/gameUpdates'
 import { useMarket, type MarketState } from '../../api/useMarket'
@@ -10,13 +9,13 @@ import { PriceLine } from '../../components/DetailLines'
 import { DetailsLink } from '../../components/DetailsLink'
 import { FlipListScreen } from '../../components/FlipListScreen'
 import { FlipRow } from '../../components/FlipRow'
+import { PostHeader } from '../../components/PostHeader'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { Sparkline } from '../../components/Sparkline'
 import { changeText, gpPrice, signed, stripUncharged, utcDay } from '../../lib/format'
 import { baselineDay, kindLabel, latestItemPosts, type GameUpdate } from '../../lib/gameUpdates'
 import { buildMoverGroup, type MoverRow } from '../../lib/updateMovers'
 import { useTheme } from '../../theme/ThemeProvider'
-import { space } from '../../theme/tokens'
 
 const POSTS = 6
 const ROWS_PER_POST = 12
@@ -25,26 +24,8 @@ type Row =
   | { key: string; post: GameUpdate; hidden: number }
   | { key: string; mover: MoverRow }
 
-function openPost (url: string) {
-  WebBrowser.openBrowserAsync(url).catch(error => console.warn('Could not open the news post', error))
-}
-
-function PostHeader ({ post, hidden }: { post: GameUpdate; hidden: number }) {
-  const { palette } = useTheme()
-  const url = post.url
-  return (
-    <Pressable
-      disabled={!url}
-      onPress={() => url && openPost(url)}
-      style={({ pressed }) => [styles.post, { backgroundColor: palette.well }, pressed && { opacity: 0.7 }]}
-      accessibilityRole={url ? 'link' : 'header'}
-    >
-      <Text style={[styles.postTitle, { color: palette.ink }]} numberOfLines={2}>{post.title}</Text>
-      <Text style={[styles.postMeta, { color: palette.muted }]}>
-        {kindLabel(post.kind)}, {utcDay(post.date)}{hidden ? `, ${hidden} more items` : ''}{url ? '  ·  Read ›' : ''}
-      </Text>
-    </Pressable>
-  )
+function MoverPostHeader ({ post, hidden }: { post: GameUpdate; hidden: number }) {
+  return <PostHeader title={post.title} url={post.url} meta={`${kindLabel(post.kind)}, ${utcDay(post.date)}${hidden ? `, ${hidden} more items` : ''}`} />
 }
 
 function MoverItemRow ({ mover, market, expanded, onToggle }: { mover: MoverRow; market: Market; expanded: boolean; onToggle: () => void }) {
@@ -125,7 +106,7 @@ export default function UpdateMoversScreen () {
       keyOf={r => r.key}
       extraData={openKey}
       renderRow={r => {
-        if ('post' in r) return <PostHeader post={r.post} hidden={r.hidden} />
+        if ('post' in r) return <MoverPostHeader post={r.post} hidden={r.hidden} />
         if (!prices.market) return <View />
         return <MoverItemRow mover={r.mover} market={prices.market} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />
       }}
@@ -136,8 +117,5 @@ export default function UpdateMoversScreen () {
 }
 
 const styles = StyleSheet.create({
-  post: { paddingHorizontal: space.lg, paddingVertical: space.sm, marginTop: space.sm },
-  postTitle: { fontSize: 15, fontWeight: '700' },
-  postMeta: { fontSize: 12.5, marginTop: 2 },
   note: { fontSize: 12.5, textAlign: 'center', padding: 20, lineHeight: 18 }
 })

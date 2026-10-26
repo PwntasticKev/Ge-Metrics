@@ -34,11 +34,11 @@ function isCachedUpdates (value: unknown): value is CachedUpdates {
   return isObject(value) && typeof value.fetchedAt === 'number' && Array.isArray(value.updates) && value.updates.every(isGameUpdate)
 }
 
-function apiUrl (params: Record<string, string>): string {
+export function apiUrl (params: Record<string, string>): string {
   return `${WIKI_API}?${new URLSearchParams({ action: 'query', format: 'json', formatversion: '2', ...params }).toString()}`
 }
 
-function queryPages (body: unknown): Record<string, unknown>[] {
+export function queryPages (body: unknown): Record<string, unknown>[] {
   if (!isObject(body)) throw new WikiError('Unexpected response from the wiki')
   if (isObject(body.error)) throw new WikiError(`Wiki error: ${String(body.error.info ?? body.error.code)}`)
   const query = body.query
@@ -81,7 +81,7 @@ async function listPriceMovingPosts (year: number, budget: { left: number }): Pr
   return titles
 }
 
-function pageContent (page: Record<string, unknown>): string | null {
+export function pageContent (page: Record<string, unknown>): string | null {
   const revision = Array.isArray(page.revisions) ? page.revisions[0] : null
   const slots = isObject(revision) ? revision.slots : null
   const main = isObject(slots) ? slots.main : null
