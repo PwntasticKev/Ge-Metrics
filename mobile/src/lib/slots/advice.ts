@@ -12,11 +12,12 @@
 // "Recent" is the live price and the side's traded price, using the same
 // rule as fill-aware picks (fillAware.tradedPrice): the last hour only when
 // that side traded a fair share of a normal hour, else the day. The realistic
-// ask is the lower of the two (fillAware.careful), as in Buy now and the
-// scanner, so a slot is never told to ask more than a pick would quote.
+// price per side is the canonical offer's bulk price (fillAware.bulkSidePrice,
+// what lib/offer quotes before history loads), so a slot is never told to
+// ask more than Buy now, the scanner or the item sheet would.
 
 import { buyFillHours, flowFromAverages, sellFillHours, type MarketFlow } from '../analytics/fillTime.ts'
-import { careful, tradedPrice } from '../fillAware.ts'
+import { bulkSidePrice, tradedPrice } from '../fillAware.ts'
 import type { AverageLike, TaxOf } from '../analytics/types.ts'
 import { gpFull, gpShort, signed, duration } from '../format.ts'
 import { remaining, type Slot } from './slots.ts'
@@ -33,6 +34,8 @@ export interface SidePrices {
   live: number | null
   /** Last hour's average if this side traded enough in it, else the day's (fillAware.tradedPrice). */
   traded: number | null
+  /** The canonical offer's bulk price for this side: the worse of live and traded. */
+  realistic: number | null
 }
 
 export interface SlotMarket {
@@ -103,7 +106,7 @@ function buyAdvice ({ slot, market, now, taxOf }: AdviceInput, left: number): Sl
   const highs = pricesOf(market.high)
   if (!lows.length) return advice('unknown', 'No recent trades', 'Nothing sold into buy offers lately to compare with.')
   // What you can sell for: the realistic ask (worse of live and traded), then the pick's plan.
-  const sellAt = careful(market.high.live, market.high.traded, 'sell') ?? slot.target
+  const sellAt = market.high.realistic ?? slot.target
   const profitEach = (bid: number) => (sellAt ? net(sellAt, taxOf) - bid : null)
   const flow = recentFlow(market.flow, lows, highs)
   const etaOf = (bid: number) => (flow ? buyFillHours(flow, bid, left) : null)
@@ -150,7 +153,7 @@ function sellAdvice ({ slot, market, now, taxOf }: AdviceInput, left: number): S
   const etaOf = (ask: number) => (flow ? sellFillHours(flow, ask, left) : null)
 
   // The realistic ask: the worse of live and traded, same as picks quote.
-  const ask = careful(market.high.live, market.high.traded, 'sell') as number
+  const ask = market.high.realistic as number
   const above = slot.price > ask
   const stale = now - slot.updatedAt > STALE_HOURS * HOUR_MS
   if (above || stale) {
@@ -196,9 +199,14 @@ const fresh = (price: number | null, timeSec: number | null, now: number): numbe
 
 /** Builds the per-side view advice needs from the live price, the /1h and /24h averages and a flow. */
 export function slotMarket (live: LiveLike | null, hour: AverageLike | undefined, day: AverageLike | undefined, flow: MarketFlow | null, now: number): SlotMarket {
+  const side = (which: 'buy' | 'sell', price: number | null): SidePrices => ({
+    live: price,
+    traded: tradedPrice(which, hour, day),
+    realistic: bulkSidePrice(which, price, hour, day)
+  })
   return {
-    low: { live: live ? fresh(live.low, live.lowTime, now) : null, traded: tradedPrice('buy', hour, day) },
-    high: { live: live ? fresh(live.high, live.highTime, now) : null, traded: tradedPrice('sell', hour, day) },
+    low: side('buy', live ? fresh(live.low, live.lowTime, now) : null),
+    high: side('sell', live ? fresh(live.high, live.highTime, now) : null),
     flow
   }
 }

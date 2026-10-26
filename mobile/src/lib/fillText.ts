@@ -30,3 +30,12 @@ export function pickSlowText (rate: SlotRate, horizonHours: number): string {
   const each = (hours: number) => duration(hours / rate.units)
   return `Buying and selling one takes ${each(rate.cycleHours)} (buy ${each(rate.buyHours)}, sell ${each(rate.sellHours)}), longer than the ${horizonHours}h window.`
 }
+
+/** Subtle marker for numbers from the bulk averages only (not yet refined with history). */
+export const ESTIMATE_MARK = 'est.'
+
+/** "1,495 in 2h", with " · est." while the numbers are bulk-only. */
+export function amountCaption (amount: number, window: string, refined: boolean): string {
+  return `${qty(amount)} ${window}${refined ? '' : ` · ${ESTIMATE_MARK}`}`
+}
+

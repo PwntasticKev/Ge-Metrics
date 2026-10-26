@@ -1,19 +1,17 @@
-import type { BuyPick, WikiAverage } from '@ge/engine'
-import { flowFromAverages, slotRate, type SlotRate } from './analytics/fillTime.ts'
+import type { SlotRate } from './analytics/fillTime.ts'
+import type { RealisticOffer } from './offer.ts'
 
 export type PickSort = 'profit' | 'rate'
 
 /**
- * GP per hour per GE slot for each pick, from the wiki's /1h and /24h
- * averages (no per-item downloads). Picks are already sized to what fills and
- * to one buy limit, so the pick's amount is the cycle.
+ * GP per hour per GE slot for each pick: the fill times of its canonical
+ * offer (lib/offer), already sized to what fills, so the rate matches the
+ * item sheet's.
  */
-export function pickRates (picks: readonly BuyPick[], h1: Record<string, WikiAverage> | undefined, h24: Record<string, WikiAverage> | undefined): Map<number, SlotRate> {
+export function pickRates (picks: readonly { id: number; offer: RealisticOffer }[]): Map<number, SlotRate> {
   const rates = new Map<number, SlotRate>()
   for (const pick of picks) {
-    const flow = flowFromAverages(h1?.[pick.id], h24?.[pick.id])
-    if (!flow) continue
-    rates.set(pick.id, slotRate(flow, { buyAt: pick.buyAt, sellAt: pick.sellAt, profitEach: pick.profit, qty: pick.maxQty, limit: null }))
+    if (pick.offer.rate) rates.set(pick.id, pick.offer.rate)
   }
   return rates
 }

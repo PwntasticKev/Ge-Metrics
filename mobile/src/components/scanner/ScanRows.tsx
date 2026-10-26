@@ -1,11 +1,11 @@
 import type { MarketItem } from '@ge/engine'
 import { memo } from 'react'
 import { StyleSheet, Text } from 'react-native'
-import { fillsIn } from '../../lib/fillText'
-import { duration, gpFull, gpPrice, gpShort, stripUncharged } from '../../lib/format'
+import { amountCaption, fillsIn } from '../../lib/fillText'
+import { duration, gpFull, gpPrice, gpShort, qty, signed, stripUncharged } from '../../lib/format'
 import type { Move } from '../../lib/marketMoves'
 import { multipleText, signedPct } from '../../lib/scanText'
-import type { SpreadCheck } from '../../lib/spreadFill'
+import { SCAN_HORIZON_HOURS, type SpreadCheck } from '../../lib/spreadFill'
 import { SPREAD_Z, type SpreadHistory } from '../../lib/spreadScan'
 import type { Reversion, Trend } from '../../lib/trendScan'
 import { useTheme } from '../../theme/ThemeProvider'
@@ -40,9 +40,12 @@ function priceLine ({ row, fill }: SpreadEntry): string {
 }
 
 function fillLine ({ row, fill }: SpreadEntry): string {
-  const lot = row.item.limit ? `One buy limit (${row.item.limit.toLocaleString('en-US')})` : 'One item (limit unknown)'
-  const rate = fill.rate
-  return `${lot}: buy ${duration(rate.buyHours)}, sell ${duration(rate.sellHours)}${rate.gpPerHour > 0 ? `, ${gpShort(rate.gpPerHour)}/h for the GE slot` : ''}.`
+  const { offer } = fill
+  const rate = offer.rate
+  if (!rate) return 'Fill time unknown: not enough trades on one side lately.'
+  const limit = row.item.limit ? `buy limit ${row.item.limit.toLocaleString('en-US')}` : 'limit unknown'
+  const amount = offer.qty >= 1 ? `${qty(offer.qty)} buy and sell within ${SCAN_HORIZON_HOURS}h (${limit}), ${signed(offer.profit)}` : `Not even one fills within ${SCAN_HORIZON_HOURS}h (${limit})`
+  return `${amount}: buy ${duration(rate.buyHours)}, sell ${duration(rate.sellHours)}${rate.gpPerHour > 0 ? `, ${gpShort(rate.gpPerHour)}/h for the GE slot` : ''}${offer.refined ? '' : '; estimate until its history loads'}.`
 }
 
 export const SpreadScanRow = memo(function SpreadScanRow ({ entry, expanded, onToggle }: RowProps<SpreadEntry>) {
@@ -55,9 +58,9 @@ export const SpreadScanRow = memo(function SpreadScanRow ({ entry, expanded, onT
       name={stripUncharged(item.name)}
       badges={dump ? ['Thin dump'] : undefined}
       meta={`Norm ${gpShort(norm)} → now ${gpShort(fill.margin)} · ${multipleText(fill.multiple)} · ${historyMeta(history)}`}
-      note={fillsIn(fill.rate)}
-      value={fill.profitPerLimit !== null ? `+${gpShort(fill.profitPerLimit)}` : `+${gpShort(fill.margin)}`}
-      valueCaption={fill.profitPerLimit !== null ? 'per limit' : 'each'}
+      note={fill.offer.rate ? fillsIn(fill.offer.rate) : undefined}
+      value={signed(fill.offer.profit)}
+      valueCaption={amountCaption(fill.offer.qty, `in ${SCAN_HORIZON_HOURS}h`, fill.offer.refined)}
       valueTone={history === null || history?.unusual !== false ? 'profit' : 'ink'}
       expanded={expanded}
       onToggle={() => onToggle(item.id)}

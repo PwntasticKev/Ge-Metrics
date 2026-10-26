@@ -10,9 +10,9 @@ import { DipScanRow, slowSpreadDetail, SpreadScanRow, TrendScanRow, type DipEntr
 import { CHECK_SPREADS, useSpreadRows } from '../../components/scanner/useSpreadRows'
 import { SlowHeader, SlowRow } from '../../components/SlowToFill'
 import { Tabs } from '../../components/Tabs'
-import { gpShort } from '../../lib/format'
+import { qty, signed } from '../../lib/format'
 import type { Move } from '../../lib/marketMoves'
-import { SPREAD_HIDE_Z } from '../../lib/spreadFill'
+import { SCAN_HORIZON_HOURS, SPREAD_HIDE_Z } from '../../lib/spreadFill'
 import { SPREAD_MULTIPLE, SPREAD_Z } from '../../lib/spreadScan'
 import { dipCandidates, reversionCheck, trendCandidates, trendFit } from '../../lib/trendScan'
 import { useSettings } from '../../state/settings'
@@ -78,7 +78,7 @@ function useDipRows (data: ReturnType<typeof useScannerData>, members: boolean, 
 }
 
 const FOOTNOTES: Record<Mode, string> = {
-  spread: `Margin after the 2% tax at prices that actually traded: each side's price comes from recent hours where that side traded at least a quarter of a normal hour and 5+ items (never one print), held to the worse of that and the live price, and the ask never above the last hour's. Compared with the item's own norm: first the margin between its 24h average prices, then the median hourly margin of the last 7 days once its history loads (top ${CHECK_SPREADS} that can fill). Shown at ${SPREAD_MULTIPLE}× the norm or more, both live prices under 20 minutes old, 10K+ trades a day (thinner items lost money in a 14-day backtest), 3+ trades each side in the last hour and 20K+ per buy limit; most profit per limit first. Fill times are for one buy limit from each side's recent trades; rows whose sell would take longer than your limit (Settings), or whose buy and sell together take over twice it, are under Slow to fill. z is in robust σ (scaled median deviation); ${SPREAD_Z}+ is unusual. Rows under ${SPREAD_HIDE_Z}, and margins that vanish at traded prices, are hidden. Thin-volume pumps are left out.`,
+  spread: `Margin after the 2% tax at prices that actually traded: each side's price comes from recent hours where that side traded at least a quarter of a normal hour and 5+ items (never one print), held to the worse of that and the live price, and the ask never above the last hour's. Compared with the item's own norm: first the margin between its 24h average prices, then the median hourly margin of the last 7 days once its history loads (top ${CHECK_SPREADS} that can fill). Shown at ${SPREAD_MULTIPLE}× the norm or more, both live prices under 20 minutes old, 10K+ trades a day (thinner items lost money in a 14-day backtest), 3+ trades each side in the last hour and 20K+ per buy limit. Amount and profit are the same realistic offer as Buy now and the item sheet: up to a buy limit (and your cash), cut to what buys and then sells within ${SCAN_HORIZON_HOURS}h, the sell inside your slowest-sell setting; most profit first. Rows that can't buy and sell even one in time are under Slow to fill; rows without history yet are estimates. z is in robust σ (scaled median deviation); ${SPREAD_Z}+ is unusual. Rows under ${SPREAD_HIDE_Z}, and margins that vanish at traded prices, are hidden. Thin-volume pumps are left out.`,
   trend: `Screened from the ${CHECK_CANDIDATES} liquid items (10M+ gp a day) that moved most over 7 days, comparing the last hour with the same hour a week ago. Each is then fitted with a line through its 6-hour prices for 7 days; shown when the line explains 70%+ of the moves and changes 0.5%+ a day.`,
   dip: `Screened from the ${CHECK_CANDIDATES} liquid items (10M+ gp a day) down most over 24h or 7d. Shown when the last hour is 8%+ and 2+ standard deviations under the mean of its 6-hour prices over the 30 days before the last 2, that month was range-bound (its trend line moved under 15%, so slow slides after a release don't count), and it trades at least half a normal day's volume. Thin-volume spikes are left out.`
 }
@@ -104,7 +104,7 @@ export default function ScannerScreen () {
   const toggle = useCallback((id: number) => setOpenId(prev => (prev === id ? null : id)), [])
   const maxHours = settings.maxSellHours
 
-  const spreads = useSpreadRows(data, settings.membersItems, maxHours, mode === 'spread')
+  const spreads = useSpreadRows(data, settings.membersItems, maxHours, settings.budget, mode === 'spread')
   const trends = useTrendRows(data.moves, data.prices.market, settings.membersItems, mode === 'trend')
   const dips = useDipRows(data, settings.membersItems, mode === 'dip')
 
@@ -126,12 +126,11 @@ export default function ScannerScreen () {
     if ('spread' in r) return <SpreadScanRow entry={r.spread} expanded={openId === r.spread.row.item.id} onToggle={toggle} />
     if ('slowSpread' in r) {
       const e = r.slowSpread
-      const reason = e.fill.rate.slow
-      if (!reason) return <SpreadScanRow entry={e} expanded={openId === e.row.item.id} onToggle={toggle} />
-      const value = e.fill.profitPerLimit !== null ? `+${gpShort(e.fill.profitPerLimit)}` : `+${gpShort(e.fill.margin)}`
-      return <SlowRow id={e.row.item.id} name={e.row.item.name} icon={e.row.item.icon} value={value} valueCaption={e.fill.profitPerLimit !== null ? 'per limit if filled' : 'each'} reason={reason} maxHours={maxHours} detail={slowSpreadDetail(e)} expanded={openId === e.row.item.id} onToggle={toggle} />
+      const { offer } = e.fill
+      if (!offer.slow || !offer.rate) return <SpreadScanRow entry={e} expanded={openId === e.row.item.id} onToggle={toggle} />
+      return <SlowRow id={e.row.item.id} name={e.row.item.name} icon={e.row.item.icon} value={signed(offer.margin * offer.rate.units)} valueCaption={`if ${qty(offer.rate.units)} filled`} reason={offer.slow} maxHours={SCAN_HORIZON_HOURS} text={offer.slowText ?? undefined} detail={slowSpreadDetail(e)} expanded={openId === e.row.item.id} onToggle={toggle} />
     }
-    if (r.key === 'slow') return <SlowHeader count={spreads.slow.length} maxHours={maxHours} open={slowOpen} onToggle={() => setSlowOpen(o => !o)} />
+    if (r.key === 'slow') return <SlowHeader count={spreads.slow.length} maxHours={maxHours} subtitle={`Can't buy and sell even one within ${SCAN_HORIZON_HOURS}h at these prices`} open={slowOpen} onToggle={() => setSlowOpen(o => !o)} />
     if ('trend' in r) return <TrendScanRow entry={r.trend} expanded={openId === r.trend.item.id} onToggle={toggle} />
     if ('dip' in r) return <DipScanRow entry={r.dip} expanded={openId === r.dip.item.id} onToggle={toggle} />
     return <BreadthCard breadth={data.breadth} market={data.prices.market} />

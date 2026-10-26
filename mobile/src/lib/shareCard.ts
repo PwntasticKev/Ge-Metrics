@@ -1,5 +1,6 @@
 // Words and numbers on a shared pick's image card. Pure.
 import { duration, gpFull, qty as qtyText, signed, stripUncharged } from './format.ts'
+import type { RealisticOffer } from './offer.ts'
 
 /** One flip worth sharing: realistic (fill-aware) prices and a fill-sized amount. */
 export interface SharePick {
@@ -39,6 +40,11 @@ export function shareStamp (ms: number): string {
 /** "~2.5h"; "–" when unknown or it rarely fills. */
 export function fillsText (hours: number | null): string {
   return hours !== null && Number.isFinite(hours) && hours > 0 ? duration(hours) : '–'
+}
+
+/** A card from the canonical offer (lib/offer), so it shows what the row or sheet shows. */
+export function sharePickFromOffer (offer: RealisticOffer, item: { name: string; icon: string | null }, at: number): SharePick {
+  return { itemId: offer.itemId, name: item.name, icon: item.icon, buyAt: offer.buyAt, sellAt: offer.sellAt, qty: offer.qty, profitEach: offer.margin, fillHours: offer.fillHours, at }
 }
 
 /** True when a pick has the numbers a card needs. */

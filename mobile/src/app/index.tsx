@@ -1,7 +1,6 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
-import type { BuyPick } from '@ge/engine'
 import { useAverages } from '../api/useAverages'
 import { useMarket, type MarketState } from '../api/useMarket'
 import { useMarketMood } from '../api/useMarketMood'
@@ -14,8 +13,8 @@ import { Pills, Tabs } from '../components/Tabs'
 import { riskOffNote } from '../lib/breadth'
 import { pickSlowText } from '../lib/fillText'
 import { gpShort, minutesAgo, signed } from '../lib/format'
-import { PICK_HORIZON_HOURS, type SlowPick } from '../lib/pickFill'
-import { planTotals, usePickLists, type PickMode } from '../lib/picks'
+import { PICK_HORIZON_HOURS, type OfferPick, type SlowPick } from '../lib/pickFill'
+import { planTotals, REFINE_TOP, usePickLists, type PickMode } from '../lib/picks'
 import { pickRates, sortByRate, type PickSort } from '../lib/pickTiming'
 import { useSettings } from '../state/settings'
 import { useTheme } from '../theme/ThemeProvider'
@@ -37,28 +36,28 @@ const SORTABLE: ReadonlySet<PickMode> = new Set(['quick', 'dips'])
 
 const RATE_FOOTER = ' GP/h per slot: profit on the amount, divided by the expected time to fill the buy and then the sell, from each side\'s trades over the last hour and day.'
 
-const FILL_FOOTER = ' Amounts are cut to what the fill-time model expects to buy and then sell in time (you get a share of each side\'s trades, more if you outbid); items that can\'t fill even one in time are under Slow to fill. Items trading under 10K a day are left out: in a 14-day backtest they lost money.'
+const FILL_FOOTER = ` Amounts are cut to what the fill-time model expects to buy and then sell in time (you get a share of each side's trades, more if you outbid); items that can't fill even one in time are under Slow to fill. Items trading under 10K a day are left out: in a 14-day backtest they lost money. The first ${REFINE_TOP} rows are then refined with each item's hourly history (prices from the last 6 hours that traded with volume), the same offer the item sheet shows; rows marked est. are still from the hour and day averages.`
 
 const FOOTERS: Record<PickMode, string> = {
-  quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 2 hours: in a 60-day out-of-sample test, sizing for 2 hours instead of 4 made more and cut losing picks from 22% to 16%.',
+  quick: 'Prices are the more careful of live and recent traded prices (the last hour where it traded with volume, else the day), so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 2 hours: in a 60-day out-of-sample test, sizing for 2 hours instead of 4 made more and cut losing picks from 22% to 16%.',
   dips: 'Liquid items whose price fell at least 5% under the day\'s typical low over the last hour, while buyers still pay the usual price. Buy the dip, sell back at the day\'s middle, sized to fill within 4 hours.',
   plan: 'Your whole cash stack split across your GE slots for the most profit you can actually make in the next 4 hours: the same picks as Next 4 hours, each cut to what buys and sells within 2 hours.',
   overnight: 'Offers at the typical low and high of the last 24 hours, sized to buy and sell within 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
 }
 
 type Row =
-  | { key: string; pick: BuyPick }
+  | { key: string; pick: OfferPick }
   | { key: 'slow' }
   | { key: string; slow: SlowPick }
 
-function listRows (picks: readonly BuyPick[], slow: readonly SlowPick[], slowOpen: boolean): Row[] {
+function listRows (picks: readonly OfferPick[], slow: readonly SlowPick[], slowOpen: boolean): Row[] {
   const fast: Row[] = picks.map(pick => ({ key: String(pick.id), pick }))
   if (!slow.length) return fast
   const header: Row = { key: 'slow' }
   return [...fast, header, ...(slowOpen ? slow.map(s => ({ key: `slow${s.pick.id}`, slow: s })) : [])]
 }
 
-function headerMeta (mode: PickMode, picks: readonly BuyPick[], budget: number | null, updatedAt: number | null): string {
+function headerMeta (mode: PickMode, picks: readonly OfferPick[], budget: number | null, updatedAt: number | null): string {
   if (mode === 'plan' && budget && picks.length) {
     const { cost, profit } = planTotals(picks)
     return `Uses ${gpShort(cost)} of ${gpShort(budget)}, ${signed(profit)}`
@@ -80,7 +79,7 @@ export default function BuyNowScreen () {
   const [slowOpen, setSlowOpen] = useState(params.slow === '1')
   const lists = usePickLists(prices.market, averages.h1, averages.h24, mode)
   const picks = lists?.picks ?? null
-  const rates = useMemo(() => (picks ? pickRates(picks, averages.h1, averages.h24) : new Map()), [picks, averages.h1, averages.h24])
+  const rates = useMemo(() => (picks ? pickRates(picks) : new Map()), [picks])
   const sortable = SORTABLE.has(mode)
   const bySpeed = sortable && sortBy === 'rate'
   const shown = useMemo(() => (picks && bySpeed ? sortByRate(picks, rates) : picks ?? []), [picks, rates, bySpeed])
@@ -93,7 +92,7 @@ export default function BuyNowScreen () {
     if ('pick' in r) return <PickRow pick={r.pick} mode={mode} rate={rates.get(r.pick.id) ?? null} bySpeed={bySpeed} expanded={openId === r.pick.id} onToggle={onToggle} />
     if ('slow' in r) {
       const { pick, reason, rate } = r.slow
-      return <SlowRow id={pick.id} name={pick.name} icon={pick.icon} value={signed(pick.potential)} valueCaption={`if ${pick.maxQty.toLocaleString('en-US')} filled`} reason={reason} maxHours={horizon} text={pickSlowText(rate, horizon)} detail={`Buy ${pick.buyAt.toLocaleString('en-US')}, sell ${pick.sellAt.toLocaleString('en-US')}, ${signed(pick.profit)} each after tax.`} expanded={openId === pick.id} onToggle={onToggle} />
+      return <SlowRow id={pick.id} name={pick.name} icon={pick.icon} value={signed(pick.potential)} valueCaption={`if ${pick.maxQty.toLocaleString('en-US')} filled`} reason={reason} maxHours={horizon} text={pick.offer.slowText ?? pickSlowText(rate, PICK_HORIZON_HOURS[mode])} detail={`Buy ${pick.buyAt.toLocaleString('en-US')}, sell ${pick.sellAt.toLocaleString('en-US')}, ${signed(pick.profit)} each after tax.`} expanded={openId === pick.id} onToggle={onToggle} />
     }
     return <SlowHeader count={lists?.slow.length ?? 0} maxHours={horizon} subtitle={`Can't buy and sell even one within ${horizon}h at these prices`} open={slowOpen} onToggle={() => setSlowOpen(o => !o)} />
   }

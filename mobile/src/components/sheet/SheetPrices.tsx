@@ -13,15 +13,17 @@ export interface InstantPrices {
 }
 
 function fillLine (fill: SheetFill, maxSellHours: number): string {
-  if (fill.slow) return fill.slow
+  if (fill.slowText) return fill.slowText
   if (!fill.rate || fill.qty < 1) return 'Fill time unknown: not enough trades on one side lately.'
   return `Fills in ${duration(fill.rate.cycleHours)} (buy ${duration(fill.rate.buyHours)}, sell ${duration(fill.rate.sellHours)}). ${qty(fill.qty)} is what buys and sells within ${SHEET_HORIZON_HOURS}h, selling inside your ${heldFor(maxSellHours)} limit.`
 }
 
 const basisText = (fill: SheetFill) =>
   fill.basis === 'series'
-    ? 'Realistic prices: the median of the last 6 hours that traded with volume on each side, never above the last hour\'s or live ask.'
-    : 'Realistic prices from the last hour and day averages; refining with the hourly history.'
+    ? 'Realistic prices: the median of the last 6 hours that traded with volume on each side, never above the last hour\'s or live ask. Same offer as Buy now and the scanner.'
+    : fill.refined
+      ? 'Realistic prices from the last hour and day averages (the hourly history is too thin to refine them). Same offer as Buy now and the scanner.'
+      : 'Estimate from the last hour and day averages; refining with the hourly history.'
 
 // Headline prices in the item sheet: what you can actually buy and sell at
 // (same rules as Buy now, the scanner and GE slots), with the instant live
@@ -43,7 +45,7 @@ export function SheetPrices ({ fill, instant, maxSellHours }: { fill: SheetFill 
     <View style={styles.block}>
       <PriceLine tag="Buy" label={fill.qty >= 1 ? `${qty(fill.qty)} for ${gpShort(fill.buyAt * fill.qty)}` : 'at'} price={fill.buyAt} />
       <PriceLine tag="Sell" label={`${signed(fill.margin)} each after tax`} price={fill.sellAt} />
-      <Text style={[styles.note, { color: fill.slow ? palette.ink : palette.muted }]}>{fillLine(fill, maxSellHours)}</Text>
+      <Text style={[styles.note, { color: fill.slowText ? palette.ink : palette.muted }]}>{fillLine(fill, maxSellHours)}</Text>
       {fill.thin ? <Text style={[styles.note, muted]}>Trades {gpShort(fill.dayTrades)} a day, under {gpShort(MIN_DAY_TRADES)}: Buy now and the scanner leave it out.</Text> : null}
       {instant ? (
         <View style={[styles.instant, { borderColor: palette.rule }]}>

@@ -5,7 +5,8 @@ import { localClock, localHourOrder, localStartMinutes } from '../analytics/loca
 import { mixHex } from '../color.ts'
 import { duration, edgePercent } from '../format.ts'
 import { pickRates, sortByRate } from '../pickTiming.ts'
-import type { BuyPick, WikiAverage } from '@ge/engine'
+import type { WikiAverage } from '@ge/engine'
+import { realisticOffer } from '../offer.ts'
 
 describe('local time', () => {
   it('maps UTC hours to the local clock', () => {
@@ -47,21 +48,23 @@ describe('format', () => {
 })
 
 describe('pick rates', () => {
-  const pick = (id: number, profit: number, maxQty: number): BuyPick => ({
-    id, name: String(id), icon: null, members: false, buyAt: 100, sellAt: 110, tax: 2, profit, roi: profit / 100, maxQty, potential: profit * maxQty, cost: 100 * maxQty, dayVolume: 0
-  })
+  const tax = (sell: number) => (sell >= 50 ? Math.floor(sell * 0.02) : 0)
   const avg = (vol: number): WikiAverage => ({ avgLowPrice: 100, avgHighPrice: 110, lowPriceVolume: vol, highPriceVolume: vol })
+  const offerPick = (id: number, limit: number, vol: number) => {
+    const offer = realisticOffer({ item: { id, high: 110, low: 100, limit }, hour: undefined, day: avg(vol), horizon: 400, maxSellHours: 400, budget: null, tax })
+    assert.ok(offer)
+    return { id, offer }
+  }
   it('ranks a fast small flip above a slow big one', () => {
-    const picks = [pick(1, 8, 1000), pick(2, 8, 100)]
-    const h24 = { 1: avg(2400), 2: avg(24_000) }
-    const rates = pickRates(picks, undefined, h24)
-    // 1: 1000 at 100/h -> 40h buy + 40h sell; 2: 100 at 1000/h -> 0.4h + 0.4h
+    // 1: 1000 at 100/h a side; 2: 100 at 1000/h: same margin, far faster.
+    const picks = [offerPick(1, 1000, 2400), offerPick(2, 100, 24_000)]
+    const rates = pickRates(picks)
     assert.ok((rates.get(2)?.gpPerHour ?? 0) > (rates.get(1)?.gpPerHour ?? 0))
     assert.deepEqual(sortByRate(picks, rates).map(p => p.id), [2, 1])
   })
-  it('keeps picks without averages, last', () => {
-    const picks = [pick(3, 8, 10), pick(1, 8, 10)]
-    const rates = pickRates(picks, undefined, { 1: avg(2400) })
-    assert.deepEqual(sortByRate(picks, rates).map(p => p.id), [1, 3])
+  it('keeps picks without a fill rate, last', () => {
+    const noFlow = { id: 3, offer: { ...offerPick(3, 10, 2400).offer, rate: null } }
+    const picks = [noFlow, offerPick(1, 10, 2400)]
+    assert.deepEqual(sortByRate(picks, pickRates(picks)).map(p => p.id), [1, 3])
   })
 })

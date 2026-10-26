@@ -3,8 +3,9 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { computeItemFlip, geTax, type Market, type MarketItem, type WikiAverage } from '@ge/engine'
 import { useAverages } from '../api/useAverages'
 import { useMarket } from '../api/useMarket'
-import { gpFull, gpShort, percent, qty, signed, stripUncharged } from '../lib/format'
-import type { SharePick } from '../lib/shareCard'
+import { amountCaption } from '../lib/fillText'
+import { gpFull, gpShort, percent, signed, stripUncharged } from '../lib/format'
+import { sharePickFromOffer, type SharePick } from '../lib/shareCard'
 import { SHEET_HORIZON_HOURS, type SheetFill } from '../lib/sheetFill'
 import { RECIPES } from '../lib/ranking'
 import { useSettings } from '../state/settings'
@@ -68,7 +69,7 @@ function setsContaining (itemId: number, market: Market): string[] {
 
 function sharePickOf (item: MarketItem, fill: SheetFill | null): SharePick | null {
   if (!fill || fill.qty < 1) return null
-  return { itemId: item.id, name: item.name, icon: item.icon, buyAt: fill.buyAt, sellAt: fill.sellAt, qty: fill.qty, profitEach: fill.margin, fillHours: fill.rate?.cycleHours ?? null, at: Date.now() }
+  return sharePickFromOffer(fill, item, Date.now())
 }
 
 function dayVolumes (average: WikiAverage | undefined): string {
@@ -112,7 +113,7 @@ function ItemSheetBody ({ itemId, exportCard, onClose }: { itemId: number; expor
 
   const item = market ? market.get(itemId) : null
   const flip = useMemo(() => (item && market ? computeItemFlip(item, { nowSec: market.nowSec }) : null), [item, market])
-  const fill = useSheetFill(item ?? null, flip?.limit ?? null)
+  const fill = useSheetFill(item ?? null)
   const sharePick = useMemo(() => (item ? sharePickOf(item, fill) : null), [item, fill])
   useCardExport(exportCard, fill, sharePick, sharing.exportCard)
   const sets = useMemo(() => (item && market ? setsContaining(item.id, market) : []), [item, market])
@@ -161,7 +162,7 @@ function ItemSheetBody ({ itemId, exportCard, onClose }: { itemId: number; expor
         <Stat label="Margin after tax" value={deal ? signed(deal.margin) : '–'} tone={deal && deal.margin > 0 ? 'profit' : undefined} />
         <Stat label="Return" value={deal ? percent(deal.roi) : '–'} />
         <Stat label="GE tax" value={deal ? gpFull(geTax(deal.sellAt, item.id)) : '–'} />
-        <Stat label={fill && fill.qty >= 1 ? `Profit, ${qty(fill.qty)} in ${SHEET_HORIZON_HOURS}h` : `Profit in ${SHEET_HORIZON_HOURS}h`} value={fill && fill.qty >= 1 ? signed(fill.profit) : '–'} tone={fill && fill.profit > 0 ? 'profit' : undefined} />
+        <Stat label={fill && fill.qty >= 1 ? `Profit, ${amountCaption(fill.qty, `in ${SHEET_HORIZON_HOURS}h`, fill.refined)}` : `Profit in ${SHEET_HORIZON_HOURS}h`} value={fill && fill.qty >= 1 ? signed(fill.profit) : '–'} tone={fill && fill.profit > 0 ? 'profit' : undefined} />
         <Stat label="Buy limit" value={item.limit ? `${item.limit.toLocaleString('en-US')} / 4h` : 'Unknown'} />
         <Stat label="Traded today" value={item.dailyVolume !== null ? gpShort(item.dailyVolume) : '–'} />
         <Stat label="Bought / sold 24h" value={dayVolumes(h24?.[item.id])} />
