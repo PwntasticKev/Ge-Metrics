@@ -267,7 +267,7 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                                 pointerEvents: 'none'
                             }}
                         >
-                            (-{new Intl.NumberFormat().format(calculateGETax(row.sellPrice || 0))} tax)
+                            (-{new Intl.NumberFormat().format(row.tax ?? calculateGETax(row.sellPrice || 0))} tax)
                         </Text>
                     </div>
                 </td>

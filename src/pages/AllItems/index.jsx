@@ -1,9 +1,10 @@
 import AllItemsTable from '../../components/Table/all-items-table.jsx'
 import { Badge, Box, Card, Center, Group, Loader, Text } from '@mantine/core'
 import { IconClock } from '@tabler/icons-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import ItemData from '../../utils/item-data.jsx'
-import { getRelativeTime, calculateGETax } from '../../utils/utils.jsx'
+import { getRelativeTime } from '../../utils/utils.jsx'
+import { toAllItemsRow } from '../../utils/flipRows.js'
 import { trpc } from '../../utils/trpc.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 
@@ -43,20 +44,13 @@ export default function AllItems () {
     toggleFavorite(itemId, 'item')
   }
 
-  const processedItems = items
-    .map(item => {
-      const highPrice = item.high ? Number(item.high) : 0
-      const lowPrice = item.low ? Number(item.low) : 0
-      const profit = highPrice && lowPrice ? Math.floor(highPrice - lowPrice - calculateGETax(highPrice)) : 0
-      return {
-        ...item,
-        profit,
-        img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_')
-      }
-    })
-    .sort((a, b) => b.profit - a.profit)
-    // Don't limit here - let pagination handle display
-    // Keep ALL items available for filtering/searching
+  // Profit and tax come from the shared flipping engine (same as the app).
+  // Don't limit here - let pagination handle display
+  // Keep ALL items available for filtering/searching
+  const processedItems = useMemo(
+    () => items.map(toAllItemsRow).sort((a, b) => b.profit - a.profit),
+    [items]
+  )
 
   // Don't let favorites loading block the entire page
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading'

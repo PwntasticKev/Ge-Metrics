@@ -165,7 +165,7 @@ export const itemRecipes = [
   {
     name: 'Partyhat and Specs',
     itemSet: 12399,
-    itemsToCreateSet: [1042, 12399],
+    itemsToCreateSet: [1042, 12337], // Blue partyhat + Sagacious spectacles
     conversionCost: 500
   },
   {
