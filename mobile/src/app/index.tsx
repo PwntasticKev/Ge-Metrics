@@ -34,7 +34,7 @@ const SORTABLE: ReadonlySet<PickMode> = new Set(['quick', 'dips'])
 
 const RATE_FOOTER = ' GP/h per slot: profit on the amount, divided by the expected time to fill the buy and then the sell, from each side\'s trades over the last hour and day.'
 
-const FILL_FOOTER = ' Amounts are cut to what the fill-time model expects to buy and then sell in time (you get a share of each side\'s trades, more if you outbid); items that can\'t fill even one in time are under Slow to fill.'
+const FILL_FOOTER = ' Amounts are cut to what the fill-time model expects to buy and then sell in time (you get a share of each side\'s trades, more if you outbid); items that can\'t fill even one in time are under Slow to fill. Items trading under 10K a day are left out: in a 14-day backtest they lost money.'
 
 const FOOTERS: Record<PickMode, string> = {
   quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 4 hours.',

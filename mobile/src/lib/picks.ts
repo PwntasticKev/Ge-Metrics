@@ -25,7 +25,7 @@ export function usePickLists (market: Market | null, h1: Record<string, WikiAver
       .filter(p => settings.membersItems || !p.members)
       // A jump on thin volume is likely a pump; don't send buyers into it.
       .filter(p => assessThinSpike(spikeInput(p.id, h1, h24, m5))?.kind !== 'pump')
-    const lists = fillAwarePicks(ranked, h1, h24, PICK_HORIZON_HOURS[mode], settings.maxSellHours)
+    const lists = fillAwarePicks(ranked, h1, h24, { horizon: PICK_HORIZON_HOURS[mode], maxSellHours: settings.maxSellHours })
     if (mode !== 'plan') return { picks: lists.picks.slice(0, MAX_PICKS), slow: lists.slow.slice(0, MAX_PICKS) }
     if (!settings.budget) return { picks: [], slow: [] }
     return { picks: planCashStack(lists.picks, { cash: settings.budget, slots: settings.membersItems ? MEMBERS_SLOTS : F2P_SLOTS }), slow: [] }

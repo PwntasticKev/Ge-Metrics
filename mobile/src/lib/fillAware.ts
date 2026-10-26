@@ -12,19 +12,34 @@ import { median } from './analytics/stats.ts'
 import { slotRate, type MarketFlow, type SlotRate } from './analytics/fillTime.ts'
 import type { SideAverages } from './scanMath.ts'
 
-/** Default for "slowest sell to show": a sell offer that takes longer is noise. */
-export const DEFAULT_MAX_SELL_HOURS = 8
-export const MAX_SELL_HOUR_OPTIONS = [4, 8, 12, 24] as const
+// Defaults below come from a 14-day no-lookahead backtest of the app's and
+// the MCP server's pickers (PR #25, mcp/reports/backtest-2026-10-26.md).
+
+/**
+ * Default for "slowest sell to show". In the MCP backtest, sells predicted to
+ * take 2-4h were dumped 39% of the time and 4h+ 56% (both lost money), while
+ * sells under 2h were dumped 10-13%. Replaying the app's own lists, a 1h cap
+ * beat 2h: quick +15.4M vs +9.8M, overnight +43.9M vs +33.6M, dips +3.1M vs
+ * +3.5M (50M stack, 8 slots, 14 days).
+ */
+export const DEFAULT_MAX_SELL_HOURS = 1
+export const MAX_SELL_HOUR_OPTIONS = [1, 2, 4, 8] as const
+/**
+ * Items trading fewer than this a day (both sides, /24h) are left out of
+ * picks and the scanner: in the backtest, items under 10K a day lost money
+ * in every bucket (-57M realized against +43M expected).
+ */
+export const MIN_DAY_TRADES = 10_000
 /** A slow buy demotes once buy plus sell takes this many times the sell limit. */
 export const MAX_CYCLE_MULTIPLE = 2
-/** Recent hourly windows a price may come from. */
-export const PRICE_WINDOWS = 4
+/** Recent hourly windows a price may come from (backtest: the median of 6 qualifying hours). */
+export const PRICE_WINDOWS = 6
 /** The normal hourly volume is averaged over this many hours. */
 export const NORMAL_HOURS = 24
 /** A window sets a side's price only with this share of the side's normal hourly volume, */
 export const MIN_WINDOW_SHARE = 0.25
 /** and never with fewer items than this. */
-export const MIN_WINDOW_ITEMS = 3
+export const MIN_WINDOW_ITEMS = 5
 
 export type Side = 'buy' | 'sell'
 
@@ -83,15 +98,22 @@ function sidePrice (series: readonly SideAverages[], side: Side): number | null 
  * Prices from an item's hourly series: the median of the last few hours'
  * averages on each side, counting only hours where that side traded a fair
  * share of its normal volume, then the worse of that and the live price.
+ * The ask is also capped at `recent` (the last hour's or live price from
+ * pricesFromAverages): a median of past hours lags a falling market, and in
+ * the backtest asks above the last hour's high were dumped 55% of the time.
  * Null when a side hasn't traded enough recently to name a price.
  */
-export function pricesFromSeries (live: LivePrices, series: readonly SideAverages[]): TradePrices | null {
+export function pricesFromSeries (live: LivePrices, series: readonly SideAverages[], recent?: TradePrices): TradePrices | null {
   if (!series.length) return null
   const sell = sidePrice(series, 'sell')
   const buy = sidePrice(series, 'buy')
   if (sell === null || buy === null) return null
-  return { buyAt: Math.round(careful(live.low, buy, 'buy') as number), sellAt: Math.round(careful(live.high, sell, 'sell') as number) }
+  const ask = careful(live.high, sell, 'sell') as number
+  return { buyAt: Math.round(careful(live.low, buy, 'buy') as number), sellAt: Math.round(recent ? Math.min(ask, recent.sellAt) : ask) }
 }
+
+/** Items traded on both sides over the day. */
+export const dayTrades = (day: SideAverages | undefined): number => (day ? day.highPriceVolume + day.lowPriceVolume : 0)
 
 /** Why an offer is too slow: which side, how long, for how many at what price. */
 export interface SlowReason {

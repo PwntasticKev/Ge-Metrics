@@ -9,7 +9,7 @@
 //    Fill times are redone from the series and slow rows demoted.
 // Pure; tax is passed in.
 import { flowFromAverages, flowFromSeries } from './analytics/fillTime.ts'
-import { checkFill, pricesFromSeries, type FillCheck, type TradePrices } from './fillAware.ts'
+import { checkFill, dayTrades, MIN_DAY_TRADES, pricesFromSeries, type FillCheck, type TradePrices } from './fillAware.ts'
 import type { TimeseriesPoint } from './analytics/types.ts'
 import type { Averages } from './scanMath.ts'
 import { marginAfterTax, normFloor, spreadHistory, SPREAD_MIN_PROFIT_PER_LIMIT, SPREAD_MULTIPLE, type SpreadHistory, type SpreadRow, type TaxFn } from './spreadScan.ts'
@@ -44,9 +44,10 @@ function fillAt (row: SpreadRow, prices: TradePrices, margin: number, multiple: 
   return { ...prices, margin, multiple, profitPerLimit: row.item.limit ? margin * row.item.limit : null, rate, basis }
 }
 
-/** First pass: fill times from the bulk averages; null without flow on both sides. */
+/** First pass: fill times from the bulk averages; null for thin items or without flow on both sides. */
 export function estimateSpread (row: SpreadRow, h1: Averages, h24: Averages, maxHours: number): SpreadCheck | null {
   const key = String(row.item.id)
+  if (dayTrades(h24[key]) < MIN_DAY_TRADES) return null
   const flow = flowFromAverages(h1[key], h24[key])
   if (!flow) return null
   const rate = checkFill(flow, { buyAt: row.buyAt, sellAt: row.sellAt, profitEach: row.live, qty: lotOf(row) }, maxHours)
@@ -60,7 +61,7 @@ export type SettleOutcome =
 
 /** Second pass with the item's hourly series. */
 export function settleSpread (row: SpreadRow, series: readonly TimeseriesPoint[], tax: TaxFn, maxHours: number): SettleOutcome {
-  const prices = pricesFromSeries(row.item, series)
+  const prices = pricesFromSeries(row.item, series, row)
   if (!prices) return { kind: 'drop', why: 'thin' }
   const margin = marginAfterTax(prices.sellAt, prices.buyAt, row.item.id, tax)
   // Same test as the first pass, at traded prices: still well above the day's norm?

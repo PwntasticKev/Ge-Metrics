@@ -8,7 +8,7 @@
 // weigh fill time, not raw margin. Pure.
 import type { BuyPick, WikiAverage } from '@ge/engine'
 import { flowFromAverages, slotRate, type SlotRate } from './analytics/fillTime.ts'
-import { fillableQty, type SlowReason } from './fillAware.ts'
+import { dayTrades, fillableQty, MIN_DAY_TRADES, type SlowReason } from './fillAware.ts'
 
 /** Hours each list's offers have to buy and sell: one buy-limit window, or a night. */
 export const PICK_HORIZON_HOURS = { quick: 4, plan: 4, dips: 4, overnight: 8 } as const
@@ -37,20 +37,25 @@ function slowReason (rate: SlotRate, pick: BuyPick): SlowReason {
 }
 
 type Averages = Record<string, WikiAverage> | undefined
+export interface FillOptions {
+  /** Hours to buy and then sell. */
+  horizon: number
+  /** Hours the sell may take. */
+  maxSellHours: number
+}
 
 /**
  * Size every pick to what fills inside `horizon` hours (sell side inside
- * `maxSellHours`). Picks without flow data are kept as they are.
+ * `maxSellHours`). Items trading under MIN_DAY_TRADES a day, or without
+ * flow data, are left out.
  */
-export function fillAwarePicks (picks: readonly BuyPick[], h1: Averages, h24: Averages, horizon: number, maxSellHours: number): PickLists {
+export function fillAwarePicks (picks: readonly BuyPick[], h1: Averages, h24: Averages, { horizon, maxSellHours }: FillOptions): PickLists {
   const kept: BuyPick[] = []
   const slow: SlowPick[] = []
   for (const pick of picks) {
+    if (dayTrades(h24?.[pick.id]) < MIN_DAY_TRADES) continue
     const flow = flowFromAverages(h1?.[pick.id], h24?.[pick.id])
-    if (!flow) {
-      kept.push(pick)
-      continue
-    }
+    if (!flow) continue
     const rate = slotRate(flow, { buyAt: pick.buyAt, sellAt: pick.sellAt, profitEach: pick.profit, qty: pick.maxQty, limit: null })
     const qty = fillableQty(rate, horizon, Math.min(horizon, maxSellHours))
     if (qty < 1) slow.push({ pick, rate, reason: slowReason(rate, pick) })
