@@ -113,9 +113,10 @@ export function ItemChart ({ itemId, timestep, points: count, label, onScrubbing
   const firstMid = points.map(midOf).find(v => v !== null) ?? null
   const change = scrub >= 0 ? relativeChange(firstMid, midOf(shown)) : chart.change
   const selectedMarker = markers[selected] ?? null
-  const sinceMarker = selectedMarker
-    ? relativeChange(midOf(points[nearestIndex(chart.xs, selectedMarker.x)]), midOf(last))
-    : null
+  // Compare with the last period that ended before the post went live.
+  let beforePost = -1
+  if (selectedMarker) points.forEach((p, i) => { if (p.time + STEP_MS[timestep] <= selectedMarker.time) beforePost = i })
+  const sinceMarker = beforePost >= 0 ? relativeChange(midOf(points[beforePost]), midOf(last)) : null
 
   return (
     <View style={styles.wrap}>
@@ -150,7 +151,7 @@ export function ItemChart ({ itemId, timestep, points: count, label, onScrubbing
           accessibilityLabel={`Price chart, ${label}. Drag to read prices.`}
         />
         {markers.length ? (
-          <Pressable style={[styles.strip, { top: PRICE_HEIGHT + VOLUME_HEIGHT - 6 }]} onPress={pickMarker} accessibilityRole="button" accessibilityLabel={`${markers.length} game updates in this range`} />
+          <Pressable style={[styles.strip, { top: PRICE_HEIGHT + VOLUME_HEIGHT - 6 }]} onPress={pickMarker} accessibilityRole="button" accessibilityLabel={`${markers.length} game ${markers.length === 1 ? 'update' : 'updates'} in this range`} />
         ) : null}
       </View>
 
