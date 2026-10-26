@@ -70,3 +70,13 @@ export function marketBreadth (moves: readonly Move[]): Breadth {
     mood: moodOf(index24h, up, down)
   }
 }
+
+/**
+ * Warning for Buy now's short lists in a risk-off market. In the 60-day
+ * walk-forward (PR #33), Next 4 hours lost -11.2M at its defaults on risk-off
+ * decisions with 34% of picks losing, while Overnight made +14.9M.
+ */
+export function riskOffNote (mood: Mood | null, mode: string): string | null {
+  if (mood !== 'risk-off' || (mode !== 'quick' && mode !== 'plan')) return null
+  return 'Market is risk-off: quick flips lose more often today. Overnight held up better in testing.'
+}

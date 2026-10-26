@@ -4,12 +4,14 @@ import { StyleSheet, Text } from 'react-native'
 import type { BuyPick } from '@ge/engine'
 import { useAverages } from '../api/useAverages'
 import { useMarket, type MarketState } from '../api/useMarket'
+import { useMarketMood } from '../api/useMarketMood'
 import { FlipListScreen } from '../components/FlipListScreen'
 import { PickRow } from '../components/PickRow'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SlowHeader, SlowRow } from '../components/SlowToFill'
 import { SlotsCard } from '../components/slots/SlotsCard'
 import { Pills, Tabs } from '../components/Tabs'
+import { riskOffNote } from '../lib/breadth'
 import { pickSlowText } from '../lib/fillText'
 import { gpShort, minutesAgo, signed } from '../lib/format'
 import { PICK_HORIZON_HOURS, type SlowPick } from '../lib/pickFill'
@@ -38,9 +40,9 @@ const RATE_FOOTER = ' GP/h per slot: profit on the amount, divided by the expect
 const FILL_FOOTER = ' Amounts are cut to what the fill-time model expects to buy and then sell in time (you get a share of each side\'s trades, more if you outbid); items that can\'t fill even one in time are under Slow to fill. Items trading under 10K a day are left out: in a 14-day backtest they lost money.'
 
 const FOOTERS: Record<PickMode, string> = {
-  quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 4 hours.',
+  quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 2 hours: in a 60-day out-of-sample test, sizing for 2 hours instead of 4 made more and cut losing picks from 22% to 16%.',
   dips: 'Liquid items whose price fell at least 5% under the day\'s typical low over the last hour, while buyers still pay the usual price. Buy the dip, sell back at the day\'s middle, sized to fill within 4 hours.',
-  plan: 'Your whole cash stack split across your GE slots for the most profit you can actually make in the next 4 hours: the same picks as Next 4 hours, each cut to what buys and sells in that time.',
+  plan: 'Your whole cash stack split across your GE slots for the most profit you can actually make in the next 4 hours: the same picks as Next 4 hours, each cut to what buys and sells within 2 hours.',
   overnight: 'Offers at the typical low and high of the last 24 hours, sized to buy and sell within 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
 }
 
@@ -85,6 +87,7 @@ export default function BuyNowScreen () {
   const onToggle = useCallback((id: number) => setOpenId(prev => (prev === id ? null : id)), [])
   const rows = useMemo(() => listRows(shown, lists?.slow ?? [], slowOpen), [shown, lists, slowOpen])
   const horizon = Math.min(settings.maxSellHours, PICK_HORIZON_HOURS[mode])
+  const riskOff = riskOffNote(useMarketMood(prices.market), mode)
 
   const renderRow = (r: Row) => {
     if ('pick' in r) return <PickRow pick={r.pick} mode={mode} rate={rates.get(r.pick.id) ?? null} bySpeed={bySpeed} expanded={openId === r.pick.id} onToggle={onToggle} />
@@ -115,6 +118,7 @@ export default function BuyNowScreen () {
         <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
           <SlotsCard />
           <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null); setSlowOpen(false) }} />
+          {riskOff ? <Text style={[styles.warn, { color: palette.ink, backgroundColor: palette.well }]} accessibilityRole="alert">{riskOff}</Text> : null}
           {sortable ? <Pills options={SORTS} value={sortBy} onChange={value => { setSortBy(value); setOpenId(null) }} /> : null}
         </ScreenHeader>
       }
@@ -131,5 +135,6 @@ export default function BuyNowScreen () {
 }
 
 const styles = StyleSheet.create({
-  note: { fontSize: 12.5, textAlign: 'center', padding: 20, lineHeight: 18 }
+  note: { fontSize: 12.5, textAlign: 'center', padding: 20, lineHeight: 18 },
+  warn: { fontSize: 13, lineHeight: 18, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, overflow: 'hidden' }
 })
