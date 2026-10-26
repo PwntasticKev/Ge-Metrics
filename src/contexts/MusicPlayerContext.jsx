@@ -235,6 +235,9 @@ export function MusicPlayerProvider({ children }) {
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio()
+      // A restored track only needs its duration until Play is pressed;
+      // don't pull the whole 5-6 MB file on every page load.
+      audioRef.current.preload = 'metadata'
       audioRef.current.volume = state.volume
       
       // Audio event listeners
