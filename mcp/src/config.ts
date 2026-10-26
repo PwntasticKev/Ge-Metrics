@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 // Endpoints, identification and cache lifetimes. Everything is overridable by
 // environment variable so the server can be pointed at mirrors in tests.
 
@@ -32,3 +34,10 @@ export const TTL = Object.freeze({
 // limiter: at most 2 at a time, starts at least 300 ms apart.
 export const HISTORY_CONCURRENCY = 2
 export const HISTORY_GAP_MS = 300
+
+// Backtests keep past wiki snapshots on disk (they never change) and write
+// reports next to the package. Both default to paths under the mcp/ package
+// root (this file sits in src/ or dist/, one level below it).
+const PACKAGE_ROOT = new URL('..', import.meta.url)
+export const BACKTEST_CACHE_DIR = env('GE_METRICS_BACKTEST_CACHE', fileURLToPath(new URL('.cache/backtest/', PACKAGE_ROOT)))
+export const BACKTEST_REPORTS_DIR = env('GE_METRICS_BACKTEST_REPORTS', fileURLToPath(new URL('reports/', PACKAGE_ROOT)))

@@ -5,7 +5,7 @@
 
 import type { MappingEntry, TimeseriesPoint } from '../../wiki/types.js'
 import { pct } from '../format.js'
-import { type BulkPrices, type Candidate, type TaxFn, assess, bulkCandidate, refineCandidate } from './candidates.js'
+import { type BulkPrices, type Candidate, type RefineOptions, type TaxFn, assess, bulkCandidate, refineCandidate } from './candidates.js'
 import { type FillMetrics, rankFillable } from './metrics.js'
 
 export type FillSort = 'profit' | 'roi' | 'profit_per_limit' | 'gp_per_hour'
@@ -29,6 +29,7 @@ export interface FlipRowContext {
   readonly pumps: ReadonlySet<number>
   readonly budget?: number
   readonly maxFillHours: number
+  readonly refine?: RefineOptions
 }
 
 export interface FillAwareRow {
@@ -55,7 +56,7 @@ export function bulkRows (live: readonly LiveFlipRow[], ctx: FlipRowContext): Fi
 }
 
 export function refineRows (rows: readonly FillAwareRow[], series: ReadonlyMap<number, readonly TimeseriesPoint[]>, ctx: FlipRowContext): FillAwareRow[] {
-  return rows.map(r => (r.candidate && series.has(r.live.id) ? toRow(r.live, refineCandidate(r.candidate, series.get(r.live.id), ctx.tax), ctx) : r))
+  return rows.map(r => (r.candidate && series.has(r.live.id) ? toRow(r.live, refineCandidate(r.candidate, series.get(r.live.id), ctx.tax, ctx.refine), ctx) : r))
 }
 
 const SORT_KEY: Readonly<Record<FillSort, (m: FillMetrics) => number>> = {

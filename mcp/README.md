@@ -50,7 +50,7 @@ All tools are read-only and return compact JSON. Every profit is after the 2% GE
 | `search_items(query, limit)` | Find items by name: id, buy/sell, margin after tax, ROI, buy limit, daily volume. |
 | `get_item(item)` | One item by id or name: latest prices + trade age, 5m/1h/24h averages and volumes, alch values and high-alch profit, limit, tax, margin, ROI, profit per buy limit. |
 | `price_history(item, timestep, points)` | Series (`5m`, `1h`, `6h`, `24h`) plus min/max/mean, % change, volatility, spread and volume. |
-| `plan_flips(cash, slots?, max_fill_hours, members, min_volume)` | Start here. Splits a cash stack across GE slots (8, or 3 free-to-play) for the most profit that should fill within `max_fill_hours` (default 8): per slot item, buy, sell, qty, cost, profit after tax, expected buy/sell hours, GP/hour. Fillable prices, pumps excluded. |
+| `plan_flips(cash, slots?, max_fill_hours, members, min_volume)` | Start here. Splits a cash stack across GE slots (8, or 3 free-to-play) for the most profit that should fill within `max_fill_hours` (default 8) among items trading `min_volume`+ a day (default 10k, from the backtest): per slot item, buy, sell, qty, cost, profit after tax, expected buy/sell hours, GP/hour. Fillable prices, pumps excluded. |
 | `top_flips(min_volume, max_price, budget, sort, max_fill_hours, include_demoted, members, limit)` | Best single-item flips at fillable prices; `sort` = `gp_per_hour` (default, recommended), `profit`, `roi` or `profit_per_limit`. Rows carry `expectedFillHours`, `gpPerHourPerSlot`, `realisticProfitPerLimit`; unfillable rows and pumps are demoted. |
 | `set_arbitrage(sort, budget, limit)` | GE item sets and crafted combinations vs their parts, combine or split. |
 | `processing_methods(method, sort, budget, limit)` | Sawmill, plank make, enchanting, tanning, decanting, herb cleaning, Sailing methods and more; profit per action, per 4h and per hour. |
@@ -72,6 +72,7 @@ Ported from the GE Metrics iOS app (trade timing, update pre-positioning, market
 | `best_trade_hours(item)` | Cheapest hour to buy and dearest hour to sell (UTC) from a detrended hour-of-day profile (~15 days), plus a weekday profile (~90 days); sign-test confidence corrected for picking the best of 24 / 7. |
 | `fill_estimate(item, qty, buy_price?, sell_price?)` | Hours for buy and sell offers to fill from per-side volume, reach and queue position; buy-limit windows; GP/hour per GE slot. |
 | `sell_or_hold(item, qty, paid)` | Sell now vs list at the 24h typical high: profit after tax vs what you paid, expected wait, break-even price, best sell hour, pump flag. |
+| `backtest(strategy, days, cash, slots, decision_every_hours, max_hold_hours, buy_timeout_hours, participation)` | Replays the app's Buy now picks and `plan_flips` / `top_flips` / `find_dips` / `margin_scan` on past wiki snapshots (no lookahead) with simulated, volume-capped fills: expected vs realized profit, fill rate, % lost, fill-time bias, GP/hour, drawdown. Fetches at most 250 uncached snapshots per call. |
 
 Also available:
 
@@ -90,6 +91,8 @@ Optional environment variables:
 | `GE_METRICS_PRICES_URL` | `https://prices.runescape.wiki/api/v1/osrs` |
 | `GE_METRICS_WIKI_API_URL` | `https://oldschool.runescape.wiki/api.php` |
 | `GE_METRICS_UPDATES_URL` | `https://ge-metrics.com/data/game-updates.json` |
+| `GE_METRICS_BACKTEST_CACHE` | `mcp/.cache/backtest/` (past /1h and /5m snapshots, gzipped; gitignored) |
+| `GE_METRICS_BACKTEST_REPORTS` | `mcp/reports/` |
 
 ## Development
 
@@ -98,7 +101,10 @@ npm test            # vitest unit tests on fixtures (no network)
 npm run typecheck
 npm run build
 npm run smoke       # spawns dist/index.js over stdio and calls every tool against the live APIs
+npm run backtest    # 14-day backtest of every strategy variant -> reports/backtest-YYYY-MM-DD.md
 ```
+
+`npm run backtest` flags: `-- --days 14 --cash 50000000 --slots 8 --every 4 --strategy all|app|plan_flips|top_flips|find_dips|margin_scan|<variant key> --out file.md`. A cold 14-day run fetches ~870 snapshots through the polite throttle (~10 min); later runs read the disk cache. Backtest code lives in `src/backtest` (`view.ts` = what a strategy could see at t, `position.ts` / `simulate.ts` = fills and portfolio, `strategies/` = the replayed pickers).
 
 Layout: `src/wiki` (fetching, validation, throttle), `src/analysis` (pure analysis functions; `timing/`, `scanner/`, `coming/` hold the trader analytics), `src/updates` (game update sources and parsing), `src/tools` (MCP tool registration), `src/server.ts` and `src/index.ts` (entry). Engine types come from `mobile/src/engine/ge-engine.d.ts`; `@ge/engine` is aliased to `src/domain/flipping` in `tsup.config.ts` and `vitest.config.ts`.
 

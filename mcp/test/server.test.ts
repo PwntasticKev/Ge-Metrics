@@ -51,12 +51,18 @@ const call = async (client: Client, name: string, args: Record<string, unknown>)
   return { isError: result.isError === true, text, data: result.isError ? null : JSON.parse(text) }
 }
 
+const snapshotStore = (cached: boolean): NonNullable<ToolDeps['snapshots']> => ({
+  load: async () => new Map([[4151, avg(1_000_000, 900_000, 300, 300)]]),
+  isCached: async () => cached,
+  mapping: async () => MAPPING
+})
+
 describe('MCP server', () => {
   it('lists every tool, the prompt and the guide resource', async () => {
     const client = await connect(deps())
     const { tools } = await client.listTools()
     expect(tools.map(t => t.name).sort()).toEqual([
-      'best_trade_hours', 'coming_up', 'fill_estimate', 'find_dips', 'game_updates', 'get_item', 'margin_scan', 'market_breadth', 'plan_flips', 'price_history',
+      'backtest', 'best_trade_hours', 'coming_up', 'fill_estimate', 'find_dips', 'game_updates', 'get_item', 'margin_scan', 'market_breadth', 'plan_flips', 'price_history',
       'processing_methods', 'pump_dump_scan', 'search_items', 'sell_or_hold', 'set_arbitrage', 'top_flips', 'trend_scan', 'update_impact'
     ])
     expect(tools.every(t => (t.description ?? '').length > 40)).toBe(true)
@@ -119,7 +125,9 @@ describe('MCP server', () => {
       id: 4151, buyAt: 900_000, sellAt: 1_000_000, marginAfterTax: 80_000, qty: 55, demoted: false, priceBasis: 'hourly series (24h)',
       expectedFillHours: { buy: 2.2, sell: 2.2 }, realisticProfitPerLimit: 4_400_000
     })
-    const plan = await call(client, 'plan_flips', { cash: 50_000_000 })
+    // Default volume floor (10k/day, backtest finding) excludes the 3k/day whip.
+    expect((await call(client, 'plan_flips', { cash: 50_000_000 })).data).toMatchObject({ totals: { slotsUsed: 0 } })
+    const plan = await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 1000 })
     expect(plan.data).toMatchObject({ slots: 8, maxFillHours: 8, totals: { slotsUsed: 1, cost: 49_500_000, expectedProfit: 4_400_000 } })
     expect(plan.data.slotsPlan[0]).toMatchObject({ id: 4151, buyAt: 900_000, sellAt: 1_000_000, qty: 55, taxEach: 20_000, expectedHours: 4.4 })
     expect((await call(client, 'plan_flips', { cash: 50_000_000, members: false })).data).toMatchObject({ slots: 3, totals: { slotsUsed: 0 } })
@@ -138,5 +146,18 @@ describe('MCP server', () => {
     expect(upstream.text).toMatch(/Price data unavailable: prices.runescape.wiki returned HTTP 503/)
     expect((await call(client, 'processing_methods', { method: 'juggling' })).text).toMatch(/Unknown method/)
     expect((await call(client, 'top_flips', { limit: 0 })).isError).toBe(true)
+  })
+
+  it('backtest replays strategies from cached snapshots and bounds new requests', async () => {
+    const client = await connect({ ...deps(), snapshots: snapshotStore(true) })
+    const r = await call(client, 'backtest', { strategy: 'plan_flips', days: 1 })
+    expect(r.isError).toBe(false)
+    expect(r.data.window.decisions).toBe(7)
+    expect(r.data.strategies.map((s: { key: string }) => s.key).every((k: string) => k.startsWith('plan_flips'))).toBe(true)
+    expect(r.data.strategies[0]).toMatchObject({ picks: expect.any(Number), realizedProfit: expect.any(Number), buyFillRate: expect.anything() })
+    const cold = await connect({ ...deps(), snapshots: snapshotStore(false) })
+    const refused = await call(cold, 'backtest', { strategy: 'all', days: 14 })
+    expect(refused).toMatchObject({ isError: true, text: expect.stringMatching(/uncached wiki snapshots/) })
+    expect((await call(client, 'backtest', { strategy: 'nope' })).isError).toBe(true)
   })
 })

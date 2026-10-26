@@ -38,18 +38,28 @@ export function bulkCandidate (entry: MappingEntry, bulk: BulkPrices, tax: TaxFn
   return withPrices(entry, prices.buyAt, prices.sellAt, flow, prices.basis, tax)
 }
 
+export interface RefineOptions {
+  /**
+   * Cap the series ask at the bulk ask (last qualifying hour / day, and the
+   * live high). The series median lags a falling market; a 14-day backtest
+   * showed asks set above the last hour's high mostly never filled and were
+   * dumped at a loss. Default true; false only to reproduce the old behaviour.
+   */
+  readonly capSellAtRecent?: boolean
+}
+
 /**
  * Replace bulk prices and flow with the item's 24h hourly view. Where the
  * series has too few qualifying hours to price, its volume still sets the flow.
  */
-export function refineCandidate (c: Candidate, series: readonly TimeseriesPoint[] | undefined, tax: TaxFn): Candidate {
+export function refineCandidate (c: Candidate, series: readonly TimeseriesPoint[] | undefined, tax: TaxFn, o: RefineOptions = {}): Candidate {
   if (!series?.length) return c
   const flow = flowFromSeries(series)
   if (!flow) return c
   const prices = realisticFromSeries(series)
-  return prices
-    ? withPrices(c.entry, prices.buyAt, prices.sellAt, flow, prices.basis, tax)
-    : { ...c, flow }
+  if (!prices) return { ...c, flow }
+  const sellAt = o.capSellAtRecent === false ? prices.sellAt : Math.min(prices.sellAt, c.sellAt)
+  return withPrices(c.entry, prices.buyAt, sellAt, flow, prices.basis, tax)
 }
 
 export interface AssessOptions {

@@ -42,7 +42,8 @@ const calls = [
   ['coming_up', { limit: 2, pending_only: true }],
   ['best_trade_hours', { item: 'dragon bones' }],
   ['fill_estimate', { item: 'dragon bones', qty: 7500 }],
-  ['sell_or_hold', { item: 'abyssal whip', qty: 5, paid: 1_400_000 }]
+  ['sell_or_hold', { item: 'abyssal whip', qty: 5, paid: 1_400_000 }],
+  ['backtest', { strategy: 'top_flips', days: 2 }]
 ]
 
 let failures = 0
