@@ -169,6 +169,21 @@ describe('planFlips', () => {
     expect(p!.metrics.fillable).toBe(true)
   })
 
+  it('in a falling market the series median cannot set the ask above the last hour or live high', () => {
+    // 24h at 10k highs, but the last hour (and the live price) fell to 9.5k:
+    // a 6h median ask of 10k would sit above the market and never fill (backtest finding).
+    const c = bulkCandidate(item(8, 100), {
+      latest: new Map([[8, { high: 9_600, low: 9_000, highTime: NOW, lowTime: NOW }]]),
+      h1: new Map([[8, avg(9_500, 9_000, 100, 100)]]),
+      h24: new Map([[8, avg(10_000, 9_000, 2400, 2400)]])
+    }, tax) as Candidate
+    const refined = refineCandidate(c, flatSeries({ low: 9_000, high: 10_000, volume: 100 }), tax)
+    expect(refined.sellAt).toBe(9_500)
+    expect(refined.profitEach).toBe(9_500 - 9_000 - tax(9_500, 8))
+    // The uncapped variant (kept for backtest comparisons) quotes the stale median.
+    expect(refineCandidate(c, flatSeries({ low: 9_000, high: 10_000, volume: 100 }), tax, { capSellAtRecent: false }).sellAt).toBe(10_000)
+  })
+
   it('a spiked high never makes a candidate look better than its typical range', () => {
     const spiky = refineCandidate(candidate(7, 9_000, 10_000, 100), flatSeries({ low: 9_000, high: 10_000, spikeHours: [22, 23], spikeHigh: 30_000, spikeVolume: 6 }), tax)
     expect(spiky.sellAt).toBe(10_000)

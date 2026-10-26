@@ -20,7 +20,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "node dist/index.js",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "backtest": "tsup && node dist/backtest.js"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",

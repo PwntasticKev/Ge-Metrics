@@ -6,7 +6,7 @@ import { defineConfig } from 'tsup'
 const engine = fileURLToPath(new URL('../src/domain/flipping/index.js', import.meta.url))
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: { index: 'src/index.ts', backtest: 'src/backtest/cli.ts' },
   format: ['esm'],
   target: 'node20',
   platform: 'node',

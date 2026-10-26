@@ -14,7 +14,10 @@ const PLAN_POOL = 24
 const MEMBERS_SLOTS = 8
 const F2P_SLOTS = 3
 const MAX_CASH = 1e13
-const PLAN_MIN_VOLUME = 50
+// Backtest (reports/backtest-2026-10-26.md): items trading under ~10k a day
+// were dumped at a loss far more often (33-60% of picks) than liquid ones
+// (15%); a 10k floor turned plan_flips from ~break-even to the best variant.
+const PLAN_MIN_VOLUME = 10_000
 
 export function registerPlanTools (server: McpServer, { prices }: ToolDeps): void {
   const planInput = z.object({
@@ -22,7 +25,7 @@ export function registerPlanTools (server: McpServer, { prices }: ToolDeps): voi
     slots: z.number().int().min(1).max(MEMBERS_SLOTS).optional().describe('Free GE slots (default 8 for members, 3 for free-to-play)'),
     max_fill_hours: maxFillHours,
     members: z.boolean().default(true).describe('Include members items'),
-    min_volume: z.number().int().min(0).default(PLAN_MIN_VOLUME).describe('Minimum daily GE volume per item (fill times already account for liquidity; keep low so expensive, low-volume items can absorb a big stack)')
+    min_volume: z.number().int().min(0).default(PLAN_MIN_VOLUME).describe('Minimum daily GE volume per item. Default 10000: a 14-day backtest showed thinner items often never sold at the ask and were dumped at a loss. Lower it only if you will babysit slow, expensive flips.')
   })
   server.registerTool('plan_flips', {
     title: 'Plan flips for a cash stack',
