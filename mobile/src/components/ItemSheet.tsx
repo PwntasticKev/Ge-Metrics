@@ -61,68 +61,89 @@ function dayVolumes (average: WikiAverage | undefined): string {
 }
 
 // Full details for one item: longer chart, prices to copy, limits, volume.
-export function ItemSheet ({ itemId, onClose }: { itemId: number | null; onClose: () => void }) {
+// The body (and its price hooks) only mounts while an item is shown.
+export function ItemSheet ({ itemId, visible, onClose, onDismissed }: { itemId: number | null; visible: boolean; onClose: () => void; onDismissed: () => void }) {
   const { palette } = useTheme()
-  const { market } = useMarket()
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} onDismiss={onDismissed}>
+      <View style={[styles.sheet, { backgroundColor: palette.bg }]}>
+        {itemId !== null ? <ItemSheetBody key={itemId} itemId={itemId} onClose={onClose} /> : null}
+      </View>
+    </Modal>
+  )
+}
+
+function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => void }) {
+  const { palette } = useTheme()
+  const { market, isLoading } = useMarket()
   const { h24 } = useAverages()
   const { isStarred, toggle } = useWatchlist()
   const [range, setRange] = useState<Range>('week')
 
-  const item = itemId !== null && market ? market.get(itemId) : null
+  const item = market ? market.get(itemId) : null
   const flip = useMemo(() => (item && market ? computeItemFlip(item, { nowSec: market.nowSec }) : null), [item, market])
   const sets = useMemo(() => (item && market ? setsContaining(item.id, market) : []), [item, market])
   const series = RANGE_SERIES[range]
 
-  return (
-    <Modal visible={itemId !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.sheet, { backgroundColor: palette.bg }]}>
-        {item && market ? (
-          <ScrollView contentContainerStyle={styles.content}>
-            <View style={styles.header}>
-              <ItemIcon icon={item.icon} size={44} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: palette.ink }]} numberOfLines={2}>{stripUncharged(item.name)}</Text>
-                <Text style={[styles.sub, { color: palette.muted }]}>{item.members ? 'Members' : 'Free to play'}</Text>
-              </View>
-              <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-                <Text style={[styles.close, { color: palette.brand }]}>Done</Text>
-              </Pressable>
-            </View>
+  const close = (
+    <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+      <Text style={[styles.close, { color: palette.brand }]}>Done</Text>
+    </Pressable>
+  )
 
-            <Tabs options={RANGES} value={range} onChange={setRange} />
-            <PriceChart key={range} itemId={item.id} timestep={series.timestep} points={series.points} height={150} label={series.label} />
-
-            {flip ? (
-              <View style={styles.block}>
-                <PriceLine tag="Buy" label="at" price={flip.buyAt} />
-                <PriceLine tag="Sell" label="at" price={flip.sellAt} />
-                <Text style={[styles.hint, { color: palette.muted }]}>Tap a price to copy it.</Text>
-              </View>
-            ) : null}
-
-            <View style={[styles.grid, { borderColor: palette.rule }]}>
-              <Stat label="Margin after tax" value={flip ? signed(flip.profit) : '–'} tone={flip && flip.profit > 0 ? 'profit' : undefined} />
-              <Stat label="Return" value={flip ? percent(flip.roi) : '–'} />
-              <Stat label="GE tax" value={flip ? gpFull(geTax(flip.sellAt, item.id)) : '–'} />
-              <Stat label="Buy limit" value={item.limit ? `${item.limit.toLocaleString('en-US')} / 4h` : 'Unknown'} />
-              <Stat label="Traded today" value={item.dailyVolume !== null ? gpShort(item.dailyVolume) : '–'} />
-              <Stat label="Bought / sold 24h" value={dayVolumes(h24?.[item.id])} />
-              <Stat label="High alch" value={item.highalch ? gpFull(item.highalch) : '–'} />
-              <Stat label="Alch profit" value={signed(alchProfit(item, market))} />
-            </View>
-
-            {sets.length ? <Text style={[styles.sub, { color: palette.muted }]}>Part of: {sets.join(', ')}</Text> : null}
-
-            <View style={styles.actions}>
-              <Pressable onPress={() => toggle({ kind: 'item', id: item.id })} hitSlop={8} accessibilityRole="button">
-                <Text style={[styles.action, { color: palette.brand }]}>{isStarred({ kind: 'item', id: item.id }) ? '★ Watching' : '☆ Watch'}</Text>
-              </Pressable>
-            </View>
-            {flip ? <LogBuy itemId={item.id} name={item.name} icon={item.icon} qty={flip.maxQty || 1} price={flip.buyAt} /> : null}
-          </ScrollView>
-        ) : null}
+  if (!item || !market) {
+    return (
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: palette.ink, flex: 1 }]}>{isLoading ? 'Loading prices' : 'Item not found'}</Text>
+          {close}
+        </View>
       </View>
-    </Modal>
+    )
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <ItemIcon icon={item.icon} size={44} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: palette.ink }]} numberOfLines={2}>{stripUncharged(item.name)}</Text>
+          <Text style={[styles.sub, { color: palette.muted }]}>{item.members ? 'Members' : 'Free to play'}</Text>
+        </View>
+        {close}
+      </View>
+
+      <Tabs options={RANGES} value={range} onChange={setRange} />
+      <PriceChart itemId={item.id} timestep={series.timestep} points={series.points} height={150} label={series.label} />
+
+      {flip ? (
+        <View style={styles.block}>
+          <PriceLine tag="Buy" label="at" price={flip.buyAt} />
+          <PriceLine tag="Sell" label="at" price={flip.sellAt} />
+          <Text style={[styles.hint, { color: palette.muted }]}>Tap a price to copy it.</Text>
+        </View>
+      ) : null}
+
+      <View style={[styles.grid, { borderColor: palette.rule }]}>
+        <Stat label="Margin after tax" value={flip ? signed(flip.profit) : '–'} tone={flip && flip.profit > 0 ? 'profit' : undefined} />
+        <Stat label="Return" value={flip ? percent(flip.roi) : '–'} />
+        <Stat label="GE tax" value={flip ? gpFull(geTax(flip.sellAt, item.id)) : '–'} />
+        <Stat label="Buy limit" value={item.limit ? `${item.limit.toLocaleString('en-US')} / 4h` : 'Unknown'} />
+        <Stat label="Traded today" value={item.dailyVolume !== null ? gpShort(item.dailyVolume) : '–'} />
+        <Stat label="Bought / sold 24h" value={dayVolumes(h24?.[item.id])} />
+        <Stat label="High alch" value={item.highalch ? gpFull(item.highalch) : '–'} />
+        <Stat label="Alch profit" value={signed(alchProfit(item, market))} />
+      </View>
+
+      {sets.length ? <Text style={[styles.sub, { color: palette.muted }]}>Part of: {sets.join(', ')}</Text> : null}
+
+      <View style={styles.actions}>
+        <Pressable onPress={() => toggle({ kind: 'item', id: item.id })} hitSlop={8} accessibilityRole="button">
+          <Text style={[styles.action, { color: palette.brand }]}>{isStarred({ kind: 'item', id: item.id }) ? '★ Watching' : '☆ Watch'}</Text>
+        </Pressable>
+      </View>
+      {flip ? <LogBuy itemId={item.id} name={item.name} icon={item.icon} qty={flip.maxQty || 1} price={flip.buyAt} /> : null}
+    </ScrollView>
   )
 }
 

@@ -84,7 +84,7 @@ export function PriceChart ({ itemId, timestep, points: count, height, label }: 
         </>
       ) : (
         <Text style={[styles.text, { color: palette.muted, height, paddingTop: height / 2 - 8 }]}>
-          {isError ? 'Price history unavailable' : isLoading ? 'Loading price history' : 'Not enough trades to chart'}
+          {!width ? '' : isError ? 'Price history unavailable' : isLoading ? 'Loading price history' : 'Not enough trades to chart'}
         </Text>
       )}
     </View>
