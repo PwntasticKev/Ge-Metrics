@@ -6,12 +6,14 @@ enum WidgetSource: String, AppEnum {
   case buyNow
   case watchlist
   case holdings
+  case slots
 
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Show"
   static var caseDisplayRepresentations: [WidgetSource: DisplayRepresentation] = [
     .buyNow: "Buy now picks",
     .watchlist: "Watchlist",
-    .holdings: "Bought items"
+    .holdings: "Bought items",
+    .slots: "GE slots"
   ]
 
   var title: String {
@@ -19,6 +21,7 @@ enum WidgetSource: String, AppEnum {
     case .buyNow: return "Buy now"
     case .watchlist: return "Watchlist"
     case .holdings: return "Bought"
+    case .slots: return "GE slots"
     }
   }
 
@@ -27,6 +30,7 @@ enum WidgetSource: String, AppEnum {
     case .buyNow: return "Open GE Metrics to load picks."
     case .watchlist: return "Star items in GE Metrics to see them here."
     case .holdings: return "Log a buy in GE Metrics to track it here."
+    case .slots: return "Place an offer in My GE slots to track it here."
     }
   }
 }

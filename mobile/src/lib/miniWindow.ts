@@ -1,6 +1,7 @@
 import { geTax, type BuyPick, type Market, type MarketItem, type WikiAverage } from '@ge/engine'
 import type { TickerPayload, TickerRow } from '../../modules/pip-ticker'
 import type { Holding } from '../state/flips'
+import { remaining, type Slot } from './slots/slots'
 import { stripUncharged } from './format'
 import type { WatchEntry } from '../state/watchlist'
 import { groupHoldings, type WidgetHolding } from './widget/payload'
@@ -9,14 +10,15 @@ import { groupHoldings, type WidgetHolding } from './widget/payload'
 // TickerRow.repriced in modules/pip-ticker/ios/TickerModels.swift, which
 // re-prices the same rows natively while the app is in the background.
 
-export type MiniSource = 'watchlist' | 'picks' | 'holdings'
-export const MINI_SOURCES: readonly MiniSource[] = ['watchlist', 'picks', 'holdings']
+export type MiniSource = 'watchlist' | 'picks' | 'holdings' | 'slots'
+export const MINI_SOURCES: readonly MiniSource[] = ['watchlist', 'picks', 'holdings', 'slots']
 export const MAX_MINI_ROWS = 5
 
 const TITLES: Record<MiniSource, string> = {
   watchlist: 'Watchlist',
   picks: 'Buy now',
-  holdings: 'Bought'
+  holdings: 'Bought',
+  slots: 'GE slots'
 }
 
 // A price the tax table treats as taxable for any normal item.
@@ -72,6 +74,21 @@ export interface MiniInputs {
   entries: readonly WatchEntry[]
   picks: readonly BuyPick[] | null
   holdings: readonly Holding[]
+  /** Open GE offers; optional so older callers keep working. */
+  slots?: readonly Slot[]
+}
+
+/**
+ * An open offer: a sell with a known cost shows profit on what's left, like
+ * a holding; anything else shows the item's live margin.
+ */
+export function slotRow (slot: Slot, item: MarketItem | null, h24?: WikiAverage): TickerRow | null {
+  if (!item) return null
+  const left = Math.max(1, remaining(slot))
+  const row = slot.side === 'sell' && slot.costBasis
+    ? holdingRow({ id: slot.itemId, name: slot.name, noTax: isTaxExempt(slot.itemId), qty: left, buyPrice: slot.costBasis }, item)
+    : flipRow(item, h24)
+  return row ? { ...row, name: `${slot.side === 'buy' ? 'Buy' : 'Sell'} · ${row.name}` } : null
 }
 
 function sourceIds (source: MiniSource, inputs: MiniInputs): number[] {
@@ -86,6 +103,12 @@ export function miniRows (source: MiniSource, inputs: MiniInputs): TickerRow[] {
     // Grouped the same way as the widget's Bought rows (quantity-weighted buy price).
     return groupHoldings(inputs.holdings, isTaxExempt)
       .map(h => holdingRow(h, market.get(h.id)))
+      .filter((r): r is TickerRow => r !== null)
+      .slice(0, MAX_MINI_ROWS)
+  }
+  if (source === 'slots') {
+    return (inputs.slots ?? [])
+      .map(slot => slotRow(slot, market.get(slot.itemId), h24?.[String(slot.itemId)]))
       .filter((r): r is TickerRow => r !== null)
       .slice(0, MAX_MINI_ROWS)
   }

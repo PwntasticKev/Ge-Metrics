@@ -12,13 +12,15 @@ import { space } from '../../theme/tokens'
 const SOURCES = [
   { value: 'watchlist', label: 'Watchlist' },
   { value: 'picks', label: 'Buy now' },
-  { value: 'holdings', label: 'Bought' }
+  { value: 'holdings', label: 'Bought' },
+  { value: 'slots', label: 'GE slots' }
 ] as const
 
 const EMPTY: Record<MiniSource, string> = {
   watchlist: 'Star some items first. Sets and tools on your watchlist aren\'t shown here, only single items.',
   picks: 'No Buy now picks yet. Give prices a moment to load.',
-  holdings: 'Nothing bought yet. Log a buy from Buy now or Items.'
+  holdings: 'Nothing bought yet. Log a buy from Buy now or Items.',
+  slots: 'No offers in My GE slots yet. Place one from a pick or the Bought list.'
 }
 
 // Must match TickerLayout in modules/pip-ticker/ios/TickerRenderer.swift.

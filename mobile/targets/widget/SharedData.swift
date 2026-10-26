@@ -33,12 +33,34 @@ struct WidgetHolding: Codable, Hashable {
   let buyPrice: Int
 }
 
+/// One GE offer from My GE slots, with the advice the app last computed.
+struct WidgetSlot: Codable, Hashable {
+  let id: String
+  let itemId: Int
+  let name: String
+  /// "buy" or "sell".
+  let side: String
+  let price: Int
+  let qty: Int
+  let filled: Int
+  /// When the offer was placed or last changed (ms since epoch).
+  let updatedAt: Double
+  /// filling, raise, lower, relist, cancel, done or unknown (src/lib/slots/advice.ts).
+  let advice: String
+  let action: Bool
+  let suggested: Int?
+
+  var isBuy: Bool { side == "buy" }
+}
+
 struct WidgetPayload: Codable {
   let v: Int
   let at: Double
   let picks: [WidgetPick]
   let watchlist: [WidgetItem]
   let holdings: [WidgetHolding]
+  /// Missing in payloads from app builds before GE slots.
+  let slots: [WidgetSlot]?
 
   static func load() -> WidgetPayload? {
     guard let json = Shared.defaults?.string(forKey: Shared.payloadKey),
@@ -51,7 +73,7 @@ struct WidgetPayload: Codable {
 
   /// Every item id any source might show, so one price fetch covers them all.
   var allIds: Set<Int> {
-    Set(picks.map(\.id)).union(watchlist.map(\.id)).union(holdings.map(\.id))
+    Set(picks.map(\.id)).union(watchlist.map(\.id)).union(holdings.map(\.id)).union((slots ?? []).map(\.itemId))
   }
 }
 

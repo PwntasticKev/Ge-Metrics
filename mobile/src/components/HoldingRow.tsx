@@ -12,6 +12,7 @@ import { PriceLine } from './DetailLines'
 import { DetailsLink } from './DetailsLink'
 import { FlipRow } from './FlipRow'
 import { SellForm } from './SellForm'
+import { PlaceOffer } from './slots/PlaceOffer'
 import { Sparkline } from './Sparkline'
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -57,6 +58,8 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, h1, h24, no
   const sellAt = item?.low ?? item?.high ?? null
   const tax = sellAt === null ? 0 : geTax(sellAt, holding.itemId)
   const profitNow = sellAt === null ? null : (sellAt - tax - holding.buyPrice) * holding.qty
+  // "Place sell" uses the sell helper's pick: the listing price when listing pays, else the instant-sell price.
+  const listAt = advice ? (advice.verdict === 'list' ? advice.listPrice : advice.nowPrice) : (item?.high ?? null)
   const listProfit = advice ? (advice.listPrice - geTax(advice.listPrice, holding.itemId) - holding.buyPrice) * holding.qty : null
 
   const confirmRemove = () => {
@@ -83,6 +86,9 @@ export const HoldingRow = memo(function HoldingRow ({ holding, item, h1, h24, no
       {sellAt !== null ? <PriceLine tag="Sell" label={`now, ${signed(profitNow)} profit`} price={sellAt} /> : null}
       {advice && advice.extraGp > 0 ? <PriceLine tag="Sell" label={`list, ${duration(advice.waitHours)}, ${signed(listProfit)} profit`} price={advice.listPrice} /> : null}
       <DetailsLink itemId={holding.itemId} />
+      {listAt !== null ? (
+        <PlaceOffer offers={[{ itemId: holding.itemId, name: holding.name, icon: holding.icon, side: 'sell', price: listAt, qty: holding.qty, lotId: holding.id, costBasis: holding.buyPrice }]} />
+      ) : null}
       {selling ? <SellForm holding={holding} suggestedPrice={item?.high ?? null} onDone={() => setSelling(false)} /> : (
         <View style={styles.actions}>
           <Pressable onPress={confirmRemove} hitSlop={8} accessibilityRole="button">

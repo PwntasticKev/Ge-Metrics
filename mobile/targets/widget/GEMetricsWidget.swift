@@ -10,7 +10,7 @@ struct GEMetricsWidget: Widget {
       GEWidgetView(entry: entry)
     }
     .configurationDisplayName("GE Metrics")
-    .description("Top Buy now picks, your watchlist or what you bought, with live prices.")
+    .description("Top Buy now picks, your watchlist, what you bought or your GE slots, with live prices.")
     .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
   }
 }
