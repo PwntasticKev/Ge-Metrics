@@ -11,6 +11,7 @@ import { FlipsProvider } from '../state/flips'
 import { ItemSheetProvider } from '../state/itemSheet'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
+import { WidgetSync } from '../state/widgetSync'
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider'
 
 // Refetch prices when the app comes back to the foreground.
@@ -76,6 +77,7 @@ export default function RootLayout () {
             <FlipsProvider>
               <ItemSheetProvider>
                 <OrientationLock />
+                <WidgetSync />
                 <Tabs />
               </ItemSheetProvider>
             </FlipsProvider>

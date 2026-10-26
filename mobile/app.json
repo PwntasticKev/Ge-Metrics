@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.gemetrics.app",
+      "appleTeamId": "XJBL9CTNPM",
       "buildNumber": "1",
       "supportsTablet": false,
       "config": {
@@ -21,6 +22,11 @@
         "light": "./assets/images/icon.png",
         "dark": "./assets/images/ios-dark.png",
         "tinted": "./assets/images/ios-tinted.png"
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.gemetrics.app"
+        ]
       }
     },
     "android": {
@@ -57,7 +63,9 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/withAppStoreSigning",
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true,

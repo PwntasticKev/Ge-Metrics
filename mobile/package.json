@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo/ui": "~58.0.23",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@tanstack/query-async-storage-persister": "^5.104.5",

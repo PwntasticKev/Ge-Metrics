@@ -38,6 +38,7 @@ Ground rules carried over from earlier decisions:
 | Profit view | Watchlist, Profit: realized profit for today / 7 / 30 days / all, daily bars (blue up, grey down) with a running total, best and worst flips, per-item leaderboard (profit, flips, win rate, average hold), open lots at the instant-sell price after tax. |
 | Trading insights | Items you lose on (negative average over 2+ flips), hold time against the 4h buy-limit window and what long holds earn, GE tax paid as a share of margin. |
 | CSV export and restore | Share sheet export of the whole journal; restore from a picked CSV adds what's missing without duplicating. |
+| Home and lock screen widget (iOS) | Small, medium and lock screen sizes. Edit the widget to show Buy now picks, Watchlist or Bought items. The app shares which items to show through an App Group; the widget fetches live wiki prices itself every ~20 minutes. Tap opens the item. |
 
 ## Done in this round (web)
 
@@ -48,21 +49,18 @@ Ground rules carried over from earlier decisions:
 
 ## Next for the app, highest value first
 
-1. **Home screen widget (iOS WidgetKit).** Top 3 Buy now picks on the home
-   screen without opening the app. Needs a native widget extension and an
-   App Group to share cached prices; local build only, no EAS.
-2. **Margin alerts without a server.** iOS background fetch
+1. **Margin alerts without a server.** iOS background fetch
    (`expo-background-task`) checks watched items every ~15 to 30 minutes and
    fires a local notification when a margin crosses a threshold you set. Not
    real time (iOS decides when it runs), but no server.
-3. **Profit history follow-ups.** Shipped as the Profit view; next is a
-   home-screen widget line for today's profit and per-item notes ("why I
+2. **Profit history follow-ups.** Shipped as the Profit view; next is a
+   widget line for today's profit and per-item notes ("why I
    bought") on journal entries.
-4. **Update alerts.** Shipped as chart markers and Update movers; next is a
+3. **Update alerts.** Shipped as chart markers and Update movers; next is a
    local notification when a new post mentions a watched item.
-5. **Share a pick.** Share sheet with an image of a pick (item, prices,
+4. **Share a pick.** Share sheet with an image of a pick (item, prices,
    profit) for clan chats.
-6. **iPad and landscape layouts.** Two columns: list on the left, item page
+5. **iPad and landscape layouts.** Two columns: list on the left, item page
     on the right.
 
 ## Next for the website (no visual change unless asked)
