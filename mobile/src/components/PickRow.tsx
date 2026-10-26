@@ -7,6 +7,7 @@ import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
+import { LogBuy } from './LogBuy'
 import { Sparkline } from './Sparkline'
 
 function whyLine (pick: BuyPick, mode: PickMode): string {
@@ -41,6 +42,7 @@ export const PickRow = memo(function PickRow ({ pick, mode, expanded, onToggle }
       <PriceLine tag="Sell" label={`${signed(pick.profit)} each after tax`} price={pick.sellAt} />
       <Text style={[styles.why, { color: palette.muted }]}>{whyLine(pick, mode)}</Text>
       <ProfitFooter tax={pick.tax * pick.maxQty} profit={pick.potential} starred={isStarred(entry)} onStar={() => toggle(entry)} />
+      <LogBuy itemId={pick.id} name={pick.name} icon={pick.icon} qty={pick.maxQty} price={pick.buyAt} />
     </FlipRow>
   )
 })

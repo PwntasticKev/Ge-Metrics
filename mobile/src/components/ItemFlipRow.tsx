@@ -4,6 +4,7 @@ import { gpShort, signed, stripUncharged } from '../lib/format'
 import { useWatchlist } from '../state/watchlist'
 import { PriceLine, ProfitFooter } from './DetailLines'
 import { FlipRow } from './FlipRow'
+import { LogBuy } from './LogBuy'
 import { Sparkline } from './Sparkline'
 
 export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle }: { flip: ItemFlip; expanded: boolean; onToggle: (id: number) => void }) {
@@ -26,6 +27,7 @@ export const ItemFlipRow = memo(function ItemFlipRow ({ flip, expanded, onToggle
       <PriceLine tag="Buy" label="at" price={flip.buyAt} />
       <PriceLine tag="Sell" label="at" price={flip.sellAt} />
       <ProfitFooter tax={flip.tax} profit={flip.profit} starred={isStarred(entry)} onStar={() => toggle(entry)} />
+      <LogBuy itemId={flip.id} name={flip.name} icon={flip.icon} qty={flip.maxQty || 1} price={flip.buyAt} />
     </FlipRow>
   )
 })
