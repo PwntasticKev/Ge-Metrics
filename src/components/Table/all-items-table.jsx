@@ -466,7 +466,7 @@ export function AllItemsTable ({
                         pointerEvents: 'none'
                     }}
                 >
-                    (-{new Intl.NumberFormat().format(calculateGETax(row.high || 0))} tax)
+                    (-{new Intl.NumberFormat().format(row.tax ?? calculateGETax(row.high || 0))} tax)
                 </Text>
             </div>
         </td>

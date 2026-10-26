@@ -11,14 +11,15 @@ import { IconClock, IconRefresh } from '@tabler/icons-react'
 import React, { useState, useEffect } from 'react'
 import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
 import ItemData from '../../utils/item-data.jsx'
-import { getRelativeTime, getItemSetProfit } from '../../utils/utils.jsx'
+import { getRelativeTime } from '../../utils/utils.jsx'
+import { buildCombinationRows } from '../../utils/flipRows.js'
 import { itemRecipes } from '../../components/Table/data/item-set-filters.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 export default function CombinationItems () {
-  const { items, mapStatus, priceStatus } = ItemData()
+  const { items, mapStatus, priceStatus, pricesUpdatedAt } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [itemSets, setItemSets] = useState([])
@@ -33,14 +34,12 @@ export default function CombinationItems () {
 
   useEffect(() => {
     if (priceStatus === 'success' && items.length > 0) {
-      setLastFetchTime(new Date())
-      const processedItemSets = itemRecipes
-        .map(recipe => getItemSetProfit(recipe, items))
-        .filter(item => item)
-        .sort((a, b) => b.profit - a.profit)
-      setItemSets(processedItemSets)
+      // Prices painted from the saved copy show their real age.
+      setLastFetchTime(pricesUpdatedAt ? new Date(pricesUpdatedAt) : new Date())
+      // Shared flipping engine (same as the app); sorted by profit, highest first.
+      setItemSets(buildCombinationRows(itemRecipes, items))
     }
-  }, [priceStatus, items])
+  }, [priceStatus, items, pricesUpdatedAt])
 
   // Update current time every second for live ticker
   useEffect(() => {
