@@ -3,7 +3,7 @@
     "name": "GE Metrics",
     "slug": "ge-metrics",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "gemetrics",
     "userInterfaceStyle": "automatic",

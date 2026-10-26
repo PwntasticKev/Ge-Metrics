@@ -2,7 +2,7 @@ import Constants from 'expo-constants'
 import * as Haptics from 'expo-haptics'
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { useSettings, type Settings, type ThemePreference } from '../state/settings'
+import { useSettings, type OrientationPreference, type Settings, type ThemePreference } from '../state/settings'
 import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
 import { space } from '../theme/tokens'
@@ -12,6 +12,12 @@ const THEMES: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' }
+]
+
+const ORIENTATIONS: { value: OrientationPreference; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'portrait', label: 'Vertical' },
+  { value: 'landscape', label: 'Horizontal' }
 ]
 
 const BUDGETS: { value: number | null; label: string }[] = [
@@ -86,6 +92,11 @@ function ThemePicker () {
   return <Segmented options={THEMES} value={settings.theme} onChange={theme => update({ theme })} />
 }
 
+function OrientationPicker () {
+  const { settings, update } = useSettings()
+  return <Segmented options={ORIENTATIONS} value={settings.orientation} onChange={orientation => update({ orientation })} />
+}
+
 function BudgetPicker () {
   const { settings, update } = useSettings()
   return <Segmented options={BUDGETS} value={settings.budget} onChange={budget => update({ budget })} />
@@ -101,7 +112,8 @@ export default function MeScreen () {
       <ScreenHeader title="Me" />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: space.xl }}>
         <Section title="Display">
-          <Row label="Theme" right={<ThemePicker />} last />
+          <Row label="Theme" right={<ThemePicker />} />
+          <Row label="Orientation" detail="Auto follows how you hold the phone" below={<OrientationPicker />} last />
         </Section>
         <Section title="Your cash">
           <Row label="Cash stack" detail="Only show what you can afford, and cap 4h profit to it" below={<BudgetPicker />} last />
