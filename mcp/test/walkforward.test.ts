@@ -126,6 +126,12 @@ describe('no leakage between train and test', () => {
       expect(b.reports[i]?.folds[0]?.trainProfit).toBe(r.folds[0]?.trainProfit)
     }
     expect(a.reports.map(r => verdict(r).why.length > 0)).toEqual(a.reports.map(() => true))
+    for (const r of a.reports) {
+      expect(r.fixed.map(v => v.key).sort()).toEqual(r.family.variants.map(v => v.strategy.key).sort())
+      const def = r.fixed.find(v => v.key === r.family.defaultKey)
+      expect(def?.tests).toHaveLength(r.folds.length)
+      expect(def?.tests).toEqual(r.folds.map(o => Math.round(o.defaultTestProfit)))
+    }
   })
 })
 

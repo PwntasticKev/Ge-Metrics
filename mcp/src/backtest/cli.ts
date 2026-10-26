@@ -37,7 +37,7 @@ function nowFrom (raw: string | undefined): number {
 }
 
 // The wiki's /1h?timestamp= served full snapshots 2 years back when this was written (probed 2026-10-26).
-const HISTORY_NOTE = 'the wiki\'s /1h?timestamp= (and /5m) returned full snapshots (~3,000 items) at every probe back to 730 days ago, so history is not the limit; this run uses the last ~60 days plus 7 days of lookback.'
+const HISTORY_NOTE = 'the wiki\'s /1h?timestamp= (and /5m) returned full snapshots (~3,000 items) at every probe back to 730 days ago, so history is not the limit; this run uses the --days before --now (default: the last 60) plus 7 days of lookback.'
 
 async function main (): Promise<void> {
   const { values } = parseArgs({
