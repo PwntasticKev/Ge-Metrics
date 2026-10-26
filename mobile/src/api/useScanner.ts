@@ -20,7 +20,7 @@ const SERIES_STALE_MS = 10 * 60_000
 // Per-item history for a top-N list: two requests at a time, 300 ms apart.
 const seriesLimiter = createLimiter(2, 300)
 
-function useHourSnapshot (hoursAgo: number, now: number): Record<string, WikiAverage> | undefined {
+export function useHourSnapshot (hoursAgo: number, now: number): Record<string, WikiAverage> | undefined {
   const timestamp = hourStartAgo(now, hoursAgo)
   const { data } = useQuery({
     queryKey: ['hour-averages', timestamp],

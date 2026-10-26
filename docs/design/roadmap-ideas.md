@@ -37,6 +37,9 @@ Ground rules carried over from earlier decisions:
 | Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
 | Trade timing | Item details: best buy and sell hour (local time) when the pattern held on most of the last 15 days, a 24-bar hour heatmap, a steady weekday, fill time for one buy limit and GP/h per GE slot. |
 | GP/h per slot sort | Buy now (Next 4 hours, Dips): sort by profit per hour a GE slot is busy, from each side's trade flow. |
+| Realistic item sheet | Item details lead with the fill-aware buy and sell (same rules as Buy now, the scanner and GE slots), margin after tax, the amount that fills in the window and "fills in ~Xh"; the instant live prices stay below, tap to copy. Place buy / Place sell and Log buy use the realistic prices and amount. |
+| Share a pick | "Share pick" on a Buy now row and in item details: an image card (icon, name, buy, sell, amount, profit after tax, fills in, time, GE Metrics wordmark) through the share sheet. |
+| Walk-forward defaults | From the 60-day out-of-sample test (PR #33): Next 4 hours and Plan size for 2h, slowest sell to show defaults to 30m (still a setting), and a risk-off warning on Next 4 hours and Plan from the scanner's market breadth. |
 | Sell helper | Bought tab: "Sell now X or list Y, ~2h (+Z)" per holding, using the 24h typical high and the sell-side flow. |
 | Flip journal | "Mark sold" asks how many and at what price; partial sells keep the rest open. Every sale is kept with buy and sell price, GE tax, hold time, ROI and GP/h of hold. Older saved sales migrate in place. |
 | Profit view | Watchlist, Profit: realized profit for today / 7 / 30 days / all, daily bars (blue up, grey down) with a running total, best and worst flips, per-item leaderboard (profit, flips, win rate, average hold), open lots at the instant-sell price after tax. |
@@ -63,9 +66,7 @@ Ground rules carried over from earlier decisions:
    bought") on journal entries.
 3. **Update alerts.** Shipped as chart markers and Update movers; next is a
    local notification when a new post mentions a watched item.
-4. **Share a pick.** Share sheet with an image of a pick (item, prices,
-   profit) for clan chats.
-5. **iPad and landscape layouts.** Two columns: list on the left, item page
+4. **iPad and landscape layouts.** Two columns: list on the left, item page
     on the right.
 
 ## Mini window notes (Picture in Picture)
