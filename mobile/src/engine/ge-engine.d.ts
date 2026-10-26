@@ -183,4 +183,50 @@ declare module '@ge/engine' {
   export function rankSetFlips (recipes: readonly Recipe[], market: Market, options?: RankOptions): SetFlip[]
   export function buildRecipes (legacyRecipes?: LegacyRecipe[]): Recipe[]
   export const craftedRecipes: LegacyRecipe[]
+
+  export interface WikiAverage {
+    avgHighPrice: number | null
+    highPriceVolume: number
+    avgLowPrice: number | null
+    lowPriceVolume: number
+  }
+
+  export interface PickOptions {
+    h1?: Record<string, WikiAverage>
+    h24?: Record<string, WikiAverage>
+    budget?: number | null
+  }
+
+  export interface BuyPick {
+    readonly id: number
+    readonly name: string
+    readonly icon: string | null
+    readonly members: boolean
+    readonly buyAt: number
+    readonly sellAt: number
+    readonly tax: number
+    /** Margin per item after tax; for quick flips the smaller of live and last-hour margin. */
+    readonly profit: number
+    readonly roi: number
+    readonly maxQty: number
+    readonly potential: number
+    readonly cost: number
+    /** Trades per day on the thinner side (buys or sells). */
+    readonly dayVolume: number
+    /** Quick flips: margin at live prices, before the last-hour check. */
+    readonly liveProfit?: number
+    /** Overnight flips: last hour's price vs the day's average. */
+    readonly trend?: number
+    /** Dips: how far the buy price sits under the day's typical low (0.1 = 10%). */
+    readonly drop?: number
+  }
+
+  export function rankQuickFlips (market: Market, options?: PickOptions): BuyPick[]
+  export function rankOvernightFlips (market: Market, options?: PickOptions & { hours?: number }): BuyPick[]
+  export function rankDips (market: Market, options?: PickOptions): BuyPick[]
+  export const MEMBERS_SLOTS: number
+  export const F2P_SLOTS: number
+  export const PLAN_POOL_SIZE: number
+  /** Splits a cash stack across picks for the most total profit, one pick per GE slot. */
+  export function planCashStack (picks: readonly BuyPick[], options: { cash: number; slots?: number }): BuyPick[]
 }

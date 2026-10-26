@@ -64,4 +64,22 @@ describe('createPriceSource', () => {
     expect(market.get(1)).toMatchObject({ high: 200, low: 100, limit: 10, dailyVolume: 600 })
     expect(fetchImpl).toHaveBeenCalledTimes(3)
   })
+
+  it('fetches past snapshots at aligned timestamps through the throttle, cached', async () => {
+    const urls: string[] = []
+    const fetchImpl = vi.fn(async (url: string) => {
+      urls.push(url)
+      return ok({ data: { 1: { avgHighPrice: 10, avgLowPrice: 9, highPriceVolume: 1, lowPriceVolume: 2 } }, timestamp: 0 })
+    })
+    let throttled = 0
+    const limiter = <T>(job: () => Promise<T>): Promise<T> => { throttled++; return job() }
+    const prices = createPriceSource({ fetchImpl, cache: new TtlCache(), limiter })
+    const snap = await prices.averagesAt('1h', 7_200 + 1_234)
+    await prices.averagesAt('1h', 7_200)
+    await prices.timeseries(1, '1h').catch(() => undefined)
+    expect(snap.get(1)).toMatchObject({ avgHighPrice: 10, lowPriceVolume: 2 })
+    expect(urls[0]).toMatch(/\/1h\?timestamp=7200$/)
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(throttled).toBe(2)
+  })
 })
