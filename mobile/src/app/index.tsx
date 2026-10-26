@@ -7,19 +7,31 @@ import { FlipListScreen } from '../components/FlipListScreen'
 import { PickRow } from '../components/PickRow'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { Tabs } from '../components/Tabs'
-import { gpShort, minutesAgo } from '../lib/format'
-import { usePicks, type PickMode } from '../lib/picks'
+import { gpShort, minutesAgo, signed } from '../lib/format'
+import { planTotals, usePicks, type PickMode } from '../lib/picks'
 import { useSettings } from '../state/settings'
 import { useTheme } from '../theme/ThemeProvider'
 
 const MODES = [
   { value: 'quick', label: 'Next 4 hours' },
-  { value: 'overnight', label: 'Overnight' }
+  { value: 'overnight', label: 'Overnight' },
+  { value: 'dips', label: 'Dips' },
+  { value: 'plan', label: 'Plan' }
 ] as const
 
 const FOOTERS: Record<PickMode, string> = {
   quick: 'Prices are the more careful of live and last-hour prices, so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day.',
+  dips: 'Liquid items whose price fell at least 5% under the day\'s typical low over the last hour, while buyers still pay the usual price. Buy the dip, sell back at the day\'s middle.',
+  plan: 'Your whole cash stack split across your GE slots for the most total profit in the next 4 hours, using the same picks as Next 4 hours.',
   overnight: 'Offers at the typical low and high of the last 24 hours, sized to fill over 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
+}
+
+function headerMeta (mode: PickMode, picks: readonly BuyPick[], budget: number | null, updatedAt: number | null): string {
+  if (mode === 'plan' && budget && picks.length) {
+    const { cost, profit } = planTotals(picks)
+    return `Uses ${gpShort(cost)} of ${gpShort(budget)}, ${signed(profit)}`
+  }
+  return `${budget ? `With ${gpShort(budget)}, ` : ''}${minutesAgo(updatedAt)}`
 }
 
 // Home tab: open the app, see exactly what to buy and what to sell it for.
@@ -50,7 +62,7 @@ export default function BuyNowScreen () {
     <FlipListScreen<BuyPick>
       market={market}
       header={
-        <ScreenHeader title="Buy now" meta={picks ? `${settings.budget ? `With ${gpShort(settings.budget)}, ` : ''}${minutesAgo(prices.updatedAt)}` : undefined}>
+        <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
           <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null) }} />
         </ScreenHeader>
       }
@@ -58,7 +70,9 @@ export default function BuyNowScreen () {
       keyOf={p => String(p.id)}
       extraData={`${openId}:${mode}`}
       renderRow={p => <PickRow pick={p} mode={mode} expanded={openId === p.id} onToggle={onToggle} />}
-      empty={{ title: 'Nothing worth buying right now', body: 'Prices move all day. Pull down to refresh.' }}
+      empty={mode === 'plan' && !settings.budget
+        ? { title: 'Set your cash stack first', body: 'Tools, Settings, Cash stack. The plan splits it across your GE slots.' }
+        : { title: 'Nothing worth buying right now', body: 'Prices move all day. Pull down to refresh.' }}
       footer={<Text style={[styles.note, { color: palette.muted }]}>{FOOTERS[mode]}</Text>}
     />
   )

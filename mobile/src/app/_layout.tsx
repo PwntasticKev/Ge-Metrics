@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react'
 import { AppState, Platform } from 'react-native'
 import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createQueryClient, persister, shouldPersist } from '../api/queryCache'
 import { useOrientationLock } from '../state/orientation'
+import { FlipsProvider } from '../state/flips'
+import { ItemSheetProvider } from '../state/itemSheet'
 import { SettingsProvider } from '../state/settings'
 import { WatchlistProvider } from '../state/watchlist'
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider'
@@ -71,8 +73,12 @@ export default function RootLayout () {
       <SettingsProvider>
         <ThemeProvider>
           <WatchlistProvider>
-            <OrientationLock />
-            <Tabs />
+            <FlipsProvider>
+              <ItemSheetProvider>
+                <OrientationLock />
+                <Tabs />
+              </ItemSheetProvider>
+            </FlipsProvider>
           </WatchlistProvider>
         </ThemeProvider>
       </SettingsProvider>

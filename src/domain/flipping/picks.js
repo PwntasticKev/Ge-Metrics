@@ -109,3 +109,160 @@ export function rankOvernightFlips (market, { h1 = {}, h24 = {}, budget = null, 
   }
   return picks.filter(p => p.maxQty > 0).sort(byPotential)
 }
+
+// Dips: the live buy price has fallen well under the day's typical low on a
+// liquid item. Buy now, sell back at the day's middle once it recovers.
+export const DIP_MIN_DROP = 0.05
+export const DIP_MIN_DAILY_TRADES = 100
+export const DIP_MIN_HOUR_TRADES = 5
+export const DIP_MIN_HOUR_SHARE = 0.5
+
+export function rankDips (market, { h1 = {}, h24 = {}, budget = null } = {}) {
+  const picks = []
+  for (const item of market.all()) {
+    const day = h24[item.id]
+    const hour = h1[item.id]
+    if (!hasPrices(day) || !hasPrices(hour) || !item.low || !item.lowTime) continue
+    if (market.nowSec - item.lowTime > QUICK_MAX_AGE_SEC) continue
+    // The whole last hour must be down, not one panic sale: quote the more
+    // cautious of the live and last-hour low, and require several trades.
+    // Volumes count items, not trades, so one dumped stack could pass a fixed
+    // floor. Require at least half the day's normal hourly flow instead.
+    if (hour.lowPriceVolume < Math.max(DIP_MIN_HOUR_TRADES, (day.lowPriceVolume / 24) * DIP_MIN_HOUR_SHARE)) continue
+    const buyAt = Math.max(item.low, Math.round(hour.avgLowPrice))
+    const drop = 1 - buyAt / day.avgLowPrice
+    if (drop < DIP_MIN_DROP) continue
+    const dayVolume = sideVolume(day)
+    if (dayVolume < DIP_MIN_DAILY_TRADES) continue
+    const sellAt = Math.round((day.avgLowPrice + day.avgHighPrice) / 2)
+    // Buyers must still be paying the target this hour. If the highs fell too,
+    // it's a crash, not a dip.
+    if (hour.avgHighPrice < sellAt) continue
+    const tax = geTax(sellAt, item.id)
+    const profit = sellAt - tax - buyAt
+    if (profit <= 0 || profit / buyAt > MAX_PLAUSIBLE_ROI) continue
+    const maxQty = Math.min(buyLimitOf(item), Math.floor(dayVolume / QUICK_VOLUME_MULTIPLE))
+    if (maxQty < 1) continue
+    picks.push(finalize({
+      id: item.id,
+      name: item.name,
+      icon: item.icon,
+      members: item.members,
+      buyAt,
+      sellAt,
+      tax,
+      profit,
+      roi: profit / buyAt,
+      maxQty,
+      potential: profit * maxQty,
+      dayVolume,
+      drop: Math.round(drop * 1000) / 1000
+    }, budget))
+  }
+  return picks.filter(p => p.maxQty > 0).sort(byPotential)
+}
+
+// GE offer slots: members get 8, free-to-play 3.
+export const MEMBERS_SLOTS = 8
+export const F2P_SLOTS = 3
+
+const affordableQty = (pick, cash) => Math.min(pick.maxQty, Math.floor(cash / pick.buyAt))
+// Only the strongest picks are worth considering for a slot; this keeps the
+// search fast and stops 1 gp margins from taking up slots.
+export const PLAN_POOL_SIZE = 80
+// Leftover-cash picks earning under this share of the plan aren't worth a slot.
+export const PLAN_MIN_SHARE = 0.01
+
+// Fills slots one at a time with whatever earns the most from the cash left.
+function greedyTotal (picks, cash, slots) {
+  let left = cash
+  let total = 0
+  let pool = picks
+  for (let slot = 0; slot < slots && pool.length; slot++) {
+    let best = null
+    let bestQty = 0
+    for (const pick of pool) {
+      const qty = affordableQty(pick, left)
+      if (qty > 0 && (!best || pick.profit * qty > best.profit * bestQty)) {
+        best = pick
+        bestQty = qty
+      }
+    }
+    if (!best) break
+    total += best.profit * bestQty
+    left -= best.buyAt * bestQty
+    pool = pool.filter(p => p !== best)
+  }
+  return total
+}
+
+// Splits a cash stack across picks for the most total profit, one pick per GE
+// slot. Each step tries every candidate, plays out the remaining slots
+// greedily, and keeps the candidate with the best finished plan. That stops
+// one big item from swallowing cash two smaller ones would use better.
+export function planCashStack (picks, { cash, slots = MEMBERS_SLOTS }) {
+  if (!Number.isFinite(cash) || cash <= 0) return []
+  const plan = []
+  let left = cash
+  let remaining = picks
+    .filter(p => p.buyAt > 0 && p.profit > 0 && p.maxQty > 0)
+    .map(p => ({ pick: p, value: p.profit * affordableQty(p, cash) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, PLAN_POOL_SIZE)
+    .map(c => c.pick)
+  while (plan.length < slots && remaining.length) {
+    let best = null
+    for (const pick of remaining) {
+      const qty = affordableQty(pick, left)
+      if (qty <= 0) continue
+      const others = remaining.filter(p => p !== pick)
+      const total = pick.profit * qty + greedyTotal(others, left - pick.buyAt * qty, slots - plan.length - 1)
+      if (!best || total > best.total) best = { pick, qty, total }
+    }
+    if (!best) break
+    const { pick, qty } = best
+    plan.push(withQty(pick, qty))
+    left -= pick.buyAt * qty
+    remaining = remaining.filter(p => p !== pick)
+  }
+  const improved = shaveForBetterPicks(plan, remaining, left, slots)
+  const total = improved.reduce((sum, p) => sum + p.potential, 0)
+  return improved.filter(p => p.potential >= total * PLAN_MIN_SHARE).sort((a, b) => b.potential - a.potential)
+}
+
+const withQty = (pick, qty) => Object.freeze({ ...pick, maxQty: qty, potential: pick.profit * qty, cost: pick.buyAt * qty })
+
+// Buying the full amount of every pick can strand cash: 3 of a 3M item leaves
+// 1M that buys nothing, while 2 of it plus one 4M item earns more. While a
+// slot is free, try giving up a few units of a planned pick to afford an
+// unplanned one, and keep the best swap that adds profit.
+function shaveForBetterPicks (plan, candidates, cash, slots) {
+  let current = plan
+  let left = cash
+  let pool = candidates
+  while (current.length < slots && pool.length) {
+    let best = null
+    for (const [index, planned] of current.entries()) {
+      for (const extra of pool) {
+        const shave = Math.max(0, Math.ceil((extra.buyAt - left) / planned.buyAt))
+        if (shave >= planned.maxQty && shave > 0) continue
+        const freed = left + shave * planned.buyAt
+        const qty = affordableQty(extra, freed)
+        if (qty <= 0) continue
+        const gain = extra.profit * qty - planned.profit * shave
+        if (gain > 0 && (!best || gain > best.gain)) best = { index, extra, shave, qty, gain, spent: extra.buyAt * qty - shave * planned.buyAt }
+      }
+    }
+    if (!best) break
+    const { index, extra, shave, qty, spent } = best
+    current = [
+      ...current.slice(0, index),
+      withQty(current[index], current[index].maxQty - shave),
+      ...current.slice(index + 1),
+      withQty(extra, qty)
+    ]
+    left -= spent
+    pool = pool.filter(p => p !== extra)
+  }
+  return current
+}

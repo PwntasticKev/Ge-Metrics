@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { rankOvernightFlips, rankQuickFlips, type Market, type BuyPick, type WikiAverage } from '@ge/engine'
+import { F2P_SLOTS, MEMBERS_SLOTS, planCashStack, rankDips, rankOvernightFlips, rankQuickFlips, type BuyPick, type Market, type WikiAverage } from '@ge/engine'
 import { useSettings } from '../state/settings'
 
-export type PickMode = 'quick' | 'overnight'
+export type PickMode = 'quick' | 'overnight' | 'dips' | 'plan'
 
 const MAX_PICKS = 100
 
@@ -10,9 +10,15 @@ export function usePicks (market: Market | null, h1: Record<string, WikiAverage>
   const { settings } = useSettings()
   return useMemo(() => {
     if (!market || !h1 || !h24) return null
-    const rank = mode === 'quick' ? rankQuickFlips : rankOvernightFlips
-    return rank(market, { h1, h24, budget: settings.budget })
+    const rank = mode === 'overnight' ? rankOvernightFlips : mode === 'dips' ? rankDips : rankQuickFlips
+    const picks = rank(market, { h1, h24, budget: settings.budget })
       .filter(p => settings.membersItems || !p.members)
-      .slice(0, MAX_PICKS)
+    if (mode !== 'plan') return picks.slice(0, MAX_PICKS)
+    if (!settings.budget) return []
+    return planCashStack(picks, { cash: settings.budget, slots: settings.membersItems ? MEMBERS_SLOTS : F2P_SLOTS })
   }, [market, h1, h24, mode, settings.budget, settings.membersItems])
+}
+
+export function planTotals (plan: readonly BuyPick[]): { cost: number; profit: number } {
+  return plan.reduce((t, p) => ({ cost: t.cost + p.cost, profit: t.profit + p.potential }), { cost: 0, profit: 0 })
 }

@@ -1,4 +1,6 @@
+import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
+import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { gpFull } from '../lib/format'
 import { useTheme } from '../theme/ThemeProvider'
@@ -13,8 +15,34 @@ export function PriceLine ({ tag, icon, label, price, divider = false }: { tag: 
       <Text style={[styles.tag, { color: palette.muted }]}>{tag}</Text>
       {icon !== undefined ? <ItemIcon icon={icon} size={20} framed={false} /> : null}
       <Text style={[styles.label, { color: palette.ink }]} numberOfLines={1}>{label}</Text>
-      <Text style={[styles.price, { color: palette.ink }]} selectable>{gpFull(price)}</Text>
+      <CopyPrice price={price} />
     </View>
+  )
+}
+
+const COPIED_MS = 1200
+
+// Tap a price to copy it, ready to paste into the GE on OSRS mobile.
+function CopyPrice ({ price }: { price: number }) {
+  const { palette } = useTheme()
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), COPIED_MS)
+    return () => clearTimeout(timer)
+  }, [copied])
+  const copy = () => {
+    Clipboard.setStringAsync(String(Math.round(price)))
+      .then(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        setCopied(true)
+      })
+      .catch(error => console.warn('Could not copy the price', error))
+  }
+  return (
+    <Pressable onPress={copy} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Copy ${gpFull(price)}`}>
+      <Text style={[styles.price, { color: copied ? palette.brand : palette.ink }]}>{copied ? 'Copied' : gpFull(price)}</Text>
+    </Pressable>
   )
 }
 

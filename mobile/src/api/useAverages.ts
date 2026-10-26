@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { WikiAverage } from '@ge/engine'
+import { PERSISTED_GC_TIME_MS } from './queryCache'
 import { fetchAverages } from './wiki'
 
 // The wiki rebuilds /1h every few minutes and /24h less often.
@@ -16,8 +17,8 @@ export interface AveragesState {
 }
 
 export function useAverages (): AveragesState {
-  const h1 = useQuery({ queryKey: ['averages', '1h'], queryFn: () => fetchAverages('1h'), refetchInterval: HOUR_REFRESH_MS, staleTime: HOUR_REFRESH_MS / 2 })
-  const h24 = useQuery({ queryKey: ['averages', '24h'], queryFn: () => fetchAverages('24h'), refetchInterval: DAY_REFRESH_MS, staleTime: DAY_REFRESH_MS / 2 })
+  const h1 = useQuery({ queryKey: ['averages', '1h'], queryFn: () => fetchAverages('1h'), refetchInterval: HOUR_REFRESH_MS, staleTime: HOUR_REFRESH_MS / 2, gcTime: PERSISTED_GC_TIME_MS })
+  const h24 = useQuery({ queryKey: ['averages', '24h'], queryFn: () => fetchAverages('24h'), refetchInterval: DAY_REFRESH_MS, staleTime: DAY_REFRESH_MS / 2, gcTime: PERSISTED_GC_TIME_MS })
   return {
     h1: h1.data,
     h24: h24.data,
