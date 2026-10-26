@@ -9,7 +9,7 @@
 // prices, and anything that can't sell inside the trader's patience is
 // marked slow. Pure; no React Native or engine imports.
 import { median } from './analytics/stats.ts'
-import { slotRate, type MarketFlow, type SlotRate } from './analytics/fillTime.ts'
+import type { SlotRate } from './analytics/fillTime.ts'
 import type { SideAverages } from './scanMath.ts'
 
 // Defaults below come from a 14-day no-lookahead backtest of the app's and
@@ -78,9 +78,19 @@ export function careful (live: number | null, traded: number | null, side: Side)
  */
 export function pricesFromAverages (live: LivePrices, hour: SideAverages | undefined, day: SideAverages | undefined): TradePrices | null {
   if (!day) return null
-  const sell = careful(live.high, tradedPrice('sell', hour, day), 'sell')
-  const buy = careful(live.low, tradedPrice('buy', hour, day), 'buy')
+  const sell = bulkSidePrice('sell', live.high, hour, day)
+  const buy = bulkSidePrice('buy', live.low, hour, day)
   return sell !== null && buy !== null ? { buyAt: Math.round(buy), sellAt: Math.round(sell) } : null
+}
+
+/**
+ * One side's realistic price from the bulk averages: the worse of the live
+ * price and the side's traded price (tradedPrice). The per-side half of
+ * pricesFromAverages, for callers that judge each side on its own (GE slot
+ * advice). Null when the side has neither.
+ */
+export function bulkSidePrice (side: Side, live: number | null, hour: SideAverages | undefined, day: SideAverages | undefined): number | null {
+  return careful(live, tradedPrice(side, hour, day), side)
 }
 
 /**
@@ -136,32 +146,6 @@ export interface SlowReason {
   hours: number
   qty: number
   price: number
-}
-
-export interface FillCheck extends SlotRate {
-  /** Null when both offers fill inside the limit. */
-  slow: SlowReason | null
-}
-
-export interface FillInput extends TradePrices {
-  profitEach: number
-  qty: number
-}
-
-/**
- * Fill times for `qty` at these prices. Slow when the sell takes longer than
- * `maxHours`: that's where spikes hide, and an item you can't sell is stuck
- * in a slot. A slow buy only costs time (outbid a little), so it demotes only
- * when buying then selling takes over MAX_CYCLE_MULTIPLE times `maxHours`.
- */
-export function checkFill (flow: MarketFlow, input: FillInput, maxHours: number): FillCheck {
-  const rate = slotRate(flow, { buyAt: input.buyAt, sellAt: input.sellAt, profitEach: input.profitEach, qty: input.qty, limit: null })
-  const slow: SlowReason | null = rate.sellHours > maxHours
-    ? { side: 'sell', hours: rate.sellHours, qty: rate.units, price: input.sellAt }
-    : rate.cycleHours > maxHours * MAX_CYCLE_MULTIPLE
-      ? { side: 'buy', hours: rate.buyHours, qty: rate.units, price: input.buyAt }
-      : null
-  return { ...rate, slow }
 }
 
 /**

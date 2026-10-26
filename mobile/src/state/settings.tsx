@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { DEFAULT_MAX_SELL_HOURS, isMaxSellHours } from '../lib/fillAware'
 import { isMiniSource, type MiniSource } from '../lib/miniWindow'
+import { migrateSettings, SETTINGS_VERSION } from '../lib/settingsMigration'
 import { loadJson, saveJson } from './storage'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
@@ -24,6 +25,8 @@ export interface Settings {
   miniAutoStart: boolean
   /** Picks and scanner rows whose sell takes longer than this go to "Slow to fill". */
   maxSellHours: number
+  /** Stored settings version (lib/settingsMigration); absent in older installs. */
+  version: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -36,7 +39,8 @@ export const DEFAULT_SETTINGS: Settings = {
   seenSetsTip: false,
   miniSource: 'watchlist',
   miniAutoStart: false,
-  maxSellHours: DEFAULT_MAX_SELL_HOURS
+  maxSellHours: DEFAULT_MAX_SELL_HOURS,
+  version: SETTINGS_VERSION
 }
 
 const KEY = 'gem.settings.v1'
@@ -56,13 +60,18 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
 
   useEffect(() => {
-    loadJson(KEY, {}, isSettings).then(stored => {
+    loadJson(KEY, {}, isSettings).then(raw => {
+      // An empty object is a fresh install: nothing to migrate or save.
+      const fresh = Object.keys(raw).length === 0
+      const { settings: stored, changed } = migrateSettings(raw)
       const budget = typeof stored.budget === 'number' && stored.budget > 0 ? stored.budget : null
       const orientation = ORIENTATIONS.includes(stored.orientation as OrientationPreference) ? stored.orientation as OrientationPreference : DEFAULT_SETTINGS.orientation
       const miniSource = isMiniSource(stored.miniSource) ? stored.miniSource : DEFAULT_SETTINGS.miniSource
       const miniAutoStart = stored.miniAutoStart === true
       const maxSellHours = isMaxSellHours(stored.maxSellHours) ? stored.maxSellHours : DEFAULT_MAX_SELL_HOURS
-      setSettings({ ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours })
+      const next: Settings = { ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours }
+      if (changed && !fresh) saveJson(KEY, next)
+      setSettings(next)
     })
   }, [])
 

@@ -3,7 +3,8 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { BuyPick } from '@ge/engine'
 import type { TimeseriesPoint } from '../analytics/types.ts'
-import { checkFill, fillableQty, pricesFromAverages, pricesFromSeries, windowCounts } from '../fillAware.ts'
+import { slotRate } from '../analytics/fillTime.ts'
+import { fillableQty, pricesFromAverages, pricesFromSeries, windowCounts } from '../fillAware.ts'
 import { fillAwarePicks } from '../pickFill.ts'
 import { estimateSpread, settleSpread, spreadLists } from '../spreadFill.ts'
 import { screenSpread, type LiveItem, type TaxFn } from '../spreadScan.ts'
@@ -56,7 +57,8 @@ describe('spike fixture: a single high print never lists a margin', () => {
     assert.ok(row)
     const s = series(200, [{ avgHighPrice: 1300, highPriceVolume: 2 }])
     assert.deepEqual(pricesFromSeries(row.item, s), { buyAt: 1000, sellAt: 1100 })
-    assert.deepEqual(settleSpread(row, s, tax, 8), { kind: 'drop', why: 'spike' })
+    const opts = { h1: { 1: avg(1300, 1000, 200) }, h24: day, tax, maxSellHours: 8, budget: null }
+    assert.deepEqual(settleSpread(row, s, opts), { kind: 'drop', why: 'spike' })
   })
 })
 
@@ -76,24 +78,10 @@ describe('pricesFromSeries', () => {
   })
 })
 
-describe('checkFill and fillableQty', () => {
+describe('fillableQty', () => {
   const flow = { typicalLow: 1000, typicalHigh: 1100, instantSellsPerHour: 100, instantBuysPerHour: 10, recentLows: [], recentHighs: [] }
-  it('marks a sell slower than the limit as slow, a slow buy is not', () => {
-    // Sell at the typical high gets a quarter of 10 an hour: 100 items take 40h.
-    const slow = checkFill(flow, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 100 }, 8)
-    assert.deepEqual(slow.slow, { side: 'sell', hours: 40, qty: 100, price: 1100 })
-    assert.equal(checkFill(flow, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 10 }, 8).slow, null)
-    // Buy 10 at a quarter of 4 an hour: 10h, over 8 but under twice it.
-    const slowBuy = checkFill({ ...flow, instantSellsPerHour: 4, instantBuysPerHour: 1000 }, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 10 }, 8)
-    assert.ok(slowBuy.buyHours > 8)
-    assert.equal(slowBuy.slow, null)
-    const verySlowBuy = checkFill({ ...flow, instantSellsPerHour: 1, instantBuysPerHour: 1000 }, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 10 }, 8)
-    assert.equal(verySlowBuy.slow?.side, 'buy')
-    const neverBuys = checkFill({ ...flow, instantSellsPerHour: 0 }, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 10 }, 8)
-    assert.deepEqual(neverBuys.slow, { side: 'buy', hours: Infinity, qty: 10, price: 1000 })
-  })
   it('sizes to what buys and sells within the hours', () => {
-    const rate = checkFill(flow, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 100 }, 8)
+    const rate = slotRate(flow, { buyAt: 1000, sellAt: 1100, profitEach: 78, qty: 100, limit: null })
     // Per item: 0.04h to buy + 0.4h to sell = 0.44h, so 9 fit in 4h.
     assert.equal(fillableQty(rate, 4, 8), 9)
     assert.equal(fillableQty(rate, 400, 2), 5)
@@ -102,26 +90,26 @@ describe('checkFill and fillableQty', () => {
 })
 
 describe('spreadLists', () => {
-  const h24 = { 1: avg(1100, 1000, 6_000), 2: avg(1100, 1000, 6_000) }
+  // Item 2 sells only 240 a day: a quarter of 10 an hour reaches its ask.
+  const h24 = { 1: avg(1100, 1000, 6_000), 2: avg(1100, 1000, 240, 20_000) }
   const h1 = { 1: avg(1300, 1000, 250), 2: avg(1300, 1000, 250) }
   const opts = { h1, h24, nowSec: NOW, tax, isPump: () => false }
-  it('lists what fills, demotes what cannot sell in time with the reason', () => {
-    const liquid = screenSpread(item(), opts)
-    // A limit of 100,000 sells at a quarter of 250 an hour: days.
-    const huge = screenSpread(item({ id: 2, name: 'Huge', limit: 100_000 }), opts)
-    assert.ok(liquid && huge)
-    const est = [liquid, huge].map(r => estimateSpread(r, h1, h24, 8)).filter(c => c !== null)
-    const lists = spreadLists(est, () => undefined, tax, 8)
+  const fillOpts = { h1, h24, tax, maxSellHours: 0.5, budget: null }
+  it('lists what fills, demotes what cannot sell even one in time with the reason', () => {
+    const rows = [screenSpread(item(), opts), screenSpread(item({ id: 2, name: 'Slow' }), opts)]
+    const est = rows.map(r => (r ? estimateSpread(r, fillOpts) : null)).filter(c => c !== null)
+    const lists = spreadLists(est, () => undefined, fillOpts)
     assert.deepEqual(lists.listed.map(c => c.row.item.id), [1])
     assert.deepEqual(lists.slow.map(c => c.row.item.id), [2])
-    assert.equal(lists.slow[0].fill.rate.slow?.side, 'sell')
+    assert.equal(lists.slow[0].fill.offer.slow?.side, 'sell')
+    assert.equal(lists.listed[0].fill.offer.refined, false)
   })
   it('drops rows the series shows were a spike', () => {
     const row = screenSpread(item(), opts)
     assert.ok(row)
-    const est = estimateSpread(row, h1, h24, 8)
+    const est = estimateSpread(row, fillOpts)
     assert.ok(est)
-    const lists = spreadLists([est], () => series(250, [{ avgHighPrice: 1300, highPriceVolume: 2 }]), tax, 8)
+    const lists = spreadLists([est], () => series(250, [{ avgHighPrice: 1300, highPriceVolume: 2 }]), fillOpts)
     assert.equal(lists.listed.length, 0)
     assert.equal(lists.dropped.spike, 1)
   })
@@ -133,23 +121,32 @@ describe('fillAwarePicks', () => {
     maxQty: 100, potential: 7_800, cost: 100_000, dayVolume: 2_400, ...over
   })
   const day = (vol: number) => avg(1100, 1000, vol)
+  const ctx = (h24: Record<number, ReturnType<typeof avg>> | undefined) => ({
+    h1: undefined,
+    h24,
+    itemOf: (id: number) => ({ id, high: 1100, low: 1000, limit: id === 1 ? 1_000 : 100 }),
+    tax,
+    budget: null
+  })
+  // Dips keep their strategy prices (the quote) and a 4h window.
+  const dips = { mode: 'dips' as const, maxSellHours: 2 }
   it('sizes picks to what fills in the horizon and ranks by expected profit', () => {
     // Item 1 trades 250 an hour a side and we get a quarter: 0.016h to buy
     // and to sell each, so 125 fit in 4h (and sell in 2h). Item 2 is liquid.
-    const h24 = { 1: day(6_000), 2: day(240_000) }
-    const out = fillAwarePicks([pick({ maxQty: 1_000 }), pick({ id: 2, profit: 20, potential: 2_000 })], undefined, h24, { horizon: 4, maxSellHours: 2 })
-    assert.deepEqual(out.picks.map(p => [p.id, p.maxQty, p.potential]), [[1, 125, 9_750], [2, 100, 2_000]])
+    const out = fillAwarePicks([pick({ maxQty: 1_000 }), pick({ id: 2 })], ctx({ 1: day(6_000), 2: day(240_000) }), dips)
+    assert.deepEqual(out.picks.map(p => [p.id, p.maxQty, p.potential]), [[1, 125, 9_750], [2, 100, 7_800]])
     assert.equal(out.picks[0].cost, 125_000)
+    assert.equal(out.picks[0].offer.qty, 125)
     assert.equal(out.slow.length, 0)
   })
   it('moves picks that cannot fill even one item to slow, sell side first', () => {
-    const out = fillAwarePicks([pick({ sellAt: 1_500 })], undefined, { 1: day(6_000) }, { horizon: 4, maxSellHours: 8 })
+    const out = fillAwarePicks([pick({ sellAt: 1_500 })], ctx({ 1: day(6_000) }), { mode: 'dips', maxSellHours: 8 })
     assert.equal(out.picks.length, 0)
     assert.equal(out.slow[0].reason.side, 'sell')
     assert.equal(out.slow[0].reason.hours, Infinity)
   })
   it('leaves out items trading under 10K a day and picks without flow data', () => {
-    assert.deepEqual(fillAwarePicks([pick({})], undefined, { 1: day(4_999) }, { horizon: 4, maxSellHours: 8 }), { picks: [], slow: [] })
-    assert.deepEqual(fillAwarePicks([pick({})], undefined, undefined, { horizon: 4, maxSellHours: 8 }), { picks: [], slow: [] })
+    assert.deepEqual(fillAwarePicks([pick({})], ctx({ 1: day(4_999) }), dips), { picks: [], slow: [] })
+    assert.deepEqual(fillAwarePicks([pick({})], ctx(undefined), dips), { picks: [], slow: [] })
   })
 })
