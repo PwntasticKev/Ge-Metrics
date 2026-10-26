@@ -1,10 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
 import * as Haptics from 'expo-haptics'
 import { useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native'
 import Svg, { Circle, Line } from 'react-native-svg'
 import { useGameUpdates, useItemNameIndex } from '../../api/gameUpdates'
-import { fetchTimeseries } from '../../api/wiki'
+import { useTimeseries, type Timestep } from '../../api/useTimeseries'
 import { buildChart, midOf, nearestIndex, nearestWithin, relativeChange, type SeriesPoint } from '../../lib/chartGeometry'
 import { changeText, chartTime, gpPrice, gpShort } from '../../lib/format'
 import { markersInRange } from '../../lib/gameUpdates'
@@ -13,7 +12,7 @@ import { space } from '../../theme/tokens'
 import { ChartDrawing, STRIP_HEIGHT, type PlacedMarker } from './ChartDrawing'
 import { UpdateCard } from './UpdateCard'
 
-export type Timestep = '5m' | '1h' | '6h' | '24h'
+export type { Timestep }
 
 const STEP_MS: Record<Timestep, number> = { '5m': 300_000, '1h': 3_600_000, '6h': 21_600_000, '24h': 86_400_000 }
 const PRICE_HEIGHT = 170
@@ -43,11 +42,7 @@ function Swatch ({ color, label }: { color: string; label: string }) {
 }
 
 function useSeries (itemId: number, timestep: Timestep, count: number) {
-  const query = useQuery({
-    queryKey: ['timeseries', itemId, timestep],
-    queryFn: () => fetchTimeseries(itemId, timestep),
-    staleTime: 10 * 60_000
-  })
+  const query = useTimeseries(itemId, timestep)
   const points = useMemo<SeriesPoint[]>(() => (query.data ?? []).slice(-count).map(p => ({
     time: p.timestamp * 1000,
     high: p.avgHighPrice,

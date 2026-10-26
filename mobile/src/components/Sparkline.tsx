@@ -1,15 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
-import { fetchTimeseries, type PricePoint } from '../api/wiki'
+import { useTimeseries, type Timestep } from '../api/useTimeseries'
+import type { PricePoint } from '../api/wiki'
 import { gpShort } from '../lib/format'
 import { useTheme } from '../theme/ThemeProvider'
 
 const SPARK_HEIGHT = 56
 const SPARK_POINTS = 48 // two days of hourly prices
-
-export type Timestep = '5m' | '1h' | '6h' | '24h'
 
 function pathFor (values: (number | null)[], min: number, max: number, width: number, height: number): string {
   const step = width / Math.max(1, values.length - 1)
@@ -39,11 +37,7 @@ interface ChartProps {
 export function PriceChart ({ itemId, timestep, points: count, height, label }: ChartProps) {
   const { palette } = useTheme()
   const [width, setWidth] = useState(0)
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['timeseries', itemId, timestep],
-    queryFn: () => fetchTimeseries(itemId, timestep),
-    staleTime: 10 * 60_000
-  })
+  const { data, isLoading, isError } = useTimeseries(itemId, timestep)
 
   const chart = useMemo(() => {
     const points: PricePoint[] = (data ?? []).slice(-count)

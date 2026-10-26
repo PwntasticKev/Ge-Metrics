@@ -9,6 +9,8 @@ interface Props {
   icon: string | null
   name: string
   meta: string
+  /** Optional third line under the meta, e.g. the sell helper. */
+  note?: string
   value: string
   valueCaption: string
   valueTone?: 'profit' | 'ink'
@@ -18,7 +20,7 @@ interface Props {
 }
 
 // One slim list row. Tapping opens the detail block in place.
-export const FlipRow = memo(function FlipRow ({ icon, name, meta, value, valueCaption, valueTone = 'profit', expanded, onToggle, children }: Props) {
+export const FlipRow = memo(function FlipRow ({ icon, name, meta, note, value, valueCaption, valueTone = 'profit', expanded, onToggle, children }: Props) {
   const { palette } = useTheme()
   return (
     <View style={[styles.wrap, { borderBottomColor: palette.rule, backgroundColor: expanded ? palette.card : palette.bg }]}>
@@ -31,12 +33,13 @@ export const FlipRow = memo(function FlipRow ({ icon, name, meta, value, valueCa
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${name}, ${value} ${valueCaption}`}
+        accessibilityLabel={`${name}, ${value} ${valueCaption}${note ? `. ${note}` : ''}`}
       >
         <ItemIcon icon={icon} />
         <View style={styles.text}>
           <Text style={[type.name, { color: palette.ink }]} numberOfLines={1}>{name}</Text>
           <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>{meta}</Text>
+          {note ? <Text style={[type.meta, { color: palette.ink }]} numberOfLines={2}>{note}</Text> : null}
         </View>
         <View style={styles.right}>
           <Text style={[type.profit, { color: valueTone === 'profit' ? palette.profit : palette.ink }]}>{value}</Text>

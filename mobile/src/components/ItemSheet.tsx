@@ -13,6 +13,7 @@ import { ItemIcon } from './ItemIcon'
 import { LogBuy } from './LogBuy'
 import { ItemChart, type Timestep } from './chart/ItemChart'
 import { Tabs } from './Tabs'
+import { TimingSection } from './timing/TimingSection'
 
 const NATURE_RUNE_ID = 561
 
@@ -137,6 +138,8 @@ function ItemSheetBody ({ itemId, onClose }: { itemId: number; onClose: () => vo
         <Stat label="High alch" value={item.highalch ? gpFull(item.highalch) : '–'} />
         <Stat label="Alch profit" value={signed(alchProfit(item, market))} />
       </View>
+
+      {flip ? <TimingSection itemId={item.id} buyAt={flip.buyAt} sellAt={flip.sellAt} profitEach={flip.profit} limit={item.limit ?? flip.limit} /> : null}
 
       {sets.length ? <Text style={[styles.sub, { color: palette.muted }]}>Part of: {sets.join(', ')}</Text> : null}
 

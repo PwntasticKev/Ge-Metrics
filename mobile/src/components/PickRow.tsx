@@ -1,7 +1,8 @@
 import { memo } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import type { BuyPick } from '@ge/engine'
-import { gpFull, gpShort, percent, qty, signed, stripUncharged } from '../lib/format'
+import type { SlotRate } from '../lib/analytics/fillTime'
+import { duration, gpFull, gpShort, percent, qty, signed, stripUncharged } from '../lib/format'
 import type { PickMode } from '../lib/picks'
 import { useWatchlist } from '../state/watchlist'
 import { useTheme } from '../theme/ThemeProvider'
@@ -26,8 +27,23 @@ function whyLine (pick: BuyPick, mode: PickMode): string {
   return `${held} ${volume}.`
 }
 
+function rateLine (rate: SlotRate): string {
+  return `Fills in ${duration(rate.buyHours)} to buy and ${duration(rate.sellHours)} to sell: ${gpShort(rate.gpPerHour)}/h for the GE slot.`
+}
+
 // One "buy this now" row: what to offer, what to sell at, and how many.
-export const PickRow = memo(function PickRow ({ pick, mode, expanded, onToggle }: { pick: BuyPick; mode: PickMode; expanded: boolean; onToggle: (id: number) => void }) {
+interface Props {
+  pick: BuyPick
+  mode: PickMode
+  /** Expected fill times and GP/h per GE slot, when the averages allow it. */
+  rate: SlotRate | null
+  /** Lead with GP/h per slot instead of total profit. */
+  bySpeed: boolean
+  expanded: boolean
+  onToggle: (id: number) => void
+}
+
+export const PickRow = memo(function PickRow ({ pick, mode, rate, bySpeed, expanded, onToggle }: Props) {
   const { palette } = useTheme()
   const { isStarred, toggle } = useWatchlist()
   const entry = { kind: 'item', id: pick.id } as const
@@ -36,15 +52,15 @@ export const PickRow = memo(function PickRow ({ pick, mode, expanded, onToggle }
       icon={pick.icon}
       name={stripUncharged(pick.name)}
       meta={`Buy ${gpFull(pick.buyAt)}, sell ${gpFull(pick.sellAt)}`}
-      value={signed(pick.potential)}
-      valueCaption={`${qty(pick.maxQty)} ${mode === 'overnight' ? 'overnight' : 'in 4h'}`}
+      value={bySpeed && rate ? `${gpShort(rate.gpPerHour)}/h` : signed(pick.potential)}
+      valueCaption={bySpeed && rate ? `${signed(pick.potential)}, ${duration(rate.cycleHours)}` : `${qty(pick.maxQty)} ${mode === 'overnight' ? 'overnight' : 'in 4h'}`}
       expanded={expanded}
       onToggle={() => onToggle(pick.id)}
     >
       <Sparkline itemId={pick.id} />
       <PriceLine tag="Buy" label={`${qty(pick.maxQty)} for ${gpShort(pick.cost)}`} price={pick.buyAt} />
       <PriceLine tag="Sell" label={`${signed(pick.profit)} each after tax`} price={pick.sellAt} />
-      <Text style={[styles.why, { color: palette.muted }]}>{whyLine(pick, mode)}</Text>
+      <Text style={[styles.why, { color: palette.muted }]}>{whyLine(pick, mode)}{rate && mode !== 'overnight' ? ` ${rateLine(rate)}` : ''}</Text>
       <ProfitFooter tax={pick.tax * pick.maxQty} profit={pick.potential} starred={isStarred(entry)} onStar={() => toggle(entry)} />
       <DetailsLink itemId={pick.id} />
       <LogBuy itemId={pick.id} name={pick.name} icon={pick.icon} qty={pick.maxQty} price={pick.buyAt} />

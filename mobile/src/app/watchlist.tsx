@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { computeItemFlip, computeProcessFlip, computeSetFlip, type ItemFlip, type ProcessFlip, type SetFlip } from '@ge/engine'
+import { useAverages } from '../api/useAverages'
 import { useMarket } from '../api/useMarket'
 import { FlipListScreen } from '../components/FlipListScreen'
 import { HoldingRow } from '../components/HoldingRow'
@@ -34,6 +35,7 @@ const recipeById = new Map(RECIPES.map(r => [r.id, r]))
 // Unlike the ranked lists, nothing here hides when the margin is gone.
 export default function WatchlistScreen () {
   const market = useMarket()
+  const { h1, h24 } = useAverages()
   const { entries } = useWatchlist()
   const { holdings, sales } = useFlips()
   const [view, setView] = useState<WatchView>('watching')
@@ -84,7 +86,7 @@ export default function WatchlistScreen () {
       keyOf={r => r.key}
       extraData={`${openKey}:${now}`}
       renderRow={r => {
-        if ('holding' in r) return <HoldingRow holding={r.holding} item={market.market?.get(r.holding.itemId) ?? null} now={now} expanded={openKey === r.key} onToggle={toggle} />
+        if ('holding' in r) return <HoldingRow holding={r.holding} item={market.market?.get(r.holding.itemId) ?? null} h1={h1?.[r.holding.itemId]} h24={h24?.[r.holding.itemId]} now={now} expanded={openKey === r.key} onToggle={toggle} />
         if ('set' in r) return <SetFlipRow flip={r.set} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />
         if ('process' in r) return <ProcessFlipRow flip={r.process} sortBy={r.process.perHour !== null ? 'perHour' : 'profit'} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />
         return <ItemFlipRow flip={r.item} expanded={openKey === r.key} onToggle={() => toggle(r.key)} />

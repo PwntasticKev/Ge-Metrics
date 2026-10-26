@@ -79,3 +79,18 @@ export function gpPrice (n: number | null): string {
 export function changeText (ratio: number): string {
   return `${ratio >= 0 ? '▲' : '▼'} ${(Math.abs(ratio) * 100).toFixed(1)}%`
 }
+
+// Expected waits: "~5m", "~40m", "~1.5h", "~9h", "~2d", "rarely fills".
+export function duration (hours: number): string {
+  if (!Number.isFinite(hours)) return 'rarely fills'
+  const mins = hours * 60
+  if (mins < 57.5) return `~${Math.max(5, Math.round(mins / 5) * 5)}m`
+  if (hours < 9.95) return `~${trim(hours.toFixed(1))}h`
+  if (hours < 47.5) return `~${Math.round(hours)}h`
+  return `~${Math.round(hours / 24)}d`
+}
+
+// "0.8%" for small timing edges, which round to 0 with percent().
+export function edgePercent (ratio: number): string {
+  return Number.isFinite(ratio) ? `${trim((Math.abs(ratio) * 100).toFixed(1))}%` : '–'
+}
