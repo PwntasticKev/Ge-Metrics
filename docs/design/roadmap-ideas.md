@@ -31,6 +31,7 @@ Ground rules carried over from earlier decisions:
 | Game update markers | Game updates and dev blogs from the wiki as dots on the chart; posts that mention the item stand out. Tap for the post. |
 | Update movers | Tools view: items named in the latest posts with their price move since the post and current margin. |
 | Tab re-press | Tapping the active tab scrolls its list to the top; Tools pops to the hub first. |
+| Price and margin alerts | Per-item rules (price at/below or at/above on the buy or sell side, margin after tax, 1h dump/pump %) with a cooldown. Checked on every refresh while open and by `expo-background-task` when iOS allows; local notification opens the item. Tools, Alerts lists rules, buy limit resets and recent triggers. |
 
 ## Done in this round (web)
 
@@ -44,10 +45,8 @@ Ground rules carried over from earlier decisions:
 1. **Home screen widget (iOS WidgetKit).** Top 3 Buy now picks on the home
    screen without opening the app. Needs a native widget extension and an
    App Group to share cached prices; local build only, no EAS.
-2. **Margin alerts without a server.** iOS background fetch
-   (`expo-background-task`) checks watched items every ~15 to 30 minutes and
-   fires a local notification when a margin crosses a threshold you set. Not
-   real time (iOS decides when it runs), but no server.
+2. **Margin alerts without a server.** Shipped (see above). Next: alerts for
+   a whole watchlist at once, and a widget showing the last trigger.
 3. **Sell-side helper for holdings.** For each holding: "sell now at X" vs
    "list at the 24h high Y and wait". Show the expected wait from the last
    day's sell volume.
