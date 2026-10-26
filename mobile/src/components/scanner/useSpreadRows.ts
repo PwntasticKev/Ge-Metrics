@@ -2,7 +2,7 @@ import { geTax } from '@ge/engine'
 import { useMemo } from 'react'
 import { useScannerData, useThrottledSeries } from '../../api/useScanner'
 import type { PricePoint } from '../../api/wiki'
-import { estimateSpread, fastFirst, spreadLists, type SpreadCheck, type SpreadLists } from '../../lib/spreadFill'
+import { estimateSpread, fastFirst, spreadLists, type SpreadCheck, type SpreadLists, type SpreadOptions } from '../../lib/spreadFill'
 import { screenSpreads } from '../../lib/spreadScan'
 import type { SpreadEntry } from './ScanRows'
 
@@ -24,11 +24,12 @@ export interface SpreadRows {
  * times, fetch history for the best rows that can fill, then settle them on
  * prices that actually traded (see lib/spreadFill).
  */
-export function useSpreadRows (data: ReturnType<typeof useScannerData>, members: boolean, maxHours: number, active: boolean): SpreadRows {
+export function useSpreadRows (data: ReturnType<typeof useScannerData>, members: boolean, maxHours: number, budget: number | null, active: boolean): SpreadRows {
   const { prices, h1, h24, flags } = data
   const market = prices.market
+  const opts = useMemo<SpreadOptions | null>(() => (h1 && h24 ? { h1, h24, tax, maxSellHours: maxHours, budget } : null), [h1, h24, maxHours, budget])
   const estimates = useMemo<SpreadCheck[]>(() => {
-    if (!market || !h1 || !h24 || !flags) return []
+    if (!market || !h1 || !h24 || !flags || !opts) return []
     return screenSpreads({
       items: market.all().filter(i => members || !i.members),
       h1,
@@ -37,9 +38,9 @@ export function useSpreadRows (data: ReturnType<typeof useScannerData>, members:
       tax,
       isPump: id => flags.get(id)?.kind === 'pump'
     })
-      .map(row => estimateSpread(row, h1, h24, maxHours))
+      .map(row => estimateSpread(row, opts))
       .filter((c): c is SpreadCheck => c !== null)
-  }, [market, h1, h24, flags, members, maxHours])
+  }, [market, h1, h24, flags, members, opts])
   const checkIds = useMemo(() => fastFirst(estimates).slice(0, CHECK_SPREADS).map(c => c.row.item.id), [estimates])
   const series = useThrottledSeries(checkIds, '1h', active)
   return useMemo(() => {
@@ -51,8 +52,9 @@ export function useSpreadRows (data: ReturnType<typeof useScannerData>, members:
     const requested = new Set(checkIds)
     // Rows not asked for get no history (null), rows still loading stay undefined.
     const marked = estimates.map(c => (requested.has(c.row.item.id) ? c : { ...c, history: null }))
-    const lists = spreadLists(marked, id => byId.get(id), tax, maxHours)
+    if (!opts) return { listed: [], slow: [], dropped: { spike: 0, thin: 0, ordinary: 0, small: 0 } }
+    const lists = spreadLists(marked, id => byId.get(id), opts)
     const entry = (check: SpreadCheck): SpreadEntry => ({ ...check, dump: flags?.get(check.row.item.id)?.kind === 'dump' })
     return { listed: lists.listed.slice(0, MAX_SPREAD_ROWS).map(entry), slow: lists.slow.slice(0, MAX_SPREAD_ROWS).map(entry), dropped: lists.dropped }
-  }, [estimates, checkIds, series, flags, maxHours])
+  }, [estimates, checkIds, series, flags, opts])
 }

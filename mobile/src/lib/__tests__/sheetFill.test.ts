@@ -85,7 +85,8 @@ describe('sheetFill amount', () => {
     const fill = sheetFill(input({ series: undefined, hour: avg(1100, 1000, 0, 200) }))
     assert.equal(fill?.qty, 0)
     assert.equal(fill?.profit, 0)
-    assert.match(fill?.slow ?? '', /sell rarely fills/)
+    assert.match(fill?.slowText ?? '', /sell rarely fills/)
+    assert.equal(fill?.slow?.side, 'sell')
   })
   it('flags items under the 10K a day floor', () => {
     assert.equal(sheetFill(input())?.thin, false)

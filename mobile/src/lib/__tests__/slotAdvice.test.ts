@@ -2,6 +2,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { MarketFlow } from '../analytics/fillTime.ts'
+import { careful } from '../fillAware.ts'
 import { slotAdvice, slotMarket, STALE_HOURS, type AdviceInput, type SlotMarket } from '../slots/advice.ts'
 
 const HOUR = 3_600_000
@@ -19,7 +20,11 @@ const flow: MarketFlow = {
 }
 
 const market = (low: [number | null, number | null], high: [number | null, number | null], f: MarketFlow | null = flow): SlotMarket =>
-  ({ low: { live: low[0], traded: low[1] }, high: { live: high[0], traded: high[1] }, flow: f })
+  ({
+    low: { live: low[0], traded: low[1], realistic: careful(low[0], low[1], 'buy') },
+    high: { live: high[0], traded: high[1], realistic: careful(high[0], high[1], 'sell') },
+    flow: f
+  })
 
 const buy = (over: Partial<AdviceInput['slot']> = {}): AdviceInput['slot'] =>
   ({ side: 'buy', price: 1000, qty: 1000, filled: 0, updatedAt: NOW - HOUR, costBasis: null, target: 1100, ...over })
@@ -153,8 +158,8 @@ describe('slotMarket', () => {
   it('drops live prices older than the cut-off', () => {
     const hour = { avgHighPrice: 1090, avgLowPrice: null, highPriceVolume: 500, lowPriceVolume: 0 }
     const m = slotMarket({ high: 1100, low: 1000, highTime: (NOW - 7 * HOUR) / 1000, lowTime: NOW / 1000 }, hour, undefined, null, NOW)
-    assert.deepEqual(m.high, { live: null, traded: 1090 })
-    assert.deepEqual(m.low, { live: 1000, traded: null })
+    assert.deepEqual(m.high, { live: null, traded: 1090, realistic: 1090 })
+    assert.deepEqual(m.low, { live: 1000, traded: null, realistic: 1000 })
   })
 
   it('ignores a last hour that was a few prints and uses the day, like fill-aware picks', () => {
@@ -164,10 +169,11 @@ describe('slotMarket', () => {
     const m = slotMarket(null, hour, day, null, NOW)
     assert.equal(m.high.traded, 1100)
     assert.equal(m.low.traded, 1010)
+    assert.equal(m.high.realistic, 1100)
   })
 
   it('handles a missing item', () => {
     const m = slotMarket(null, undefined, undefined, null, NOW)
-    assert.deepEqual(m.low, { live: null, traded: null })
+    assert.deepEqual(m.low, { live: null, traded: null, realistic: null })
   })
 })
