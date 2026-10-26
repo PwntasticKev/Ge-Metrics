@@ -14,6 +14,10 @@
 # Usage:
 #   GEM_ASC_KEY_ID=XXXXXXXXXX GEM_ASC_ISSUER_ID=xxxxxxxx-... ./scripts/upload-testflight.sh
 #
+# GEM_DISABLE_WIDGET=1 ships the app without the widget and App Group (see
+# app.config.js). Use it until the App Group is assigned in the portal; only
+# the app's profile is needed then.
+#
 # Build numbers are bumped automatically by App Store Connect at export
 # (manageAppVersionAndBuildNumber). Bump "version" in app.json for a new release.
 #
@@ -58,12 +62,18 @@ appstore_profile_name() {
 }
 
 APP_PROFILE=$(appstore_profile_name "$BUNDLE_ID")
-WIDGET_PROFILE=$(appstore_profile_name "$WIDGET_BUNDLE_ID")
-echo "==> Profiles: \"$APP_PROFILE\", \"$WIDGET_PROFILE\""
+DISABLE_WIDGET="${GEM_DISABLE_WIDGET:-}"
+if [ "$DISABLE_WIDGET" = "1" ]; then
+  WIDGET_PROFILE=""
+  echo "==> Widget DISABLED (GEM_DISABLE_WIDGET=1). Profile: \"$APP_PROFILE\""
+else
+  WIDGET_PROFILE=$(appstore_profile_name "$WIDGET_BUNDLE_ID")
+  echo "==> Profiles: \"$APP_PROFILE\", \"$WIDGET_PROFILE\""
+fi
 
 echo "==> Generating native project (manual App Store signing per target)"
-CI=1 GEM_APPSTORE_SIGNING=1 GEM_TEAM_ID="$TEAM_ID" GEM_APP_PROFILE="$APP_PROFILE" GEM_WIDGET_PROFILE="$WIDGET_PROFILE" \
-  npx expo prebuild --platform ios --no-install
+CI=1 GEM_APPSTORE_SIGNING=1 GEM_DISABLE_WIDGET="$DISABLE_WIDGET" GEM_TEAM_ID="$TEAM_ID" GEM_APP_PROFILE="$APP_PROFILE" GEM_WIDGET_PROFILE="$WIDGET_PROFILE" \
+  npx expo prebuild --platform ios --no-install --clean
 (cd ios && pod install)
 
 WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
@@ -85,6 +95,8 @@ xcodebuild archive \
 [ -d "$ARCHIVE" ] || { echo "ERROR: archive was not produced" >&2; exit 1; }
 
 echo "==> Exporting and uploading to App Store Connect"
+WIDGET_PROFILE_ENTRY=""
+[ -n "$WIDGET_PROFILE" ] && WIDGET_PROFILE_ENTRY="<key>${WIDGET_BUNDLE_ID}</key><string>${WIDGET_PROFILE}</string>"
 cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -96,7 +108,7 @@ cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST
   <key>signingCertificate</key><string>Apple Distribution</string>
   <key>provisioningProfiles</key><dict>
     <key>${BUNDLE_ID}</key><string>${APP_PROFILE}</string>
-    <key>${WIDGET_BUNDLE_ID}</key><string>${WIDGET_PROFILE}</string>
+    ${WIDGET_PROFILE_ENTRY}
   </dict>
   <key>manageAppVersionAndBuildNumber</key><true/>
 </dict></plist>

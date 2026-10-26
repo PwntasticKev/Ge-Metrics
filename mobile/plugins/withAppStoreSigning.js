@@ -19,10 +19,13 @@ function requireEnv (name) {
   return value
 }
 
-/** Bundle id -> App Store provisioning profile name. */
+/**
+ * Bundle id -> App Store provisioning profile name. Without the widget
+ * (GEM_DISABLE_WIDGET=1, see app.config.js) only the app is signed.
+ */
 const profilesFor = bundleId => ({
   [bundleId]: requireEnv('GEM_APP_PROFILE'),
-  [`${bundleId}.widget`]: requireEnv('GEM_WIDGET_PROFILE')
+  ...(process.env.GEM_DISABLE_WIDGET === '1' ? {} : { [`${bundleId}.widget`]: requireEnv('GEM_WIDGET_PROFILE') })
 })
 
 function signConfiguration (buildSettings, profile) {
