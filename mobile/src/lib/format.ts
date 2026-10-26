@@ -94,3 +94,18 @@ export function duration (hours: number): string {
 export function edgePercent (ratio: number): string {
   return Number.isFinite(ratio) ? `${trim((Math.abs(ratio) * 100).toFixed(1))}%` : '–'
 }
+
+// Time held, no "~": "35m", "2.5h", "18h", "3d".
+export function heldFor (hours: number | null): string {
+  if (hours === null || !Number.isFinite(hours)) return '–'
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}m`
+  if (hours < 10) return `${trim(hours.toFixed(1))}h`
+  if (hours < 48) return `${Math.round(hours)}h`
+  return `${Math.round(hours / 24)}d`
+}
+
+// "14 Oct" in local time.
+export function shortDay (ms: number): string {
+  const d = new Date(ms)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
