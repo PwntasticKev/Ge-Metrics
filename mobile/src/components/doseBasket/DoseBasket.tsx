@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { allowanceDeclaration, mappingAllowance, parseWhole as parse, prayerItems as items } from './allowance'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Link } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
@@ -9,9 +10,7 @@ import { optimizeDoseBasket, type DoseBasketPlan } from '../../lib/doseBasket'
 import { minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 
-const items = [{ id: 2434, dose: 4 }, { id: 139, dose: 3 }, { id: 141, dose: 2 }, { id: 143, dose: 1 }]
 const name = (id: number) => id === 229 ? 'Empty vial' : `Prayer potion (${items.find(i => i.id === id)?.dose ?? '?'})`
-const parse = (s: string): number | null => /^\d+$/.test(s) && Number.isSafeInteger(Number(s)) ? Number(s) : null
 const gp = (n: number | null) => n === null ? 'Unknown' : `${n.toLocaleString()} GP`
 type Result = ReturnType<typeof optimizeDoseBasket>
 
@@ -33,8 +32,8 @@ export function DoseBasket () {
   const [error, setError] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
   const [showAssumptions, setShowAssumptions] = useState(false)
-  const limits = items.map(i => mapping.data?.find(m => m.id === i.id)?.limit).filter((n): n is number => n != null && Number.isSafeInteger(n) && n >= 0)
-  const defaultAllowance = limits.length ? Math.min(...limits) : null
+  const cap = mappingAllowance(mapping.data)
+  const declaration = allowanceDeclaration(allowance, cap.bound)
   const verified = [...items.map(i => ({ id: i.id, expected: `Prayer potion(${i.dose})` })), { id: 229, expected: 'Vial' }].every(i => mapping.data?.find(m => m.id === i.id)?.name === i.expected)
   const edit = (setter: (s: string) => void) => (s: string) => { setter(s); setDirty(true) }
   const text = (value: string, muted = false) => <Text style={{ color: muted ? p.muted : p.ink, lineHeight: 20 }}>{value}</Text>
@@ -45,18 +44,19 @@ export function DoseBasket () {
     try {
       const required = [cash, ...items.flatMap(i => [buyCaps[i.id] ?? '25', sellCaps[i.id] ?? '100', owned[i.id] ?? '0']), buyCaps[229] ?? '25', sellCaps[229] ?? '100', owned[229] ?? '0']
       if (required.some(v => parse(v) === null) || (allowance !== '' && parse(allowance) === null) || (vialPrice !== '' && parse(vialPrice) === null)) throw new Error('Use nonnegative safe whole integers; no decimals, signs or separators.')
+      if (declaration.error) throw new Error(declaration.error)
       if (!verified) throw new Error('Unsupported / unverified mapping. Expected 4=2434, 3=139, 2=141, 1=143 and empty vial=229. Compare is unavailable until mapping matches.')
       const vial = market.market?.get(229)
       const liquidation = (id: number) => { const low = market.market?.get(id)?.low; return low == null ? null : low - geTax(low, id) }
       const r = optimizeDoseBasket({
-        family: { ordinaryVial: true, limitGroup: 'prayer-potion-shared', remainingAllowance: allowance === '' ? defaultAllowance : parse(allowance), vialId: 229, items },
+        family: { ordinaryVial: true, limitGroup: 'prayer-potion-shared', remainingAllowance: declaration.value, vialId: 229, items },
         cash: parse(cash)!, targetDose: target,
         quotes: items.map(i => ({ id: i.id, buy: market.market?.get(i.id)?.high ?? null, sell: market.market?.get(i.id)?.low ?? null, buyCap: parse(buyCaps[i.id] ?? '25'), sellCap: parse(sellCaps[i.id] ?? '100') })),
         vial: { buy: vialPrice === '' ? vial?.high ?? null : parse(vialPrice), sell: vial?.low ?? null, buyCap: parse(buyCaps[229] ?? '25'), sellCap: parse(sellCaps[229] ?? '100'), provenance: vialPrice === '' ? 'Declared vial acquisition price: observed live high; no Bob fee.' : 'Declared vial acquisition price: user override; no Bob fee.' },
         owned: items.map(i => ({ id: i.id, quantity: parse(owned[i.id] ?? '0')!, netLiquidation: liquidation(i.id) })),
         ownedVials: { quantity: parse(owned[229] ?? '0')!, netLiquidation: liquidation(229) },
         snapshot: `Snapshot downloaded ${market.updatedAt ? new Date(market.updatedAt).toISOString() : 'unknown'}`,
-        scenario: `Observed high purchases / low sales; conditional fills, one planning window. Cash ${cash} GP; target ${target}; shared allowance ${allowance === '' ? defaultAllowance ?? 'unknown' : allowance}. USER caps / owned quantities: ${[...items.map(i => i.id), 229].map(id => `${id}: buy ${buyCaps[id] ?? '25'}, sell ${sellCaps[id] ?? '100'}, owned ${owned[id] ?? '0'}`).join('; ')}.`, tax: geTax
+        scenario: `Observed high purchases / low sales; conditional fills, one planning window. Cash ${cash} GP; target ${target}; shared allowance ${declaration.value ?? 'unknown'} (manual model declaration; no account autofill). USER caps / owned quantities: ${[...items.map(i => i.id), 229].map(id => `${id}: buy ${buyCaps[id] ?? '25'}, sell ${sellCaps[id] ?? '100'}, owned ${owned[id] ?? '0'}`).join('; ')}.`, tax: geTax
       }, { maxQuantity: 25, maxCandidates: 10000 })
       setResult(r); setComparedTarget(target); setDirty(false)
     } catch (e) { setError(e instanceof Error ? e.message : 'Comparison unavailable. Check inputs.'); }
@@ -80,8 +80,12 @@ export function DoseBasket () {
     {card(<>
       {field('Cash budget (GP)', cash, setCash)}
       <Text style={{ color: p.muted }}>Target dose</Text><View style={s.row}>{[1, 2, 3, 4].map(d => <Pressable key={d} accessibilityRole="button" accessibilityState={{ selected: target === d }} onPress={() => { setTarget(d); setDirty(true) }} style={[s.tab, { backgroundColor: target === d ? blue : p.well }]}><Text style={{ color: target === d ? (isDark ? '#10243c' : '#fff') : p.ink }}>{d}</Text></Pressable>)}</View>
-      {field('Shared remaining family allowance', allowance, setAllowance, defaultAllowance?.toString() ?? 'Unknown')}
-      {text(`Blank assumes an unused window: conservative minimum known mapping limit (${defaultAllowance ?? 'unknown'}; ${limits.length}/4 known). All purchased potion items share this allowance. Enter your actual remainder.`, true)}
+      {field('Shared remaining family allowance', allowance, setAllowance, 'Unknown')}
+      {text('Blank = unknown; 0 = explicitly exhausted. Manually declare the remaining allowance for this model and window. All four purchased potion doses share it; owned potions do not consume it. No account autofill, reinvestment or guaranteed fills.', true)}
+      {text(`Mapping upper bound: ${cap.bound ?? 'unknown'} (${cap.known}/4 verified dose limits known). ${cap.verifiedCap !== null ? 'All four limits agree; this is not your remaining allowance.' : 'Partial or inconsistent mapping; no verified unused-window cap.'}`, true)}
+      <Pressable accessibilityRole="button" disabled={cap.verifiedCap === null} accessibilityState={{ disabled: cap.verifiedCap === null }} onPress={() => { if (cap.verifiedCap !== null) edit(setAllowance)(String(cap.verifiedCap)) }} style={s.button}><Text style={{ color: cap.verifiedCap === null ? p.muted : blue }}>Use mapping cap (unused-window scenario)</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => edit(setAllowance)('')} style={s.button}><Text style={{ color: blue }}>Reset allowance to unknown</Text></Pressable>
+      {declaration.error && <Text accessibilityRole="alert" style={{ color: p.ink }}>{declaration.error} Your entry is preserved.</Text>}
       {field('Declared empty vial acquisition GP', vialPrice, setVialPrice, market.market?.get(229)?.high?.toString() ?? 'Unknown')}
       {text('Blank uses live observed high for vial 229. Override declares your acquisition price. Supply required vials; no automatic Bob fee is added.', true)}
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: details }} onPress={() => setDetails(!details)} style={s.button}><Text style={{ color: blue }}>{details ? 'Hide' : 'Edit'} USER caps, owned stock & quotes</Text></Pressable>
@@ -115,9 +119,9 @@ export function DoseBasket () {
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showAssumptions }} onPress={() => setShowAssumptions(!showAssumptions)} style={s.button}><Text style={{ color: blue }}>{showAssumptions ? 'Hide' : 'Show'} comparison assumptions</Text></Pressable>
         {showAssumptions && result.assumptions.map((a, i) => <View key={i}>{text(a, true)}</View>)}
       </>)}
-      {plan('Up to two sources', result.best)}
-      {plan('Fair single-source baseline', result.bestSingle)}
-      {text(`Within-search economic uplift: ${gp(result.uplift)}. Baseline uses identical cash, inventory, tax, vial, remainder and cap rules; includes zero action. Cash surplus excludes retained value; economic gain subtracts owned liquidation opportunity cost.`, true)}
+      {result.status === 'supported' && !declaration.error && plan('Up to two sources', result.best)}
+      {result.status === 'supported' && !declaration.error && plan('Fair single-source baseline', result.bestSingle)}
+      {result.status === 'supported' && !declaration.error && text(`Within-search economic uplift: ${gp(result.uplift)}. Baseline uses identical cash, inventory, tax, vial, remainder and cap rules; includes zero action. Cash surplus excludes retained value; economic gain subtracts owned liquidation opportunity cost.`, true)}
     </>}
     {card(<>
       {text('Scope: Prayer potion ordinary vials only. Mixes, oils and cups are excluded. Shared limit covers all doses; no sales reinvestment.', true)}
