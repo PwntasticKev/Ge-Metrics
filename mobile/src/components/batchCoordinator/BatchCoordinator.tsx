@@ -4,6 +4,7 @@ import { geTax, processingMethods } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
 import { NumberField } from '../NumberField'
 import { coordinateBatch } from '../../lib/batchCoordinator'
+import { calculateBatchAllowances, type BatchAllowanceResult } from '../../lib/batchAllowances'
 import { gpFull } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 
@@ -11,7 +12,7 @@ import { useTheme } from '../../theme/ThemeProvider'
 const recipes = processingMethods.flatMap(m => m.recipes.map(r => ({ ...r, group: m.title, requirements: m.requirements, description: m.description, notes: 'notes' in r && typeof r.notes === 'string' ? r.notes : null })))
   .filter(r => new Set(r.inputs.map(i => i.id)).size > 1 && [...r.inputs, ...r.outputs].every(i => Number.isSafeInteger(i.qty) && i.qty > 0))
 const parse = (text: string): number | null => {
-  const raw = text.replace(/,/g, '').trim()
+  const raw = text.trim()
   const n = Number(raw)
   return /^\d+$/.test(raw) && Number.isSafeInteger(n) && n <= 1_000_000_000 ? n : null
 }
@@ -26,10 +27,38 @@ export function BatchCoordinator () {
   const [goalText, setGoalText] = useState('100')
   const [budgetText, setBudgetText] = useState('1000000')
   const [ownedText, setOwnedText] = useState<Record<number, string>>({})
+  const [remainingText, setRemainingText] = useState<Record<number, string>>({})
   const recipe = recipes.find(r => r.id === recipeId)
   const goal = parse(goalText)
   const budget = parse(budgetText)
-  const valid = Object.values(ownedText).every(v => parse(v) !== null)
+  const inputIds = [...new Set(recipe?.inputs.map(i => i.id) ?? [])]
+  const fullLimit = (id: number): number | undefined => {
+    const limit = market.market?.get(id)?.limit
+    return typeof limit === 'number' && Number.isSafeInteger(limit) && limit > 0 ? limit : undefined
+  }
+  const valid = inputIds.every(id => parse(ownedText[id] ?? '0') !== null)
+  const allowanceErrors = inputIds.flatMap(id => {
+    const raw = remainingText[id] ?? ''
+    const remaining = parse(raw)
+    const limit = fullLimit(id)
+    if (raw.trim() !== '' && remaining === null) return [`Item #${id}: remaining must be a whole number from 0 to 1,000,000,000.`]
+    if (remaining !== null && limit !== undefined && remaining > limit) return [`Item #${id}: remaining exceeds the full mapping limit of ${gpFull(limit)}. Update your declaration; the entered value is preserved.`]
+    return []
+  })
+  let allowanceResult: BatchAllowanceResult | null = null
+  let allowanceError: string | null = null
+  if (recipe && goal !== null && valid && !allowanceErrors.length) {
+    try {
+      allowanceResult = calculateBatchAllowances(recipe.inputs, goal, Object.fromEntries(inputIds.map(id => [id, {
+        owned: parse(ownedText[id] ?? '0') ?? 0,
+        remaining: parse(remainingText[id] ?? ''),
+        knownFullLimit: fullLimit(id)
+      }])))
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error
+      allowanceError = `Cannot calculate manual allowances: ${error.message}`
+    }
+  }
   const plan = recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
     Object.fromEntries(Object.entries(ownedText).map(([id, v]) => [id, parse(v) ?? 0])),
     id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax) : null
@@ -48,7 +77,7 @@ export function BatchCoordinator () {
         {choosing && <>
           <TextInput accessibilityLabel="Search recipes" placeholder="Search curated recipes" placeholderTextColor={palette.muted} value={search} onChangeText={setSearch} style={[styles.search, text, { backgroundColor: palette.well }]} />
           <Text style={muted}>{matches.length} matches · showing first 20</Text>
-          {matches.slice(0, 20).map(r => <Pressable key={r.id} style={button} accessibilityRole="button" onPress={() => { setRecipeId(r.id); setOwnedText({}); setChoosing(false) }}><Text style={text}>{r.name} · {r.group}</Text></Pressable>)}
+          {matches.slice(0, 20).map(r => <Pressable key={r.id} style={button} accessibilityRole="button" onPress={() => { setRecipeId(r.id); setOwnedText({}); setRemainingText({}); setChoosing(false) }}><Text style={text}>{r.name} · {r.group}</Text></Pressable>)}
         </>}
         <Text style={muted}>{recipe?.requirements}</Text>
         <Text style={muted}>{recipe?.description}</Text>
@@ -59,21 +88,37 @@ export function BatchCoordinator () {
         <Text style={muted}>Additional cash available now. Fees are reserved; sale proceeds are not reinvested.</Text>
       </View>
       <View style={card}>
-        <Text style={[styles.heading, text]}>Already acquired</Text>
-        {recipe && [...new Set(recipe.inputs.map(i => i.id))].map(id => <View key={id} style={styles.ingredient}>
-          <Text style={text}>{name(id)}</Text>
+        <Text style={[styles.heading, text]}>Owned stock & manual allowances</Text>
+        {inputIds.map(id => <View key={id} style={styles.ingredient}>
+          <Text style={text}>{name(id)} · ID {id}</Text>
           <NumberField label="Owned units" value={ownedText[id] ?? '0'} onChange={v => setOwnedText(prev => ({ ...prev, [id]: v }))} />
+          <Text style={muted}>Full mapping limit: {fullLimit(id) === undefined ? 'Unknown · unverified full cap' : gpFull(fullLimit(id)!)}. Informational cap, not current remaining.</Text>
+          <NumberField label="Remaining units" value={remainingText[id] ?? ''} onChange={v => setRemainingText(prev => ({ ...prev, [id]: v }))} />
+          <Text style={muted}>Manual declaration for this purchase window · blank = unknown; 0 = none remaining.{fullLimit(id) === undefined ? ' Declaration has an unverified full cap.' : ''}</Text>
         </View>)}
-        <Text style={muted}>Enter collected ingredients manually. Open offers and uncollected slot fills are not imported.</Text>
+        <Text style={muted}>Owned stock does not consume remaining allowance. Account for prior purchases and connected limit groups yourself; independent item ID bounds may overstate what a shared group permits. Open offers and uncollected fills are not imported.</Text>
       </View>
-      {!plan && <Text style={text}>Enter whole numbers from 0 to 1,000,000,000 in every field.</Text>}
+      {allowanceErrors.map(error => <Text key={error} style={text}>{error}</Text>)}
+      {allowanceError && <Text style={text}>{allowanceError}</Text>}
+      {allowanceResult && <View style={card}>
+        <Text style={[styles.heading, text]}>Declared ingredient allowances only</Text>
+        <Text style={{ color: palette.brand }}>{allowanceResult.status === 'feasible' ? 'Goal fits declared allowances' : allowanceResult.status === 'blocked' ? 'Goal blocked by declared allowances' : 'Goal allowance fit unknown'}</Text>
+        <Text style={text}>{allowanceResult.maxActions.kind === 'unknown' ? 'Maximum batches: unknown' : `${allowanceResult.maxActions.kind === 'exact' ? 'Exact maximum' : 'Known upper bound'}: ${gpFull(allowanceResult.maxActions.value)} batches under these ingredient declarations`}</Text>
+        {allowanceResult.ingredients.map(i => <View key={i.id} style={styles.ingredient}>
+          <Text style={text}>{name(i.id)} · ID {i.id}</Text>
+          <Text style={text}>Remaining: {i.remaining === null ? 'Unknown' : gpFull(i.remaining)} · shopping: {gpFull(i.shopping)} · shortfall: {i.knownShortfall === null ? 'Unknown' : gpFull(i.knownShortfall)}</Text>
+          <Text style={muted}>{i.status === 'enough' ? 'Goal covered by owned stock and declared allowance' : i.status === 'exceeds' ? 'Shopping exceeds declared remaining' : 'Shopping allowance unknown'}</Text>
+        </View>)}
+        <Text style={muted}>Ingredient bounds only, independent of cash. This does not establish an executable combined goal or promise fills, resets or reinvestment. Refreshing quotes never refills or resets declarations.</Text>
+      </View>}
+      {!plan && <Text style={text}>Enter whole numbers from 0 to 1,000,000,000 for goal, cash and owned units. Remaining may be blank for unknown. Use digits only; no commas or decimals.</Text>}
       {plan && <>
         <View style={card}>
           <Text style={[styles.heading, { color: palette.brand }]}>{gpFull(plan.complete)} / {gpFull(goal ?? 0)} batches ready from inventory</Text>
           <Text style={text}>Ingredient bottleneck: {plan.bottlenecks.length ? plan.bottlenecks.map(name).join(', ') : 'Goal covered'}</Text>
-          <Text style={text}>Batches affordable after shopping: {plan.affordable === null ? 'Unknown — missing prices' : gpFull(plan.affordable)}</Text>
+          <Text style={text}>Cash-only batches affordable after shopping: {plan.affordable === null ? 'Unknown — missing prices' : gpFull(plan.affordable)}</Text>
           <Text style={text}>Cash still needed for full goal: {money(plan.cashNeeded)}</Text>
-          <Text style={muted}>{plan.cashNeeded === null ? 'Missing input quotes prevent a cash estimate.' : plan.cashNeeded > (budget ?? 0) ? `Budget shortfall: ${money(plan.cashNeeded - (budget ?? 0))}` : 'Full goal fits the budget at these quotes.'}</Text>
+          <Text style={muted}>{plan.cashNeeded === null ? 'Missing input quotes prevent a cash estimate.' : plan.cashNeeded > (budget ?? 0) ? `Budget shortfall: ${money(plan.cashNeeded - (budget ?? 0))}` : 'Full goal fits the cash budget at these quotes; ingredient allowances are assessed separately.'}</Text>
           <Text style={muted}>Processing fees included: {money(plan.fees)}</Text>
         </View>
         <View style={card}>
@@ -95,7 +140,7 @@ export function BatchCoordinator () {
           <Text style={muted}>Owned inputs have value. Historical purchase cost is not tracked. Replacement value uses current observed high prices. This is a quote-based scenario, not measured profit.</Text>
         </View>
       </>}
-      <Text style={muted}>Inputs use observed high prices; outputs use observed low prices with per-item GE tax. Quotes can be stale and do not guarantee fills. Buy limits, travel, processing time and fill times are not modeled. Check skill and membership requirements before acting.</Text>
+      <Text style={muted}>Inputs use observed high prices; outputs use observed low prices with per-item GE tax. Quotes can be stale and do not guarantee fills. Buy allowances use manual independent item bounds with no automatic purchase or reset sync. Travel, processing time and fill times are not modeled. Check skill and membership requirements before acting.</Text>
       <Text style={muted}>{market.updatedAt ? `Quotes downloaded ${new Date(market.updatedAt).toLocaleTimeString()}` : market.isLoading ? 'Loading quotes…' : 'Quotes unavailable.'}{market.error ? ' Refresh failed; cached quotes may be shown.' : ''}</Text>
       <Pressable style={button} accessibilityRole="button" onPress={market.refresh}><Text style={{ color: palette.brand }}>{market.isRefreshing ? 'Refreshing…' : 'Refresh quotes'}</Text></Pressable>
       <Text style={muted}>Scenario stays on this screen only.</Text>
