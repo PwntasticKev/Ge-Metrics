@@ -1,0 +1,39 @@
+# GE Metrics read-only RuneLite scaffold
+
+This independent Java 11 source tree does **not** replace or enable the legacy `../runelite-plugin` implementation. It is a review scaffold, disabled by default, not a Plugin Hub-ready release. No app imports, journal/capital mutations, or automatic transfer are implemented.
+
+Run `./build.sh` with JDK 11+ and curl. This fetches six pinned, SHA-256-checked compile/test jars into `.deps`, compiles production against the real RuneLite 1.13.4 binaries, runs executable tests, and creates `target/ge-metrics-evidence-0.1.0-scaffold.jar`. Dependencies are supplied by RuneLite at runtime, not bundled. `./test-core.sh` needs only a JDK. No Gradle/Maven installation, game client launch, native cache, full repository checkout, or history download is required. Checksums record the binaries verified during implementation; they are reproducibility checks, not independently signed attestations.
+
+The source follows `../.claude/runelite-feasibility.md` (at the task workspace root). The proposed wire format is still under parallel contract review; the parent must align field names/envelope before integrating an importer.
+
+## Behavior
+
+- Copies GE primitive counters on callbacks. All game interaction remains manual.
+- Pure, immutable reducer suppresses duplicate live snapshots. A first populated offer is a baseline. Continuous compatible observations expose exact aggregate quantity/raw-spent deltas; no limit-price substitution, fractional-average rounding, or invented execution timestamps.
+- `EMPTY` never establishes collection. The live adapter treats **every** empty as uncertain because initialization has no verified completion barrier, retains stale populated evidence, and starts a new inferred lifecycle on the next populated observation. Terminal-to-active changes, incompatible offers and counter regression also create new inferred lifecycles. No negative deltas.
+- Every reconnect/session/profile boundary starts a fresh inferred lifecycle with `GAP` and no derived fill delta. Identical slot/item/price/quantity cannot establish continuity across offline replacement. Raw counters remain available for reconciliation.
+- Attribution requires current account hash to match a registered RuneScape profile and current profile type; configuration-profile ID is also part of the private key. Unresolved context skips capture and resets continuity. Display names are unused. UUID account scopes are generated randomly and persisted with the first observation. Account hashes/profile keys stay in the private local log and are never included in exports.
+- Single bounded writer (256 queued tasks), exclusive file lock, immutable append records, force-before-state-publication, sequential replay. Durable `sourceId:seq` IDs are generated before append and reconstructed on recovery; export never generates IDs. Sequence and GP values are decimal strings in exports.
+- Startup replays the log; a damaged/non-newline-terminated tail blocks capture. No automatic truncation, reset, or source replacement. IO failure, malformed input or queue overflow blocks further capture/export for that run. Preserve the file for manual recovery.
+- Minimal toolbar panel shows the latest persisted observation and uncertainty. Explicit **Export current account JSON** exports the whole retained history for the captured current scope. Other scopes stay out. Existing destination files are never overwritten. JSON includes explicit nulls, source/sequence IDs, scope metadata, retained singleton ranges and uncertainty markers. No HTTP, local server, networking library, credentials, subprocess, reflection or gameplay automation is used by production code.
+
+Private storage: RuneLite `getPluginDirectory()/observations-v1.jsonl`. All production filesystem access is through approved `Filepath` APIs. Injected Gson handles serialization. `Filepath.Unchecked` appears **only in the filesystem test** to root a temporary directory under `target`.
+
+## Limits requiring follow-up before release
+
+- No in-game/manual QA was performed. Event ordering, profile initialization, Swing lifecycle and client shutdown need real-client verification. Compile success is not proof of Plugin Hub approval or correct runtime behavior.
+- This is fail-closed crash handling, not automatic crash repair. A torn tail requires reviewed recovery tooling. `force(true)` does not guarantee directory-entry durability on every filesystem/power-loss scenario. Deleting/replacing the local log loses its source identity; no backup/restore or multi-installation transaction deduplication is promised.
+- Stops at 10,000 events or 16 MiB; no rotation, pruning, checkpointing, historical migration or date-range selector. Full history is replayed at startup. Queue/shutdown loss is represented by fresh baselines on restart, not precisely timed gap intervals. Retained ranges describe persisted source sequences, not complete game coverage.
+- Callback-only capture can miss offers already present when enabling the plugin mid-session. Initialization/teardown callbacks outside `LOGGED_IN` are skipped. There is no authoritative empty barrier or server lifecycle/transaction ID. Same-looking offers replaced between callbacks can remain indistinguishable; inferred IDs are not game IDs.
+- Export errors stop this run conservatively; a partial newly created export can remain and must not be imported. No overwrite/atomic export replacement. Logout clears account selection; export while logged out is intentionally unavailable. No account picker or player collection confirmation UI.
+- `spent` remains the API's raw cumulative value. Tax/net semantics are unvalidated. Collection is always `UNKNOWN`; no collection, cash, capital, individual fill price, execution time or profit is inferred. `observedAt` is capture time only.
+- Tests cover Java core and real-file recovery/locking. The parent still owns full repository lint/typecheck/unit checks and importer/contract review. No JavaScript/mobile files were changed or checked by this scoped task.
+
+## API/source verification (2026-10-26)
+
+- [Repository metadata](https://repo.runelite.net/net/runelite/client/maven-metadata.xml) reported release `1.13.4` (not `latest.release`). Build is pinned to that release.
+- [1.13.4 offer source](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-api/src/main/java/net/runelite/api/GrandExchangeOffer.java): `getPrice()` and `getSpent()` are `long`; quantities are cumulative `int`.
+- [Event initialization caveat](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-api/src/main/java/net/runelite/api/events/GrandExchangeOfferChanged.java).
+- [Approved Filepath](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-client/src/main/java/net/runelite/client/util/Filepath.java), [plugin directory](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-client/src/main/java/net/runelite/client/plugins/Plugin.java), [toolbar pattern](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-client/src/main/java/net/runelite/client/plugins/grandexchange/GrandExchangePlugin.java).
+- [ConfigManager](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-client/src/main/java/net/runelite/client/config/ConfigManager.java) and [profile model](https://github.com/runelite/runelite/blob/runelite-parent-1.13.4/runelite-client/src/main/java/net/runelite/client/config/RuneScapeProfile.java). Profile APIs, toolbar, Filepath and long counters were also checked with `javap` against the pinned jars.
+- [Official example build](https://github.com/runelite/example-plugin/blob/master/build.gradle), [current restrictions](https://github.com/runelite/runelite/wiki/Rejected-or-Rolled-Back-Features). Runtime uses RuneLite's injected Gson; tests deliberately use RuneLite's published Gson dependency version (2.8.5).
