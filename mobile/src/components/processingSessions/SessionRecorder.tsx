@@ -9,6 +9,7 @@ import { pendingSessions, recoveryDrafts, processingSessionRepository } from './
 import { asRecorder, interruptTimer, completeQuantities, confirmActuals, makeId, parseWhole, transition, type Actuals, type RecorderSession, type TimerAction } from './model'
 
 import { InitialPlan } from './InitialPlan'
+import { PlanComparison } from './PlanComparison'
 import { isInitiallyUnsaved } from './planLifecycle'
 import { ProfitExplanation } from './ProfitExplanation'
 import { canExplainCommitted, committedExplanationSnapshot } from './explanationSelection'
@@ -240,7 +241,10 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
       <Text style={{ color: p.ink }}>Recorded pace: {d.actionsPerHour === null ? 'Unknown' : `${d.actionsPerHour.toFixed(1)} actions / active hour`}</Text>
       {session.recorder.outputs.map(o => <Text key={o.id} style={{ color: p.muted }}>{o.item.name}: {o.producedQty === null || d.activeMs === null || d.activeMs === 0 ? 'Unknown output pace' : `${(o.producedQty * 3_600_000 / d.activeMs).toFixed(1)} / active hour`}</Text>)}
     </View>
-    {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel }) ? <InitialPlan key={`plan:${session.id}:${session.revision}`} session={explanationCommitted!} now={now} /> : <Text style={{ color: p.muted }}>Initial quote plan evidence is hidden while this snapshot is unsaved, being edited, or in recovery. Save and review the committed snapshot first.</Text>}
+    {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel }) ? <View style={{ gap: 12 }}>
+      <InitialPlan key={`plan:${session.id}:${session.revision}`} session={explanationCommitted!} now={now} />
+      <PlanComparison key={`comparison:${session.id}:${session.revision}`} session={explanationCommitted!} now={now} />
+    </View> : <Text style={{ color: p.muted }}>Initial quote plan evidence is hidden while this snapshot is unsaved, being edited, or in recovery. Save and review the committed snapshot first.</Text>}
     <View style={[styles.card, { backgroundColor: p.card }]}>
       <Text style={[styles.heading, { color: p.ink }]}>Cash and inventory</Text>
       {!complete && <Text style={{ color: p.muted }}>Input / output quantities are unconfirmed. Confirm them in actuals before inventory, outlay or final profit can be resolved.</Text>}
