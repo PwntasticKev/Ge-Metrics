@@ -58,7 +58,7 @@ export function BatchCoordinator () {
   }
   const opportunity = ownedOpportunity(recipe, goal, budget, ownedText, id => market.market?.get(id), geTax)
   const comparison = opportunity.kind === 'ready' ? opportunity.result : null
-  const plan = opportunity.kind === 'ready' && recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
+  const plan = recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
     Object.fromEntries(inputIds.map(id => [id, parse(ownedText[id] ?? '0') ?? 0])),
     id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax) : null
   const name = (id: number) => market.market?.get(id)?.name ?? `Item #${id}`
