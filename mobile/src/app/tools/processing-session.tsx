@@ -8,6 +8,7 @@ import { useTheme } from '../../theme/ThemeProvider'
 import { pendingSessions, processingSessionRepository } from '../../components/processingSessions/repository'
 import { asRecorder, newSession, type RecorderSession } from '../../components/processingSessions/model'
 import { snapshotRecipe } from '../../components/processingSessions/recipe'
+import { committedExplanationSnapshot } from '../../components/processingSessions/explanationSelection'
 import { SessionRecorder } from '../../components/processingSessions/SessionRecorder'
 
 function Message({ text }: { text: string }) {
@@ -18,6 +19,7 @@ function SavedSession({ id }: { id: string }) {
   const [session, setSession] = useState<RecorderSession | null>(null)
   const [committed, setCommitted] = useState<RecorderSession | undefined>(undefined)
   const [error, setError] = useState('')
+  const [explanationSnapshot, setExplanationSnapshot] = useState<RecorderSession | null>(null)
   useEffect(() => {
     let live = true
     processingSessionRepository.load().then(result => {
@@ -25,6 +27,7 @@ function SavedSession({ id }: { id: string }) {
       if (!result.ok) { setError(`Cannot load session: ${result.error.message}`); return }
       const found = result.sessions.find(s => s.id === id)
       if (!found) { setError('This session is unavailable. Saved records have not been changed.'); return }
+      setExplanationSnapshot(committedExplanationSnapshot(result, id))
       const saved = asRecorder(found)
       setCommitted(saved)
       const pending = pendingSessions.get(id)
@@ -32,7 +35,7 @@ function SavedSession({ id }: { id: string }) {
     })
     return () => { live = false }
   }, [id])
-  return session ? <SessionRecorder initial={session} committed={committed} /> : <Message text={error || 'Loading saved session…'} />
+  return session ? <SessionRecorder initial={session} committed={committed} explanationSnapshot={explanationSnapshot} /> : <Message text={error || 'Loading saved session…'} />
 }
 function NewSession({ market, method, recipeid }: { market: Market; method?: string; recipeid?: string }) {
   const [result] = useState(() => {
