@@ -12,6 +12,8 @@ import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode 
 import { gpFull, gpShort, minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useSettings } from '../../state/settings'
+import { RecentSessions } from '../processingSessions/RecentSessions'
+import { recorderUnavailableReason } from '../processingSessions/recipe'
 
 const MODES = [{ value: 'instant', label: 'Instant' }, { value: 'patient', label: 'Patient' }] as const
 const SCENARIOS = [ ['instant', 'instant'], ['instant', 'patient'], ['patient', 'instant'], ['patient', 'patient'] ] as const
@@ -65,6 +67,7 @@ export function ProcessingLab () {
     data={rows} keyExtractor={r => r.recipe.id} extraData={open}
     refreshControl={<RefreshControl refreshing={market.isRefreshing || averages.isRefreshing} onRefresh={refresh} tintColor={p.brand} />}
     ListHeaderComponent={<View style={styles.header}>
+      <RecentSessions />
       <Text style={[styles.title, text]}>What can this session earn?</Text>
       <Text style={muted}>Compare one upfront batch across the existing processing recipes. Each row uses the whole cash stack independently.</Text>
       <NumberField label="Cash (GP)" value={cash} onChange={setCash} />
@@ -96,6 +99,7 @@ export function ProcessingLab () {
           <Text style={muted}>{r.batch.actions === null ? 'No trusted rate: no session or hourly estimate' : `${r.batch.actions.toLocaleString()} actions · ${gpShort(r.batch.capital)} GP upfront · ${r.batch.bottlenecks.join(' + ')} capped`}</Text>
         </Pressable>
         {expanded && <View style={styles.detail}>
+          {recorderUnavailableReason(r.recipe) ? <Text style={muted}>{recorderUnavailableReason(r.recipe)}</Text> : <Link href={{ pathname: './processing-session', params: { recipeid: r.recipe.id, method: r.method.key } }} style={{ color: p.brand, paddingVertical: 12, fontWeight: '600' }}>Record actual session</Link>}
           <Text style={text}>Each action: {gpFull(r.flip.cost)} GP cost → {gpFull(r.flip.revenue)} GP gross; {gpFull(r.flip.tax)} GP tax.</Text>
           <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>
           <Text style={muted}>{r.recipe.actionsPerHour ? `Curated rate: ${r.recipe.actionsPerHour.toLocaleString()} actions/h. Active processing: ${((r.batch.actions ?? 0) / r.recipe.actionsPerHour * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>
