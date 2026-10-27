@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { evaluateProductionRoutes, productionRoutes, type RouteRequest } from '../productionRoutes.ts'
+import { evaluateProductionRoutes, evaluateProductionRoutesSafely, productionRoutes, type RouteRequest } from '../productionRoutes.ts'
 const enginePath = '../../../../src/domain/flipping/geTax.js'
 const { geTax } = await import(enginePath) as { geTax: RouteRequest['tax'] }
 const steel = productionRoutes.find(r => r.id === 'steel')!
@@ -105,4 +105,66 @@ test('invalid finished buy quote never becomes free acquisition', () => {
     assert.deepEqual(r.acquisitionBaseline.missingQuotes, [{ id: 2, side: 'buy' }])
   }
   assert.equal(evaluateProductionRoutes({ ...base, batches: 0, quotes: [] }).acquisitionBaseline.cashOutlay, 0)
+})
+
+test('rejects the owned ranarr cancellation regression before rounded wealth is reported', () => {
+  const batches = 999999999999
+  const request: RouteRequest = { route: productionRoutes[0], batches, budget: 0, owned: { 207: batches, 227: batches }, tax: geTax,
+    quotes: [[207, 10002, 10001], [257, 10003, 10002], [227, 2, 1], [99, 10003, 10002]].map(([id, buy, sell]) => ({ id, buy, sell, remainingLimit: 0 })) }
+  assert.equal(geTax(10001, 207), 200)
+  assert.equal(geTax(1, 227), 0)
+  const exactOwnedCost = (10001n - 200n + 1n) * BigInt(batches)
+  assert.equal(exactOwnedCost, 9801999999990198n)
+  assert.equal((10002n - 200n) * BigInt(batches) - exactOwnedCost, 0n)
+  const roundedOwnedCost = (10001 - 200) * batches + batches
+  assert.equal(roundedOwnedCost, 9801999999990200)
+  assert.equal(10002 * batches - 200 * batches - roundedOwnedCost, -2)
+  const safe = evaluateProductionRoutesSafely(request)
+  assert.deepEqual(safe.plans.slice(0, 3), [null, null, null])
+  assert.equal(safe.plans[3]!.economicGain, 0)
+  assert.equal(safe.acquisitionBaseline, null)
+  assert.throws(() => evaluateProductionRoutes(request), RangeError)
+})
+
+test('independent comparisons survive unsafe intermediate exit and direct acquisition', () => {
+  const request = { ...base, route: productionRoutes[0], batches: 2, quotes: [
+    { id: 207, buy: 1, sell: 1 }, { id: 227, buy: 1, sell: 1 },
+    { id: 257, buy: 1, sell: Number.MAX_SAFE_INTEGER }, { id: 99, buy: Number.MAX_SAFE_INTEGER, sell: 1 }
+  ] }
+  const r = evaluateProductionRoutesSafely(request)
+  assert.equal(r.plans[0]!.economicGain, -2)
+  assert.equal(r.plans[1]!.economicGain, -2)
+  assert.equal(r.plans[2], null)
+  assert.equal(r.acquisitionBaseline, null)
+  assert.throws(() => evaluateProductionRoutes(request), RangeError)
+})
+
+test('whole GP boundary is inclusive; gross and taxes are checked before cancellation', () => {
+  const request = { ...base, route: productionRoutes[0], batches: 1, owned: { 207: 1, 227: 1 },
+    quotes: [207, 257, 227, 99].map(id => ({ id, buy: 1, sell: id === 99 ? Number.MAX_SAFE_INTEGER : 1 })), tax: () => 0 }
+  assert.equal(full(request).grossRevenue, Number.MAX_SAFE_INTEGER)
+  assert.throws(() => full({ ...request, batches: 2, owned: { 207: 2, 227: 2 }, tax: price => price - 1 }), RangeError)
+  assert.throws(() => full({ ...request, tax: () => .5 }), RangeError)
+  assert.throws(() => full({ ...request, tax: () => Number.MAX_SAFE_INTEGER + 1 }), RangeError)
+})
+
+test('known purchase subtotals and products are checked with missing dependent quotes', () => {
+  assert.throws(() => evaluateProductionRoutes({ ...base, batches: 1, quotes: [
+    { id: 440, buy: Number.MAX_SAFE_INTEGER, sell: 1 }, { id: 453, buy: 1, sell: 1 }
+  ] }), RangeError)
+  assert.throws(() => evaluateProductionRoutes({ ...base, batches: 2, quotes: [{ id: 440, buy: Number.MAX_SAFE_INTEGER, sell: 1 }] }), RangeError)
+})
+
+test('owned gross, tax and known subtotals are checked despite missing opportunity quotes', () => {
+  const request = { ...base, batches: 1, owned: { 440: 1, 453: 2 }, tax: () => 0,
+    quotes: [{ id: 440, buy: 1, sell: Number.MAX_SAFE_INTEGER }, { id: 453, buy: 1, sell: 1 }] }
+  assert.throws(() => evaluateProductionRoutes(request), RangeError)
+  assert.throws(() => evaluateProductionRoutes({ ...request, batches: 2, owned: { 440: 2, 453: 4 }, quotes: [{ id: 453, buy: 1, sell: Number.MAX_SAFE_INTEGER }] }), RangeError)
+  assert.throws(() => evaluateProductionRoutes({ ...request, tax: () => Number.MAX_SAFE_INTEGER }), RangeError)
+})
+
+test('zero batches ignore unused extreme quotes', () => {
+  const r = evaluateProductionRoutes({ ...base, batches: 0, quotes: base.quotes.map(q => ({ ...q, buy: Number.MAX_VALUE, sell: Number.MAX_VALUE })), tax: () => 0 })
+  assert.ok(r.plans.every(p => p.economicGain === 0))
+  assert.equal(r.acquisitionBaseline.cashOutlay, 0)
 })

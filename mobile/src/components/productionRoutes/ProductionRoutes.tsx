@@ -4,7 +4,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, Vie
 import { Link } from 'expo-router'
 import { geTax } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
-import { evaluateProductionRoutes, productionRoutes, type RoutePlan } from '../../lib/productionRoutes'
+import { evaluateProductionRoutesSafely, safeRouteMoney, productionRoutes, type RoutePlan } from '../../lib/productionRoutes'
 import { gpFull, minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 
@@ -37,10 +37,17 @@ export function ProductionRoutes () {
     const item = market.market?.get(id)
     return { id, buy: item?.high ?? null, sell: item?.low ?? null, remainingLimit: remainingAllowance(limits[id], item?.limit).value }
   })
-  const result = valid ? evaluateProductionRoutes({ route, batches: batchValue!, budget: cashValue!, quotes, owned: Object.fromEntries(inputIds.map(id => [id, parse(owned[id] ?? '0')!])), tax: geTax }) : null
+  const result = valid ? evaluateProductionRoutesSafely({ route, batches: batchValue!, budget: cashValue!, quotes, owned: Object.fromEntries(inputIds.map(id => [id, parse(owned[id] ?? '0')!])), tax: geTax }) : null
+  const baseline = result?.acquisitionBaseline
   const full = result?.plans[0]
   const exit = result?.plans[2]
-  const difference = full?.economicGain != null && exit?.economicGain != null ? full.economicGain - exit.economicGain : null
+  const safeMoney = (compute: () => number) => {
+    try { return safeRouteMoney(compute()) } catch (error) {
+      if (!(error instanceof RangeError)) throw error
+      return null
+    }
+  }
+  const difference = full?.economicGain != null && exit?.economicGain != null ? safeMoney(() => full.economicGain! - exit.economicGain!) : null
   const text = (value: string, muted = false) => <Text style={{ color: muted ? p.muted : p.ink, lineHeight: 21 }}>{value}</Text>
   const button = (label: string, onPress: () => void, open?: boolean) => <Pressable accessibilityRole="button" accessibilityState={open === undefined ? undefined : { expanded: open }} onPress={onPress} style={s.button}><Text style={{ color: p.brand, fontWeight: '600' }}>{label}</Text></Pressable>
   const field = (label: string, value: string, onChangeText: (value: string) => void, placeholder?: string) => <View style={s.field}><Text style={{ color: p.muted, flex: 1 }}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} keyboardType="number-pad" placeholder={placeholder} placeholderTextColor={p.muted} selectTextOnFocus style={[s.input, { color: p.ink, backgroundColor: p.well }]} /></View>
@@ -50,7 +57,15 @@ export function ProductionRoutes () {
       if (!r.ownedLeft) continue
       const price = quotes.find(q => q.id === r.id)?.sell
       if (price == null || price <= 0) return null
-      total += (price - geTax(price, r.id)) * r.ownedLeft
+      const next = safeMoney(() => {
+        safeRouteMoney(price)
+        safeRouteMoney(price * r.ownedLeft)
+        const tax = safeRouteMoney(geTax(price, r.id))
+        safeRouteMoney(tax * r.ownedLeft)
+        return total + safeRouteMoney((price - tax) * r.ownedLeft)
+      })
+      if (next === null) return null
+      total = next
     }
     return total
   }
@@ -79,7 +94,7 @@ export function ProductionRoutes () {
       return <View key={q.id} style={s.detail}>{text(names[q.id])}{text(`Buy high: ${money(q.buy)} · ${minutesAgo(item?.highTime ? item.highTime * 1000 : null) || 'age unknown'}`, true)}{text(`Sell low: ${money(q.sell)} · ${minutesAgo(item?.lowTime ? item.lowTime * 1000 : null) || 'age unknown'}`, true)}</View>
     })}</View>}
     {result && <>
-      {result.plans.slice(0, 3).map(plan => <View key={plan.kind} style={[s.card, { backgroundColor: p.card }]}>
+      {result.plans.slice(0, 3).map((plan, index) => plan === null ? <View key={index} style={[s.card, { backgroundColor: p.card }]}>{text(titles[['full-chain', 'finish', 'intermediate-exit'][index]])}{text('Unavailable: amounts exceed safe whole GP arithmetic. Reduce quantities to compare this scenario.', true)}</View> : <View key={plan.kind} style={[s.card, { backgroundColor: p.card }]}>
         <Text style={[s.heading, { color: p.ink }]}>{titles[plan.kind]}</Text>
         {text(`Sell ${gpFull(plan.ledger.find(r => r.sold > 0)?.sold ?? 0)} × ${names[plan.kind === 'intermediate-exit' ? route.stages[0].output.id : route.stages[1].output.id]}`, true)}
         <Text style={[s.gain, { color: p.profit }]}>{money(plan.economicGain)}</Text>{text('Economic gain after tax and owned stock cost', true)}
@@ -97,7 +112,7 @@ export function ProductionRoutes () {
         </View>}
       </View>)}
       <View style={[s.card, { backgroundColor: p.card }]}><Text style={[s.heading, { color: p.ink }]}>Continue or exit?</Text>{text(`Full-chain economic gain minus intermediate-exit economic gain: ${money(difference)}.`)}{text(`Under these quotes, quantities and owned stock, this is the modeled change from processing through to the final output instead of selling the intermediate. Outputs differ${selected === 'steel' ? ' (4 cannonballs versus 1 bar per batch)' : ' (unfinished potion versus clean herb)'}. Scenarios may consume different owned assets; this is not a strict dominance claim. Missing prices, limits or requirements can prevent execution.`, true)}</View>
-      <View style={[s.card, { backgroundColor: p.card }]}><Text style={[s.heading, { color: p.ink }]}>Finished purchase baseline</Text>{text(`Acquire ${gpFull(result.acquisitionBaseline.quantity)} × ${names[result.acquisitionBaseline.id]}: ${money(result.acquisitionBaseline.cashOutlay)}`)}{text('Acquisition cost only, not profit. No sale is assumed; owned inputs remain retained. The purchase must independently fit cash and the finished item’s remaining limit.', true)}{text(`Cash: ${feasible(result.acquisitionBaseline.cashOutlay === null ? null : result.acquisitionBaseline.cashOutlay <= cashValue!)} · GE limit: ${feasible(quotes.find(q => q.id === result.acquisitionBaseline.id)?.remainingLimit == null ? null : result.acquisitionBaseline.quantity <= quotes.find(q => q.id === result.acquisitionBaseline.id)!.remainingLimit!)}`, true)}</View>
+      {baseline ? <View style={[s.card, { backgroundColor: p.card }]}><Text style={[s.heading, { color: p.ink }]}>Finished purchase baseline</Text>{text(`Acquire ${gpFull(baseline.quantity)} × ${names[baseline.id]}: ${money(baseline.cashOutlay)}`)}{text('Acquisition cost only, not profit. No sale is assumed; owned inputs remain retained. The purchase must independently fit cash and the finished item’s remaining limit.', true)}{text(`Cash: ${feasible(baseline.cashOutlay === null ? null : baseline.cashOutlay <= cashValue!)} · GE limit: ${feasible(quotes.find(q => q.id === baseline.id)?.remainingLimit == null ? null : baseline.quantity <= quotes.find(q => q.id === baseline.id)!.remainingLimit!)}`, true)}</View> : text('Finished purchase baseline unavailable: amounts exceed safe whole GP arithmetic.', true)}
     </>}
     <View style={[s.card, { backgroundColor: p.card }]}><Text style={[s.heading, { color: p.ink }]}>Requirements & assumptions</Text>{text(requirements[selected])}{sources[selected].map(source => <Link key={source} href={`https://oldschool.runescape.wiki/w/${source}`} style={{ color: p.brand, paddingVertical: 6 }}>Wiki: {source.replace(/_/g, ' ')}</Link>)}{text('Economic gain = net output proceeds − cash outlay − after-tax liquidation value of consumed owned stock. Owned leftovers retain their value. Each scenario uses the same starting cash and inventory independently; no sale reinvestment, internal transfer tax or intermediate sale inside the full chain. Equipment, travel and execution time are excluded. Shared limits and earlier purchases must be reflected in your entries. Requirements are informational and are not checked against your account.', true)}</View>
   </ScrollView>
