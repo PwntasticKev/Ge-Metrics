@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import { AppState } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import { createMarketClock, withMarketTime } from './marketClock'
 import { useQuery } from '@tanstack/react-query'
 import { createMarketFromWiki, type Market } from '@ge/engine'
@@ -16,8 +16,8 @@ const marketClock = createMarketClock({
   },
   listen: resync => {
     const change = AppState.addEventListener('change', resync)
-    const focus = AppState.addEventListener('focus', resync)
-    return () => { change.remove(); focus.remove() }
+    const focus = Platform.OS === 'android' ? AppState.addEventListener('focus', resync) : null
+    return () => { change.remove(); focus?.remove() }
   }
 })
 const MAPPING_STALE_MS = 6 * 60 * 60 * 1000
