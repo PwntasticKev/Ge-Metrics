@@ -1,3 +1,5 @@
+import { decodeProcessingSessions } from '../processingSessionStorage.ts'
+import { recordedPaceSnapshot } from '../../components/recordedPace/adapter.ts'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { summarizeRecordedPace } from '../recordedPace.ts'
@@ -47,4 +49,55 @@ test('bounds end dates inclusively and excludes future processing and external t
 test('invalid recorder extensions and invalid intervals cannot contribute', () => {
   const malformed = { ...session(), recorder: {} }
   assert.equal(summary([malformed, session({ pauses: [{ id: 'p', startedAt: now, endedAt: now + 1, reason: 'ge_wait' }] })]).exclusionCounts.invalid_record, 2)
+})
+
+// Exercise the real durable decode: its public sessions list is last-wins.
+function durable(rows: unknown[]) {
+  const decoded = decodeProcessingSessions(JSON.stringify({ version: 1, sessions: rows }))
+  if (!decoded.ok) throw decoded.error
+  assert.equal(decoded.ok, true)
+  return recordedPaceSnapshot(decoded)
+}
+test('durable conflicting IDs never supply pace in either order', () => {
+  const copies = [session(), session({ actionsCompleted: 10000 })]
+  for (const rows of [copies, [...copies].reverse()]) {
+    const result = durable(rows)
+    assert.equal(summary(result.sessions).actionsPerHour, null)
+    assert.equal(result.excludedCount, 2)
+  }
+})
+test('durable identical copies count once despite object key order', () => {
+  const original = session()
+  const reordered = Object.fromEntries(Object.entries(original).reverse())
+  const result = durable([original, reordered])
+  assert.equal(summary(result.sessions).sampleCount, 1)
+  assert.equal(result.excludedCount, 0)
+})
+test('malformed same-ID copy excludes all copies without double counting unreadables', () => {
+  const result = durable([session(), { ...session(), actionsCompleted: -1 }, null, session({ id: 'unrelated' })])
+  assert.equal(summary(result.sessions).sampleCount, 1)
+  assert.equal(result.sessions[0].id, 'unrelated')
+  assert.equal(result.excludedCount, 3)
+})
+test('durable pace accepts ended confirmed sessions with unknown financials', () => {
+  const result = durable([session()])
+  assert.equal(summary(result.sessions).actionsPerHour, 100)
+})
+test('retained fields and revisions participate in durable conflicts', () => {
+  for (const extra of [{ revision: 1 }, { retained: { value: 2 } }]) {
+    assert.equal(durable([session(), { ...session(), ...extra }]).sessions.length, 0)
+  }
+})
+
+test('invalid cyclic and deep retained data cannot compromise unrelated rows', () => {
+  const decoded = decodeProcessingSessions(JSON.stringify({ version: 1, sessions: [session({ id: 'safe' })] }))
+  if (!decoded.ok) throw decoded.error
+  const cyclic: Record<string, unknown> = { ...session(), retained: null }
+  cyclic.retained = cyclic
+  let deep: unknown = null
+  for (let i = 0; i < 110; i++) deep = { nested: deep }
+  decoded.document.sessions.push(cyclic, { ...session(), id: 'deep', retained: deep })
+  const result = recordedPaceSnapshot(decoded)
+  assert.deepEqual(result.sessions.map(row => row.id), ['safe'])
+  assert.equal(result.excludedCount, 2)
 })

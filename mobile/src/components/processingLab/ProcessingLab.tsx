@@ -90,7 +90,7 @@ export function ProcessingLab () {
       .filter(r => `${r.method.title} ${r.flip.name}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => (b.batch.earnings ?? b.flip.profit) - (a.batch.earnings ?? a.flip.profit))
   }, [catalog, market.market, valid, inputs, outputs, averages.h24, settings, cashValue, minutesValue, untimed, query, pace.choices])
-  const refresh = () => { market.refresh(); averages.refresh(); pace.refresh() }
+  const refresh = () => { pace.refresh(); market.refresh(); averages.refresh() }
   const text = { color: p.ink }
   const muted = { color: p.muted }
   const scenario = (recipe: ProcessRecipe, buy: PriceMode, sell: PriceMode, rate: number | null) => {
@@ -109,7 +109,8 @@ export function ProcessingLab () {
     ListHeaderComponent={<View style={styles.header}>
       <RecentSessions />
       {!!pace.message && <Text style={muted}>{pace.message}</Text>}
-      <Text style={muted}>Curated rates by default. Choose recorded pace per recipe to rerank this comparison only. Returning or refreshing resets choices.</Text>
+      <Text style={muted}>Curated rates by default. Choose recorded pace per recipe to rerank this comparison only. Returning or manually refreshing resets choices. Automatic quote updates keep your choices.</Text>
+      <Pressable accessibilityRole="button" onPress={refresh}><Text style={{ color: p.brand }}>Refresh quotes and reset pace</Text></Pressable>
       {Object.keys(pace.choices).length > 0 && <Pressable accessibilityRole="button" onPress={() => pace.setChoices({})}><Text style={{ color: p.brand }}>Reset all rates to curated</Text></Pressable>}
       <Text style={[styles.title, text]}>What can this session earn?</Text>
       <Text style={muted}>Compare one upfront batch across the existing processing recipes. Each row uses the whole cash stack independently.</Text>
