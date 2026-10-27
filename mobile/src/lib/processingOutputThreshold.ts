@@ -39,11 +39,13 @@ export function processingOutputThreshold (recipe: ProcessRecipe, market: Market
   // coin field or conditional fee is silently interpreted as zero.
   const cost = n * BigInt(buy)
   const unit = BigInt(sell) - BigInt(tax)
+  const fullGross = n * BigInt(sell)
+  const scenarioGross = scenario === null ? null : BigInt(scenario) * BigInt(sell)
   const fullRevenue = n * unit
   const fullMargin = fullRevenue - cost
   const scenarioRevenue = scenario === null ? null : BigInt(scenario) * unit
   const scenarioMargin = scenarioRevenue === null ? null : scenarioRevenue - cost
-  if (unit < BigInt(0) || ![cost, unit, fullRevenue, fullMargin, ...(scenarioRevenue === null ? [] : [scenarioRevenue, scenarioMargin!])].every(safe)) return fail('invalid-value')
+  if (unit < BigInt(0) || ![cost, unit, fullGross, ...(scenarioGross === null ? [] : [scenarioGross]), fullRevenue, fullMargin, ...(scenarioRevenue === null ? [] : [scenarioRevenue, scenarioMargin!])].every(safe)) return fail('invalid-value')
   const k = cost <= BigInt(0) ? BigInt(0) : unit === BigInt(0) ? null : cost / unit + (cost % unit === BigInt(0) ? BigInt(0) : BigInt(1))
   if (k !== null && !safe(k)) return fail('invalid-value')
   const feasible = k !== null && k <= n

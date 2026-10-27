@@ -60,3 +60,7 @@ test('exact ceiling agrees with exhaustive synthetic small-count margins', () =>
     assert.ok((expected - 1) * unit - 10 * buy < 0)
   }
 })
+
+test('gross revenue overflow is rejected before tax reduces the result', () => {
+  assert.equal(run('2', '2', 1, 4503599627370496).reason, 'invalid-value')
+})
