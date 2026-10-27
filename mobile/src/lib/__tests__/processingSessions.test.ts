@@ -144,3 +144,8 @@ test('status and processing timestamps agree before final accounting is availabl
     assert.equal(d.opportunityProfitGp, 850)
   }
 })
+
+test('labels do not change derived accounting or timing', () => {
+  const original = session()
+  for (const label of [null, '日本 👩‍💻']) assert.deepEqual(deriveProcessingSession({ ...original, label }), deriveProcessingSession(original))
+})

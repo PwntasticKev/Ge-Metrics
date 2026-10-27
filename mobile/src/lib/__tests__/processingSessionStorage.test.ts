@@ -347,3 +347,53 @@ test('creation rejects a clock bound that moves behind capture while queued', as
   assert.equal((await saving).ok, false)
   assert.equal(store.writes, 0)
 })
+
+test('labels roundtrip, retain opaque evidence on old-reader omission, and clear explicitly', async () => {
+  const original = { ...session(), label: '日本 👩‍💻', initialPlan: { version: 999, opaque: ['keep'] }, future: { nested: 42 } }
+  const store = storage(JSON.stringify({ version: 1, sessions: [original] })); const repo = createProcessingSessionRepository(store)
+  const edit = { ...session(), initialPlan: original.initialPlan }
+  const saved = await repo.upsert(edit); assert.equal(saved.ok, true)
+  if (!saved.ok) return
+  assert.equal(saved.sessions[0].label, original.label)
+  assert.deepEqual(JSON.parse(store.value!).sessions[0].future, original.future)
+  assert.deepEqual(saved.sessions[0].initialPlan, original.initialPlan)
+  assert.equal((await repo.upsert({ ...saved.sessions[0], label: null })).ok, true)
+  assert.equal(JSON.parse(store.value!).sessions[0].label, null)
+})
+test('malformed labels remain invalid verbatim and block same ID edits', async () => {
+  for (const label of ['', ' spaced ', 123, 'a\u202E', 'e\u0301']) {
+    const bad = { ...session(), label }; const store = storage(JSON.stringify({ version: 1, sessions: [bad] })); const repo = createProcessingSessionRepository(store)
+    const loaded = await repo.load(); assert.ok(loaded.ok)
+    if (!loaded.ok) continue
+    assert.equal(loaded.invalidRecords.length, 1); assert.deepEqual(loaded.invalidRecords[0].record, bad)
+    assert.equal((await repo.upsert(session())).ok, false); assert.equal(store.writes, 0)
+    assert.equal((await repo.upsert(session('other'))).ok, true)
+    assert.deepEqual(JSON.parse(store.value!).sessions[0], bad)
+  }
+})
+test('label-only duplicate differences conflict without writing', async () => {
+  const store = storage(JSON.stringify({ version: 1, sessions: [{ ...session(), label: 'A' }, { ...session(), label: 'B' }] }))
+  assert.equal((await createProcessingSessionRepository(store).upsert(session())).ok, false)
+  assert.equal(store.writes, 0)
+})
+test('label saves snapshot queued input, serialize revisions, and retry failed writes', async () => {
+  const store = storage(); const repo = createProcessingSessionRepository(store)
+  const edit = { ...session(), label: 'Original' }; const pending = repo.upsert(edit); edit.label = 'Mutated'
+  const saved = await pending; assert.ok(saved.ok); if (!saved.ok) return
+  assert.equal(saved.sessions[0].label, 'Original')
+  const base = saved.sessions[0]
+  const results = await Promise.all([repo.upsert({ ...base, label: 'First' }), repo.upsert({ ...base, label: 'Second' })])
+  assert.deepEqual(results.map(r => r.ok), [true, false]); assert.equal(store.writes, 2)
+  const first = results[0]; if (!first.ok) return
+  const retry = { ...first.sessions[0], label: 'Retry' }; const before = store.value
+  store.fail = true; assert.equal((await repo.upsert(retry)).ok, false); assert.equal(store.value, before)
+  store.fail = false; assert.equal((await repo.upsert(retry)).ok, true)
+})
+
+test('prequeue rejects invalid labels before JSON can erase them', async () => {
+  const store = storage(); const repo = createProcessingSessionRepository(store)
+  for (const label of [undefined, ' untrimmed ', '', 'x'.repeat(81)]) {
+    assert.equal((await repo.upsert({ ...session(), label })).ok, false)
+  }
+  assert.equal(store.writes, 0)
+})

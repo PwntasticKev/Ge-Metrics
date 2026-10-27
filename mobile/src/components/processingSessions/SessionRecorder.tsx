@@ -8,6 +8,7 @@ import { gpFull } from '../../lib/format'
 import { pendingSessions, recoveryDrafts, processingSessionRepository } from './repository'
 import { asRecorder, interruptTimer, completeQuantities, confirmActuals, makeId, parseWhole, transition, type Actuals, type RecorderSession, type TimerAction } from './model'
 
+import { labelEditor, labelSnapshot } from './labelEditor'
 import { InitialPlan } from './InitialPlan'
 import { PlanComparison } from './PlanComparison'
 import { isInitiallyUnsaved } from './planLifecycle'
@@ -129,6 +130,10 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [panel, setPanel] = useState('')
+  const [labelText, setLabelText] = useState<string | null>(null)
+  const [labelError, setLabelError] = useState('')
+  const labelEditing = labelText !== null
+  const closeLabel = () => { setLabelText(text => labelEditor(text, { type: 'close' })); setLabelError('') }
   const [now, setNow] = useState(() => Date.now())
   const save = useCallback(async (next: RecorderSession) => {
     if (lock.current || recovery && !canRetryRecovery(recovery)) return false
@@ -151,7 +156,8 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
     finally { lock.current = false; setBusy(false) }
   }, [recovery])
   const loadLatest = async () => {
-    if (lock.current) return
+    if (lock.current || labelEditing) return
+    closeLabel()
     lock.current = true; setBusy(true)
     setExplanationCommitted(null)
     const draft = current.current
@@ -170,6 +176,7 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
   }
   const chooseSnapshot = (editing: Recovery['editing']) => {
     if (!recovery || lock.current) return
+    closeLabel()
     const next = chooseRecovery(recovery, editing)
     const snapshot = recoverySnapshot(next)
     setRecovery(next); current.current = snapshot; setSession(snapshot)
@@ -207,10 +214,31 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
   const complete = completeQuantities(session)
   const openPause = session.pauses.find(x => x.endedAt === null)
   const staleDraft = !!recovery && !canRetryRecovery(recovery)
-  const blocked = busy || staleDraft || !!error && unsaved
+  const blocked = labelEditing || busy || staleDraft || !!error && unsaved
   const canFinalize = complete && d.canSettle
   return <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic">
-    <Text style={[styles.title, { color: p.ink }]}>{session.recipe.name}</Text>
+    {!!session.label && <Text style={[styles.title, { color: p.ink }]}>{session.label}</Text>}
+    <Text style={[session.label ? styles.heading : styles.title, { color: p.ink }]}>{session.recipe.name}</Text>
+    <View style={[styles.card, { backgroundColor: p.card }]}>
+      <Text style={[styles.heading, { color: p.ink }]}>Session label (optional)</Text>
+      <Text style={{ color: p.muted }}>Name this session without changing the recipe. Up to 80 characters; save a blank label to clear it.</Text>
+      {labelEditing ? <>
+        <TextInput accessibilityLabel="Session label (optional)" value={labelText} onChangeText={text => { setLabelText(old => labelEditor(old, { type: 'change', text })); setLabelError('') }} editable={!busy} keyboardType="default" returnKeyType="done" placeholder="e.g. Evening batch" placeholderTextColor={p.muted} style={[styles.input, { color: p.ink, backgroundColor: p.well }]} />
+        {!!labelError && <Text accessibilityRole="alert" style={{ color: p.brand }}>{labelError}</Text>}
+        <View style={styles.wrap}>
+          <Button label="Save label" disabled={busy || staleDraft || !!error && unsaved} onPress={() => {
+            if (lock.current || labelText === null) return
+            try {
+              const next = labelSnapshot(current.current, labelText)
+              // Submission owns the whole pending snapshot even if persistence fails.
+              closeLabel()
+              void save(next)
+            } catch (e) { setLabelError(e instanceof Error ? e.message : String(e)) }
+          }} />
+          <Button label="Cancel" disabled={busy} onPress={closeLabel} />
+        </View>
+      </> : <Button label={session.label ? 'Edit session label' : 'Add session label'} disabled={blocked || !!panel} onPress={() => { setLabelText(text => labelEditor(text, { type: 'open', label: session.label })); setLabelError('') }} />}
+    </View>
     <Text style={{ color: p.muted }}>{session.status} · {openPause ? openPause.reason === 'ge_wait' ? 'Paused: GE wait' : 'Paused: break / other' : session.status === 'processing' ? session.elapsedTimeConfirmed ? 'Recording active time' : 'Elapsed activity needs confirmation' : 'Manual actual session'}</Text>
     <Text style={{ color: p.muted }}>Local record only. Record real actions and receipts; recipe ratios are reference information.</Text>
     <View style={[styles.card, { backgroundColor: p.card }]}>
@@ -218,22 +246,22 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
       {!!error && <Text accessibilityRole="alert" style={{ color: p.brand }}>{error}</Text>}
       {!!notice && <Text style={{ color: p.muted }}>{notice}</Text>}
       <Text style={{ color: p.muted }}>Editing {recovery?.editing === 'committed' ? 'committed snapshot' : unsaved ? 'unsaved draft' : 'committed snapshot'} · revision {session.revision ?? 0}</Text>
-      {(unsaved || recoveryDrafts.has(session.id)) && <Button label="Load / refresh latest committed snapshot" disabled={busy} onPress={() => { void loadLatest() }} />}
+      {(unsaved || recoveryDrafts.has(session.id)) && <Button label="Load / refresh latest committed snapshot" disabled={busy || labelEditing} onPress={() => { void loadLatest() }} />}
       {recovery && <View style={styles.section}>
         <Text style={{ color: p.ink }}>Recovery: draft revision {recovery.draft.revision ?? 0} ({recovery.draft.status}); committed revision {recovery.committed.revision ?? 0} ({recovery.committed.status}). Re-enter chosen changes on the committed snapshot and save explicitly. The draft is never automatically merged.</Text>
         {inspectDraft && <Text selectable style={{ color: p.ink }}>Recovery draft: {JSON.stringify(recovery.draft, null, 2)}</Text>}
         {staleDraft && <Text style={{ color: p.brand }}>This stale draft is inspection only. Choose the committed snapshot to reconcile changes.</Text>}
-        <Button label="Edit latest committed snapshot; keep draft backup" disabled={busy || recovery.editing === 'committed' && unsaved} onPress={() => chooseSnapshot('committed')} />
-        <Button label="Return to preserved unsaved draft" disabled={busy || recovery.editing === 'committed' && unsaved} onPress={() => chooseSnapshot('draft')} />
+        <Button label="Edit latest committed snapshot; keep draft backup" disabled={busy || labelEditing || recovery.editing === 'committed' && unsaved} onPress={() => chooseSnapshot('committed')} />
+        <Button label="Return to preserved unsaved draft" disabled={busy || labelEditing || recovery.editing === 'committed' && unsaved} onPress={() => chooseSnapshot('draft')} />
       </View>}
       {recoveryDrafts.has(session.id) && <View style={styles.section}>
         <Text style={{ color: p.muted }}>Draft backup retained in memory across navigation, until explicitly discarded or the app restarts.</Text>
         <Button label={inspectDraft ? 'Hide preserved draft details' : 'Inspect preserved draft details'} onPress={() => setInspectDraft(!inspectDraft)} />
         {inspectDraft && <Text selectable style={{ color: p.ink }}>{JSON.stringify(recoveryDrafts.get(session.id), null, 2)}</Text>}
-        <Button label="Discard preserved draft…" disabled={busy || recovery?.editing !== 'committed' || unsaved} onPress={() => setConfirmDiscard(true)} />
-        {confirmDiscard && <><Text style={{ color: p.ink }}>Permanently discard the preserved draft? Keep it until you have reconciled its values.</Text><Button label="Confirm discard preserved draft" onPress={() => { recoveryDrafts.delete(session.id); setRecovery(null); setInspectDraft(false); setConfirmDiscard(false) }} /><Button label="Keep draft backup" onPress={() => setConfirmDiscard(false)} /></>}
+        <Button label="Discard preserved draft…" disabled={busy || labelEditing || recovery?.editing !== 'committed' || unsaved} onPress={() => setConfirmDiscard(true)} />
+        {confirmDiscard && <><Text style={{ color: p.ink }}>Permanently discard the preserved draft? Keep it until you have reconciled its values.</Text><Button label="Confirm discard preserved draft" disabled={labelEditing} onPress={() => { recoveryDrafts.delete(session.id); setRecovery(null); setInspectDraft(false); setConfirmDiscard(false) }} /><Button label="Keep draft backup" onPress={() => setConfirmDiscard(false)} /></>}
       </View>}
-      {unsaved && <Button label="Save / retry unsaved record" disabled={busy || staleDraft} onPress={() => { void save(session) }} />}
+      {unsaved && <Button label="Save / retry unsaved record" disabled={busy || labelEditing || staleDraft} onPress={() => { void save(current.current) }} />}
       {!session.elapsedTimeConfirmed && <><Text style={{ color: p.ink }}>Timer interrupted. Review the interval from {new Date(session.processingStartedAt!).toLocaleString()} to now ({duration(d.elapsedMs)}). Confirm that its active and paused intervals are accurate before resuming or ending. Nothing was automatically ended.</Text><Button label="I confirm the recorded elapsed activity" disabled={blocked} onPress={() => act('confirm_elapsed')} /></>}
       {session.status === 'draft' && <Button label="Start processing timer" disabled={blocked} onPress={() => act('start')} />}
       {session.status === 'processing' && session.elapsedTimeConfirmed && <><View style={styles.wrap}>{openPause ? <Button label="Resume processing" disabled={blocked} onPress={() => act('resume')} /> : <><Button label="Pause: GE wait" disabled={blocked} onPress={() => act('ge_wait')} /><Button label="Pause: break / other" disabled={blocked} onPress={() => act('break_other')} /></>}</View><Button label="End processing and record actuals" disabled={blocked} onPress={() => { setPanel('actuals'); act('end') }} /></>}
@@ -241,7 +269,7 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
       <Text style={{ color: p.ink }}>Recorded pace: {d.actionsPerHour === null ? 'Unknown' : `${d.actionsPerHour.toFixed(1)} actions / active hour`}</Text>
       {session.recorder.outputs.map(o => <Text key={o.id} style={{ color: p.muted }}>{o.item.name}: {o.producedQty === null || d.activeMs === null || d.activeMs === 0 ? 'Unknown output pace' : `${(o.producedQty * 3_600_000 / d.activeMs).toFixed(1)} / active hour`}</Text>)}
     </View>
-    {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel }) ? <View style={{ gap: 12 }}>
+    {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel || labelEditing }) ? <View style={{ gap: 12 }}>
       <InitialPlan key={`plan:${session.id}:${session.revision}`} session={explanationCommitted!} now={now} />
       <PlanComparison key={`comparison:${session.id}:${session.revision}`} session={explanationCommitted!} now={now} />
     </View> : <Text style={{ color: p.muted }}>Initial quote plan evidence is hidden while this snapshot is unsaved, being edited, or in recovery. Save and review the committed snapshot first.</Text>}
@@ -252,12 +280,12 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
       {session.recorder.inputs.map(i => <Text key={i.id} style={{ color: p.muted }}>{i.item.name}: unused {i.acquiredQty === null || i.consumedQty === null ? 'unknown' : i.acquiredQty - i.consumedQty}</Text>)}
       {session.recorder.outputs.map(o => <Text key={o.id} style={{ color: p.muted }}>{o.item.name}: unsold {o.producedQty === null ? 'unknown' : o.producedQty - session.sales.filter(s => s.outputId === o.id).reduce((n, s) => n + s.qty, 0)}</Text>)}
       <Text style={{ color: p.brand, fontWeight: '600' }}>Final session profit: {gp(canFinalize ? d.finalProfitGp : null)}</Text>
-      {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel }) ? <ProfitExplanation key={`${session.id}:${session.revision}`} session={explanationCommitted!} now={now} /> : <Text style={{ color: p.muted }}>Save changes and close editors to explain the recorded result. Recovery or conflicting saved copies must be reviewed first.</Text>}
+      {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel || labelEditing }) ? <ProfitExplanation key={`${session.id}:${session.revision}`} session={explanationCommitted!} now={now} /> : <Text style={{ color: p.muted }}>Save changes and close editors to explain the recorded result. Recovery or conflicting saved copies must be reviewed first.</Text>}
       <Text style={{ color: p.muted }}>Cash movement includes purchased stock; unused inputs and unsold outputs remain inventory. Final profit needs ended, confirmed timing, all inventory resolved and every cost / receipt confirmed.</Text>
       {canFinalize && session.status !== 'settled' && <Button label="Mark session settled" disabled={blocked} onPress={() => act('settle')} />}
     </View>
     {(['actuals', 'sales', 'waits', 'recipe'] as const).map(key => <View key={key} style={[styles.card, { backgroundColor: p.card }]}>
-      <Button label={`${panel === key ? 'Hide' : 'Show'} ${key === 'actuals' ? 'actual quantities and costs' : key === 'sales' ? 'completed sales' : key === 'waits' ? 'extra GE waits' : 'snapshotted recipe'}`} disabled={busy} onPress={() => setPanel(panel === key ? '' : key)} />
+      <Button label={`${panel === key ? 'Hide' : 'Show'} ${key === 'actuals' ? 'actual quantities and costs' : key === 'sales' ? 'completed sales' : key === 'waits' ? 'extra GE waits' : 'snapshotted recipe'}`} disabled={busy || labelEditing} onPress={() => setPanel(panel === key ? '' : key)} />
       {panel === key && key === 'actuals' && <ActualEditor key={`${recovery?.editing}:${session.revision}`} session={session} busy={blocked} save={async next => { const ok = await save(next); if (ok) setPanel(''); return ok }} />}
       {panel === key && key === 'sales' && <SaleEditor key={`${recovery?.editing}:${session.revision}`} session={session} busy={blocked} save={save} />}
       {panel === key && key === 'waits' && <WaitEditor key={`${recovery?.editing}:${session.revision}`} session={session} busy={blocked} save={save} />}

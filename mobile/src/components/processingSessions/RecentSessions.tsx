@@ -22,7 +22,7 @@ export function RecentSessions() {
   return <View style={{ gap: 10, padding: 14, backgroundColor: p.card, borderRadius: 12 }}>
     <Text style={{ color: p.ink, fontSize: 18, fontWeight: '600' }}>In progress / Recent sessions</Text>
     {!!message && <Text style={{ color: p.muted }}>{message}</Text>}
-    {sessions.slice(0, 8).map(s => <Link key={s.id} href={{ pathname: './processing-session', params: { sessionid: s.id } }} style={{ color: p.brand, paddingVertical: 8 }}>{s.recipe.name} · {s.status}{pendingSessions.has(s.id) ? ' · unsaved' : ''}{s.processingStartedAt ? ` · ${new Date(s.processingStartedAt).toLocaleDateString()}` : ''}</Link>)}
+    {sessions.slice(0, 8).map(s => <Link key={s.id} href={{ pathname: './processing-session', params: { sessionid: s.id } }} style={{ color: p.brand, paddingVertical: 8 }}>{s.label ? `${s.label} · ` : ''}{s.recipe.name} · {s.status}{pendingSessions.has(s.id) ? ' · unsaved' : ''}{s.processingStartedAt ? ` · ${new Date(s.processingStartedAt).toLocaleDateString()}` : ''}</Link>)}
     {sessions.length > 8 && <Text style={{ color: p.muted }}>Showing 8 of {sessions.length} saved sessions.</Text>}
   </View>
 }
