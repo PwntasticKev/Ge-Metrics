@@ -21,7 +21,8 @@ const value = (qty: number, price: number | null) => qty === 0 ? 0 : price === n
 
 /** Whole-unit recipes and whole GP quotes/coins only; no reinvestment or fill/reset assumptions. */
 export function coordinateBatch (recipe: Recipe, goal: number, budget: number, owned: Record<number, number>, prices: (id: number) => BatchQuote | null, tax: (price: number, id: number) => number) {
-  if (!Number.isInteger(goal) || goal < 0 || goal > 1_000_000_000 || !recipe.inputs.length || !recipe.outputs.length || [...recipe.inputs, ...recipe.outputs].some(i => !Number.isSafeInteger(i.qty) || i.qty <= 0) || [recipe.coinCost ?? 0, recipe.coinRevenue ?? 0].some(n => !Number.isFinite(n) || n < 0)) throw new Error('A whole batch goal and deterministic whole-unit recipe are required')
+  if (!Number.isInteger(goal) || goal < 0 || goal > 1_000_000_000 || !recipe.inputs.length || !recipe.outputs.length || [...recipe.inputs, ...recipe.outputs].some(i => !Number.isInteger(i.qty) || i.qty <= 0) || [recipe.coinCost ?? 0, recipe.coinRevenue ?? 0].some(n => !Number.isFinite(n) || n < 0)) throw new Error('A whole batch goal and deterministic whole-unit recipe are required')
+  ;[...recipe.inputs, ...recipe.outputs].forEach(i => safe(i.qty))
   ;[recipe.coinCost ?? 0, recipe.coinRevenue ?? 0].forEach(safe)
   const grouped = new Map<number, number>()
   recipe.inputs.forEach(i => grouped.set(i.id, safe((grouped.get(i.id) ?? 0) + i.qty)))

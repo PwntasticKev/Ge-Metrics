@@ -93,3 +93,9 @@ test('known fractional GP, unsafe coins and invalid tax raise RangeError', () =>
   assert.throws(() => coordinateBatch(recipe, 1, 0, {}, () => ({ buy: 1.5, sell: 100 }), tax), RangeError)
   for (const levy of [-1, 0.5, 101, Infinity]) assert.throws(() => coordinateBatch(recipe, 1, 0, {}, prices, () => levy), RangeError)
 })
+
+test('unsafe individual input and output quantities raise RangeError', () => {
+  const unsafe = [{ id: 1, qty: Number.MAX_SAFE_INTEGER + 1 }]
+  assert.throws(() => coordinateBatch({ ...recipe, inputs: unsafe }, 1, 0, {}, prices, tax), RangeError)
+  assert.throws(() => coordinateBatch({ ...recipe, outputs: unsafe }, 1, 0, {}, prices, tax), RangeError)
+})
