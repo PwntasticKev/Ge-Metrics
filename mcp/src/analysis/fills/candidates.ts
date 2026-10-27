@@ -63,17 +63,22 @@ export function refineCandidate (c: Candidate, series: readonly TimeseriesPoint[
 }
 
 export interface AssessOptions {
+  /** Apply once to the cash/buy-limit-capped quantity; keep a funded singleton. */
+  readonly sizeMultiplier?: number
   readonly budget?: number
   readonly maxFillHours: number
 }
 
 export function assess (c: Candidate, o: AssessOptions): FillMetrics {
+  const cappedUnits = cycleUnits(c.entry.limit, c.buyAt, o.budget)
+  const size = o.sizeMultiplier ?? 1
+  const units = size <= 0 || cappedUnits <= 0 ? 0 : Math.min(cappedUnits, Math.max(1, Math.floor(cappedUnits * size)))
   return fillMetrics({
     flow: c.flow,
     buyAt: c.buyAt,
     sellAt: c.sellAt,
     profitEach: c.profitEach,
-    units: cycleUnits(c.entry.limit, c.buyAt, o.budget),
+    units,
     limit: c.entry.limit ?? ASSUMED_BUY_LIMIT,
     maxFillHours: o.maxFillHours
   })

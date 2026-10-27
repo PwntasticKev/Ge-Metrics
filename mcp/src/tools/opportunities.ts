@@ -55,7 +55,9 @@ export function registerOpportunityTools (server: McpServer, deps: ToolDeps): vo
       minVolume: a.min_volume, maxPrice: a.max_price, budget: a.budget, sort: a.sort === 'gp_per_hour' ? 'profit_per_limit' : a.sort,
       limit: Number.MAX_SAFE_INTEGER, includeMembers: a.members, includeStale: a.include_stale
     })
-    const ctx = { ...data, tax, budget: a.budget, maxFillHours: a.max_fill_hours }
+    // Keep the caller's budget: assess sizes the capped quantity once, then
+    // recomputes all fill metrics, including after hourly price refinement.
+    const ctx = { ...data, tax, budget: a.budget, maxFillHours: a.max_fill_hours, sizeMultiplier: a.apply_regime ? regime.size : 1 }
     const first = rankRows(bulkRows(live, ctx), a.sort)
     const refineCount = Math.min(a.limit + REFINE_EXTRA, REFINE_MAX)
     const series = await seriesFor(prices, first.slice(0, refineCount).map(r => r.live.id), '1h')
