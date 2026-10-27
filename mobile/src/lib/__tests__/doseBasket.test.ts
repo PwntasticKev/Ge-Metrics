@@ -136,3 +136,63 @@ test('cash and vial costs, revenue sums and economic differences stay safe', () 
     }
   }
 })
+
+test('unknown purchase allowance is unnecessary when cash rules out every source purchase', () => {
+  for (const cash of [0, 2099]) for (const owned of [false, true]) {
+    const r = fixture(); r.cash = cash; r.family.remainingAllowance = null
+    if (owned) r.owned = [{ id: 103, quantity: 4, netLiquidation: 6000 }]
+    const evaluated = evaluateDoseBasket(r, {})
+    assert.equal(evaluated.status, 'feasible')
+    assert.equal(evaluated.cashOutlay, 0)
+    const result = optimizeDoseBasket(r)
+    assert.equal(result.status, 'supported')
+    assert.equal(result.coverage.status, 'complete')
+    assert.deepEqual(result.missingInputs, [])
+    assert.ok(result.coverage.sourceBounds.every(source => source.max === 0))
+    assert.deepEqual(result.best.purchases, [])
+    assert.deepEqual(result.bestSingle, result.best)
+    assert.equal(result.uplift, 0)
+    if (owned) assert.deepEqual(result.best, evaluated)
+    else assert.equal(result.best.kind, 'zero-action')
+    r.family.remainingAllowance = 0
+    assert.deepEqual(optimizeDoseBasket(r).best, result.best)
+  }
+})
+test('any potentially affordable purchase still requires unknown allowance beyond search bounds', () => {
+  for (const buy of [0, 2100]) for (const maxQuantity of [0, 1]) for (const owned of [false, true]) {
+    const r = fixture(); r.cash = 2100; r.family.remainingAllowance = null; r.quotes[0].buy = buy
+    if (owned) r.owned = [{ id: 103, quantity: 4, netLiquidation: 6000 }]
+    const result = optimizeDoseBasket(r, { maxQuantity })
+    assert.equal(result.status, 'incomplete')
+    assert.ok(result.missingInputs.includes('family allowance'))
+    r.family.remainingAllowance = 0
+    const knownZero = optimizeDoseBasket(r, { maxQuantity })
+    assert.equal(knownZero.status, 'supported')
+    assert.equal(knownZero.coverage.status, 'complete')
+    assert.deepEqual(knownZero.best.purchases, [])
+  }
+})
+test('cash-excluded sources retain conservative missing price and cap requirements', () => {
+  const r = fixture(); r.cash = 0; r.family.remainingAllowance = null
+  r.quotes[0].buyCap = null
+  assert.ok(optimizeDoseBasket(r).missingInputs.includes('buy cap:101'))
+  r.quotes[0].buyCap = 3; r.quotes[0].buy = null
+  const result = optimizeDoseBasket(r)
+  assert.ok(result.missingInputs.includes('buy:101'))
+  assert.ok(result.missingInputs.includes('family allowance'))
+})
+test('owned-only vial needs remain evaluated when cash excludes potion purchases', () => {
+  const r = fixture(); r.cash = 0; r.targetDose = 1; r.family.remainingAllowance = null
+  r.owned = [{ id: 103, quantity: 1, netLiquidation: 1 }]
+  assert.ok(evaluateDoseBasket(r, {}).violations.includes('cash'))
+  assert.equal(optimizeDoseBasket(r).status, 'supported')
+  assert.equal(optimizeDoseBasket(r).best.kind, 'zero-action')
+  r.ownedVials = { quantity: 2, netLiquidation: 3 }
+  const result = optimizeDoseBasket(r)
+  assert.equal(result.status, 'supported')
+  assert.equal(result.best.suppliedVials, 2)
+  assert.equal(result.best.purchasedVials, 0)
+  assert.equal(result.best.inputDoses, result.best.targetQuantity)
+  r.ownedVials = undefined; r.vial.buy = null
+  assert.ok(optimizeDoseBasket(r).missingInputs.includes('vial buy'))
+})
