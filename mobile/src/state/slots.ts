@@ -66,11 +66,14 @@ const subscribe = (listener: () => void) => {
   }
 }
 const snapshot = () => current
+const readiness = () => loaded
 
 export function useSlots (): { slots: SlotsState; ready: boolean } {
   const slots = useSyncExternalStore(subscribe, snapshot, snapshot)
+  // Empty storage can retain EMPTY_SLOTS identity; readiness must notify independently.
+  const ready = useSyncExternalStore(subscribe, readiness, readiness)
   useEffect(() => {
     if (!loaded) reloadSlots()
   }, [])
-  return { slots, ready: loaded }
+  return { slots, ready }
 }
