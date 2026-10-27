@@ -7,6 +7,7 @@ import { coordinateBatch } from '../../lib/batchCoordinator'
 import { calculateBatchAllowances, type BatchAllowanceResult } from '../../lib/batchAllowances'
 import { gpFull } from '../../lib/format'
 import { ownedOpportunity, parseBatchNumber as parse } from './ownedOpportunity'
+import { timeAlternativePresentation } from './timeAlternative'
 import { useTheme } from '../../theme/ThemeProvider'
 
 // Curated whole-unit recipes only: fractional guide yields are not deterministic.
@@ -21,6 +22,9 @@ export function BatchCoordinator () {
   const [search, setSearch] = useState('')
   const [choosing, setChoosing] = useState(false)
   const [showOpportunityDetails, setShowOpportunityDetails] = useState(false)
+  const [showTimeAlternative, setShowTimeAlternative] = useState(false)
+  const [alternativeRateText, setAlternativeRateText] = useState('')
+  const [extraMinutesText, setExtraMinutesText] = useState('')
   const [goalText, setGoalText] = useState('100')
   const [budgetText, setBudgetText] = useState('1000000')
   const [ownedText, setOwnedText] = useState<Record<number, string>>({})
@@ -61,6 +65,7 @@ export function BatchCoordinator () {
   const plan = recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
     Object.fromEntries(inputIds.map(id => [id, parse(ownedText[id] ?? '0') ?? 0])),
     id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax) : null
+  const timeAlternative = timeAlternativePresentation(goal, comparison?.incrementalValue ?? null, alternativeRateText, extraMinutesText)
   const name = (id: number) => market.market?.get(id)?.name ?? `Item #${id}`
   const text = { color: palette.ink }
   const muted = { color: palette.muted }
@@ -76,13 +81,13 @@ export function BatchCoordinator () {
         {choosing && <>
           <TextInput accessibilityLabel="Search recipes" placeholder="Search curated recipes" placeholderTextColor={palette.muted} value={search} onChangeText={setSearch} style={[styles.search, text, { backgroundColor: palette.well }]} />
           <Text style={muted}>{matches.length} matches · showing first 20</Text>
-          {matches.slice(0, 20).map(r => <Pressable key={r.id} style={button} accessibilityRole="button" onPress={() => { setRecipeId(r.id); setOwnedText({}); setRemainingText({}); setChoosing(false) }}><Text style={text}>{r.name} · {r.group}</Text></Pressable>)}
+          {matches.slice(0, 20).map(r => <Pressable key={r.id} style={button} accessibilityRole="button" onPress={() => { setRecipeId(r.id); setExtraMinutesText(''); setOwnedText({}); setRemainingText({}); setChoosing(false) }}><Text style={text}>{r.name} · {r.group}</Text></Pressable>)}
         </>}
         <Text style={muted}>{recipe?.requirements}</Text>
         <Text style={muted}>{recipe?.description}</Text>
         {recipe?.notes ? <Text style={muted}>{recipe.notes}</Text> : null}
         <Text style={muted}>One batch: {recipe?.inputs.map(i => `${i.qty} × ${name(i.id)}`).join(' + ')} → {recipe?.outputs.map(i => `${i.qty} × ${name(i.id)}`).join(' + ')}</Text>
-        <NumberField label="Batch goal" value={goalText} onChange={setGoalText} />
+        <NumberField label="Batch goal" value={goalText} onChange={v => { setGoalText(v); setExtraMinutesText('') }} />
         <NumberField label="Cash budget" value={budgetText} onChange={setBudgetText} />
         <Text style={muted}>Additional cash available now. Fees are reserved; sale proceeds are not reinvested.</Text>
       </View>
@@ -90,7 +95,7 @@ export function BatchCoordinator () {
         <Text style={[styles.heading, text]}>Owned stock & manual allowances</Text>
         {inputIds.map(id => <View key={id} style={styles.ingredient}>
           <Text style={text}>{name(id)} · ID {id}</Text>
-          <NumberField label="Owned units" value={ownedText[id] ?? '0'} onChange={v => setOwnedText(prev => ({ ...prev, [id]: v }))} />
+          <NumberField label="Owned units" value={ownedText[id] ?? '0'} onChange={v => { setOwnedText(prev => ({ ...prev, [id]: v })); setExtraMinutesText('') }} />
           <Text style={muted}>Full mapping limit: {fullLimit(id) === undefined ? 'Unknown · unverified full cap' : gpFull(fullLimit(id)!)}. Informational cap, not current remaining.</Text>
           <NumberField label="Remaining units" value={remainingText[id] ?? ''} onChange={v => setRemainingText(prev => ({ ...prev, [id]: v }))} />
           <Text style={muted}>Manual declaration for this purchase window · blank = unknown; 0 = none remaining.{fullLimit(id) === undefined ? ' Declaration has an unverified full cap.' : ''}</Text>
@@ -119,6 +124,15 @@ export function BatchCoordinator () {
             </View>)}
           </>}
           <Text style={muted}>Only owned units consumed by this goal enter the sell-now baseline. Unused surplus is retained in both scenarios. Neither the baseline nor output receipts fund upfront purchases or fees. This is a quote-based estimate, not realised profit; replacement margin is shown separately below.</Text>
+        </>}
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showTimeAlternative }} onPress={() => setShowTimeAlternative(!showTimeAlternative)} style={button}><Text style={{ color: palette.brand }}>Compare your time alternative</Text></Pressable>
+        {showTimeAlternative && <>
+          <NumberField label="Alternative GP/hour (required)" value={alternativeRateText} onChange={setAlternativeRateText} />
+          <NumberField label="Extra active minutes (optional)" value={extraMinutesText} onChange={setExtraMinutesText} />
+          <Text style={muted}>Use your own alternative activity rate. Enter whole nonnegative numbers; blank is unknown, 0 is explicit zero. Count only extra time versus selling now that prevents your alternative activity, including additional travel, banking, processing and attention. Exclude shared steps and unattended GE wait when you can perform the alternative activity.</Text>
+          {timeAlternative.threshold !== '' && <Text style={muted}>{timeAlternative.threshold}</Text>}
+          <Text style={{ color: timeAlternative.positive ? palette.brand : palette.muted }}>{timeAlternative.message}</Text>
+          <Text style={muted}>Quote-based estimate only. Minutes reset when recipe, goal or owned stock is edited; your rate stays. Cash fit and ingredient allowances remain separate.</Text>
         </>}
       </View>
       {allowanceErrors.map(error => <Text key={error} style={text}>{error}</Text>)}
