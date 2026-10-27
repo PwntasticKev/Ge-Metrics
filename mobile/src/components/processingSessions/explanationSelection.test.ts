@@ -21,3 +21,39 @@ test('every unsafe lifecycle state and changed snapshot hides explanation', () =
   assert.equal(canExplainCommitted({ ...s, revision: 99 }, s, state), false)
   assert.equal(canExplainCommitted(s, null, state), false)
 })
+test('open and load-latest guard rejects raw timer differences hidden by recovery', () => {
+  const running = { ...example(), status: 'processing' as const, processingEndedAt: null, revision: 2 }
+  for (const rows of [[running, { ...running, elapsedTimeConfirmed: false }], [{ ...running, elapsedTimeConfirmed: false }, running]]) {
+    const raw = JSON.stringify({ version: 1, sessions: rows })
+    for (let read = 0; read < 2; read++) {
+      const result = decodeProcessingSessions(raw)
+      assert.equal(committedExplanationSnapshot(result, 's'), null)
+    }
+  }
+})
+test('exact raw timer copies allow recovered projection without mutating read evidence', () => {
+  const running = { ...example(), status: 'processing' as const, processingEndedAt: null, revision: 2 }
+  const result = decodeProcessingSessions(JSON.stringify({ version: 1, sessions: [running, Object.fromEntries(Object.entries(running).reverse())] }))
+  const before = JSON.stringify(result)
+  const saved = committedExplanationSnapshot(result, 's')
+  assert.ok(saved)
+  assert.equal(saved.elapsedTimeConfirmed, false)
+  assert.equal(saved.processingEndedAt, null)
+  assert.equal(saved.revision, 2)
+  assert.equal(JSON.stringify(result), before)
+})
+test('running raw labels, future fields and array order remain part of identity', () => {
+  const running = { ...example(), status: 'processing' as const, processingEndedAt: null, label: 'saved', futureField: [1, 2] }
+  for (const copy of [{ ...running, label: 'other' }, { ...running, futureField: [2, 1] }, { ...running, futureField: [1, 2], extra: true }, { id: 's' }]) {
+    for (const rows of [[running, copy], [copy, running]]) assert.equal(select(rows), null)
+  }
+})
+test('missing raw evidence cannot authorize a normalized snapshot', () => {
+  const result = decodeProcessingSessions(JSON.stringify({ version: 1, sessions: [example()] }))
+  assert.ok(result.ok)
+  assert.equal(committedExplanationSnapshot({ ...result, sourceRecords: [] }, 's'), null)
+  // Older/incomplete read shapes must fail closed rather than trust normalized rows.
+  const legacy = { ...result }
+  Reflect.deleteProperty(legacy, 'sourceRecords')
+  assert.equal(committedExplanationSnapshot(legacy, 's'), null)
+})
