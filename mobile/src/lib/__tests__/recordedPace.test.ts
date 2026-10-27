@@ -101,3 +101,10 @@ test('invalid cyclic and deep retained data cannot compromise unrelated rows', (
   assert.deepEqual(result.sessions.map(row => row.id), ['safe'])
   assert.equal(result.excludedCount, 2)
 })
+
+test('labels leave pace invariant and differing durable duplicate labels are excluded', () => {
+  assert.deepEqual(summary([session({ label: '日本 👩‍💻' })]), summary([session()]))
+  assert.equal(summary([session({ label: ' untrimmed ' })]).exclusionCounts.invalid_record, 1)
+  const result = durable([session({ label: 'A' }), session({ label: 'B' })])
+  assert.equal(result.sessions.length, 0)
+})

@@ -1,3 +1,4 @@
+import { validateProcessingSessionLabel } from './processingSessionLabel.ts'
 import { assertPlanJson, processingRecipeExecutionKey, validateNewInitialPlan } from './processingPlan.ts'
 import { deriveProcessingSession, type ProcessingSession } from './processingSessions.ts'
 
@@ -125,6 +126,7 @@ export function createProcessingSessionRepository(storage: AsyncStringStorage, n
       // Snapshot before queueing so later caller mutations cannot change a pending save.
       let snapshot: RevisionedProcessingSession
       try {
+        validateProcessingSessionLabel(session)
         if (Object.hasOwn(session, 'initialPlan')) {
           const property = Object.getOwnPropertyDescriptor(session, 'initialPlan')!
           if (!('value' in property) || !property.enumerable) throw new Error('Plan accessors are forbidden')

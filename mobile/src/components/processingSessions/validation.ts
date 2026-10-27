@@ -1,5 +1,8 @@
+import { validateProcessingSessionLabel } from '../../lib/processingSessionLabel.ts'
+
 /** Validate the optional recorder extension without interpreting unknown values as zero. */
 export function validateRecorderExtension(session: object): void {
+  validateProcessingSessionLabel(session)
   if (!Object.hasOwn(session, 'recorder')) return // Legacy core-only record.
   const object = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v)
   const require = (ok: boolean) => { if (!ok) throw new Error('Unreadable recorder extension; saved record has been retained.') }

@@ -1,3 +1,5 @@
+import { validateProcessingSessionLabel } from './processingSessionLabel.ts'
+
 /** Manual actuals only. No catalog, journal, slots, storage, or clock side effects. */
 export interface SessionItem { itemId: number; name: string; icon: string | null }
 export interface ProcessingSale {
@@ -5,6 +7,8 @@ export interface ProcessingSale {
   taxGp: number; taxBasis: 'engine' | 'player_confirmed'; taxRuleVersion: string | null
 }
 export interface ProcessingSession {
+  /** Optional player label; explicit null clears a saved label. */
+  label?: string | null
   /** Opaque durable evidence; only processingPlan interprets supported versions. */
   initialPlan?: unknown
   id: string
@@ -47,6 +51,7 @@ export function snapshotProcessingSale(sale: Omit<ProcessingSale, 'taxGp' | 'tax
 }
 /** Throws RangeError for invalid manual records. now is explicit, used only for open timers. */
 export function deriveProcessingSession(s: ProcessingSession, now?: number) {
+  validateProcessingSessionLabel(s)
   requireValid(typeof s.id === 'string' && s.id.length > 0 && ['draft', 'processing', 'processed', 'settled'].includes(s.status), 'Invalid session')
   requireValid(typeof s.elapsedTimeConfirmed === 'boolean', 'Missing elapsed confirmation')
   for (const n of [s.actionsCompleted, s.processingFeesGp, s.otherExpensesGp, s.directCoinReceiptsGp, s.processingStartedAt, s.processingEndedAt]) if (n !== null) amount(n)
