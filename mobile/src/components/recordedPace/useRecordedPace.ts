@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useFocusEffect } from 'expo-router'
 import type { ProcessingSession } from '../../lib/processingSessions'
+import { recordedPaceSnapshot } from './adapter'
 import { processingSessionRepository } from '../processingSessions/repository'
 
 /** Only durable saved sessions are evidence; pending edits never enter the summary. */
@@ -21,8 +22,9 @@ export function useRecordedPace() {
       if (!live) return
       setNow(Date.now())
       if (!result.ok) { setMessage(`Recorded pace storage error: ${result.error.message}. Curated rates retained.`); return }
-      setSessions(result.sessions)
-      setMessage(result.invalidRecords.length ? `${result.invalidRecords.length} unreadable saved records excluded from recorded pace.` : '')
+      const snapshot = recordedPaceSnapshot(result)
+      setSessions(snapshot.sessions)
+      setMessage(snapshot.excludedCount ? `${snapshot.excludedCount} conflicting or unreadable saved records excluded from recorded pace.` : '')
     }).catch(error => {
       if (live) setMessage(`Recorded pace storage error: ${error instanceof Error ? error.message : String(error)}. Curated rates retained.`)
     })
