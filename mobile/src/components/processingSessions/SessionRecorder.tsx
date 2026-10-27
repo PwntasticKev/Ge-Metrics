@@ -8,6 +8,8 @@ import { gpFull } from '../../lib/format'
 import { pendingSessions, recoveryDrafts, processingSessionRepository } from './repository'
 import { asRecorder, interruptTimer, completeQuantities, confirmActuals, makeId, parseWhole, transition, type Actuals, type RecorderSession, type TimerAction } from './model'
 
+import { ProfitExplanation } from './ProfitExplanation'
+import { canExplainCommitted, committedExplanationSnapshot } from './explanationSelection'
 import { canRetryRecovery, chooseRecovery, recoveryFor, recoverySnapshot, type Recovery } from './recovery'
 
 const duration = (ms: number | null) => ms === null ? 'Unconfirmed' : `${(ms / 60_000).toFixed(1)} min`
@@ -109,9 +111,10 @@ function WaitEditor({ session, save, busy }: { session: RecorderSession; save: (
   </View>
 }
 
-export function SessionRecorder({ initial, committed }: { initial: RecorderSession; committed?: RecorderSession }) {
+export function SessionRecorder({ initial, committed, explanationSnapshot }: { initial: RecorderSession; committed?: RecorderSession; explanationSnapshot?: RecorderSession | null }) {
   const { palette: p } = useTheme()
   const [session, setSession] = useState(initial)
+  const [explanationCommitted, setExplanationCommitted] = useState(explanationSnapshot ?? null)
   const [busy, setBusy] = useState(false)
   const [recovery, setRecovery] = useState<Recovery | null>(() => committed && pendingSessions.has(initial.id) ? recoveryFor(initial, committed) : null)
   const [inspectDraft, setInspectDraft] = useState(false)
@@ -131,6 +134,7 @@ export function SessionRecorder({ initial, committed }: { initial: RecorderSessi
     try {
       const result = await processingSessionRepository.upsert(next)
       if (!result.ok) throw result.error
+      setExplanationCommitted(committedExplanationSnapshot(result, next.id))
       const saved = result.sessions.find(s => s.id === next.id)
       if (!saved) throw new Error('Saved session could not be verified.')
       if (generation !== recoveryGeneration.current) {
@@ -146,6 +150,7 @@ export function SessionRecorder({ initial, committed }: { initial: RecorderSessi
   const loadLatest = async () => {
     if (lock.current) return
     lock.current = true; setBusy(true)
+    setExplanationCommitted(null)
     const draft = current.current
     if (!recoveryDrafts.has(initial.id)) recoveryDrafts.set(initial.id, draft)
     try {
@@ -240,6 +245,7 @@ export function SessionRecorder({ initial, committed }: { initial: RecorderSessi
       {session.recorder.inputs.map(i => <Text key={i.id} style={{ color: p.muted }}>{i.item.name}: unused {i.acquiredQty === null || i.consumedQty === null ? 'unknown' : i.acquiredQty - i.consumedQty}</Text>)}
       {session.recorder.outputs.map(o => <Text key={o.id} style={{ color: p.muted }}>{o.item.name}: unsold {o.producedQty === null ? 'unknown' : o.producedQty - session.sales.filter(s => s.outputId === o.id).reduce((n, s) => n + s.qty, 0)}</Text>)}
       <Text style={{ color: p.brand, fontWeight: '600' }}>Final session profit: {gp(canFinalize ? d.finalProfitGp : null)}</Text>
+      {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel }) ? <ProfitExplanation key={`${session.id}:${session.revision}`} session={explanationCommitted!} now={now} /> : <Text style={{ color: p.muted }}>Save changes and close editors to explain the recorded result. Recovery or conflicting saved copies must be reviewed first.</Text>}
       <Text style={{ color: p.muted }}>Cash movement includes purchased stock; unused inputs and unsold outputs remain inventory. Final profit needs ended, confirmed timing, all inventory resolved and every cost / receipt confirmed.</Text>
       {canFinalize && session.status !== 'settled' && <Button label="Mark session settled" disabled={blocked} onPress={() => act('settle')} />}
     </View>
