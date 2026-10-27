@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from '../ListStates'
 import { Pills } from '../Tabs'
 import { PROCESSING_METHODS } from '../../lib/methods'
 import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
+import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
 import { gpFull, gpShort, minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useSettings } from '../../state/settings'
@@ -20,6 +21,14 @@ import { recorderUnavailableReason, snapshotRecipe } from '../processingSessions
 
 const MODES = [{ value: 'instant', label: 'Instant' }, { value: 'patient', label: 'Patient' }] as const
 const SCENARIOS = [ ['instant', 'instant'], ['instant', 'patient'], ['patient', 'instant'], ['patient', 'patient'] ] as const
+
+const CEILING_REASONS: Record<PriceCeilingReason, string> = {
+  'missing-quote': 'An input or output quote is missing.',
+  'invalid-value': 'A quote, quantity, coin amount, or calculation is invalid or outside the safe range.',
+  'no-nonnegative-price': 'Other fixed costs exceed after-tax revenue, even with this ingredient at 0 GP.',
+  'unsupported-circular-item': 'This ingredient is also an output; an independent buy-price ceiling is unsupported.'
+}
+const quoteGp = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 20 })
 
 export function ProcessingLab () {
   const { palette: p } = useTheme()
@@ -113,6 +122,9 @@ export function ProcessingLab () {
     ListEmptyComponent={market.isLoading ? <LoadingState /> : !market.market && market.error ? <ErrorState message="Prices unavailable" onRetry={refresh} /> : <Text style={[muted, styles.empty]}>No recipes match with the available prices and current stale/fluke/member settings. Patient pricing needs traded daily averages.</Text>}
     renderItem={({ item: r }) => {
       const expanded = open === r.recipe.id
+      const ceilings = expanded && market.market
+        ? processingPriceCeilings(r.recipe, labMarket(market.market, inputs, outputs, averages.h24))
+        : null
       const wait = market.market && r.batch.actions !== null ? batchWait(r.recipe, labMarket(market.market, inputs, outputs, averages.h24), r.batch.actions, inputs, outputs, averages.h1, averages.h24) : null
       return <View style={[styles.card, { backgroundColor: p.card }]}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setOpen(expanded ? null : r.recipe.id)} style={styles.row}>
@@ -138,6 +150,24 @@ export function ProcessingLab () {
           })}><Text style={{ color: p.brand }}>{pace.choices[r.paceKey] !== undefined ? 'Use curated rate' : 'Use recorded pace for this recipe'} · reranks current comparison</Text></Pressable>}
           {recorderUnavailableReason(r.recipe) ? <Text style={muted}>{recorderUnavailableReason(r.recipe)}</Text> : <Link href={{ pathname: './processing-session', params: { recipeid: r.recipe.id, method: r.method.key } }} style={{ color: p.brand, paddingVertical: 12, fontWeight: '600' }}>Record actual session</Link>}
           <Text style={text}>Each action: {gpFull(r.flip.cost)} GP cost → {gpFull(r.flip.revenue)} GP gross; {gpFull(r.flip.tax)} GP tax.</Text>
+          {ceilings && <View style={[styles.ceilings, { backgroundColor: p.well }]}>
+            <Text style={[styles.label, { color: p.brand }]}>Ingredient break-even quotes</Text>
+            <Text style={muted}>One action, all inputs purchased. Each ceiling varies one ingredient’s unit buy quote, with other input and output quotes fixed. Output tax and recipe coin costs/revenue are included; costs beyond the recipe are excluded.</Text>
+            {ceilings.ingredients.map(ingredient => {
+              const quote = ingredient.currentQuote
+              const ceiling = ingredient.ceiling
+              const headroom = ingredient.headroom
+              const reason = ingredient.reason ? CEILING_REASONS[ingredient.reason] : 'No finite calculation is available.'
+              const available = ceiling !== null && Number.isFinite(ceiling) && headroom !== null && Number.isFinite(headroom)
+              return <View key={ingredient.id} style={styles.ingredient}>
+                <Text style={text}>{market.market?.get(ingredient.id)?.name || `Item ${ingredient.id}`}</Text>
+                <Text style={muted}>Selected buy ({inputs}): {quote === null ? 'unavailable — missing quote' : !Number.isFinite(quote) || quote <= 0 || quote > Number.MAX_SAFE_INTEGER ? 'unavailable — invalid quote' : `${quoteGp(quote)} GP/unit`}</Text>
+                <Text style={text}>Maximum whole-GP break-even unit quote: {available ? `${gpFull(ceiling)} GP/unit` : `unavailable — ${reason}`}</Text>
+                <Text style={muted}>{available ? headroom < 0 ? `Needed reduction: ${quoteGp(-headroom)} GP/unit` : `Headroom: ${quoteGp(headroom)} GP/unit` : `Headroom / needed reduction unavailable — ${reason}`}</Text>
+              </View>
+            })}
+            <Text style={muted}>Each ceiling is independent, not simultaneous suggested orders. Quotes are not fills; headroom does not establish achievable earnings.</Text>
+          </View>}
           <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>
           <Text style={muted}>{r.rate ? `${r.rateSource}: ${r.rate.toLocaleString()} actions/h. Modeled active processing: ${((r.batch.actions ?? 0) / r.rate * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>
           <Text style={muted}>{r.flip.stale ? 'Stale quotes. ' : ''}{r.flip.suspicious ? 'Unusually large margin. ' : ''}Daily averages can lag the market; instant depth is unknown.</Text>
@@ -155,5 +185,6 @@ const styles = StyleSheet.create({
   header: { gap: 12, marginBottom: 12 }, title: { fontSize: 25, fontWeight: '700' },
   label: { fontSize: 16, fontWeight: '600' }, search: { padding: 12, borderRadius: 10, fontSize: 16 },
   card: { borderRadius: 12, overflow: 'hidden' }, row: { padding: 16, gap: 6 },
+  ceilings: { padding: 12, borderRadius: 10, gap: 10 }, ingredient: { gap: 4 },
   earning: { fontSize: 20, fontWeight: '700' }, detail: { padding: 16, paddingTop: 0, gap: 10 }, empty: { padding: 20 }
 })
