@@ -13,15 +13,25 @@ Ground rules carried over from earlier decisions:
 
 ## Current development status (2026-10-27)
 
-Reconciled at `24ca364` against the source, focused test files, existing research
-and the wrapper's `.claude/feature-loop-state.json` ledger. The original scout
-queue is implemented across [PR #40](https://github.com/PwntasticKev/Ge-Metrics/pull/40)–
-[#51](https://github.com/PwntasticKev/Ge-Metrics/pull/51) and follow-ups; development
-now extends through [#84](https://github.com/PwntasticKev/Ge-Metrics/pull/84).
-**Implemented in this checkout / open PR does not mean merged or shipped.**
-The ledger records TestFlight **1.0.0 (13)** as live; these later tools are not
-part of that release. The dated tables below preserve the earlier history,
-including its original “done” and “shipped” wording, rather than certify releases.
+**Update annotation — 2026-10-27, reconciled at `af44e45`.** The wrapper's
+`.claude/feature-loop-state.json` release record supersedes the earlier
+TestFlight 13 statement: the user authorized TestFlight **1.0.0 (14)** from
+source `1d35f5a`, including work through
+[PR #87](https://github.com/PwntasticKev/Ge-Metrics/pull/87). Apple processing is
+`VALID`, the Internal group includes build 14, and en-US test notes are recorded.
+**Availability is not a native UI pass:** hands-on TestFlight/native validation
+remains pending. Build 14 was built with the widget disabled.
+
+Later drafts are outside build 14: processing session history
+([#88](https://github.com/PwntasticKev/Ge-Metrics/pull/88)), the bounded cooking
+output-yield threshold ([#89](https://github.com/PwntasticKev/Ge-Metrics/pull/89))
+and custom ingredient purchase-price scenarios
+([#90](https://github.com/PwntasticKev/Ge-Metrics/pull/90)). Automated checks,
+reviews and JS exports do not establish native validation or release inclusion.
+The earlier capability summary and tables below preserve historical wording;
+this annotation governs release status, including their “draft,” “done” and
+“shipped” descriptions. An implemented feature or open PR alone is not proof
+of a release.
 
 Current capabilities, grouped by the decision they support:
 
@@ -62,15 +72,19 @@ Current capabilities, grouped by the decision they support:
   [#80](https://github.com/PwntasticKev/Ge-Metrics/pull/80),
   [#84](https://github.com/PwntasticKev/Ge-Metrics/pull/84).
 
-**Validation is the next useful work.** PRs **#73–76 and #78–84 remain draft,
-with native validation pending**. Existing iOS attachment/ownership attempts
+**Validation is the next useful work.** The earlier reconciliation recorded
+PRs #73–76 and #78–84 as drafts with native validation pending; the release
+annotation above updates their build inclusion, without claiming a UI pass.
+Existing iOS attachment/ownership attempts
 were blocked (`DEVICE_IN_USE`); an unused simulator eventually booted but
 device attachment failed. Android SDK command-line tools are missing. Automated checks, reviews and JS exports recorded in
 the ledger are not a native QA pass. Validate populated sessions, save/retry/
 conflict paths, quote provenance, picker context and light/dark interactions
-on an exclusively attached runtime before advancing those drafts.
+on an exclusively attached runtime; later drafts still need native validation.
 PR #46 still needs real-game RuneLite evidence and Plugin Hub readiness;
 fixture imports and #83's observation timeline do not establish either.
+See the [RuneLite counter semantics finding](runelite-counter-semantics.md)
+for primary-source support and the unresolved accounting boundaries.
 
 Keep the no-server/database core, local builds **without EAS**, existing web
 look and blue/grey presentation. Historical walk-forward results include
