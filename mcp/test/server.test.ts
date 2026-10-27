@@ -95,6 +95,46 @@ describe('MCP server', () => {
     expect((await call(client, 'top_flips', { min_volume: 0 })).data.regime).toMatchObject({ state: 'trade', applied: false })
   })
 
+  it('top_flips sizes risk-off rows once after cash caps and recomputes fill metrics', async () => {
+    const d = quietDeps()
+    const riskOff = { ...d, prices: { ...d.prices,
+      timeseries: async () => flatSeries({ low: 900_000, high: 1_000_000, volume: 100 }),
+      averages: async () => new Map([[4151, avg(1_000_000, 900_000, 2400, 2400)]]),
+      // Yesterday/week ago was higher: risk-off only, no release gate.
+      averagesAt: async () => new Map([[4151, avg(1_100_000, 1_000_000, 300, 300)]])
+    } }
+    const client = await connect(riskOff)
+    try {
+      for (const [budget, fullQty, qty] of [[9_000_000, 10, 5], [2_700_000, 3, 1], [900_000, 1, 1], [63_000_000, 70, 35]] as const) {
+        const args = { min_volume: 0, budget, max_fill_hours: 8, include_demoted: true }
+        const plain = (await call(client, 'top_flips', args)).data
+        const off = (await call(client, 'top_flips', { ...args, apply_regime: false })).data
+        expect(off).toEqual(plain)
+        expect(plain).toMatchObject({ regime: { state: 'caution', size: 0.5, applied: false, signals: { mood: 'risk-off' } } })
+        const full = plain.flips.find((r: { id: number }) => r.id === 4151)
+        expect(full.qty).toBe(fullQty)
+        const applied = (await call(client, 'top_flips', { ...args, apply_regime: true })).data
+        expect(applied.regime).toMatchObject({ state: 'caution', size: 0.5, applied: true })
+        const row = applied.flips.find((r: { id: number }) => r.id === 4151)
+        expect(row).toMatchObject({ qty, buyAt: 900_000, sellAt: 1_000_000,
+          realisticProfitPerLimit: qty * 80_000,
+          expectedFillHours: { buy: qty === 1 ? 0.08 : qty / 25, sell: qty === 1 ? 0.08 : qty / 25 },
+          gpPerHourPerSlot: qty === 1 ? 480_000 : 1_000_000,
+          demoted: false,
+          priceBasis: 'hourly series (24h)' })
+        expect(row.qty * row.buyAt).toBeLessThanOrEqual(budget)
+        expect(row.qtyWithinMaxHours).toBe(full.qtyWithinMaxHours)
+      }
+      for (const apply_regime of [false, true]) {
+        expect((await call(client, 'top_flips', { min_volume: 0, budget: 899_999, apply_regime })).data.flips).toEqual([])
+      }
+      const stand = (await call(client, 'top_flips', { min_volume: 0, apply_regime: true, upcoming: [{ date: today, title: 'Big release' }] })).data
+      expect(stand).toMatchObject({ standAside: true, flips: [], regime: { state: 'stand-aside', size: 0, applied: true } })
+    } finally {
+      await client.close()
+    }
+  })
+
   it('lists every tool, the prompt and the guide resource', async () => {
     const client = await connect(deps())
     const { tools } = await client.listTools()

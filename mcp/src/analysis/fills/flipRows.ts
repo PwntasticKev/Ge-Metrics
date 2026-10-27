@@ -28,6 +28,7 @@ export interface FlipRowContext {
   readonly tax: TaxFn
   readonly pumps: ReadonlySet<number>
   readonly budget?: number
+  readonly sizeMultiplier?: number
   readonly maxFillHours: number
   readonly refine?: RefineOptions
 }
@@ -43,7 +44,7 @@ const PUMP_REASON = 'Thin-volume pump right now (pump_dump_scan): prices tend to
 const NO_FLOW_REASON = 'Not enough recent trades on both sides (5+ per side in the last hour or 24+ in the day) to price a fill.'
 
 function toRow (live: LiveFlipRow, candidate: Candidate | null, ctx: FlipRowContext): FillAwareRow {
-  const metrics = candidate ? assess(candidate, { budget: ctx.budget, maxFillHours: ctx.maxFillHours }) : null
+  const metrics = candidate ? assess(candidate, { budget: ctx.budget, sizeMultiplier: ctx.sizeMultiplier, maxFillHours: ctx.maxFillHours }) : null
   const demotedReason = ctx.pumps.has(live.id) ? PUMP_REASON : metrics ? metrics.demotedReason : NO_FLOW_REASON
   return { live, candidate, metrics, demotedReason }
 }
