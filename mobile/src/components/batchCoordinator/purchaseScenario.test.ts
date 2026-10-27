@@ -27,8 +27,8 @@ test('multiple manual prices affect only purchase costs; sell baseline/output/ta
   for (const key of ['sellNowConsumedOwned', 'netReceipts', 'outputTax', 'items'] as const) assert.deepEqual(after[key], before[key])
   assert.deepEqual(market, snapshot)
 })
-test('manual buy resolves missing or nonpositive API high without needing observed success', () => {
-  for (const high of [null, 0, -1, NaN, Infinity, 1.5]) {
+test('manual buy resolves missing or invalid API high without needing observed success', () => {
+  for (const high of [null, -1, NaN, Infinity, 1.5]) {
     const quotes = new Map(market); quotes.set(1, { high: high as number, low: 8 })
     assert.equal(result(run({}, quotes)).newCashNeeded, null)
     assert.equal(run({}, quotes).legs[0].source, 'unknown')
@@ -77,4 +77,15 @@ test('custom time recomputes from custom delta and loses positive surplus immedi
   assert.equal(invalidTime.threshold, '')
   assert.match(invalidTime.message, /Unknown/)
   assert.deepEqual(timeAlternativePresentation(2, result(run()).incrementalValue, '60', '1'), observedTime)
+})
+
+test('blank assumptions preserve zero observed buy and sell quote semantics', () => {
+  for (const [id, side] of [[1, 'high'], [1, 'low'], [3, 'low']] as const) {
+    const quotes = new Map(market)
+    quotes.set(id, { ...quotes.get(id)!, [side]: 0 })
+    const tax = (price: number) => Math.min(price, 1)
+    const observed = ownedOpportunity(recipe, 2, 20, owned, key => quotes.get(key), tax)
+    const custom = purchaseScenario(recipe, 2, 20, owned, {}, key => quotes.get(key), tax)
+    assert.deepEqual(custom.comparison, observed)
+  }
 })

@@ -9,8 +9,8 @@ export interface PurchaseLeg {
   price: number | null
   source: 'observed' | 'manual' | 'unknown' | 'invalid'
 }
-const positiveQuote = (value: number | null | undefined): number | null =>
-  typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null
+const observedQuote = (value: number | null | undefined): number | null =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null
 
 /** Screen-local assumptions: raw market data and every sell-side quote stay untouched. */
 export function purchaseScenario (
@@ -28,7 +28,7 @@ export function purchaseScenario (
     const ids = [...new Set([...inputIds, ...(recipe?.outputs.map(i => i.id) ?? [])])]
     const observed = new Map(ids.map(id => {
       const item = quote(id)
-      return [id, { high: positiveQuote(item?.high), low: positiveQuote(item?.low) }] as const
+      return [id, { high: observedQuote(item?.high), low: observedQuote(item?.low) }] as const
     }))
     for (const id of inputIds) {
       const raw = purchaseText[id] ?? ''
