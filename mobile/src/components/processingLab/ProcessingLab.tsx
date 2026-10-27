@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native'
-import { computeProcessFlip, type ProcessRecipe } from '@ge/engine'
+import { computeProcessFlip, type Market, type ProcessRecipe } from '@ge/engine'
 import { Link, router, useFocusEffect } from 'expo-router'
 import { useMarket } from '../../api/useMarket'
 import { useAverages } from '../../api/useAverages'
@@ -13,6 +13,7 @@ import { PROCESSING_METHODS, type MethodDef } from '../../lib/methods'
 import { batchWait, labMarket, labSourceFreshness, labSourceDisclosure, showLabSource, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
 import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
 import { processingPriceFloors, type PriceFloorReason } from '../../lib/processingPriceFloors'
+import { processingOutputThreshold, supportsOutputThreshold } from '../../lib/processingOutputThreshold'
 import { processingStress } from '../../lib/processingStress'
 import { gpFull, gpShort, minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
@@ -281,6 +282,7 @@ export function ProcessingLab () {
             })}
             <Text style={muted}>High/low are independent historical trade observations, not live orders or guaranteed fills. Patient averages may reflect sparse trades; aggregate volume is not available inventory or personal fill odds. Missing or zero quotes stay unknown.</Text>
           </>}
+          {market.market && supportsOutputThreshold(r.recipe) && <OutputThresholdSection key={`${r.recipe.id}:${inputs}:${outputs}`} recipe={r.recipe} market={market.market} inputs={inputs} outputs={outputs} />}
           <Text style={text}>Each action: {gpFull(r.flip.cost)} GP cost → {gpFull(r.flip.revenue)} GP gross; {gpFull(r.flip.tax)} GP tax.</Text>
           {stress && <View style={[styles.ceilings, { backgroundColor: p.well }]}>
             <Text style={[styles.label, { color: p.brand }]}>Hypothetical quote stress</Text>
@@ -364,3 +366,36 @@ const styles = StyleSheet.create({
   ceilings: { padding: 12, borderRadius: 10, gap: 10 }, ingredient: { gap: 4 },
   earning: { fontSize: 20, fontWeight: '700' }, detail: { padding: 16, paddingTop: 0, gap: 10 }, empty: { padding: 20 }
 })
+
+
+// Local counts never come from guide pace or batch sizing. Mode keys and row
+// unmounting reset both counts; editing attempts clears the scenario.
+function OutputThresholdSection ({ recipe, market, inputs, outputs }: { recipe: ProcessRecipe; market: Market; inputs: PriceMode; outputs: PriceMode }) {
+  const { palette: p } = useTheme()
+  const [attempts, setAttempts] = useState('')
+  const [scenario, setScenario] = useState('')
+  const result = processingOutputThreshold(recipe, market, inputs, outputs, attempts, scenario)
+  const muted = { color: p.muted }
+  const marginStyle = (value: number) => ({ color: value >= 0 ? p.brand : p.muted })
+  const reasons = {
+    'unsupported-recipe': 'Unavailable for this recipe identity or fee model.',
+    'patient-mode': 'Unavailable with patient pricing. Select instant buys and instant sells to use observed high input / low output quotes.',
+    'attempts-required': 'Enter your whole attempted count to calculate a threshold.',
+    'missing-quote': 'Unavailable: an observed input high or output low quote is missing.',
+    'invalid-value': 'Unavailable: counts must be safe whole numbers, successful outputs must be from 0 to attempts, and quotes and arithmetic must be safe whole GP.'
+  }
+  return <View style={[styles.ceilings, { backgroundColor: p.well }]}>
+    <Text style={[styles.label, { color: p.brand }]}>Break-even output count</Text>
+    <Text style={muted}>One raw karambwan per attempt, at most one saleable cooked karambwan per attempt. All inputs purchased at observed high; outputs sold at observed low, less canonical per-item GE tax. Recipe fee: 0 GP. Costs beyond the recipe are excluded.</Text>
+    <TextInput accessibilityLabel="Whole attempted count" placeholder="Attempted count (required)" placeholderTextColor={p.muted} keyboardType="number-pad" value={attempts} onChangeText={value => { setAttempts(value); setScenario('') }} style={[styles.search, { color: p.ink, backgroundColor: p.card }]} />
+    <TextInput accessibilityLabel="Optional successful output count" placeholder="Successful outputs (optional, 0 to attempts)" placeholderTextColor={p.muted} keyboardType="number-pad" value={scenario} onChangeText={setScenario} style={[styles.search, { color: p.ink, backgroundColor: p.card }]} />
+    {result.reason ? <Text style={muted}>{reasons[result.reason]}</Text> : <>
+      <Text style={muted}>Your count: {result.attempts!.toLocaleString()} attempts. Net per saleable output: {gpFull(result.netUnit!)} GP.</Text>
+      {result.maxFailed !== null ? <Text style={{ color: p.brand }}>Minimum saleable outputs: {result.minimumOutputs!.toLocaleString()}{result.requiredPercent === null ? '' : ` (${result.requiredPercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% of attempts)`}. Maximum failed attempts: {result.maxFailed.toLocaleString()}. At this minimum count the modeled margin is nonnegative.</Text>
+        : <Text style={muted}>{result.minimumOutputs === null ? 'No finite output count covers the positive cost at zero net output revenue.' : `Even all ${result.attempts!.toLocaleString()} attempts producing saleable outputs would not break even; ${result.minimumOutputs.toLocaleString()} outputs would be required.`} Failed-attempt tolerance unavailable.</Text>}
+      <Text style={marginStyle(result.fullMargin!)}>Full-output margin: {gpFull(result.fullMargin!)} GP after tax.</Text>
+      {result.scenarioMargin !== null && <Text style={marginStyle(result.scenarioMargin)}>Your {scenario} successful outputs: {gpFull(result.scenarioMargin)} GP margin after tax.</Text>}
+    </>}
+    <Text style={muted}>Counts are your hypothetical inputs, not a predicted yield or burn probability. No guide rate, player eligibility or fill confidence is inferred. Quotes are observations, not guaranteed fills; selected source freshness is disclosed in this row.</Text>
+  </View>
+}
