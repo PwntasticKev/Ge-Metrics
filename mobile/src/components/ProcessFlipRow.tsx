@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { Linking, Pressable, StyleSheet, Text } from 'react-native'
 import type { ProcessFlip } from '@ge/engine'
+import { cookingAssumptions } from '../lib/cookingAssumptions'
 import { gpFull, qty, signed } from '../lib/format'
 import { recipeMeta, type ProcessSort } from '../lib/methods'
 import { useWatchlist } from '../state/watchlist'
@@ -24,6 +25,7 @@ export const ProcessFlipRow = memo(function ProcessFlipRow ({ flip, sortBy, expa
   const { palette } = useTheme()
   const { isStarred, toggle } = useWatchlist()
   const entry = { kind: 'process', id: flip.id } as const
+  const assumptions = cookingAssumptions(flip.id)
   const meta = recipeMeta(flip.id)
   const { value, caption } = headline(flip, sortBy)
   return (
@@ -31,11 +33,13 @@ export const ProcessFlipRow = memo(function ProcessFlipRow ({ flip, sortBy, expa
       icon={flip.icon}
       name={flip.name}
       meta={metaLine(flip, sortBy)}
+      note={assumptions?.summary}
       value={value}
       valueCaption={caption}
       expanded={expanded}
       onToggle={() => onToggle(flip.id)}
     >
+      {assumptions ? <Text style={[styles.small, { color: palette.muted, paddingBottom: 8 }]}>{assumptions.detail}</Text> : null}
       {flip.buy.map(l => <PriceLine key={`b${l.id}`} tag="Buy" icon={l.icon} label={`${qty(l.qty)} × ${l.name}`} price={l.price} />)}
       {flip.sell.map((l, i) => <PriceLine key={`s${l.id}`} tag="Sell" icon={l.icon} divider={i === 0} label={`${qty(l.qty)} × ${l.name}`} price={l.price} />)}
       {flip.coinCost > 0 ? <Text style={[styles.small, { color: palette.muted, paddingTop: 6 }]}>Includes {gpFull(flip.coinCost)} coins paid per action</Text> : null}
