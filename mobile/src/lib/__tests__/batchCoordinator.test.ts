@@ -62,3 +62,40 @@ test('zero goal needs no cash; negative budget and owned counts clamp to zero', 
   assert.equal(coordinateBatch(recipe, 0, 0, {}, () => null, tax).cashNeeded, 0)
   assert.equal(plan({ 1: -1, 2: NaN }, -10).affordable, 0)
 })
+
+test('Shortbow large goal rejects rounded replacement cost and margin', () => {
+  assert.throws(() => coordinateBatch({ inputs: [{ id: 50, qty: 1 }, { id: 1777, qty: 1 }], outputs: [{ id: 841, qty: 1 }] }, 999999999, 0, {}, id => ({ buy: id === 50 ? 999999998 : 1, sell: 1005000000 }), () => 5000000), RangeError)
+})
+
+test('rejects unsafe grouped quantities and products without quotes', () => {
+  for (const inputs of [[{ id: 1, qty: Number.MAX_SAFE_INTEGER }, { id: 1, qty: 1 }], [{ id: 1, qty: Number.MAX_SAFE_INTEGER }]]) {
+    assert.throws(() => coordinateBatch({ inputs, outputs: [{ id: 3, qty: 1 }] }, 2, 0, {}, () => null, tax), RangeError)
+  }
+})
+test('known subtotal cannot hide behind unknown quotes or tax cancellation', () => {
+  const max = Number.MAX_SAFE_INTEGER
+  assert.throws(() => coordinateBatch({ inputs: [{ id: 1, qty: 1 }, { id: 2, qty: 1 }, { id: 4, qty: 1 }], outputs: [{ id: 3, qty: 1 }] }, 1, 0, {}, id => ({ buy: id === 4 ? null : max, sell: 1 }), () => 0), RangeError)
+  for (const outputs of [[{ id: 3, qty: 2 }], [{ id: 3, qty: 1 }, { id: 4, qty: 1 }, { id: 5, qty: 1 }]]) {
+    assert.throws(() => coordinateBatch({ inputs: [{ id: 1, qty: 1 }], outputs }, 1, 0, {}, id => ({ buy: 1, sell: id === 5 ? null : max }), () => max), RangeError)
+  }
+})
+test('exact safe boundary and legacy normalization remain supported', () => {
+  const p = coordinateBatch({ inputs: [{ id: 1, qty: 1 }], outputs: [{ id: 3, qty: 1 }] }, 1, Infinity, { 1: 2.9 }, () => ({ buy: Number.MAX_SAFE_INTEGER, sell: Number.MAX_SAFE_INTEGER }), () => 0)
+  assert.equal(p.replacementCost, Number.MAX_SAFE_INTEGER)
+  assert.equal(p.projectedMargin, 0)
+  assert.equal(p.cashNeeded, 0)
+  assert.equal(p.affordable, 1)
+  assert.equal(p.ingredients[0].surplus, 1)
+  assert.equal(coordinateBatch(recipe, 0, 0, {}, () => { throw Error('No quote needed') }, tax).netProceeds, 0)
+})
+test('known fractional GP, unsafe coins and invalid tax raise RangeError', () => {
+  for (const coinCost of [0.5, Number.MAX_SAFE_INTEGER]) assert.throws(() => coordinateBatch({ ...recipe, coinCost }, 2, 0, {}, prices, tax), RangeError)
+  assert.throws(() => coordinateBatch(recipe, 1, 0, {}, () => ({ buy: 1.5, sell: 100 }), tax), RangeError)
+  for (const levy of [-1, 0.5, 101, Infinity]) assert.throws(() => coordinateBatch(recipe, 1, 0, {}, prices, () => levy), RangeError)
+})
+
+test('unsafe individual input and output quantities raise RangeError', () => {
+  const unsafe = [{ id: 1, qty: Number.MAX_SAFE_INTEGER + 1 }]
+  assert.throws(() => coordinateBatch({ ...recipe, inputs: unsafe }, 1, 0, {}, prices, tax), RangeError)
+  assert.throws(() => coordinateBatch({ ...recipe, outputs: unsafe }, 1, 0, {}, prices, tax), RangeError)
+})

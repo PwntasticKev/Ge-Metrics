@@ -65,9 +65,18 @@ export function BatchCoordinator () {
   }
   const opportunity = ownedOpportunity(recipe, goal, budget, ownedText, id => market.market?.get(id), geTax)
   const comparison = opportunity.kind === 'ready' ? opportunity.result : null
-  const plan = recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
-    Object.fromEntries(inputIds.map(id => [id, parse(ownedText[id] ?? '0') ?? 0])),
-    id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax) : null
+  let plan: ReturnType<typeof coordinateBatch> | null = null
+  let planError: string | null = null
+  if (recipe && goal !== null && budget !== null && valid) {
+    try {
+      plan = coordinateBatch(recipe, goal, budget,
+        Object.fromEntries(inputIds.map(id => [id, parse(ownedText[id] ?? '0') ?? 0])),
+        id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax)
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error
+      planError = 'Batch plan unavailable: values exceed supported whole-unit/GP limits'
+    }
+  }
   const custom = purchaseScenario(recipe, goal, budget, ownedText, purchaseText, id => market.market?.get(id), geTax)
   const customComparison = custom.comparison.kind === 'ready' ? custom.comparison.result : null
   const customTime = timeAlternativePresentation(goal, customComparison?.incrementalValue ?? null, alternativeRateText, extraMinutesText)
@@ -175,6 +184,7 @@ export function BatchCoordinator () {
         </View>)}
         <Text style={muted}>Ingredient bounds only, independent of cash. This does not establish an executable combined goal or promise fills, resets or reinvestment. Refreshing quotes never refills or resets declarations.</Text>
       </View>}
+      {planError && <Text style={text}>{planError}</Text>}
       {!plan && (goal === null || budget === null || !valid) && <Text style={text}>Enter whole numbers from 0 to 1,000,000,000 for goal, cash and owned units. Remaining may be blank for unknown. Use digits only; no commas or decimals.</Text>}
       {plan && <>
         <View style={card}>
