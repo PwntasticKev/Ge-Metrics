@@ -144,9 +144,12 @@ export function optimizeDoseBasket (r: DoseBasketRequest, options: { maxQuantity
   const sources = [...r.family.items].sort((a, b) => a.id - b.id).map(i => {
     const q = r.quotes.find(q => q.id === i.id)
     const caps = [q?.buyCap, r.family.remainingAllowance]
-    for (const c of caps) if (c == null || !whole(c)) missingInputs.add(c === q?.buyCap ? `buy cap:${i.id}` : 'family allowance')
+    if (q?.buyCap == null || !whole(q.buyCap)) missingInputs.add(`buy cap:${i.id}`)
     if (q?.buyCap !== 0 && r.family.remainingAllowance !== 0 && !valued(q?.buy)) missingInputs.add(`buy:${i.id}`)
     const natural = Math.min(...caps.map(c => c != null && whole(c) ? c : Infinity), valued(q?.buy) && q.buy > 0 ? Math.floor(r.cash / q.buy) : Infinity)
+    // Test the declared domain before search truncation: an owned-only search cannot
+    // establish global support while any source purchase might fit.
+    if (natural > 0 && (r.family.remainingAllowance == null || !whole(r.family.remainingAllowance))) missingInputs.add('family allowance')
     if (natural > maxQuantity) bounded = true
     return { id: i.id, max: Math.min(natural, maxQuantity) }
   })
