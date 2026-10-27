@@ -35,6 +35,30 @@ export function sizeProcessingBatch (input: BatchInput) {
 export type PriceMode = 'instant' | 'patient'
 export type Averages = Record<string, WikiAverage> | undefined
 
+export type LabSourceFreshness = 'fresh' | 'stale' | 'unknown'
+
+/** Assess original selected legs only. Average-period timestamp semantics are unverified. */
+export function labSourceFreshness (recipe: ProcessRecipe, market: Market, inputs: PriceMode, outputs: PriceMode): LabSourceFreshness {
+  const leg = (entries: ProcessRecipe['inputs'], mode: PriceMode, side: 'highTime' | 'lowTime'): LabSourceFreshness[] => entries.map(entry => {
+    if (mode === 'patient') return 'unknown'
+    const time = market.get(entry.id)?.[side]
+    if (time == null || !Number.isFinite(time) || time <= 0 || !Number.isFinite(market.nowSec) || time > market.nowSec) return 'unknown'
+    return market.nowSec - time > 6 * 60 * 60 ? 'stale' : 'fresh'
+  })
+  const sources = [...leg(recipe.inputs, inputs, 'highTime'), ...leg(recipe.outputs, outputs, 'lowTime')]
+  return sources.includes('stale') ? 'stale' : sources.includes('unknown') || !sources.length ? 'unknown' : 'fresh'
+}
+
+export function showLabSource (freshness: LabSourceFreshness, hideStale: boolean): boolean {
+  return !hideStale || freshness === 'fresh'
+}
+
+export function labSourceDisclosure (freshness: LabSourceFreshness): string {
+  return freshness === 'fresh' ? 'Selected instant sources are within 6h.'
+    : freshness === 'stale' ? 'Selected source older than 6h; other source ages may be unknown.'
+      : 'Some selected prices have unknown ages.'
+}
+
 /** Patient prices use traded daily averages; instant prices are observed quotes, never guaranteed fills. */
 export function labMarket (market: Market, inputs: PriceMode, outputs: PriceMode, day: Averages): Market {
   const get = (id: number) => {
@@ -43,7 +67,9 @@ export function labMarket (market: Market, inputs: PriceMode, outputs: PriceMode
     const avg = day?.[id]
     return { ...item,
       low: inputs === 'instant' ? item.high : avg && avg.lowPriceVolume > 0 ? avg.avgLowPrice : null,
-      high: outputs === 'instant' ? item.low : avg && avg.highPriceVolume > 0 ? avg.avgHighPrice : null
+      high: outputs === 'instant' ? item.low : avg && avg.highPriceVolume > 0 ? avg.avgHighPrice : null,
+      lowTime: inputs === 'instant' ? item.highTime : null,
+      highTime: outputs === 'instant' ? item.lowTime : null
     }
   }
   return { nowSec: market.nowSec, get, all: () => market.all().flatMap(i => { const item = get(i.id); return item ? [item] : [] }) }

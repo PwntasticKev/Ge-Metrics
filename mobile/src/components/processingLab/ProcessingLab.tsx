@@ -10,7 +10,7 @@ import { Pills } from '../Tabs'
 import { BLUE_SCALE_RECIPES, blueScaleQuoteAgeSec, isBlueScale } from '../../lib/blueScale'
 import { UNICORN_GRINDING_RECIPES, isUnicornGrinding } from '../../lib/unicornGrinding'
 import { PROCESSING_METHODS, type MethodDef } from '../../lib/methods'
-import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
+import { batchWait, labMarket, labSourceFreshness, labSourceDisclosure, showLabSource, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
 import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
 import { processingPriceFloors, type PriceFloorReason } from '../../lib/processingPriceFloors'
 import { processingStress } from '../../lib/processingStress'
@@ -116,7 +116,8 @@ export function ProcessingLab () {
     return catalog.flatMap(({ method, recipe, paceKey, paceReason, summary }) => {
       if (!settings.membersItems && (recipe.members || [...recipe.inputs, ...recipe.outputs].some(e => source.get(e.id)?.members))) return []
       const flip = computeProcessFlip(recipe, quoted)
-      if (!flip || (settings.hideStale && flip.stale) || (settings.hideFlukes && flip.suspicious)) return []
+      const freshness = labSourceFreshness(recipe, source, inputs, outputs)
+      if (!flip || !showLabSource(freshness, settings.hideStale) || (settings.hideFlukes && flip.suspicious)) return []
       const recorded = recipe.actionsPerHour != null && summary?.actionsPerHour != null ? pace.choices[paceKey] : undefined
       const rate = recorded ?? recipe.actionsPerHour ?? null
       const rateSource = recorded !== undefined ? 'Recorded (explicit choice)' : rate !== null ? 'Curated' : 'No curated rate'
@@ -133,7 +134,7 @@ export function ProcessingLab () {
           sizing: { cashBudgetGp: cashValue, activeMinutes: minutesValue, actions: batch.actions, rate: selectedRate ?? null, mappingLimitActions: limit, hasUnknownInputLimit: unknownLimit },
           amounts: { cost: flip.cost, revenue: flip.revenue, tax: flip.tax, profit: flip.profit } }
       } catch (error) { captureReason = error instanceof Error ? error.message : String(error) }
-      return [{ method, recipe, flip, batch, limit, unknownLimit, paceKey, paceReason, summary, rate, rateSource, displayed, captureReason }]
+      return [{ method, recipe, flip, freshness, batch, limit, unknownLimit, paceKey, paceReason, summary, rate, rateSource, displayed, captureReason }]
     }).filter(r => Boolean(r.batch.actions === null) === untimed)
       .filter(r => `${r.method.title} ${r.flip.name} ${isBlueScale(r.recipe) ? 'blue scale pestle mortar Nardah' : isUnicornGrinding(r.recipe) ? 'unicorn horn dust Wesley pestle mortar Nardah' : ''}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => (b.batch.earnings ?? b.flip.profit) - (a.batch.earnings ?? a.flip.profit))
@@ -173,7 +174,8 @@ export function ProcessingLab () {
     const f = computeProcessFlip(recipe, quoted)
     if (!f) return 'Missing traded prices'
     const b = sizeProcessingBatch({ cost: f.cost, profit: f.profit, tax: f.tax, cash: cashValue, minutes: minutesValue, actionsPerHour: rate, limitActions: isLabOnlyConversion(recipe) ? null : recipeLimit(recipe, market.market) })
-    return b.earnings === null ? `${gpFull(f.profit)} GP/action · no rate` : `${gpFull(b.earnings)} GP · ${b.actions} actions`
+    const disclosure = labSourceDisclosure(labSourceFreshness(recipe, market.market, buy, sell))
+    return `${b.earnings === null ? `${gpFull(f.profit)} GP/action · no rate` : `${gpFull(b.earnings)} GP · ${b.actions} actions`} · ${disclosure}`
   }
   return <FlatList
     style={{ backgroundColor: p.bg }} contentContainerStyle={styles.list}
@@ -194,19 +196,20 @@ export function ProcessingLab () {
       <Text style={[styles.label, text]}>Buy inputs</Text><Pills options={MODES} value={inputs} onChange={setInputs} />
       <Text style={[styles.label, text]}>Sell outputs</Text><Pills options={MODES} value={outputs} onChange={setOutputs} />
       <Text style={muted}>Modeled batch earnings, not confirmed fills. GE waits are extra.</Text>
+      <Text style={muted}>Hide stale {settings.hideStale ? 'ON' : 'OFF'}: when ON, hides prices older than 6h and prices with unknown ages. Patient averages have unknown ages. Download times do not establish price ages.</Text>
       <Text style={muted}>Downloads: quotes {minutesAgo(market.updatedAt) || 'unknown'} · daily averages {minutesAgo(averages.h24UpdatedAt) || 'unknown'}</Text>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: assumptions }} onPress={() => setAssumptions(value => !value)}><Text style={{ color: p.brand }}>{assumptions ? 'Hide' : 'Show'} pricing and batch assumptions</Text></Pressable>
       {assumptions && <>
         <Text style={muted}>Instant uses observed buy-high / sell-low quotes, not confirmed fills. Patient uses traded 24h averages and adds modeled GE wait outside active time. Prices and rates are estimates, not measured earnings.</Text>
         <Text style={muted}>Assumes unused buy limits, no resets or reinvestment. Shared limits and previous purchases can reduce the batch. Equipment and travel costs beyond the recipe are excluded.</Text>
       </>}
-      {(market.error || averages.refreshError) && <Text style={muted}>Refresh failed for some data. Available cached prices remain visible; missing prices are excluded.</Text>}
+      {(market.error || averages.refreshError) && <Text style={muted}>Refresh failed for some data. Cached prices remain available with Hide stale OFF; missing prices are excluded.</Text>}
       <TextInput accessibilityLabel="Search processing recipes" placeholder="Search method or recipe" placeholderTextColor={p.muted} value={query} onChangeText={setQuery} style={[styles.search, text, { backgroundColor: p.well }]} />
       <Pills options={[{ value: 'timed', label: 'Session earnings' }, { value: 'untimed', label: 'No trusted rate' }]} value={untimed ? 'untimed' : 'timed'} onChange={v => setUntimed(v === 'untimed')} />
       <Text style={muted}>Blue scale and unicorn horn manual / Wesley comparisons: select No trusted rate, then search scale, horn, dust or Wesley. Per-action only.</Text>
       <Text style={muted}>{rows.length} recipes · {untimed ? 'ranked by GP/action' : 'ranked by modeled batch earnings'} · tap to compare all four assumptions</Text>
     </View>}
-    ListEmptyComponent={market.isLoading ? <LoadingState /> : !market.market && market.error ? <ErrorState message="Prices unavailable" onRetry={refresh} /> : <Text style={[muted, styles.empty]}>No recipes match with the available prices and current stale/fluke/member settings. Patient pricing needs traded daily averages.</Text>}
+    ListEmptyComponent={market.isLoading ? <LoadingState /> : !market.market && market.error ? <ErrorState message="Prices unavailable" onRetry={refresh} /> : <Text style={[muted, styles.empty]}>No recipes match with the available prices and current stale/fluke/member settings. Patient pricing needs traded daily averages. Hide stale ON also excludes unknown ages, including all patient pricing; turn it OFF to compare cached averages with unknown source age.</Text>}
     renderItem={({ item: r }) => {
       const expanded = open === r.recipe.id
       const ceilings = expanded && market.market
@@ -226,6 +229,7 @@ export function ProcessingLab () {
       return <View style={[styles.card, { backgroundColor: p.card }]}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setOpen(expanded ? null : r.recipe.id)} style={styles.row}>
           <Text style={[styles.label, text]}>{r.flip.name}</Text>
+          <Text style={muted}>{labSourceDisclosure(r.freshness)}</Text>
           <Text style={muted}>{r.method.title} · Rate source: {r.rateSource}{r.rate !== null ? ` · ${r.rate.toLocaleString()} actions/h` : ""}</Text>
           <Text style={[styles.earning, { color: r.flip.profit >= 0 ? p.profit : p.muted }]}>{r.batch.earnings === null ? `${gpFull(r.flip.profit)} GP/action` : `${gpFull(r.batch.earnings)} GP after tax`}</Text>
           <Text style={muted}>{r.batch.actions === null ? 'No trusted rate: no session or hourly estimate' : `${r.batch.actions.toLocaleString()} actions · ${gpShort(r.batch.capital)} GP upfront · ${r.batch.bottlenecks.join(' + ')} capped`}</Text>
@@ -342,7 +346,7 @@ export function ProcessingLab () {
           </View>}
           {!isLabOnlyConversion(r.recipe) && <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>}
           {!isUnicornGrinding(r.recipe) && <Text style={muted}>{r.rate ? `${r.rateSource}: ${r.rate.toLocaleString()} actions/h. Modeled active processing: ${((r.batch.actions ?? 0) / r.rate * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>}
-          <Text style={muted}>{r.flip.stale ? 'Stale quotes. ' : ''}{r.flip.suspicious ? 'Unusually large margin. ' : ''}Daily averages can lag the market; instant depth is unknown.</Text>
+          <Text style={muted}>{labSourceDisclosure(r.freshness)} {r.flip.suspicious ? 'Unusually large margin. ' : ''}Daily averages can lag the market; instant depth is unknown.</Text>
           {SCENARIOS.map(([buy, sell]) => <Text key={`${buy}-${sell}`} style={text}>{buy} in / {sell} out: {scenario(r.recipe, buy, sell, r.rate)}</Text>)}
           <Text style={muted}>Requires: {r.method.requirements || 'See method guide'}</Text>
           {!isLabOnlyConversion(r.recipe) && <Link href={`/tools/${r.method.key}`} style={{ color: p.brand }}>Open recipe tool</Link>}
