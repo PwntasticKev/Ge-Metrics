@@ -8,6 +8,7 @@ import { calculateBatchAllowances, type BatchAllowanceResult } from '../../lib/b
 import { gpFull } from '../../lib/format'
 import { ownedOpportunity, parseBatchNumber as parse } from './ownedOpportunity'
 import { timeAlternativePresentation } from './timeAlternative'
+import { purchaseScenario } from './purchaseScenario'
 import { useTheme } from '../../theme/ThemeProvider'
 
 // Curated whole-unit recipes only: fractional guide yields are not deterministic.
@@ -22,6 +23,8 @@ export function BatchCoordinator () {
   const [search, setSearch] = useState('')
   const [choosing, setChoosing] = useState(false)
   const [showOpportunityDetails, setShowOpportunityDetails] = useState(false)
+  const [showPurchaseScenario, setShowPurchaseScenario] = useState(false)
+  const [purchaseText, setPurchaseText] = useState<Record<number, string>>({})
   const [showTimeAlternative, setShowTimeAlternative] = useState(false)
   const [alternativeRateText, setAlternativeRateText] = useState('')
   const [extraMinutesText, setExtraMinutesText] = useState('')
@@ -65,6 +68,9 @@ export function BatchCoordinator () {
   const plan = recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
     Object.fromEntries(inputIds.map(id => [id, parse(ownedText[id] ?? '0') ?? 0])),
     id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax) : null
+  const custom = purchaseScenario(recipe, goal, budget, ownedText, purchaseText, id => market.market?.get(id), geTax)
+  const customComparison = custom.comparison.kind === 'ready' ? custom.comparison.result : null
+  const customTime = timeAlternativePresentation(goal, customComparison?.incrementalValue ?? null, alternativeRateText, extraMinutesText)
   const timeAlternative = timeAlternativePresentation(goal, comparison?.incrementalValue ?? null, alternativeRateText, extraMinutesText)
   const name = (id: number) => market.market?.get(id)?.name ?? `Item #${id}`
   const text = { color: palette.ink }
@@ -81,7 +87,7 @@ export function BatchCoordinator () {
         {choosing && <>
           <TextInput accessibilityLabel="Search recipes" placeholder="Search curated recipes" placeholderTextColor={palette.muted} value={search} onChangeText={setSearch} style={[styles.search, text, { backgroundColor: palette.well }]} />
           <Text style={muted}>{matches.length} matches · showing first 20</Text>
-          {matches.slice(0, 20).map(r => <Pressable key={r.id} style={button} accessibilityRole="button" onPress={() => { setRecipeId(r.id); setExtraMinutesText(''); setOwnedText({}); setRemainingText({}); setChoosing(false) }}><Text style={text}>{r.name} · {r.group}</Text></Pressable>)}
+          {matches.slice(0, 20).map(r => <Pressable key={r.id} style={button} accessibilityRole="button" onPress={() => { setRecipeId(r.id); setPurchaseText({}); setExtraMinutesText(''); setOwnedText({}); setRemainingText({}); setChoosing(false) }}><Text style={text}>{r.name} · {r.group}</Text></Pressable>)}
         </>}
         <Text style={muted}>{recipe?.requirements}</Text>
         <Text style={muted}>{recipe?.description}</Text>
@@ -133,6 +139,27 @@ export function BatchCoordinator () {
           {timeAlternative.threshold !== '' && <Text style={muted}>{timeAlternative.threshold}</Text>}
           <Text style={{ color: timeAlternative.positive ? palette.brand : palette.muted }}>{timeAlternative.message}</Text>
           <Text style={muted}>Quote-based estimate only. Minutes reset when recipe, goal or owned stock is edited; your rate stays. Cash fit and ingredient allowances remain separate.</Text>
+        </>}
+      </View>
+      <View style={card}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showPurchaseScenario }} onPress={() => setShowPurchaseScenario(!showPurchaseScenario)} style={button}><Text style={{ color: palette.brand }}>Custom purchase-price scenario</Text></Pressable>
+        {showPurchaseScenario && <>
+          <Text style={muted}>Optional manual purchase assumptions for this goal’s shortages. Blank inherits the latest observed high. Sell-now owned values and output low prices stay observed; replacement margin below stays observed.</Text>
+          {custom.legs.map(leg => <View key={leg.id} style={styles.ingredient}>
+            <Text style={text}>{name(leg.id)} · shopping: {leg.shopping === null ? 'Unknown' : gpFull(leg.shopping)} · observed high: {money(leg.observed)}</Text>
+            <TextInput accessibilityLabel={`Custom purchase price for ${name(leg.id)}`} keyboardType="number-pad" placeholder="Inherit observed high" placeholderTextColor={palette.muted} value={purchaseText[leg.id] ?? ''} onChangeText={value => setPurchaseText(prev => ({ ...prev, [leg.id]: value }))} style={[styles.search, text, { backgroundColor: palette.well }]} />
+            <Text style={muted}>{leg.source === 'invalid' ? 'Invalid — use whole digits from 1 to 1,000,000,000; 0 is invalid. Dependent estimates are Unknown.' : `${leg.source === 'manual' ? 'Manual assumption' : leg.source === 'observed' ? 'Inherited observed high' : 'Unknown purchase price'}: ${money(leg.price)} per unit`}</Text>
+          </View>)}
+          <Pressable accessibilityRole="button" onPress={() => setPurchaseText({})} style={button}><Text style={{ color: palette.brand }}>Clear all custom prices</Text></Pressable>
+          {custom.comparison.kind === 'unavailable' && <Text style={muted}>{custom.comparison.reason}</Text>}
+          <Text style={text}>Cash required · Observed: {money(comparison?.newCashNeeded ?? null)} · Custom: {money(customComparison?.newCashNeeded ?? null)}</Text>
+          <Text style={text}>Budget shortfall · Observed: {money(comparison?.cashShortfall ?? null)} · Custom: {money(customComparison?.cashShortfall ?? null)}</Text>
+          <Text style={text}>Extra value versus selling consumed owned inputs · Observed: {money(comparison?.incrementalValue ?? null)} · Custom: {money(customComparison?.incrementalValue ?? null)}</Text>
+          <Text style={muted}>Time hurdle · Observed: {timeAlternative.threshold || timeAlternative.message}</Text>
+          <Text style={muted}>Time hurdle · Custom: {customTime.threshold || customTime.message}</Text>
+          {timeAlternative.threshold !== '' && <Text style={muted}>Observed time surplus · {timeAlternative.message}</Text>}
+          {customTime.threshold !== '' && <Text style={muted}>Custom time surplus · {customTime.message}</Text>}
+          <Text style={muted}>Use “Compare your time alternative” above to enter your rate and minutes. Price edits preserve your time estimate because batch work is unchanged. Manual prices are assumptions, with no fill or freshness guarantee. Fees remain upfront; proceeds are not reinvested. Allowances remain separate. Refresh preserves typed prices; changing recipe clears them.</Text>
         </>}
       </View>
       {allowanceErrors.map(error => <Text key={error} style={text}>{error}</Text>)}
