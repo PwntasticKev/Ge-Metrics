@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native'
 import { computeProcessFlip, type ProcessRecipe } from '@ge/engine'
-import { Link } from 'expo-router'
+import { Link, useFocusEffect } from 'expo-router'
 import { useMarket } from '../../api/useMarket'
 import { useAverages } from '../../api/useAverages'
 import { NumberField } from '../NumberField'
 import { ErrorState, LoadingState } from '../ListStates'
 import { Pills } from '../Tabs'
-import { PROCESSING_METHODS } from '../../lib/methods'
+import { BLUE_SCALE_RECIPES, blueScaleQuoteAgeSec, isBlueScale } from '../../lib/blueScale'
+import { PROCESSING_METHODS, type MethodDef } from '../../lib/methods'
 import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
 import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
 import { processingPriceFloors, type PriceFloorReason } from '../../lib/processingPriceFloors'
@@ -20,6 +21,16 @@ import { recordedPaceRecipeKey } from '../../lib/recordedPace'
 import { createRecordedPaceHistory } from '../recordedPace/history'
 import { useRecordedPace } from '../recordedPace/useRecordedPace'
 import { recorderUnavailableReason, snapshotRecipe } from '../processingSessions/recipe'
+
+// Keep these per-action conversions out of shared tools and rankings.
+const LAB_METHODS: readonly MethodDef[] = [...PROCESSING_METHODS, {
+  key: 'blue-scale', title: 'Blue dragon scale grinding · manual / Wesley',
+  blurb: 'One blue dragon scale becomes one dragon scale dust.',
+  requirements: 'Members; manual: owned, retained pestle and mortar; Wesley: access to Nardah, no diary gate. Tool acquisition, access and travel costs/time excluded.',
+  source: 'https://oldschool.runescape.wiki/w/Blue_dragon_scale',
+  group: 'processing', sorts: [{ value: 'profit', label: 'GP/action' }], defaultSort: 'profit',
+  recipes: () => BLUE_SCALE_RECIPES
+}]
 
 const MODES = [{ value: 'instant', label: 'Instant' }, { value: 'patient', label: 'Patient' }] as const
 const STRESS_OPTIONS = [{ value: '0', label: '0%' }, { value: '1', label: '1%' }, { value: '5', label: '5%' }, { value: '10', label: '10%' }] as const
@@ -55,6 +66,13 @@ export function ProcessingLab () {
   const [assumptions, setAssumptions] = useState(false)
   const [inputStress, setInputStress] = useState('0')
   const [outputStress, setOutputStress] = useState('0')
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000))
+  useFocusEffect(useCallback(() => {
+    const updateNow = () => setNowSec(Math.floor(Date.now() / 1000))
+    updateNow()
+    const timer = setInterval(updateNow, 30_000)
+    return () => clearInterval(timer)
+  }, []))
   const cashValue = Number(cash.replace(/,/g, ''))
   const minutesValue = Number(minutes)
   const valid = Number.isFinite(cashValue) && cashValue >= 0 && Number.isFinite(minutesValue) && minutesValue >= 0
@@ -62,7 +80,7 @@ export function ProcessingLab () {
   const catalog = useMemo(() => {
     const source = market.market
     if (!source) return []
-    return PROCESSING_METHODS.flatMap(method => method.recipes(source).map(recipe => {
+    return LAB_METHODS.flatMap(method => method.recipes(source).map(recipe => {
       try {
         const snapshot = snapshotRecipe(recipe, method.key, source)
         return { method, recipe, paceKey: recordedPaceRecipeKey(snapshot), paceReason: '', summary: history.summary(snapshot) }
@@ -82,12 +100,12 @@ export function ProcessingLab () {
       const recorded = recipe.actionsPerHour != null && summary?.actionsPerHour != null ? pace.choices[paceKey] : undefined
       const rate = recorded ?? recipe.actionsPerHour ?? null
       const rateSource = recorded !== undefined ? 'Recorded (explicit choice)' : rate !== null ? 'Curated' : 'No curated rate'
-      const limit = recipeLimit(recipe, source)
+      const limit = isBlueScale(recipe) ? null : recipeLimit(recipe, source)
       const batch = sizeProcessingBatch({ cost: flip.cost, profit: flip.profit, tax: flip.tax, cash: cashValue, minutes: minutesValue, actionsPerHour: rate, limitActions: limit })
       const unknownLimit = recipe.inputs.some(e => !source.get(e.id)?.limit)
       return [{ method, recipe, flip, batch, limit, unknownLimit, paceKey, paceReason, summary, rate, rateSource }]
     }).filter(r => Boolean(r.batch.actions === null) === untimed)
-      .filter(r => `${r.method.title} ${r.flip.name}`.toLowerCase().includes(query.toLowerCase()))
+      .filter(r => `${r.method.title} ${r.flip.name} ${isBlueScale(r.recipe) ? 'blue scale pestle mortar Nardah' : ''}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => (b.batch.earnings ?? b.flip.profit) - (a.batch.earnings ?? a.flip.profit))
   }, [catalog, market.market, valid, inputs, outputs, averages.h24, settings, cashValue, minutesValue, untimed, query, pace.choices])
   const refresh = () => { pace.refresh(); market.refresh(); averages.refresh() }
@@ -104,7 +122,7 @@ export function ProcessingLab () {
   return <FlatList
     style={{ backgroundColor: p.bg }} contentContainerStyle={styles.list}
     keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
-    data={rows} keyExtractor={r => r.recipe.id} extraData={open}
+    data={rows} keyExtractor={r => r.recipe.id} extraData={{ open, nowSec }}
     refreshControl={<RefreshControl refreshing={market.isRefreshing || averages.isRefreshing} onRefresh={refresh} tintColor={p.brand} />}
     ListHeaderComponent={<View style={styles.header}>
       <RecentSessions />
@@ -129,6 +147,7 @@ export function ProcessingLab () {
       {(market.error || averages.refreshError) && <Text style={muted}>Refresh failed for some data. Available cached prices remain visible; missing prices are excluded.</Text>}
       <TextInput accessibilityLabel="Search processing recipes" placeholder="Search method or recipe" placeholderTextColor={p.muted} value={query} onChangeText={setQuery} style={[styles.search, text, { backgroundColor: p.well }]} />
       <Pills options={[{ value: 'timed', label: 'Session earnings' }, { value: 'untimed', label: 'No trusted rate' }]} value={untimed ? 'untimed' : 'timed'} onChange={v => setUntimed(v === 'untimed')} />
+      <Text style={muted}>Blue dragon scale manual grinding and Wesley service: select No trusted rate, then search blue scale, dust or Wesley. Per-action only; no batch or GP/hour.</Text>
       <Text style={muted}>{rows.length} recipes · {untimed ? 'ranked by GP/action' : 'ranked by modeled batch earnings'} · tap to compare all four assumptions</Text>
     </View>}
     ListEmptyComponent={market.isLoading ? <LoadingState /> : !market.market && market.error ? <ErrorState message="Prices unavailable" onRetry={refresh} /> : <Text style={[muted, styles.empty]}>No recipes match with the available prices and current stale/fluke/member settings. Patient pricing needs traded daily averages.</Text>}
@@ -156,6 +175,7 @@ export function ProcessingLab () {
           <Text style={muted}>{r.batch.actions === null ? 'No trusted rate: no session or hourly estimate' : `${r.batch.actions.toLocaleString()} actions · ${gpShort(r.batch.capital)} GP upfront · ${r.batch.bottlenecks.join(' + ')} capped`}</Text>
         </Pressable>
         {expanded && <View style={styles.detail}>
+          {!isBlueScale(r.recipe) && <>
           <Text style={text}>Recorded pace · exact recipe snapshot · past 30 days</Text>
           {r.summary && <>
             <Text style={muted}>{new Date(r.summary.windowStartedAt).toLocaleDateString()} – {new Date(r.summary.windowEndedAt).toLocaleDateString()} · {r.summary.sampleCount} samples · {r.summary.totalActions.toLocaleString()} total actions · {(r.summary.totalActiveMs / 60_000).toFixed(1)} active minutes.</Text>
@@ -171,6 +191,20 @@ export function ProcessingLab () {
             return next
           })}><Text style={{ color: p.brand }}>{pace.choices[r.paceKey] !== undefined ? 'Use curated rate' : 'Use recorded pace for this recipe'} · reranks current comparison</Text></Pressable>}
           {recorderUnavailableReason(r.recipe) ? <Text style={muted}>{recorderUnavailableReason(r.recipe)}</Text> : <Link href={{ pathname: './processing-session', params: { recipeid: r.recipe.id, method: r.method.key } }} style={{ color: p.brand, paddingVertical: 12, fontWeight: '600' }}>Record actual session</Link>}
+          </>}
+          {isBlueScale(r.recipe) && <>
+            <Text style={muted}>Each action consumes 1 blue dragon scale (243) and produces 1 dragon scale dust (241). Fee: {r.recipe.coinCost} GP per scale. Manual uses an owned, retained pestle and mortar; Wesley is in Nardah with no diary gate. Members only; tool acquisition, access and travel costs/time excluded.</Text>
+            <Text style={muted}>Unknown processing rate: no GP/hour or batch estimate. No service capacity, available inventory or remaining purchase allowance is inferred.</Text>
+            {[...r.recipe.inputs, ...r.recipe.outputs].map(entry => {
+              const item = market.market?.get(entry.id)
+              const age = (time: number | null | undefined) => {
+                const seconds = blueScaleQuoteAgeSec(nowSec, time)
+                return seconds === null ? 'unknown' : `${seconds}s old`
+              }
+              return <Text key={entry.id} style={muted}>{item?.name || `Item ${entry.id}`} observations: high {item?.high ? item.high : 'unknown'} GP ({age(item?.highTime)}) · low {item?.low ? item.low : 'unknown'} GP ({age(item?.lowTime)}).</Text>
+            })}
+            <Text style={muted}>High/low are independent historical trade observations, not live orders or guaranteed fills. Patient averages may reflect sparse trades; aggregate volume is not available inventory or personal fill odds. Missing or zero quotes stay unknown.</Text>
+          </>}
           <Text style={text}>Each action: {gpFull(r.flip.cost)} GP cost → {gpFull(r.flip.revenue)} GP gross; {gpFull(r.flip.tax)} GP tax.</Text>
           {stress && <View style={[styles.ceilings, { backgroundColor: p.well }]}>
             <Text style={[styles.label, { color: p.brand }]}>Hypothetical quote stress</Text>
@@ -234,13 +268,13 @@ export function ProcessingLab () {
             })}
             <Text style={muted}>Each floor is independent, not simultaneous suggested asks. These are arithmetic thresholds, not fills; headroom does not establish achievable earnings.</Text>
           </View>}
-          <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>
+          {!isBlueScale(r.recipe) && <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>}
           <Text style={muted}>{r.rate ? `${r.rateSource}: ${r.rate.toLocaleString()} actions/h. Modeled active processing: ${((r.batch.actions ?? 0) / r.rate * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>
           <Text style={muted}>{r.flip.stale ? 'Stale quotes. ' : ''}{r.flip.suspicious ? 'Unusually large margin. ' : ''}Daily averages can lag the market; instant depth is unknown.</Text>
           {SCENARIOS.map(([buy, sell]) => <Text key={`${buy}-${sell}`} style={text}>{buy} in / {sell} out: {scenario(r.recipe, buy, sell, r.rate)}</Text>)}
           <Text style={muted}>Requires: {r.method.requirements || 'See method guide'}</Text>
-          <Link href={`/tools/${r.method.key}`} style={{ color: p.brand }}>Open recipe tool</Link>
-          {r.method.source && <Link href={r.method.source as `https://${string}`} style={{ color: p.brand }}>Wiki mechanics and rate source</Link>}
+          {!isBlueScale(r.recipe) && <Link href={`/tools/${r.method.key}`} style={{ color: p.brand }}>Open recipe tool</Link>}
+          {r.method.source && <Link href={r.method.source as `https://${string}`} style={{ color: p.brand }}>{isBlueScale(r.recipe) ? 'Wiki conversion mechanics (no measured rate)' : 'Wiki mechanics and rate source'}</Link>}
         </View>}
       </View>
     }}
