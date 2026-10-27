@@ -1,7 +1,9 @@
 name: Refresh Game Updates
 
 # Rebuilds public/data/game-updates.json (OSRS game updates and dev blogs from
-# the OSRS Wiki, used for chart markers) and opens a PR when it changed.
+# the OSRS Wiki, used for chart markers) and public/data/upcoming-releases.json
+# (announced release dates, read by the MCP market_regime gate) and opens a PR
+# when either changed.
 
 on:
   schedule:
@@ -33,14 +35,21 @@ jobs:
       - name: Generate game updates
         run: node scripts/generate-game-updates.js
 
+      # Reads game-updates.json from the step above (to drop releases that are out).
+      - name: Generate upcoming releases
+        run: node scripts/generate-upcoming-releases.js
+
       - name: Open or update pull request
         uses: peter-evans/create-pull-request@v7
         with:
           branch: chore/refresh-game-updates
           delete-branch: true
-          add-paths: public/data/game-updates.json
-          commit-message: 'chore: refresh game updates dataset'
-          title: 'chore: refresh game updates dataset'
+          add-paths: |
+            public/data/game-updates.json
+            public/data/upcoming-releases.json
+          commit-message: 'chore: refresh game updates and upcoming releases'
+          title: 'chore: refresh game updates and upcoming releases'
           body: |
-            Automated refresh of `public/data/game-updates.json` from the OSRS Wiki `Update:` pages
+            Automated refresh of `public/data/game-updates.json` (OSRS Wiki `Update:` pages) and
+            `public/data/upcoming-releases.json` (wiki "Upcoming updates" schedule + recent news posts)
             by `.github/workflows/refresh-game-updates.yml` (`npm run data:updates`).
