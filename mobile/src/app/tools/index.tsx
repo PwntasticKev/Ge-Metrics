@@ -7,6 +7,7 @@ import { ItemIcon } from '../../components/ItemIcon'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { useSlotsSummary } from '../../components/slots/useSlotAdvice'
 import { useGameUpdates } from '../../api/gameUpdates'
+import { cookingAssumptions } from '../../lib/cookingAssumptions'
 import { gpShort, signed, utcDay } from '../../lib/format'
 import { PRICE_MOVING_KINDS } from '../../lib/gameUpdates'
 import { METHODS, PROCESSING_METHODS, rankMethod, type MethodDef } from '../../lib/methods'
@@ -18,6 +19,7 @@ import { useTheme } from '../../theme/ThemeProvider'
 import { space } from '../../theme/tokens'
 
 interface Best {
+  assumption?: string
   name: string
   icon: string | null
   value: string
@@ -28,7 +30,7 @@ function bestFor (method: MethodDef, market: Market | null, settings: Settings):
   const top = rankMethod(market, method, method.defaultSort, settings)[0]
   if (!top) return null
   const value = method.defaultSort === 'perHour' && top.perHour !== null ? `${signed(top.perHour)}/hr` : `${signed(top.potential)} per 4h`
-  return { name: top.name, icon: top.icon, value }
+  return { name: top.name, icon: top.icon, value, assumption: cookingAssumptions(top.id)?.summary }
 }
 
 const FEATURED: { key: string; icon: string }[] = [
@@ -54,6 +56,7 @@ function FeaturedCard ({ href, title, blurb, icon, best, bestLabel = 'Best now' 
             <Text style={[styles.bestValue, { color: palette.profit }]}>{best.value}</Text>
           </View>
         ) : null}
+        {best?.assumption ? <Text style={[styles.blurb, { color: palette.muted }]}>{best.assumption}</Text> : null}
       </Pressable>
   )
 }
@@ -114,6 +117,7 @@ function MethodRow ({ method, best, last }: { method: MethodDef; best: Best | nu
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[styles.rowTitle, { color: palette.ink }]} numberOfLines={1}>{method.title}</Text>
           <Text style={[styles.rowMeta, { color: palette.muted }]} numberOfLines={1}>{best ? best.name : 'Nothing profitable right now'}</Text>
+          {best?.assumption ? <Text style={[styles.rowMeta, { color: palette.muted }]}>{best.assumption}</Text> : null}
         </View>
         {best ? <Text style={[styles.rowValue, { color: palette.profit }]}>{best.value}</Text> : null}
       </Pressable>
