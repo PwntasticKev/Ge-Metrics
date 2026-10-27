@@ -20,6 +20,7 @@ import { SheetPrices } from './sheet/SheetPrices'
 import { useSheetFill } from './sheet/useSheetFill'
 import { useSharePick } from './share/useSharePick'
 import { SpikeWarning } from './SpikeWarning'
+import { ItemDetails as RelatedPriceDetails } from './relatedPrices/ItemDetails'
 import { ItemChart, type Timestep } from './chart/ItemChart'
 import { Tabs } from './Tabs'
 import { TimingSection } from './timing/TimingSection'
@@ -155,6 +156,7 @@ function ItemSheetBody ({ itemId, exportCard, onClose }: { itemId: number; expor
 
       <Tabs options={RANGES} value={range} onChange={setRange} />
       <ItemChart key={range} itemId={item.id} timestep={series.timestep} points={series.points} label={series.label} onScrubbingChange={setScrubbing} />
+      <RelatedPriceDetails itemId={item.id} />
 
       <SheetPrices fill={fill} instant={flip ? { buyAt: flip.buyAt, sellAt: flip.sellAt, margin: flip.profit } : null} maxSellHours={settings.maxSellHours} />
 
