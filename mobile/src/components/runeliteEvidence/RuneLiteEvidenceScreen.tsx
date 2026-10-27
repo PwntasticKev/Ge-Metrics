@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../theme/ThemeProvider'
+import { selectRuneLiteItemTimeline, type RuneLiteItemSelection } from '../../lib/runeliteItemTimeline'
 import { pickEvidence, type PickedEvidence } from './pickEvidence'
 
 const PAGE_SIZE = 25
@@ -13,6 +14,7 @@ export default function RuneLiteEvidenceScreen () {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [gapPage, setGapPage] = useState(0)
+  const [selection, setSelection] = useState<RuneLiteItemSelection | null>(null)
   const text = (value: string, muted = false) => <Text selectable style={{ color: muted ? p.muted : p.ink, fontSize: 14, lineHeight: 21 }}>{value}</Text>
   const heading = (value: string) => <Text accessibilityRole="header" style={{ color: p.ink, fontSize: 20, fontWeight: '700' }}>{value}</Text>
   const card = (children: ReactNode) => <View style={{ backgroundColor: p.card, borderColor: p.rule, borderWidth: 1, borderRadius: 12, padding: 16, gap: 8 }}>{children}</View>
@@ -23,13 +25,26 @@ export default function RuneLiteEvidenceScreen () {
     setError(null)
     try {
       const next = await pickEvidence()
-      if (next) { setSnapshot(next); setPage(0); setGapPage(0) }
+      if (next) { setSnapshot(next); setPage(0); setGapPage(0); setSelection(null) }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to read this evidence file. Try another JSON export.')
     } finally { setBusy(false) }
   }
   const evidence = snapshot?.evidence
   const preview = snapshot?.preview
+  const choices = useMemo(() => [...new Map((evidence?.events ?? []).filter(event => event.itemId !== null).map(event => {
+    const value: RuneLiteItemSelection = { sourceId: event.sourceId, accountScopeId: event.accountScopeId, profileType: event.profileType, itemId: event.itemId! }
+    return [JSON.stringify(value), value] as const
+  })).values()], [evidence])
+  const groups = useMemo(() => evidence && selection ? selectRuneLiteItemTimeline(evidence, selection) : [], [evidence, selection])
+  const rows = useMemo(() => new Map(preview?.rows.map(row => [row.eventId, row])), [preview])
+  const visible = selection ? groups.flatMap(group => [...group.context, ...group.observations].sort((a, b) => BigInt(a.event.seq) < BigInt(b.event.seq) ? -1 : 1).map(value => ({ ...value, group }))) : (evidence?.events ?? []).map(event => ({ event, preview: rows.get(event.eventId)!, role: 'OBSERVATION' as const, group: null }))
+  const select = (value: RuneLiteItemSelection | null) => { setSelection(value); setPage(0); setGapPage(0) }
+  // Each selector renders just its current option and two controls, regardless of file size.
+  const sources = [...new Map(choices.map(value => [value.sourceId, value])).values()]
+  const scopes = [...new Map(choices.filter(value => value.sourceId === selection?.sourceId).map(value => [JSON.stringify([value.accountScopeId, value.profileType]), value])).values()]
+  const items = choices.filter(value => value.sourceId === selection?.sourceId && value.accountScopeId === selection.accountScopeId && value.profileType === selection.profileType)
+  const selector = (label: string, values: RuneLiteItemSelection[], index: number, description: string) => <View style={{ gap: 8 }}>{text(`${label}: ${description} · ${index + 1} of ${values.length}`)}<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{button(`Previous ${label}`, () => select(values[index - 1]), index <= 0)}{button(`Next ${label}`, () => select(values[index + 1]), index >= values.length - 1)}</View></View>
   const reconciliation = preview?.rows.filter(row => row.issues.length > 0 || row.kind === 'DISCONTINUITY').length ?? 0
   const discontinuities = preview?.rows.filter(row => row.kind === 'DISCONTINUITY').length ?? 0
   const gapRows = preview?.rows.filter(row => row.kind === 'GAP').length ?? 0
@@ -44,13 +59,23 @@ export default function RuneLiteEvidenceScreen () {
     {snapshot && evidence && preview ? <>
       {card(<>{heading('Validated snapshot')}{text(snapshot.name)}{text(`Schema ${evidence.schemaVersion} · plugin ${evidence.pluginVersion} · RuneLite ${evidence.runeLiteVersion}`)}{text(`Exported at ${evidence.exportedAt}`)}{text(`${evidence.events.length} unique observations · ${evidence.accountScopes.length} account scopes`)}{text('Account scopes are opaque recorder IDs, not verified account identities.', true)}{evidence.accountScopes.map(scope => <View key={`${scope.accountScopeId}:${scope.profileType}`}>{text(`Scope ${scope.accountScopeId} · ${scope.profileType}`)}</View>)}</>)}
       {card(<>{heading('Continuity & reconciliation')}{text(`${preview.sequenceGaps.length} missing sequence ranges · ${gapRows} gap observations · ${discontinuities} discontinuities · ${reconciliation} observations needing review`)}{text('Missing sequences describe missing observations, not proven missing executions. Baselines and gaps cannot establish individual fills or execution times. Reconcile with existing records before any future use.', true)}{text(`${evidence.sequenceGaps.length} declared gap ranges · ${evidence.retainedSequenceRanges.length} retained ranges`, true)}{preview.sequenceGaps.slice(gapPage * PAGE_SIZE, (gapPage + 1) * PAGE_SIZE).map((gap, i) => <View key={i}>{text(`Source ${gap.sourceId}\nMissing sequences ${gap.fromSeq}–${gap.toSeq}`)}</View>)}{preview.sequenceGaps.length > PAGE_SIZE ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{button('Earlier gaps', () => setGapPage(v => v - 1), gapPage === 0)}{button('Later gaps', () => setGapPage(v => v + 1), (gapPage + 1) * PAGE_SIZE >= preview.sequenceGaps.length)}</View> : null}</>)}
-      {heading('Historical observations')}
+      {card(<>{heading('Item timeline')}{text('Choose source, opaque scope/profile, and item. Offer/reconnect groups remain separate; referenced predecessor context is not a fill.', true)}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{button('All observations', () => select(null), selection === null)}{button('Browse item timeline', () => select(choices[0]), choices.length === 0 || selection !== null)}</View>
+        {selection ? <>
+          {selector('source', sources, sources.findIndex(value => value.sourceId === selection.sourceId), selection.sourceId)}
+          {selector('scope/profile', scopes, scopes.findIndex(value => value.accountScopeId === selection.accountScopeId && value.profileType === selection.profileType), `${selection.accountScopeId} · ${selection.profileType}`)}
+          {selector('item', items, items.findIndex(value => value.itemId === selection.itemId), String(selection.itemId))}
+        </> : text('All observations selected', true)}
+      </>)}
+      {heading(selection ? 'Historical observations · item timeline' : 'Historical observations · All observations')}
+      {selection ? text(`${groups.length} offer/reconnect groups. Observed terminal states do not establish realised trades, ownership, sale basis, execution price or execution time.`, true) : null}
       {text('GP values below are exact raw decimal strings. “Spent” is the cumulative API counter; sale-side gross/net meaning is unverified. Changes may aggregate multiple executions.', true)}
-      {evidence.events.length === 0 ? text('This export contains no observations.') : text(`Showing ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, evidence.events.length)} of ${evidence.events.length}`)}
-      {evidence.events.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((event, index) => {
-        const row = preview.rows[page * PAGE_SIZE + index]
-        return <View key={event.eventId}>{card(<>
-          {heading(`Slot ${event.slot + 1} · ${event.state}`)}
+      {visible.length === 0 ? text('No matching observations.') : text(`Showing ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, visible.length)} of ${visible.length} rows, including labeled context`)}
+      {visible.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(({ event, preview: row, role, group }) => {
+        return <View key={`${group?.key ?? 'all'}:${role}:${event.eventId}`}>{card(<>
+          {group ? text(`Offer group ${group.offerId} · begins ${group.observations[0].event.eventId}`, true) : null}
+          {role === 'CONTEXT' ? heading('Predecessor context · not a fill') : null}
+          {heading(`Slot ${event.slot + 1} · Observed ${event.state}`)}
           {text(`${row.kind} · captured ${event.continuity} · ${event.reason}`)}
           {text(`Observed ${event.observedAt}`)}
           {text(`Source ${event.sourceId}\nSequence ${event.seq}\nScope ${event.accountScopeId} · ${event.profileType}`, true)}
@@ -63,7 +88,7 @@ export default function RuneLiteEvidenceScreen () {
           {row.issues.map(issue => <View key={issue}>{text(issue)}</View>)}
         </>)}</View>
       })}
-      {evidence.events.length > PAGE_SIZE ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{button('Previous observations', () => setPage(v => v - 1), page === 0)}{button('Next observations', () => setPage(v => v + 1), (page + 1) * PAGE_SIZE >= evidence.events.length)}</View> : null}
+      {visible.length > PAGE_SIZE ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{button('Previous observations', () => setPage(v => v - 1), page === 0)}{button('Next observations', () => setPage(v => v + 1), (page + 1) * PAGE_SIZE >= visible.length)}</View> : null}
     </> : !busy ? card(<>{heading('No preview yet')}{text('Export evidence from the RuneLite recorder, transfer the JSON to your phone, then choose it here. A new valid file replaces this screen’s preview; files are never merged.', true)}</>) : null}
   </ScrollView>
 }
