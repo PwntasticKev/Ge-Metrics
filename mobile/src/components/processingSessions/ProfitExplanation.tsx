@@ -12,13 +12,14 @@ export function ProfitExplanation({ session, now }: { session: RecorderSession; 
   const [expanded, setExpanded] = useState(false)
   const [term, setTerm] = useState<number | null>(null)
   const result = explainProcessingSession(session, now)
+  const plan = readInitialPlan(session.initialPlan, session.recipe, now)
   if (!result.ok) return <Text style={{ color: p.muted }}>{result.reason}</Text>
   return <View style={{ gap: 12 }}>
     <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)} style={{ paddingVertical: 12 }}>
       <Text style={{ color: p.brand }}>{expanded ? 'Hide recorded profit explanation' : 'Explain recorded profit'}</Text>
     </Pressable>
     {expanded && <>
-      <Text style={{ color: p.muted }}>{initialPlanMessage(readInitialPlan(session.initialPlan, session.recipe, now))}</Text>
+      <Text style={{ color: p.muted }}>{plan.status === 'valid' ? 'These are saved actual receipts and costs. Same-quantity quote comparison eligibility is shown separately.' : initialPlanMessage(plan)}</Text>
       {result.terms.map((row, index) => <View key={row.label} style={{ gap: 8 }}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: term === index }} onPress={() => setTerm(term === index ? null : index)} style={{ paddingVertical: 12 }}>
           <Text style={{ color: row.signedGp < 0 ? p.muted : p.brand }}>{row.label}: {row.signedGp < 0 ? '−' : '+'}{gpFull(Math.abs(row.signedGp))} GP</Text>

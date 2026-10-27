@@ -32,7 +32,7 @@ export function InitialPlan({ session, now }: { session: RecorderSession; now: n
       <Text style={{ color: plan.amounts.profit >= 0 ? p.brand : p.muted }}>Modeled profit: {number(plan.amounts.profit)} GP / action{s.actions === null ? '' : ` · ${number(plan.amounts.profit * s.actions)} GP for selected batch`}.</Text>
       {s.actions !== null && <Text style={{ color: p.ink }}>Selected batch: cost {number(plan.amounts.cost * s.actions)} GP · gross revenue {number(plan.amounts.revenue * s.actions)} GP · tax {number(plan.amounts.tax * s.actions)} GP.</Text>}
       <Text style={{ color: p.muted }}>Recipe coin fee: {number(session.recipe.coinCostPerAction)} GP / action; direct coin revenue: {number(session.recipe.coinRevenuePerAction)} GP / action. Tax assumption: {plan.taxAssumption}.</Text>
-      <Text style={{ color: p.muted }}>Travel, tools, access and other expenses excluded. GE waits are extra and were not captured. No reinvestment or buy-limit resets. Quotes and historical pace are estimates, not fills or profit forecasts. Plan comparison is not available.</Text>
+      <Text style={{ color: p.muted }}>Travel, tools, access and other expenses excluded. GE waits are extra and were not captured. No reinvestment or buy-limit resets. Quotes and historical pace are estimates, not fills or profit forecasts. Same-quantity comparison eligibility is shown separately.</Text>
     </>}
   </View>
 }
