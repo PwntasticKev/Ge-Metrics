@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { mappingCap, remainingAllowance, unusedWindowAllowances } from './allowance'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Link } from 'expo-router'
 import { geTax } from '@ge/engine'
@@ -31,10 +32,10 @@ export function ProductionRoutes () {
   const inputIds = ids.filter(id => id !== route.stages[1].output.id)
   const batchValue = parse(batches)
   const cashValue = parse(cash)
-  const valid = batchValue !== null && batchValue <= Math.floor(Number.MAX_SAFE_INTEGER / 4) && cashValue !== null && inputIds.every(id => parse(owned[id] ?? '0') !== null) && ids.every(id => limits[id] === undefined || limits[id] === '' || parse(limits[id]) !== null)
+  const valid = batchValue !== null && batchValue <= Math.floor(Number.MAX_SAFE_INTEGER / 4) && cashValue !== null && inputIds.every(id => parse(owned[id] ?? '0') !== null) && ids.every(id => remainingAllowance(limits[id], market.market?.get(id)?.limit).valid)
   const quotes = ids.map(id => {
     const item = market.market?.get(id)
-    return { id, buy: item?.high ?? null, sell: item?.low ?? null, remainingLimit: limits[id] === undefined || limits[id] === '' ? item?.limit ?? null : parse(limits[id]) }
+    return { id, buy: item?.high ?? null, sell: item?.low ?? null, remainingLimit: remainingAllowance(limits[id], item?.limit).value }
   })
   const result = valid ? evaluateProductionRoutes({ route, batches: batchValue!, budget: cashValue!, quotes, owned: Object.fromEntries(inputIds.map(id => [id, parse(owned[id] ?? '0')!])), tax: geTax }) : null
   const full = result?.plans[0]
@@ -56,16 +57,19 @@ export function ProductionRoutes () {
   return <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={s.page} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" refreshControl={<RefreshControl refreshing={market.isRefreshing} onRefresh={market.refresh} tintColor={p.brand} />}>
     <Text style={[s.title, { color: p.ink }]}>Choose where to finish</Text>
     {text('Compare one upfront batch, including the value of stock you already own.', true)}
-    <View style={s.tabs}>{productionRoutes.map(r => <Pressable key={r.id} accessibilityRole="button" accessibilityState={{ selected: selected === r.id }} onPress={() => setSelected(r.id)} style={[s.tab, { backgroundColor: selected === r.id ? p.brand : p.well }]}><Text style={{ color: selected === r.id ? p.onBrand : p.ink, fontWeight: '600', textTransform: 'capitalize' }}>{r.id}</Text></Pressable>)}</View>
+    <View style={s.tabs}>{productionRoutes.map(r => <Pressable key={r.id} accessibilityRole="button" accessibilityState={{ selected: selected === r.id }} onPress={() => { if (selected !== r.id) { setSelected(r.id); setOwned({}); setLimits({}) } }} style={[s.tab, { backgroundColor: selected === r.id ? p.brand : p.well }]}><Text style={{ color: selected === r.id ? p.onBrand : p.ink, fontWeight: '600', textTransform: 'capitalize' }}>{r.id}</Text></Pressable>)}</View>
     <View style={[s.card, { backgroundColor: p.card }]}>
       {field('Whole batches', batches, setBatches)}{field('Available cash (GP)', cash, setCash)}
       {text(selected === 'steel' ? 'Each batch: 1 iron ore + 2 coal → 1 steel bar → 4 cannonballs.' : `Each batch: 1 grimy herb → 1 clean herb + 1 vial of water → 1 unfinished potion.`, true)}
       {button(`${inputsOpen ? 'Hide' : 'Edit'} owned stock & remaining limits`, () => setInputsOpen(!inputsOpen), inputsOpen)}
       {inputsOpen && <>
-        {text('Owned stock defaults to zero. Remaining limits default to mapping limits and assume an unused GE window. Enter your actual remaining quantities; blank restores the mapping default. Unknown defaults stay unknown.', true)}
-        {ids.map(id => <View key={id} style={[s.item, { borderTopColor: p.rule }]}><Text style={[s.heading, { color: p.ink }]}>{names[id]}</Text>{inputIds.includes(id) && field(`Owned ${names[id]}`, owned[id] ?? '0', value => setOwned(v => ({ ...v, [id]: value })))}{field(`Remaining limit: ${names[id]}`, limits[id] ?? '', value => setLimits(v => ({ ...v, [id]: value })), market.market?.get(id)?.limit?.toLocaleString() ?? 'Unknown')}</View>)}
+        {text('Owned stock defaults to zero. Blank remaining allowances are unknown; 0 means exhausted. Enter remaining quantities manually. Full mapping caps are informational, not remaining allowances. Each item ID is independent; shared limit groups are manual and are not inferred. Changing routes resets owned stock and remaining allowances.', true)}
+        {button('Use full mapping limits (unused-window scenario)', () => setLimits(unusedWindowAllowances(ids, id => market.market?.get(id)?.limit)))}
+        {text('This hypothetical scenario assumes an unused window for known caps; it does not sync or verify your account. Unknown caps stay blank.', true)}
+        {button('Reset all remaining allowances to unknown', () => setLimits({}))}
+        {ids.map(id => <View key={id} style={[s.item, { borderTopColor: p.rule }]}><Text style={[s.heading, { color: p.ink }]}>{names[id]} (ID {id})</Text>{text(`Full mapping cap: ${mappingCap(market.market?.get(id)?.limit)?.toLocaleString() ?? 'Unknown'} (informational)`, true)}{inputIds.includes(id) && field(`Owned ${names[id]}`, owned[id] ?? '0', value => setOwned(v => ({ ...v, [id]: value })))}{field(`Remaining limit: ${names[id]}`, limits[id] ?? '', value => setLimits(v => ({ ...v, [id]: value })), 'Unknown (blank)')}</View>)}
       </>}
-      {!valid && text('Enter whole nonnegative quantities and cash. Batches must fit safe integer output quantities.', true)}
+      {!valid && text('Enter safe whole nonnegative quantities and cash. Remaining allowances must not exceed a known positive mapping cap. Batches must fit safe integer output quantities.', true)}
     </View>
     {text(`Quotes downloaded: ${minutesAgo(market.updatedAt) || 'not yet'}. ${market.isRefreshing ? 'Refreshing…' : market.isLoading ? 'Loading prices…' : 'Pull down to refresh.'}`, true)}
     {market.error && text(`Download / refresh error: ${market.error.message}. Cached data may remain visible.`, true)}
