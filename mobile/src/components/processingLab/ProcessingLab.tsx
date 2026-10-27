@@ -11,6 +11,7 @@ import { PROCESSING_METHODS } from '../../lib/methods'
 import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
 import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
 import { processingPriceFloors, type PriceFloorReason } from '../../lib/processingPriceFloors'
+import { processingStress } from '../../lib/processingStress'
 import { gpFull, gpShort, minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useSettings } from '../../state/settings'
@@ -21,6 +22,7 @@ import { useRecordedPace } from '../recordedPace/useRecordedPace'
 import { recorderUnavailableReason, snapshotRecipe } from '../processingSessions/recipe'
 
 const MODES = [{ value: 'instant', label: 'Instant' }, { value: 'patient', label: 'Patient' }] as const
+const STRESS_OPTIONS = [{ value: '0', label: '0%' }, { value: '1', label: '1%' }, { value: '5', label: '5%' }, { value: '10', label: '10%' }] as const
 const SCENARIOS = [ ['instant', 'instant'], ['instant', 'patient'], ['patient', 'instant'], ['patient', 'patient'] ] as const
 
 const CEILING_REASONS: Record<PriceCeilingReason, string> = {
@@ -51,6 +53,8 @@ export function ProcessingLab () {
   const [open, setOpen] = useState<string | null>(null)
   const [untimed, setUntimed] = useState(false)
   const [assumptions, setAssumptions] = useState(false)
+  const [inputStress, setInputStress] = useState('0')
+  const [outputStress, setOutputStress] = useState('0')
   const cashValue = Number(cash.replace(/,/g, ''))
   const minutesValue = Number(minutes)
   const valid = Number.isFinite(cashValue) && cashValue >= 0 && Number.isFinite(minutesValue) && minutesValue >= 0
@@ -135,6 +139,13 @@ export function ProcessingLab () {
       const floors = expanded && market.market
         ? processingPriceFloors(r.recipe, labMarket(market.market, inputs, outputs, averages.h24))
         : null
+      const stress = expanded && market.market
+        ? processingStress(r.recipe, labMarket(market.market, inputs, outputs, averages.h24), {
+          inputCostIncreaseBps: Number(inputStress) * 100,
+          outputPriceCutBps: Number(outputStress) * 100,
+          actions: r.batch.actions
+        })
+        : null
       const wait = market.market && r.batch.actions !== null ? batchWait(r.recipe, labMarket(market.market, inputs, outputs, averages.h24), r.batch.actions, inputs, outputs, averages.h1, averages.h24) : null
       return <View style={[styles.card, { backgroundColor: p.card }]}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setOpen(expanded ? null : r.recipe.id)} style={styles.row}>
@@ -160,6 +171,31 @@ export function ProcessingLab () {
           })}><Text style={{ color: p.brand }}>{pace.choices[r.paceKey] !== undefined ? 'Use curated rate' : 'Use recorded pace for this recipe'} · reranks current comparison</Text></Pressable>}
           {recorderUnavailableReason(r.recipe) ? <Text style={muted}>{recorderUnavailableReason(r.recipe)}</Text> : <Link href={{ pathname: './processing-session', params: { recipeid: r.recipe.id, method: r.method.key } }} style={{ color: p.brand, paddingVertical: 12, fontWeight: '600' }}>Record actual session</Link>}
           <Text style={text}>Each action: {gpFull(r.flip.cost)} GP cost → {gpFull(r.flip.revenue)} GP gross; {gpFull(r.flip.tax)} GP tax.</Text>
+          {stress && <View style={[styles.ceilings, { backgroundColor: p.well }]}>
+            <Text style={[styles.label, { color: p.brand }]}>Hypothetical quote stress</Text>
+            <Text style={muted}>Screen-wide choices · selected {inputs} buys / {outputs} sells. Baseline uses unchanged quotes.</Text>
+            <Text style={text}>Higher input cost</Text>
+            <Pills options={STRESS_OPTIONS} value={inputStress} onChange={setInputStress} />
+            <Text style={text}>Lower output quote</Text>
+            <Pills options={STRESS_OPTIONS} value={outputStress} onChange={setOutputStress} />
+            <Pressable accessibilityRole="button" onPress={() => { setInputStress('0'); setOutputStress('0') }}><Text style={{ color: p.brand }}>Reset both to 0%</Text></Pressable>
+            <Text style={muted}>Hypothetical fractional notional quotes, not executable prices, forecasts, confidence estimates, or fills. Recipe coin fees/revenue stay fixed; costs beyond the recipe are excluded.</Text>
+            {stress.reason && <Text style={muted}>Stress unavailable — {stress.reason === 'missing-quote' ? 'an input or output quote is missing.' : 'a quote, quantity, coin amount, action count, or calculation is invalid or outside the safe range.'}</Text>}
+            {stress.baseline && stress.stress && <>
+              <Text style={{ color: stress.baseline.profit > 0 ? p.profit : p.muted }}>Baseline: {quoteGp(stress.baseline.profit)} GP/action after tax</Text>
+              <Text style={{ color: stress.stress.profit > 0 ? p.profit : p.muted }}>Stress: {quoteGp(stress.stress.profit)} GP/action after tax</Text>
+              <Text style={muted}>Tax/action: baseline {quoteGp(stress.baseline.tax)} GP · stress {quoteGp(stress.stress.tax)} GP.</Text>
+            </>}
+            {stress.batch && <>
+              <Text style={muted}>Same {stress.batch.actions.toLocaleString()} base actions · stress does not resize the batch or rerank recipes. The selected pace still controls base actions.</Text>
+              <Text style={{ color: stress.batch.baselineMargin > 0 ? p.profit : p.muted }}>Baseline batch margin: {quoteGp(stress.batch.baselineMargin)} GP</Text>
+              <Text style={{ color: stress.batch.stressMargin > 0 ? p.profit : p.muted }}>Stress batch margin: {quoteGp(stress.batch.stressMargin)} GP</Text>
+              <Text style={muted}>Change in modeled margin (stress − baseline): {quoteGp(stress.batch.cashDelta)} GP. This is not actual cash movement.</Text>
+              <Text style={muted}>Upfront capital: baseline {quoteGp(stress.batch.baselineCapital)} GP · full stress {quoteGp(stress.batch.stressCapital)} GP · capital increase {quoteGp(stress.batch.capitalIncrease)} GP.</Text>
+              <Text style={muted}>Declared cash: {quoteGp(cashValue)} GP · stress capital shortage: {quoteGp(Math.max(0, stress.batch.stressCapital - cashValue))} GP. Capital increase is additional modeled input funding, separate from the change in modeled margin.</Text>
+            </>}
+            {r.batch.actions === null && <Text style={muted}>No trusted rate: only per-action stress is available; no batch margin or capital figures.</Text>}
+          </View>}
           {ceilings && <View style={[styles.ceilings, { backgroundColor: p.well }]}>
             <Text style={[styles.label, { color: p.brand }]}>Ingredient break-even quotes</Text>
             <Text style={muted}>One action, all inputs purchased. Each ceiling varies one ingredient’s unit buy quote, with other input and output quotes fixed. Output tax and recipe coin costs/revenue are included; costs beyond the recipe are excluded.</Text>
