@@ -171,6 +171,7 @@ export default function ToolsHub () {
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
+        <FeaturedCard href="/tools/runelite-evidence" title="RuneLite evidence" blurb="Preview a local recorder export, with exact GP values, recording gaps and reconciliation warnings." icon="Grand Exchange icon.png" best={null} />
         <FeaturedCard href="/tools/dose-basket" title="Prayer dose basket" blurb="Compare one- and two-source decanting baskets with exact leftover doses, vial costs and shared limits." icon="Prayer potion(4).png" best={null} />
         <FeaturedCard href="/tools/production-routes" title="Make or buy?" blurb="Compare raw materials, bought intermediates and early exits, including the value of stock you own." icon="Coins 10000.png" best={null} />
         <FeaturedCard href="/tools/set-profit-lab" title="Set profit lab" blurb="See which component moved a set margin, then stress prices and size a cash-limited scenario." icon="Grand Exchange icon.png" best={null} />
