@@ -6,16 +6,12 @@ import { NumberField } from '../NumberField'
 import { coordinateBatch } from '../../lib/batchCoordinator'
 import { calculateBatchAllowances, type BatchAllowanceResult } from '../../lib/batchAllowances'
 import { gpFull } from '../../lib/format'
+import { ownedOpportunity, parseBatchNumber as parse } from './ownedOpportunity'
 import { useTheme } from '../../theme/ThemeProvider'
 
 // Curated whole-unit recipes only: fractional guide yields are not deterministic.
 const recipes = processingMethods.flatMap(m => m.recipes.map(r => ({ ...r, group: m.title, requirements: m.requirements, description: m.description, notes: 'notes' in r && typeof r.notes === 'string' ? r.notes : null })))
   .filter(r => new Set(r.inputs.map(i => i.id)).size > 1 && [...r.inputs, ...r.outputs].every(i => Number.isSafeInteger(i.qty) && i.qty > 0))
-const parse = (text: string): number | null => {
-  const raw = text.trim()
-  const n = Number(raw)
-  return /^\d+$/.test(raw) && Number.isSafeInteger(n) && n <= 1_000_000_000 ? n : null
-}
 const money = (n: number | null) => n === null ? 'Unknown' : `${gpFull(n)} gp`
 
 export function BatchCoordinator () {
@@ -24,6 +20,7 @@ export function BatchCoordinator () {
   const [recipeId, setRecipeId] = useState(recipes[0]?.id)
   const [search, setSearch] = useState('')
   const [choosing, setChoosing] = useState(false)
+  const [showOpportunityDetails, setShowOpportunityDetails] = useState(false)
   const [goalText, setGoalText] = useState('100')
   const [budgetText, setBudgetText] = useState('1000000')
   const [ownedText, setOwnedText] = useState<Record<number, string>>({})
@@ -59,8 +56,10 @@ export function BatchCoordinator () {
       allowanceError = `Cannot calculate manual allowances: ${error.message}`
     }
   }
+  const opportunity = ownedOpportunity(recipe, goal, budget, ownedText, id => market.market?.get(id), geTax)
+  const comparison = opportunity.kind === 'ready' ? opportunity.result : null
   const plan = recipe && goal !== null && budget !== null && valid ? coordinateBatch(recipe, goal, budget,
-    Object.fromEntries(Object.entries(ownedText).map(([id, v]) => [id, parse(v) ?? 0])),
+    Object.fromEntries(inputIds.map(id => [id, parse(ownedText[id] ?? '0') ?? 0])),
     id => { const item = market.market?.get(id); return item ? { buy: item.high, sell: item.low } : null }, geTax) : null
   const name = (id: number) => market.market?.get(id)?.name ?? `Item #${id}`
   const text = { color: palette.ink }
@@ -98,6 +97,30 @@ export function BatchCoordinator () {
         </View>)}
         <Text style={muted}>Owned stock does not consume remaining allowance. Account for prior purchases and connected limit groups yourself; independent item ID bounds may overstate what a shared group permits. Open offers and uncollected fills are not imported.</Text>
       </View>
+      <View style={card}>
+        <Text style={[styles.heading, text]}>Process or sell owned inputs?</Text>
+        {opportunity.kind === 'unavailable' ? <Text style={muted}>Comparison unavailable. {opportunity.reason}</Text> : comparison && <>
+          <Text style={{ color: comparison.incrementalValue !== null && comparison.incrementalValue > 0 ? palette.brand : palette.muted, fontWeight: '600' }}>Estimated extra value from processing: {comparison.incrementalValue === null ? 'Unknown' : `${gpFull(comparison.incrementalValue)} GP`} versus selling these owned inputs now.</Text>
+          <Text style={text}>New cash required: {money(comparison.newCashNeeded)}</Text>
+          <Text style={text}>Budget shortfall: {money(comparison.cashShortfall)}</Text>
+          <Text style={muted}>{comparison.cashAffordable === null ? 'Cash fit unknown at these quotes.' : comparison.cashAffordable ? 'Full goal fits the cash budget at these quotes.' : 'Full goal exceeds the cash budget at these quotes.'} Cash fit alone does not establish an executable goal; see declared ingredient allowances separately.</Text>
+          {comparison.missingQuotes.length > 0 && <Text style={muted}>Missing quotes: {comparison.missingQuotes.map(q => `${name(q.id)} (${q.side === 'buy' ? 'purchase high' : 'liquidation low'})`).join(', ')}. Affected estimates remain Unknown.</Text>}
+          <Pressable accessibilityRole="button" accessibilityState={{ expanded: showOpportunityDetails }} onPress={() => setShowOpportunityDetails(!showOpportunityDetails)} style={button}><Text style={{ color: palette.brand }}>{showOpportunityDetails ? 'Hide' : 'Show'} comparison breakdown</Text></Pressable>
+          {showOpportunityDetails && <>
+            <Text style={text}>Sell-now baseline for consumed owned inputs, after tax: {money(comparison.sellNowConsumedOwned)}</Text>
+            <Text style={text}>Net output receipts, including direct coins: {money(comparison.netReceipts)}</Text>
+            <Text style={muted}>Output GE tax: {money(comparison.outputTax)}</Text>
+            <Text style={text}>Processing fees: {money(comparison.fees)} · direct coin receipts: {money(comparison.directCoins)}</Text>
+            {comparison.items.map(i => <View key={i.id} style={styles.ingredient}>
+              <Text style={text}>{name(i.id)} · ID {i.id}</Text>
+              <Text style={text}>Owned consumed: {gpFull(i.consumedOwned)} · purchases: {gpFull(i.purchases)} · owned surplus retained: {gpFull(i.surplus)}</Text>
+              <Text style={muted}>Total consumed: {gpFull(i.consumed)} · output produced: {gpFull(i.produced)}</Text>
+              <Text style={muted}>Instant purchase high: {money(market.market?.get(i.id)?.high ?? null)} · liquidation low: {money(market.market?.get(i.id)?.low ?? null)} per unit</Text>
+            </View>)}
+          </>}
+          <Text style={muted}>Only owned units consumed by this goal enter the sell-now baseline. Unused surplus is retained in both scenarios. Neither the baseline nor output receipts fund upfront purchases or fees. This is a quote-based estimate, not realised profit; replacement margin is shown separately below.</Text>
+        </>}
+      </View>
       {allowanceErrors.map(error => <Text key={error} style={text}>{error}</Text>)}
       {allowanceError && <Text style={text}>{allowanceError}</Text>}
       {allowanceResult && <View style={card}>
@@ -111,7 +134,7 @@ export function BatchCoordinator () {
         </View>)}
         <Text style={muted}>Ingredient bounds only, independent of cash. This does not establish an executable combined goal or promise fills, resets or reinvestment. Refreshing quotes never refills or resets declarations.</Text>
       </View>}
-      {!plan && <Text style={text}>Enter whole numbers from 0 to 1,000,000,000 for goal, cash and owned units. Remaining may be blank for unknown. Use digits only; no commas or decimals.</Text>}
+      {!plan && (goal === null || budget === null || !valid) && <Text style={text}>Enter whole numbers from 0 to 1,000,000,000 for goal, cash and owned units. Remaining may be blank for unknown. Use digits only; no commas or decimals.</Text>}
       {plan && <>
         <View style={card}>
           <Text style={[styles.heading, { color: palette.brand }]}>{gpFull(plan.complete)} / {gpFull(goal ?? 0)} batches ready from inventory</Text>
