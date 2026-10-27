@@ -10,6 +10,7 @@ import { Pills } from '../Tabs'
 import { PROCESSING_METHODS } from '../../lib/methods'
 import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
 import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
+import { processingPriceFloors, type PriceFloorReason } from '../../lib/processingPriceFloors'
 import { gpFull, gpShort, minutesAgo } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useSettings } from '../../state/settings'
@@ -27,6 +28,12 @@ const CEILING_REASONS: Record<PriceCeilingReason, string> = {
   'invalid-value': 'A quote, quantity, coin amount, or calculation is invalid or outside the safe range.',
   'no-nonnegative-price': 'Other fixed costs exceed after-tax revenue, even with this ingredient at 0 GP.',
   'unsupported-circular-item': 'This ingredient is also an output; an independent buy-price ceiling is unsupported.'
+}
+const FLOOR_REASONS: Record<PriceFloorReason, string> = {
+  'missing-quote': 'Unknown: an input or output quote is missing.',
+  'invalid-value': 'Unsafe: a quote, quantity, coin amount, or calculation is invalid or outside the safe range.',
+  'no-feasible-safe-price': 'No feasible break-even quote within the safe arithmetic bound.',
+  'unsupported-circular-item': 'This output is also an input; an independent sell-price floor is unsupported.'
 }
 const quoteGp = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 20 })
 
@@ -125,6 +132,9 @@ export function ProcessingLab () {
       const ceilings = expanded && market.market
         ? processingPriceCeilings(r.recipe, labMarket(market.market, inputs, outputs, averages.h24))
         : null
+      const floors = expanded && market.market
+        ? processingPriceFloors(r.recipe, labMarket(market.market, inputs, outputs, averages.h24))
+        : null
       const wait = market.market && r.batch.actions !== null ? batchWait(r.recipe, labMarket(market.market, inputs, outputs, averages.h24), r.batch.actions, inputs, outputs, averages.h1, averages.h24) : null
       return <View style={[styles.card, { backgroundColor: p.card }]}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setOpen(expanded ? null : r.recipe.id)} style={styles.row}>
@@ -167,6 +177,25 @@ export function ProcessingLab () {
               </View>
             })}
             <Text style={muted}>Each ceiling is independent, not simultaneous suggested orders. Quotes are not fills; headroom does not establish achievable earnings.</Text>
+          </View>}
+          {floors && <View style={[styles.ceilings, { backgroundColor: p.well }]}>
+            <Text style={[styles.label, { color: p.brand }]}>Output break-even quotes</Text>
+            <Text style={muted}>One action, all inputs purchased. Each floor varies one output’s unit sell quote, with all input and other output quotes fixed. Canonical GE tax and recipe coin costs/revenue are included; costs beyond the recipe are excluded.</Text>
+            {floors.outputs.map(output => {
+              const quote = output.currentQuote
+              const floor = output.floor
+              const headroom = output.headroom
+              const reason = output.reason ? FLOOR_REASONS[output.reason] : 'No finite calculation is available.'
+              const available = floor !== null && Number.isFinite(floor) && headroom !== null && Number.isFinite(headroom)
+              return <View key={output.id} style={styles.ingredient}>
+                <Text style={text}>{market.market?.get(output.id)?.name || `Item ${output.id}`}</Text>
+                <Text style={muted}>Selected sell ({outputs}): {quote === null ? 'unavailable — missing quote' : !Number.isFinite(quote) || quote <= 0 || quote > Number.MAX_SAFE_INTEGER ? 'unavailable — invalid quote' : `${quoteGp(quote)} GP/unit`}</Text>
+                <Text style={text}>Minimum whole-GP break-even unit quote: {available ? `${gpFull(floor)} GP/unit` : `unavailable — ${reason}`}</Text>
+                {available && floor === 0 && <Text style={muted}>0 GP is a mathematical floor, not an executable GE quote.</Text>}
+                <Text style={muted}>{available ? headroom < 0 ? `Needed raise: ${quoteGp(-headroom)} GP/unit` : `Headroom (current − floor): ${quoteGp(headroom)} GP/unit` : `Headroom / needed raise unavailable — ${reason}`}</Text>
+              </View>
+            })}
+            <Text style={muted}>Each floor is independent, not simultaneous suggested asks. These are arithmetic thresholds, not fills; headroom does not establish achievable earnings.</Text>
           </View>}
           <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>
           <Text style={muted}>{r.rate ? `${r.rateSource}: ${r.rate.toLocaleString()} actions/h. Modeled active processing: ${((r.batch.actions ?? 0) / r.rate * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>
