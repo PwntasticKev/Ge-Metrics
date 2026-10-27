@@ -32,11 +32,56 @@ export interface DecodedProcessingSessions {
 export type ProcessingSessionsResult = DecodedProcessingSessions | StorageFailure
 const failure = (error: unknown): StorageFailure => ({ ok: false, error: error instanceof Error ? error : new Error(String(error)) })
 
+/** Whole-file UTF-8 output policy: reject, never truncate. */
+export const PROCESSING_EXPORT_MAX_BYTES = 10 * 1024 * 1024
+export type ProcessingExportSnapshotResult =
+  | { status: 'snapshot'; raw: string; byteLength: number }
+  | { status: 'absent' }
+  | { status: 'read-error'; error: Error }
+  | { status: 'too-large'; byteLength: number; limit: number }
+  | { status: 'unsupported' }
+  | { status: 'malformed' }
+
+function hasSupportedRoot(document: unknown): document is DecodedProcessingSessions['document'] {
+  return document !== null && typeof document === 'object'
+    && 'version' in document && document.version === 1
+    && 'sessions' in document && Array.isArray(document.sessions)
+}
+
+/** No platform encoder: those may silently replace unpaired surrogates. */
+function exactUtf8ByteLength(raw: string): number | null {
+  let bytes = 0
+  for (let i = 0; i < raw.length; i++) {
+    const code = raw.charCodeAt(i)
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const low = raw.charCodeAt(++i)
+      if (!(low >= 0xdc00 && low <= 0xdfff)) return null
+      bytes += 4
+    } else if (code >= 0xdc00 && code <= 0xdfff) return null
+    else bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : 3
+  }
+  return bytes
+}
+
+function exportSnapshot(raw: string | null): ProcessingExportSnapshotResult {
+  if (raw === null) return { status: 'absent' }
+  const byteLength = exactUtf8ByteLength(raw)
+  if (byteLength === null) return { status: 'malformed' }
+  if (byteLength > PROCESSING_EXPORT_MAX_BYTES) return { status: 'too-large', byteLength, limit: PROCESSING_EXPORT_MAX_BYTES }
+  let document
+  try { document = JSON.parse(raw) } catch { return { status: 'malformed' } }
+  if (!hasSupportedRoot(document)) {
+    return { status: document !== null && typeof document === 'object' && !Array.isArray(document)
+      && Object.hasOwn(document, 'version') && document.version !== 1 ? 'unsupported' : 'malformed' }
+  }
+  return { status: 'snapshot', raw, byteLength }
+}
+
 /** Decode records independently. Never repair or rewrite storage as a side effect. */
 export function decodeProcessingSessions(raw: string | null): ProcessingSessionsResult {
   try {
     const document = raw === null ? { version: 1, sessions: [] } : JSON.parse(raw)
-    if (!document || document.version !== 1 || !Array.isArray(document.sessions)) {
+    if (!hasSupportedRoot(document)) {
       throw new Error('Unsupported or malformed processing sessions document')
     }
     const sessions = new Map<string, RevisionedProcessingSession>()
@@ -121,6 +166,13 @@ export function createProcessingSessionRepository(storage: AsyncStringStorage, n
   }
   return {
     load: (): Promise<ProcessingSessionsResult> => serialize(read),
+    /** One durable read on the save queue, without recovery, normalization, or writes. */
+    readExportSnapshot: (): Promise<ProcessingExportSnapshotResult> => serialize(async () => {
+      let raw: string | null
+      try { raw = await storage.getItem(PROCESSING_SESSIONS_KEY) }
+      catch (error) { return { status: 'read-error', error: failure(error).error } }
+      return exportSnapshot(raw)
+    }),
     /** Compare expected snapshot revision inside the queue; conflicts never write or rebase. */
     upsert(session: RevisionedProcessingSession): Promise<ProcessingSessionsResult> {
       // Snapshot before queueing so later caller mutations cannot change a pending save.
