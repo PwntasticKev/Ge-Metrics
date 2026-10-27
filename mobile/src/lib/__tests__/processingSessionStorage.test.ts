@@ -397,3 +397,47 @@ test('prequeue rejects invalid labels before JSON can erase them', async () => {
   }
   assert.equal(store.writes, 0)
 })
+
+test('export retains exact raw supported document evidence with one read and zero writes', async () => {
+  const row = JSON.stringify({ ...session(), label: null, initialPlan: { version: 99, opaque: [null, '日本'] }, revision: 7 })
+  const raw = ` \n{ "future": "\\u0061", "version": 0, "version": 1, "sessions": [${row},${row},null,{"label":" bad ","timer":true},{"status":"draft","label":"日本 👩‍💻","initialPlan":null}], "order": [2,1] }\t`
+  const store = storage(raw); let reads = 0
+  const repo = createProcessingSessionRepository({ async getItem(key) { reads++; return store.getItem(key) }, setItem: store.setItem })
+  assert.deepEqual(await repo.readExportSnapshot(), { status: 'snapshot', raw, byteLength: Buffer.byteLength(raw) })
+  assert.equal(reads, 1); assert.equal(store.writes, 0); assert.equal(store.value, raw)
+})
+test('export rejects absent, malformed, unsupported and read failures without writing', async () => {
+  for (const [raw, status] of [[null, 'absent'], ['', 'malformed'], ['null', 'malformed'], ['[]', 'malformed'], ['{}', 'malformed'], ['{"version":1,"sessions":{}}', 'malformed'], ['{"version":2,"sessions":[]}', 'unsupported'], ['{', 'malformed']] as const) {
+    const store = storage(raw)
+    assert.equal((await createProcessingSessionRepository(store).readExportSnapshot()).status, status)
+    assert.equal(store.writes, 0)
+  }
+  const error = new Error('opaque storage failure')
+  assert.deepEqual(await createProcessingSessionRepository({ async getItem() { throw error }, async setItem() { assert.fail('write') } }).readExportSnapshot(), { status: 'read-error', error })
+})
+test('export applies exact UTF8 limit and rejects unpaired literal surrogates', async () => {
+  const limit = 10 * 1024 * 1024; const prefix = '{"version":1,"sessions":[],"text":"'; const suffix = '"}'
+  const raw = prefix + 'é日😀' + 'x'.repeat(limit - prefix.length - suffix.length - 9) + suffix
+  const result = await createProcessingSessionRepository(storage(raw)).readExportSnapshot()
+  assert.deepEqual(result, { status: 'snapshot', raw, byteLength: limit })
+  assert.equal((await createProcessingSessionRepository(storage(raw + ' ')).readExportSnapshot()).status, 'too-large')
+  for (const text of ['\ud800', '\udfff', 'a\ud800b']) assert.equal((await createProcessingSessionRepository(storage(prefix + text + suffix)).readExportSnapshot()).status, 'malformed')
+  assert.equal((await createProcessingSessionRepository(storage(prefix + '\\ud800' + suffix)).readExportSnapshot()).status, 'snapshot')
+})
+test('save export save share queue and export captures immutable middle state', async () => {
+  let release!: () => void; const blocked = new Promise<void>(resolve => { release = resolve })
+  const store = storage(); let reads = 0
+  const repo = createProcessingSessionRepository({ async getItem(key) { reads++; if (reads === 1) await blocked; return store.getItem(key) }, setItem: store.setItem })
+  const first = repo.upsert(session('first')); const exporting = repo.readExportSnapshot(); const last = repo.upsert(session('last'))
+  await Promise.resolve(); assert.equal(reads, 1); assert.equal(store.writes, 0)
+  release(); assert.ok((await first).ok); const snapshot = await exporting; assert.ok((await last).ok)
+  assert.equal(snapshot.status, 'snapshot')
+  if (snapshot.status === 'snapshot') { assert.deepEqual(JSON.parse(snapshot.raw).sessions.map((s: ProcessingSession) => s.id), ['first']); assert.notEqual(snapshot.raw, store.value) }
+  assert.equal(reads, 3); assert.equal(store.writes, 2)
+})
+test('export after failed save reads prior durable state', async () => {
+  const raw = JSON.stringify({ version: 1, sessions: [session()], future: null }); const store = storage(raw); store.fail = true
+  const repo = createProcessingSessionRepository(store); const saving = repo.upsert(session('failed')); const exporting = repo.readExportSnapshot()
+  assert.equal((await saving).ok, false)
+  assert.deepEqual(await exporting, { status: 'snapshot', raw, byteLength: Buffer.byteLength(raw) }); assert.equal(store.writes, 1)
+})
