@@ -45,12 +45,12 @@ export default function WatchlistScreen () {
   const { h1, h24 } = useAverages()
   const { entries } = useWatchlist()
   const { holdings, flips } = useFlips()
-  const params = useLocalSearchParams<{ view?: string }>()
+  const params = useLocalSearchParams<{ view?: string; request?: string }>()
   const [view, setView] = useState<WatchView>(() => initialView(params.view))
   // A link can arrive while the tab is already mounted: follow a changed param.
-  const [linkedView, setLinkedView] = useState(params.view)
-  if (params.view !== linkedView) {
-    setLinkedView(params.view)
+  const [linkedView, setLinkedView] = useState(`${params.view}:${params.request}`)
+  if (`${params.view}:${params.request}` !== linkedView) {
+    setLinkedView(`${params.view}:${params.request}`)
     if (params.view) setView(initialView(params.view))
   }
   const [openKey, setOpenKey] = useState<string | null>(null)

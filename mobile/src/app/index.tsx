@@ -5,6 +5,10 @@ import { useAverages } from '../api/useAverages'
 import { useMarket, type MarketState } from '../api/useMarket'
 import { useMarketMood } from '../api/useMarketMood'
 import { FlipListScreen } from '../components/FlipListScreen'
+import { CapitalPlanList } from '../components/confirmedCapital/CapitalPlanList'
+import { ConfirmedCapitalPanel } from '../components/confirmedCapital/ConfirmedCapitalPanel'
+import { useCapitalPicks } from '../components/confirmedCapital/useCapitalPicks'
+import { useConfirmedCapital } from '../components/confirmedCapital/useConfirmedCapital'
 import { PickRow } from '../components/PickRow'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SlowHeader, SlowRow } from '../components/SlowToFill'
@@ -41,7 +45,7 @@ const FILL_FOOTER = ` Amounts are cut to what the fill-time model expects to buy
 const FOOTERS: Record<PickMode, string> = {
   quick: 'Prices are the more careful of live and recent traded prices (the last hour where it traded with volume, else the day), so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 2 hours: in a 60-day out-of-sample test, sizing for 2 hours instead of 4 made more and cut losing picks from 22% to 16%.',
   dips: 'Liquid items whose price fell at least 5% under the day\'s typical low over the last hour, while buyers still pay the usual price. Buy the dip, sell back at the day\'s middle, sized to fill within 4 hours.',
-  plan: 'Your whole cash stack split across your GE slots for the most profit you can actually make in the next 4 hours: the same picks as Next 4 hours, each cut to what buys and sells within 2 hours.',
+  plan: 'Confirmed spendable cash, less your reserve, allocated across currently free GE slots. Profit and fill times are estimates; rows are sized to the expected buy and sell volume within 2 hours. Filled offers still occupy a slot until closed.',
   overnight: 'Offers at the typical low and high of the last 24 hours, sized to buy and sell within 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
 }
 
@@ -77,7 +81,11 @@ export default function BuyNowScreen () {
   const [sortBy, setSortBy] = useState<PickSort>('profit')
   const [openId, setOpenId] = useState<number | null>(null)
   const [slowOpen, setSlowOpen] = useState(params.slow === '1')
-  const lists = usePickLists(prices.market, averages.h1, averages.h24, mode)
+  const funding = useConfirmedCapital()
+  const bounds = funding.ready ? funding.capital.planBudget : null
+  const otherLists = usePickLists(mode === 'plan' ? null : prices.market, averages.h1, averages.h24, mode)
+  const capitalLists = useCapitalPicks(mode === 'plan' ? prices.market : null, averages.h1, averages.h24, bounds?.cash ?? null, bounds?.slots ?? 0)
+  const lists = mode === 'plan' ? capitalLists : otherLists
   const picks = lists?.picks ?? null
   const rates = useMemo(() => (picks ? pickRates(picks) : new Map()), [picks])
   const sortable = SORTABLE.has(mode)
@@ -86,6 +94,7 @@ export default function BuyNowScreen () {
   const onToggle = useCallback((id: number) => setOpenId(prev => (prev === id ? null : id)), [])
   const rows = useMemo(() => listRows(shown, lists?.slow ?? [], slowOpen), [shown, lists, slowOpen])
   const horizon = Math.min(settings.maxSellHours, PICK_HORIZON_HOURS[mode])
+  const totals = mode === 'plan' && picks ? planTotals(picks) : null
   const riskOff = riskOffNote(useMarketMood(prices.market), mode)
 
   const renderRow = (r: Row) => {
@@ -110,11 +119,13 @@ export default function BuyNowScreen () {
     }
   }
 
+  const ListScreen = mode === 'plan' ? CapitalPlanList<Row> : FlipListScreen<Row>
   return (
-    <FlipListScreen<Row>
+    <ListScreen
+      {...(mode === 'plan' ? { capitalPanel: <ConfirmedCapitalPanel {...funding} cost={totals?.cost ?? null} profit={totals?.profit ?? null} /> } : {})}
       market={market}
       header={
-        <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
+        <ScreenHeader title="Buy now" meta={mode === 'plan' ? undefined : picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
           <SlotsCard />
           <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null); setSlowOpen(false) }} />
           {riskOff ? <Text style={[styles.warn, { color: palette.ink, backgroundColor: palette.well }]} accessibilityRole="alert">{riskOff}</Text> : null}
@@ -125,8 +136,8 @@ export default function BuyNowScreen () {
       keyOf={r => r.key}
       extraData={`${openId}:${mode}:${bySpeed}:${slowOpen}`}
       renderRow={renderRow}
-      empty={mode === 'plan' && !settings.budget
-        ? { title: 'Set your cash stack first', body: 'Tools, Settings, Cash stack. The plan splits it across your GE slots.' }
+      empty={mode === 'plan' && (!bounds || bounds.cash === 0 || bounds.slots === 0)
+        ? { title: !bounds ? 'Confirm cash before planning' : bounds.slots === 0 ? 'All GE slots are occupied' : 'No spendable cash after reserve', body: !bounds ? 'Use Cash available now above. Recorded activity requires a fresh confirmation; conflicting records need reconciliation.' : bounds.slots === 0 ? 'Review open offers. Fully filled offers still occupy slots until closed. Closing does not confirm available cash.' : 'Confirm your current total or adjust the amount kept aside.' }
         : { title: 'Nothing worth buying right now', body: 'Prices move all day. Pull down to refresh.' }}
       footer={<Text style={[styles.note, { color: palette.muted }]}>{FOOTERS[mode]}{mode === 'plan' ? '' : FILL_FOOTER}{sortable ? RATE_FOOTER : ''}</Text>}
     />
