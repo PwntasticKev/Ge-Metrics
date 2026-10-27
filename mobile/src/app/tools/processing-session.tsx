@@ -25,10 +25,10 @@ function SavedSession({ id }: { id: string }) {
     processingSessionRepository.load().then(result => {
       if (!live) return
       if (!result.ok) { setError(`Cannot load session: ${result.error.message}`); return }
-      const found = result.sessions.find(s => s.id === id)
+      const found = committedExplanationSnapshot(result, id)
       if (!found) { setError('This session is unavailable. Saved records have not been changed.'); return }
       setExplanationSnapshot(committedExplanationSnapshot(result, id))
-      const saved = asRecorder(found)
+      const saved = asRecorder(result.sessions.find(s => s.id === id)!)
       setCommitted(saved)
       const pending = pendingSessions.get(id)
       setSession(pending ? { ...pending, elapsedTimeConfirmed: pending.status === 'processing' ? false : pending.elapsedTimeConfirmed } : saved)

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import type { DisplayedPlanInput } from '../processingPlan.ts'
 import { test } from 'node:test'
 import { createProcessingSessionRepository, decodeProcessingSessions, PROCESSING_SESSIONS_KEY } from '../processingSessionStorage.ts'
 import { deriveProcessingSession, type ProcessingSession } from '../processingSessions.ts'
@@ -220,4 +221,129 @@ test('key-reordered identical valid copies collapse while retaining unrelated co
     assert.deepEqual(saved.sessions[1], corrupt)
     assert.equal(saved.future, true)
   }
+})
+
+test('existing plan presence and opaque value are immutable; actuals remain editable', async () => {
+  for (const plan of [undefined, null, { version: 2, future: { a: 1, b: [2] } }, { version: 1, broken: true }]) {
+    const original = plan === undefined ? session() : { ...session(), initialPlan: plan }
+    const store = storage(JSON.stringify({ version: 1, sessions: [original] })); const repo = createProcessingSessionRepository(store)
+    const loaded = await repo.load(); assert.ok(loaded.ok); if (!loaded.ok) continue
+    const edited = { ...loaded.sessions[0], directCoinReceiptsGp: 99 }
+    assert.ok((await repo.upsert(edited)).ok)
+    const current = await repo.load(); if (!current.ok) continue
+    for (const changed of [{ ...current.sessions[0], initialPlan: { version: 9 } }, Object.fromEntries(Object.entries(current.sessions[0]).filter(([k]) => k !== 'initialPlan'))]) {
+      if (plan === undefined && !Object.hasOwn(changed, 'initialPlan')) continue
+      assert.equal((await repo.upsert(changed as ProcessingSession)).ok, false)
+    }
+    if (plan !== undefined) assert.equal((await repo.upsert({ ...current.sessions[0], recipe: { ...current.sessions[0].recipe, coinCostPerAction: 1 } })).ok, false)
+    assert.deepEqual(JSON.parse(store.value!).sessions[0].initialPlan, plan)
+  }
+})
+
+test('new plan creation roundtrips, never affects actual derivation, and rejects mismatches', async () => {
+  const { captureInitialPlan } = await import('../processingPlan.ts')
+  const selected = {
+    recipe: { ...session().recipe, inputs: [{ itemId: 100, name: 'I', icon: null, qtyPerAction: 1 }], outputs: [{ itemId: 101, name: 'O', icon: null, qtyPerAction: 1 }] },
+    quotes: [
+      { itemId: 100, qtyPerAction: 1, mode: 'instant' as const, source: 'latest-high' as const, unitPriceGp: 10, quoteTradeAtMs: null, sourceDataUpdatedAtMs: null, averagePeriod: null, averageSideVolume: null },
+      { itemId: 101, qtyPerAction: 1, mode: 'instant' as const, source: 'latest-low' as const, unitPriceGp: 20, quoteTradeAtMs: null, sourceDataUpdatedAtMs: null, averagePeriod: null, averageSideVolume: null },
+    ],
+    sizing: { cashBudgetGp: 100, activeMinutes: 10, actions: null, rate: null, mappingLimitActions: null, hasUnknownInputLimit: true },
+    amounts: { cost: 10, revenue: 20, tax: 0, profit: 10 },
+  }; const capture = captureInitialPlan(selected, 100); assert.ok(capture.ok); if (!capture.ok) return
+  const draft = { ...session(), recipe: selected.recipe, initialPlan: capture.plan }
+  assert.deepEqual(deriveProcessingSession(draft), deriveProcessingSession({ ...draft, initialPlan: { version: 99 } }))
+  const store = storage(); const repo = createProcessingSessionRepository(store)
+  const saved = await repo.upsert(draft); assert.ok(saved.ok); if (!saved.ok) return
+  assert.deepEqual(saved.sessions[0].initialPlan, capture.plan)
+  const raw = store.value
+  const reordered = JSON.parse(JSON.stringify(capture.plan)); reordered.amounts = Object.fromEntries(Object.entries(reordered.amounts).reverse())
+  assert.ok((await repo.upsert({ ...saved.sessions[0], initialPlan: reordered, directCoinReceiptsGp: 20 })).ok)
+  const mismatch = { ...draft, id: 'mismatch', recipe: { ...draft.recipe, coinCostPerAction: 4 } }
+  assert.equal((await repo.upsert(mismatch)).ok, false)
+  assert.equal((await repo.upsert({ ...draft, id: 'unsupported', initialPlan: { version: 2 } })).ok, false)
+  assert.notEqual(store.value, raw)
+})
+test('queued immutable plan snapshot survives caller mutation and stale concurrent saves', async () => {
+  const original = { ...session(), initialPlan: { version: 2, nested: { value: 1 } } }
+  const store = storage(JSON.stringify({ version: 1, sessions: [original] })); const repo = createProcessingSessionRepository(store)
+  const loaded = await repo.load(); assert.ok(loaded.ok); if (!loaded.ok) return
+  const edit = { ...loaded.sessions[0], directCoinReceiptsGp: 20 }
+  const pending = repo.upsert(edit)
+  ;(edit.initialPlan as typeof original.initialPlan).nested.value = 99
+  assert.ok((await pending).ok)
+  assert.equal((await repo.upsert({ ...loaded.sessions[0], directCoinReceiptsGp: 30 })).ok, false)
+  assert.deepEqual(JSON.parse(store.value!).sessions[0].initialPlan, original.initialPlan)
+})
+
+test('oversized opaque existing evidence remains editable without normalization', async () => {
+  const original = { ...session(), initialPlan: { version: 88, payload: 'x'.repeat(70000), unknown: { rows: [1, null, false] } } }
+  const store = storage(JSON.stringify({ version: 1, sessions: [original] })); const repo = createProcessingSessionRepository(store)
+  const loaded = await repo.load(); assert.ok(loaded.ok); if (!loaded.ok) return
+  assert.ok((await repo.upsert({ ...loaded.sessions[0], directCoinReceiptsGp: 21 })).ok)
+  assert.deepEqual(JSON.parse(store.value!).sessions[0].initialPlan, original.initialPlan)
+})
+
+const planRecipe: ProcessingSession['recipe'] = { id: 'r', methodKey: 'm', name: 'R', source: null, inputs: [{ itemId: 100, name: 'I', icon: null, qtyPerAction: 2 }], outputs: [{ itemId: 101, name: 'O', icon: null, qtyPerAction: 1 }], coinCostPerAction: 3, coinRevenuePerAction: 1, curatedActionsPerHour: 60 }
+function planInput(): DisplayedPlanInput {
+  return { recipe: planRecipe, quotes: [
+    { itemId: 100, qtyPerAction: 2, mode: 'instant', source: 'latest-high', unitPriceGp: 10.5, quoteTradeAtMs: 10, sourceDataUpdatedAtMs: 20, averagePeriod: null, averageSideVolume: null },
+    { itemId: 101, qtyPerAction: 1, mode: 'instant', source: 'latest-low', unitPriceGp: 100.5, quoteTradeAtMs: null, sourceDataUpdatedAtMs: 20, averagePeriod: null, averageSideVolume: null },
+  ], sizing: { cashBudgetGp: 1000, activeMinutes: 10, actions: 10, rate: { source: 'curated', actionsPerHour: 60, recordedEvidence: null }, mappingLimitActions: null, hasUnknownInputLimit: true }, amounts: { cost: 24, revenue: 101.5, tax: 2, profit: 75.5 } }
+}
+
+test('new plans reject future captures and foreign identities without writing', async () => {
+  const { captureInitialPlan } = await import('../processingPlan.ts')
+  const selected = planInput()
+  for (const capturedAt of [101, Number.MAX_SAFE_INTEGER]) {
+    const captured = captureInitialPlan(selected, capturedAt); assert.ok(captured.ok); if (!captured.ok) continue
+    const store = storage(); const repo = createProcessingSessionRepository(store, () => 100)
+    assert.equal((await repo.upsert({ ...session(), recipe: selected.recipe, initialPlan: captured.plan })).ok, false)
+    assert.equal(store.writes, 0)
+  }
+  const captured = captureInitialPlan(selected, 100); assert.ok(captured.ok); if (!captured.ok) return
+  for (const recipe of [{ ...selected.recipe, id: 'other' }, { ...selected.recipe, methodKey: 'other-method' }]) {
+    const store = storage(); const repo = createProcessingSessionRepository(store, () => 100)
+    assert.equal((await repo.upsert({ ...session(), recipe, initialPlan: captured.plan })).ok, false)
+    assert.equal(store.writes, 0)
+  }
+  for (const now of [100, 101]) {
+    const store = storage(); const repo = createProcessingSessionRepository(store, () => now)
+    const saved = await repo.upsert({ ...session(), recipe: selected.recipe, initialPlan: captured.plan })
+    assert.ok(saved.ok); if (!saved.ok) continue
+    assert.ok((await repo.upsert({ ...saved.sessions[0], directCoinReceiptsGp: 20 })).ok)
+    assert.deepEqual(JSON.parse(store.value!).sessions[0].initialPlan, captured.plan)
+  }
+})
+
+test('creation clock is sampled after queued storage reads complete', async () => {
+  const { captureInitialPlan } = await import('../processingPlan.ts')
+  const selected = planInput(); const captured = captureInitialPlan(selected, 100)
+  assert.ok(captured.ok); if (!captured.ok) return
+  let now = 99; let calls = 0
+  let release!: () => void
+  const blocked = new Promise<void>(resolve => { release = resolve })
+  const store = storage()
+  const repo = createProcessingSessionRepository({ ...store, async getItem(key) { await blocked; return store.getItem(key) }, setItem: store.setItem }, () => { calls++; return now })
+  const loading = repo.load()
+  const saving = repo.upsert({ ...session(), recipe: selected.recipe, initialPlan: captured.plan })
+  assert.equal(calls, 0)
+  now = 100; release(); await loading
+  assert.ok((await saving).ok)
+  assert.equal(calls, 1); assert.equal(store.writes, 1)
+})
+
+test('creation rejects a clock bound that moves behind capture while queued', async () => {
+  const { captureInitialPlan } = await import('../processingPlan.ts')
+  const selected = planInput(); const captured = captureInitialPlan(selected, 100)
+  assert.ok(captured.ok); if (!captured.ok) return
+  let now = 100
+  let release!: () => void
+  const blocked = new Promise<void>(resolve => { release = resolve })
+  const store = storage()
+  const repo = createProcessingSessionRepository({ async getItem(key) { await blocked; return store.getItem(key) }, setItem: store.setItem }, () => now)
+  const saving = repo.upsert({ ...session(), recipe: selected.recipe, initialPlan: captured.plan })
+  now = 99; release()
+  assert.equal((await saving).ok, false)
+  assert.equal(store.writes, 0)
 })
