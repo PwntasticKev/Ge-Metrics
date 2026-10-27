@@ -11,6 +11,72 @@ Ground rules carried over from earlier decisions:
   only unless asked.
 - Blue palette, no red for losses, no RuneScape fonts.
 
+## Current development status (2026-10-27)
+
+Reconciled at `24ca364` against the source, focused test files, existing research
+and the wrapper's `.claude/feature-loop-state.json` ledger. The original scout
+queue is implemented across [PR #40](https://github.com/PwntasticKev/Ge-Metrics/pull/40)–
+[#51](https://github.com/PwntasticKev/Ge-Metrics/pull/51) and follow-ups; development
+now extends through [#84](https://github.com/PwntasticKev/Ge-Metrics/pull/84).
+**Implemented in this checkout / open PR does not mean merged or shipped.**
+The ledger records TestFlight **1.0.0 (13)** as live; these later tools are not
+part of that release. The dated tables below preserve the earlier history,
+including its original “done” and “shipped” wording, rather than certify releases.
+
+Current capabilities, grouped by the decision they support:
+
+- **Plan production and cash:** Processing Lab, inventory/shopping batches,
+  set attribution, bounded make-or-buy routes, mixed-dose Prayer baskets and
+  confirmed-cash Plan integration ([#40–45](https://github.com/PwntasticKev/Ge-Metrics/pull/45)).
+  These model quotes and explicit allowances; they do not confirm fills.
+- **Record evidence:** local RuneLite recorder/import preview
+  ([#46](https://github.com/PwntasticKev/Ge-Metrics/pull/46),
+  [#47](https://github.com/PwntasticKev/Ge-Metrics/pull/47)), actual processing
+  sessions and related-item price explanations
+  ([#50](https://github.com/PwntasticKev/Ge-Metrics/pull/50),
+  [#51](https://github.com/PwntasticKev/Ge-Metrics/pull/51)); opt-in recorded pace
+  and results summaries ([#53](https://github.com/PwntasticKev/Ge-Metrics/pull/53),
+  [#63](https://github.com/PwntasticKev/Ge-Metrics/pull/63),
+  [#65](https://github.com/PwntasticKev/Ge-Metrics/pull/65)).
+- **Inspect boundaries:** ingredient ceilings, output floors, remaining
+  allowances, shared two-batch inputs and price sensitivity
+  ([#56](https://github.com/PwntasticKev/Ge-Metrics/pull/56),
+  [#59–62](https://github.com/PwntasticKev/Ge-Metrics/pull/62)); route and shared
+  Prayer allowances plus owned-only dose handling have follow-ups
+  ([#68–71](https://github.com/PwntasticKev/Ge-Metrics/pull/71), excluding research #70).
+- **Compare conversions:** a narrow Dharok's platelegs Barrows repair comparison
+  and break-even Smithing threshold are implemented
+  ([#66](https://github.com/PwntasticKev/Ge-Metrics/pull/66),
+  [#67](https://github.com/PwntasticKev/Ge-Metrics/pull/67)); manual versus paid
+  blue-scale and unicorn-horn grinding are in the Lab
+  ([#72](https://github.com/PwntasticKev/Ge-Metrics/pull/72),
+  [#78](https://github.com/PwntasticKev/Ge-Metrics/pull/78)). No general Moons
+  repair coverage follows from the single Barrows pair.
+- **Recent draft stack:** session profit explanations, conflict-safe saves,
+  immutable initial plans and same-quantity quote comparisons (#73–76);
+  market-clock aging and selected-source freshness (#79–80); owned-input
+  sell-versus-process and player-entered time alternatives (#81–82);
+  RuneLite item timelines and session labels (#83–84).
+  See [#73](https://github.com/PwntasticKev/Ge-Metrics/pull/73),
+  [#76](https://github.com/PwntasticKev/Ge-Metrics/pull/76),
+  [#80](https://github.com/PwntasticKev/Ge-Metrics/pull/80),
+  [#84](https://github.com/PwntasticKev/Ge-Metrics/pull/84).
+
+**Validation is the next useful work.** PRs **#73–76 and #78–84 remain draft,
+with native validation pending**. Existing iOS attachment/ownership attempts
+were blocked (`DEVICE_IN_USE`); an unused simulator eventually booted but
+device attachment failed. Android SDK command-line tools are missing. Automated checks, reviews and JS exports recorded in
+the ledger are not a native QA pass. Validate populated sessions, save/retry/
+conflict paths, quote provenance, picker context and light/dark interactions
+on an exclusively attached runtime before advancing those drafts.
+PR #46 still needs real-game RuneLite evidence and Plugin Hub readiness;
+fixture imports and #83's observation timeline do not establish either.
+
+Keep the no-server/database core, local builds **without EAS**, existing web
+look and blue/grey presentation. Historical walk-forward results include
+ranking losses; neither those results nor current quote scenarios guarantee
+profit, executable liquidity or future ranking performance.
+
 ## Done in this round (app)
 
 | Feature | What it does |
@@ -58,7 +124,7 @@ Ground rules carried over from earlier decisions:
 | Lazy-load the last eager pages | Main JS 431 KB to 215 KB gzipped. Charts no longer load on first visit. |
 | Working CI | npm + vitest (742 tests) + vite build + iOS typecheck; first green run since the relaunch. |
 
-## Next for the app, highest value first
+## Earlier app follow-ups (after validation above)
 
 1. **Alerts follow-ups.** Price and margin alerts shipped (see above). Next:
    alerts for a whole watchlist at once, and a widget showing the last trigger.
@@ -111,13 +177,19 @@ Native code lives in `mobile/modules/pip-ticker`.
 The app already has 23 processing tools (planks, enchanting, tablets,
 tanning, bows, gems, battlestaves, bars, d'hide, Sailing parts and more) plus
 decanting, herb cleaning, unf potions, high alchemy and 269 wiki money makers.
-Gaps worth filling:
+Coverage and remaining candidates (implementation status matters):
 
-- **Barrows and moons repair costs** at your Smithing level (the web has
-  Barrows repair; the app doesn't).
-- **Potion making** (unf + secondary into finished potion), the step after
-  the existing unf tool.
-- **Cooking and fletching** high-volume methods (karambwans, darts, arrows)
-  with live input and output prices.
-- **Sailing-era recipes** as the wiki fills them in (`npm run data:refresh`
-  already pulls new money-making guides).
+- **Barrows repair is now implemented** for one verified Dharok pair, with
+  NPC/stand fees and a Smithing threshold (see current status). Moons repair
+  remains a separate coverage decision, supported only by research here.
+- **Finished potions:** [bounded research](finished-potion-research.md)
+  ([#55](https://github.com/PwntasticKev/Ge-Metrics/pull/55)), not a new implemented
+  unf + secondary tool. Observed scenarios lost GP; any later training-cost
+  comparison needs explicit recipe and allowance scope.
+- **Cooking/fletching:** [research](cooking-fletching-research.md)
+  ([#57](https://github.com/PwntasticKev/Ge-Metrics/pull/57)) added no recipes.
+  Karambwans and other cooking already exist; no-burn disclosures were added
+  in [#58](https://github.com/PwntasticKev/Ge-Metrics/pull/58). The four researched
+  arrow/dart assembly recipes remain deferred after losing quote scenarios.
+- **Sailing-era recipes:** extend existing coverage only when verified wiki
+  mechanics justify it (`npm run data:refresh` already pulls money-making guides).
