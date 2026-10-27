@@ -41,3 +41,5 @@ export const HISTORY_GAP_MS = 300
 const PACKAGE_ROOT = new URL('..', import.meta.url)
 export const BACKTEST_CACHE_DIR = env('GE_METRICS_BACKTEST_CACHE', fileURLToPath(new URL('.cache/backtest/', PACKAGE_ROOT)))
 export const BACKTEST_REPORTS_DIR = env('GE_METRICS_BACKTEST_REPORTS', fileURLToPath(new URL('reports/', PACKAGE_ROOT)))
+// The repo's curated game-updates dataset (what ge-metrics.com serves), read by the regime-gate study.
+export const GAME_UPDATES_FILE = env('GE_METRICS_UPDATES_FILE', fileURLToPath(new URL('../public/data/game-updates.json', PACKAGE_ROOT)))

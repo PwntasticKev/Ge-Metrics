@@ -3,7 +3,9 @@
 // --slots 8 --strategy all --every 4 --out <file> --now <ISO time or unix sec>.
 // `--walk-forward` instead tunes on rolling training windows and scores on the
 // following unseen ones (walkforward/): --days 60 --train 7 --test 2 --step 2
-// --grid full|smoke.
+// --grid full|smoke. Add --prefetch to only fill the snapshot cache.
+// `--regime-gates` runs the regime-gate study for the 60 days before --now;
+// `--regime-report Label=file.json,...` writes reports/regime-gates.md.
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -20,6 +22,8 @@ import { sensitivitySection } from './sensitivity.js'
 import { diagnosticsSection } from './diagnostics.js'
 import { WF_DEFAULTS } from './walkforward/run.js'
 import { walkForwardMain } from './walkforward/main.js'
+import { regimeGatesMain } from './regime/main.js'
+import { regimeReportMain } from './regime/reportMain.js'
 
 const SENSITIVITY_PARTICIPATION = [0.1, 0.5] as const
 
@@ -45,6 +49,9 @@ async function main (): Promise<void> {
       days: { type: 'string' },
       now: { type: 'string' },
       'walk-forward': { type: 'boolean', default: false },
+      prefetch: { type: 'boolean', default: false },
+      'regime-gates': { type: 'boolean', default: false },
+      'regime-report': { type: 'string' },
       train: { type: 'string', default: String(WF_DEFAULTS.trainDays) },
       test: { type: 'string', default: String(WF_DEFAULTS.testDays) },
       step: { type: 'string', default: String(WF_DEFAULTS.stepDays) },
@@ -57,6 +64,18 @@ async function main (): Promise<void> {
     }
   })
   const nowSec = nowFrom(values.now)
+  if (values['regime-report']) return regimeReportMain(values['regime-report'], values.out)
+  if (values['regime-gates']) {
+    return regimeGatesMain({
+      days: positive('days', values.days ?? String(WF_DEFAULTS.days)),
+      cash: positive('cash', values.cash),
+      slots: Math.min(8, Math.floor(positive('slots', values.slots))),
+      decisionEveryHours: Math.floor(positive('every', values.every)),
+      trainDays: positive('train', values.train),
+      testDays: positive('test', values.test),
+      stepDays: positive('step', values.step)
+    }, nowSec)
+  }
   if (values['walk-forward']) {
     if (values.grid !== 'full' && values.grid !== 'smoke') throw new Error(`--grid must be full or smoke (got "${values.grid}")`)
     return walkForwardMain({
@@ -72,7 +91,8 @@ async function main (): Promise<void> {
       nowSec,
       grid: values.grid,
       out: values.out,
-      historyNote: HISTORY_NOTE
+      historyNote: HISTORY_NOTE,
+      prefetchOnly: values.prefetch
     })
   }
   const config: BacktestConfig = {

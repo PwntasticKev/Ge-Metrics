@@ -31,6 +31,8 @@ export interface WalkForwardArgs {
   readonly grid: 'full' | 'smoke'
   readonly out?: string
   readonly historyNote: string
+  /** Only fill the snapshot cache, then stop. */
+  readonly prefetchOnly?: boolean
 }
 
 const log = (msg: string) => console.error(`[walk-forward] ${msg}`)
@@ -45,6 +47,7 @@ export async function walkForwardMain (a: WalkForwardArgs): Promise<void> {
     store.mapping(),
     loadHistory(store, t, { onProgress: (done, total) => { if (done % 250 === 0 || done === total) log(`loaded ${done}/${total}`) } })
   ])
+  if (a.prefetchOnly) return log(`prefetch done: ${t.hourWindows.length} 1h + ${t.fiveMinWindows.length} 5m snapshots cached`)
   const result = walkForward(fams, { history, mapping, timeline: t, config: a.config, log }, { rerunShares: RERUN_SHARES })
   const report = walkForwardReport({
     config: a.config,
