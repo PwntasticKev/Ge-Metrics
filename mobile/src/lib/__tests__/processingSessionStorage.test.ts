@@ -9,7 +9,8 @@ function session(id = 's'): ProcessingSession {
 function storage(initial: string | null = null) {
   let value = initial
   let fail = false
-  return { get value() { return value }, set fail(value: boolean) { fail = value }, async getItem(key: string) { assert.equal(key, PROCESSING_SESSIONS_KEY); return value }, async setItem(key: string, next: string) { assert.equal(key, PROCESSING_SESSIONS_KEY); if (fail) throw new Error('disk full'); value = next } }
+  let writes = 0
+  return { get writes() { return writes }, get value() { return value }, set fail(value: boolean) { fail = value }, async getItem(key: string) { assert.equal(key, PROCESSING_SESSIONS_KEY); return value }, async setItem(key: string, next: string) { assert.equal(key, PROCESSING_SESSIONS_KEY); writes++; if (fail) throw new Error('disk full'); value = next } }
 }
 test('recovery disables elapsed confirmation without ending timers or writing on load', async () => {
   const raw = JSON.stringify({ version: 1, sessions: [session()] })
@@ -87,7 +88,7 @@ test('same-ID edits retain nested future fields, honor nulls and replace array m
   const recipeRow = { ...item, qtyPerAction: 1 }
   const future = { nested: { keep: true, changed: 'old' } }
   const original = { ...session(), recipe: { ...session().recipe, future, inputs: [{ ...recipeRow, future }, { ...recipeRow, itemId: 2, future }], outputs: [{ ...recipeRow, future }] }, inputs: [{ ...input, future, item: { ...item, future } }, { ...input, id: 'removed', future }], outputs: [{ ...output, future, item: { ...item, future } }], sales: [{ ...sale, future }, { ...sale, id: 'deleted', future }] }
-  const invalid = { id: 's', future: true }
+  const invalid = { id: 'unrelated', future: true }
   const store = storage(JSON.stringify({ version: 1, sessions: [invalid, original] }))
   const repo = createProcessingSessionRepository(store)
   const edited = { ...session(), recipe: { ...session().recipe, future: { nested: { changed: null } }, inputs: [{ ...recipeRow, icon: null, qtyPerAction: 2 }, { ...recipeRow, itemId: 3 }], outputs: [recipeRow] }, inputs: [{ ...input, consumedCostGp: null, item: { ...item, icon: null } }, { ...input, id: 'new' }], outputs: [{ ...output, producedQty: 20 }], sales: [{ ...sale, unitPriceGp: 20, taxRuleVersion: null }, { ...sale, id: 'new-sale' }] }
@@ -170,5 +171,53 @@ test('malformed recorder extensions remain unreadable and retained alongside val
     assert.equal((await repo.upsert(session('bad'))).ok, false)
     assert.equal((await repo.upsert({ ...loaded.sessions[0], directCoinReceiptsGp: 20 })).ok, true)
     assert.deepEqual(JSON.parse(store.value!).sessions[0], JSON.parse(JSON.stringify(invalid)))
+  }
+})
+
+test('ambiguous raw same-ID records reject edits without attempting a write', async () => {
+  const pairs = [
+    [{ ...session(), revision: 9 }, { ...session(), revision: 1 }],
+    [{ ...session(), future: { nested: [1, 2] } }, { ...session(), future: { nested: [2, 1] } }],
+    [{ ...session(), elapsedTimeConfirmed: true }, { ...session(), elapsedTimeConfirmed: false }],
+    [{ id: 's', future: true }, session()],
+    [{ id: 's', future: true }],
+    [{ ...session(), future: { nested: { value: 1 } } }, { ...session(), future: { nested: { value: 2 } } }],
+  ]
+  for (const pair of pairs) for (const records of [pair, [...pair].reverse()]) {
+    const raw = JSON.stringify({ version: 1, sessions: records })
+    const store = storage(raw); const repo = createProcessingSessionRepository(store)
+    const loaded = await repo.load(); assert.ok(loaded.ok)
+    if (!loaded.ok) continue
+    const result = await repo.upsert({ ...(loaded.sessions[0] ?? session()), directCoinReceiptsGp: 20 })
+    assert.equal(result.ok, false)
+    if (!result.ok) assert.match(result.error.message, /unsaved/)
+    assert.equal(store.writes, 0)
+    assert.equal(store.value, raw)
+  }
+})
+
+test('key-reordered identical valid copies collapse while retaining unrelated corrupt rows', async () => {
+  const original = { ...session(), revision: 3, future: { nested: { a: 1, b: [2, 3] } } }
+  const reordered = { ...Object.fromEntries(Object.entries(original).reverse()), future: { nested: { b: [2, 3], a: 1 } } }
+  const corrupt = { id: 'other', future: { keep: true } }
+  for (const records of [[original, corrupt, reordered], [reordered, corrupt, original]]) {
+    const store = storage(JSON.stringify({ version: 1, future: true, sessions: records }))
+    const repo = createProcessingSessionRepository(store)
+    const loaded = await repo.load(); assert.ok(loaded.ok)
+    if (!loaded.ok) continue
+    const edit = { ...loaded.sessions[0], directCoinReceiptsGp: 20 }
+    const before = store.value
+    store.fail = true
+    assert.equal((await repo.upsert(edit)).ok, false)
+    assert.equal(store.value, before)
+    store.fail = false
+    const result = await repo.upsert(edit); assert.ok(result.ok)
+    const saved = JSON.parse(store.value!)
+    assert.equal(saved.sessions.length, 2)
+    assert.equal(saved.sessions[0].revision, 4)
+    assert.equal(saved.sessions[0].directCoinReceiptsGp, 20)
+    assert.deepEqual(saved.sessions[0].future, original.future)
+    assert.deepEqual(saved.sessions[1], corrupt)
+    assert.equal(saved.future, true)
   }
 })

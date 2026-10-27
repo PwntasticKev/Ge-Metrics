@@ -5,7 +5,7 @@ import { validateRecorderExtension } from '../components/processingSessions/vali
 /** Missing revision means legacy/new revision 0. Pass the returned saved snapshot to every later upsert. */
 export type RevisionedProcessingSession = ProcessingSession & { revision?: number }
 export class ProcessingSessionConflictError extends Error {
-  constructor() { super('Conflict: this session changed since it was loaded. Your edit is unsaved. Reopen the saved record and reconcile your changes.'); this.name = 'ProcessingSessionConflictError' }
+  constructor(reason?: string) { super(reason ? `Conflict: ${reason}; your edit remains unsaved.` : 'Conflict: this session changed since it was loaded. Your edit is unsaved. Reopen the saved record and reconcile your changes.'); this.name = 'ProcessingSessionConflictError' }
 }
 const revisionOf = (session: RevisionedProcessingSession) => session.revision ?? 0
 function validateRevision(session: RevisionedProcessingSession) {
@@ -23,6 +23,8 @@ export interface DecodedProcessingSessions {
   sessions: RevisionedProcessingSession[]
   /** Retained verbatim on subsequent saves, including records from a newer schema. */
   invalidRecords: { index: number; record: unknown; error: Error }[]
+  /** Untouched parsed records, before timer-recovery normalization. Used only for save guards. */
+  sourceRecords: unknown[]
   document: { version: 1; sessions: unknown[]; [key: string]: unknown }
 }
 export type ProcessingSessionsResult = DecodedProcessingSessions | StorageFailure
@@ -53,8 +55,24 @@ export function decodeProcessingSessions(raw: string | null): ProcessingSessions
         return record
       }
     })
-    return { ok: true, sessions: [...sessions.values()], invalidRecords, document: { ...document, sessions: records } }
+    return { ok: true, sessions: [...sessions.values()], invalidRecords, sourceRecords: document.sessions, document: { ...document, sessions: records } }
   } catch (error) { return failure(error) }
+}
+
+/** Full parsed-JSON equality: object key order is irrelevant; array order is significant.
+ * Refuse excessively deep duplicate comparisons rather than risking a lossy save.
+ */
+function sameRawRecord(left: unknown, right: unknown, depth = 0): boolean {
+  if (left === right) return true
+  if (depth >= 100 || left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+      && left.every((value, index) => sameRawRecord(value, right[index], depth + 1))
+  }
+  const a = left as Record<string, unknown>; const b = right as Record<string, unknown>
+  const keys = Object.keys(a)
+  return keys.length === Object.keys(b).length
+    && keys.every(key => Object.hasOwn(b, key) && sameRawRecord(a[key], b[key], depth + 1))
 }
 
 /** Edited arrays are authoritative; only rows with the same stable identity inherit fields. */
@@ -114,13 +132,17 @@ export function createProcessingSessionRepository(storage: AsyncStringStorage) {
       return serialize(async () => {
         const loaded = await read()
         if (!loaded.ok) return loaded
+        // Inspect the untouched snapshot inside the queue: recovery can hide raw differences.
+        const invalidIndexes = new Set(loaded.invalidRecords.map(record => record.index))
+        const matches = loaded.sourceRecords.flatMap((record, index) =>
+          record !== null && typeof record === 'object' && 'id' in record && record.id === snapshot.id
+            ? [{ record, index }] : [])
+        if (matches.some(({ index }) => invalidIndexes.has(index))) return failure(new ProcessingSessionConflictError('unreadable saved session with this ID'))
+        if (matches.some(({ record }) => !sameRawRecord(matches[0].record, record))) return failure(new ProcessingSessionConflictError('saved copies with this ID differ'))
         const existing = loaded.sessions.find(s => s.id === snapshot.id)
         if (existing && revisionOf(existing) !== revisionOf(snapshot) || !existing && revisionOf(snapshot) !== 0) return failure(new ProcessingSessionConflictError())
-        // An unreadable same-ID record must never be silently shadowed by a new record.
-        if (!existing && loaded.invalidRecords.some(({ record }) => record !== null && typeof record === 'object' && 'id' in record && record.id === snapshot.id)) return failure(new Error('Unreadable saved session with this ID; edit remains unsaved.'))
         const nextRevision = revisionOf(existing ?? snapshot) + 1
         if (!Number.isSafeInteger(nextRevision)) return failure(new Error('Session revision exhausted'))
-        const invalidIndexes = new Set(loaded.invalidRecords.map(record => record.index))
         let replaced = false
         let committed = { ...snapshot, revision: nextRevision }
         const records: unknown[] = []
