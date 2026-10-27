@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { Link } from 'expo-router'
 import { useMarket } from '../../api/useMarket'
 import { compareRepair, repairDefinition, type RepairAmounts } from '../../lib/repairComparison'
+import { repairSmithingThreshold } from '../../lib/repairThreshold'
 import { gpFull } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 import { NumberField } from '../NumberField'
@@ -24,8 +25,10 @@ export function RepairComparison () {
   const valid = validCount && validLevel
   let comparison: ReturnType<typeof compareRepair> | null = null
   let calculationError: string | null = null
+  const market = prices.market ? { ...prices.market, nowSec: Math.floor(now / 1000) } : null
+  const threshold = market ? repairSmithingThreshold(market) : null
   try {
-    if (prices.market) comparison = compareRepair({ ...prices.market, nowSec: Math.floor(now / 1000) }, validLevel ? level : 60, validCount ? count : 1)
+    if (market) comparison = compareRepair(market, validLevel ? level : 60, validCount ? count : 1)
   } catch (error) {
     calculationError = error instanceof Error ? error.message : 'Calculation unavailable'
   }
@@ -61,6 +64,25 @@ export function RepairComparison () {
     {prices.error && <Text style={muted}>{prices.market ? 'Refresh failed. Available cached observations remain visible; their individual ages are shown below.' : 'Market data unavailable. Refresh to retry; no comparison is available.'}</Text>}
     {!prices.isLoading && !prices.market && !prices.error && <Text style={muted}>Market data is not available yet.</Text>}
     {calculationError && <Text accessibilityRole="alert" style={muted}>Comparison unavailable: {calculationError}. Reduce the quantity if arithmetic exceeds the safe range.</Text>}
+    <View style={[styles.card, { backgroundColor: p.card }]}>
+      <Text style={[styles.heading, text]}>Stand break-even Smithing</Text>
+      <Text style={muted}>Minimum whole unboosted level, 1–99, at fixed current raw latest high-buy / low-sell quotes for one item after GE tax and repair fee. Independent of the quantity and Smithing entered above.</Text>
+      {!threshold && <Text style={muted}>Threshold unknown: market quotes unavailable.</Text>}
+      {threshold?.status === 'qualifies' && <>
+        <Text style={text}>Minimum level: {threshold.minLevel}</Text>
+        <Text style={{ color: threshold.marginAtLevel > 0 ? p.profit : p.muted }}>Margin at level {threshold.minLevel}: {gpFull(threshold.marginAtLevel)} GP per item</Text>
+        <Text style={muted}>Margin at level {threshold.minLevel - 1}: {gpFull(threshold.marginPrevious)} GP per item</Text>
+      </>}
+      {threshold?.status === 'already-level-1' && <>
+        <Text style={text}>Level 1 already breaks even or better.</Text>
+        <Text style={{ color: threshold.marginAtLevel > 0 ? p.profit : p.muted }}>Margin at level 1: {gpFull(threshold.marginAtLevel)} GP per item</Text>
+      </>}
+      {threshold?.status === 'none-through-99' && <Text style={muted}>No break-even level from 1–99. Margin at level 99: {gpFull(threshold.marginAt99)} GP per item.</Text>}
+      {threshold?.status === 'unknown-quotes' && <Text style={muted}>Threshold unknown: missing {threshold.missingSides.map(quote => `${quote.id} ${quote.side === 'high' ? 'high-buy' : 'low-sell'}`).join(' and ')} quote.</Text>}
+      {threshold?.status === 'invalid' && <Text style={muted}>Threshold unavailable: {threshold.reason}.</Text>}
+      {threshold && threshold.status !== 'invalid' && Object.values(threshold.quotes).some(quote => quote.stale !== false) && <Text style={muted}>Warning: quotes are stale or their ages are unknown, even if a level qualifies. The threshold does not establish availability.</Text>}
+      <Text style={muted}>Arithmetic threshold only, not a recommendation, required skill or access requirement, or confirmed fills. No level change or purchase is made.</Text>
+    </View>
     {comparison && <>
       <View style={[styles.card, { backgroundColor: p.card }]}>
         <Text style={[styles.heading, text]}>Individual quote observations</Text>
