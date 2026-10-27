@@ -196,7 +196,7 @@ export function ProcessingLab () {
       <Text style={[styles.label, text]}>Buy inputs</Text><Pills options={MODES} value={inputs} onChange={setInputs} />
       <Text style={[styles.label, text]}>Sell outputs</Text><Pills options={MODES} value={outputs} onChange={setOutputs} />
       <Text style={muted}>Modeled batch earnings, not confirmed fills. GE waits are extra.</Text>
-      <Text style={muted}>Hide stale {settings.hideStale ? 'ON' : 'OFF'}: excludes sources older than 6h and unknown source ages when ON. Patient source age is always unknown until average-period semantics are verified. Downloads do not establish source age.</Text>
+      <Text style={muted}>Hide stale {settings.hideStale ? 'ON' : 'OFF'}: when ON, hides prices older than 6h and prices with unknown ages. Patient averages have unknown ages. Download times do not establish price ages.</Text>
       <Text style={muted}>Downloads: quotes {minutesAgo(market.updatedAt) || 'unknown'} · daily averages {minutesAgo(averages.h24UpdatedAt) || 'unknown'}</Text>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: assumptions }} onPress={() => setAssumptions(value => !value)}><Text style={{ color: p.brand }}>{assumptions ? 'Hide' : 'Show'} pricing and batch assumptions</Text></Pressable>
       {assumptions && <>

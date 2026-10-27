@@ -56,7 +56,7 @@ export function showLabSource (freshness: LabSourceFreshness, hideStale: boolean
 export function labSourceDisclosure (freshness: LabSourceFreshness): string {
   return freshness === 'fresh' ? 'Selected instant sources are within 6h.'
     : freshness === 'stale' ? 'Selected source older than 6h; other source ages may be unknown.'
-      : 'Source age unknown: patient average periods are unverified or selected instant timestamps are unavailable.'
+      : 'Some selected prices have unknown ages.'
 }
 
 /** Patient prices use traded daily averages; instant prices are observed quotes, never guaranteed fills. */

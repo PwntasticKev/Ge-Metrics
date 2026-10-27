@@ -60,6 +60,6 @@ test('same item uses both selected sides independently and alternate-mode disclo
   assert.equal(labSourceFreshness(same, source, 'instant', 'instant'), 'stale')
   assert.equal(labSourceFreshness(same, source, 'instant', 'patient'), 'unknown')
   assert.equal(labSourceFreshness(same, source, 'patient', 'instant'), 'stale')
-  assert.match(labSourceDisclosure('unknown'), /Source age unknown.*patient average periods are unverified/)
+  assert.match(labSourceDisclosure('unknown'), /Some selected prices have unknown ages/)
   assert.match(labSourceDisclosure('stale'), /older than 6h/)
 })
