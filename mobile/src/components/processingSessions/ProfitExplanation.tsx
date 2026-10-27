@@ -3,6 +3,8 @@ import { Pressable, Text, View } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
 import { gpFull } from '../../lib/format'
 import { explainProcessingSession } from '../../lib/processingExplanation'
+import { readInitialPlan } from '../../lib/processingPlan'
+import { initialPlanMessage } from './planLifecycle'
 import type { RecorderSession } from './model'
 
 export function ProfitExplanation({ session, now }: { session: RecorderSession; now: number }) {
@@ -16,7 +18,7 @@ export function ProfitExplanation({ session, now }: { session: RecorderSession; 
       <Text style={{ color: p.brand }}>{expanded ? 'Hide recorded profit explanation' : 'Explain recorded profit'}</Text>
     </Pressable>
     {expanded && <>
-      <Text style={{ color: p.muted }}>Original quote plan was not saved for this session. These are saved actual receipts and costs.</Text>
+      <Text style={{ color: p.muted }}>{initialPlanMessage(readInitialPlan(session.initialPlan, session.recipe, now))}</Text>
       {result.terms.map((row, index) => <View key={row.label} style={{ gap: 8 }}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: term === index }} onPress={() => setTerm(term === index ? null : index)} style={{ paddingVertical: 12 }}>
           <Text style={{ color: row.signedGp < 0 ? p.muted : p.brand }}>{row.label}: {row.signedGp < 0 ? '−' : '+'}{gpFull(Math.abs(row.signedGp))} GP</Text>

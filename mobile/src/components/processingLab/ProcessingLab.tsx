@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native'
 import { computeProcessFlip, type ProcessRecipe } from '@ge/engine'
-import { Link, useFocusEffect } from 'expo-router'
+import { Link, router, useFocusEffect } from 'expo-router'
 import { useMarket } from '../../api/useMarket'
 import { useAverages } from '../../api/useAverages'
 import { NumberField } from '../NumberField'
@@ -21,6 +21,10 @@ import { recordedPaceRecipeKey } from '../../lib/recordedPace'
 import { createRecordedPaceHistory } from '../recordedPace/history'
 import { useRecordedPace } from '../recordedPace/useRecordedPace'
 import { recorderUnavailableReason, snapshotRecipe } from '../processingSessions/recipe'
+
+import { createPlanRecording, displayedQuotes } from './recordDisplayedPlan'
+import { processingSessionRepository } from '../processingSessions/repository'
+import type { DisplayedPlanInput, PlanSizing } from '../../lib/processingPlan'
 
 // Keep these per-action conversions out of shared tools and rankings.
 const LAB_METHODS: readonly MethodDef[] = [...PROCESSING_METHODS, {
@@ -56,6 +60,11 @@ export function ProcessingLab () {
   const pace = useRecordedPace()
   const averages = useAverages()
   const { settings } = useSettings()
+  const [rateEvidence, setRateEvidence] = useState<Record<string, NonNullable<PlanSizing['rate']>>>({})
+  const recordings = useRef(new Map<string, ReturnType<typeof createPlanRecording>>())
+  const recordingLock = useRef(false)
+  const [recording, setRecording] = useState<string | null>(null)
+  const [recordMessage, setRecordMessage] = useState<{ id: string; text: string; unavailable: boolean } | null>(null)
   const [cash, setCash] = useState(String(settings.budget ?? 1_000_000))
   const [minutes, setMinutes] = useState('60')
   const [inputs, setInputs] = useState<PriceMode>('instant')
@@ -103,11 +112,47 @@ export function ProcessingLab () {
       const limit = isBlueScale(recipe) ? null : recipeLimit(recipe, source)
       const batch = sizeProcessingBatch({ cost: flip.cost, profit: flip.profit, tax: flip.tax, cash: cashValue, minutes: minutesValue, actionsPerHour: rate, limitActions: limit })
       const unknownLimit = recipe.inputs.some(e => !source.get(e.id)?.limit)
-      return [{ method, recipe, flip, batch, limit, unknownLimit, paceKey, paceReason, summary, rate, rateSource }]
+      let displayed: DisplayedPlanInput | null = null
+      let captureReason = ''
+      try {
+        const snapshot = snapshotRecipe(recipe, method.key, source)
+        const selectedRate = recorded !== undefined ? rateEvidence[paceKey] : rate === null ? null : { source: 'curated' as const, actionsPerHour: rate, recordedEvidence: null }
+        if (recorded !== undefined && (!selectedRate || selectedRate.actionsPerHour !== recorded)) throw new Error('Selected recorded-rate evidence is unavailable. Choose the rate again before capturing.')
+        displayed = { recipe: snapshot, quotes: displayedQuotes(snapshot, source, quoted, { inputs, outputs }, averages.h24, market.updatedAt, averages.h24UpdatedAt),
+          sizing: { cashBudgetGp: cashValue, activeMinutes: minutesValue, actions: batch.actions, rate: selectedRate ?? null, mappingLimitActions: limit, hasUnknownInputLimit: unknownLimit },
+          amounts: { cost: flip.cost, revenue: flip.revenue, tax: flip.tax, profit: flip.profit } }
+      } catch (error) { captureReason = error instanceof Error ? error.message : String(error) }
+      return [{ method, recipe, flip, batch, limit, unknownLimit, paceKey, paceReason, summary, rate, rateSource, displayed, captureReason }]
     }).filter(r => Boolean(r.batch.actions === null) === untimed)
       .filter(r => `${r.method.title} ${r.flip.name} ${isBlueScale(r.recipe) ? 'blue scale pestle mortar Nardah' : ''}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => (b.batch.earnings ?? b.flip.profit) - (a.batch.earnings ?? a.flip.profit))
-  }, [catalog, market.market, valid, inputs, outputs, averages.h24, settings, cashValue, minutesValue, untimed, query, pace.choices])
+  }, [catalog, market.market, valid, inputs, outputs, averages.h24, settings, cashValue, minutesValue, untimed, query, pace.choices, rateEvidence, market.updatedAt, averages.h24UpdatedAt])
+  const record = async (row: typeof rows[number]) => {
+    if (recordingLock.current) return
+    recordingLock.current = true; setRecording(row.recipe.id); setRecordMessage(null)
+    let action = recordings.current.get(row.recipe.id)
+    if (!action) { action = createPlanRecording(processingSessionRepository); recordings.current.set(row.recipe.id, action) }
+    try {
+      const result = await action.run(() => {
+        if (!row.displayed) throw new Error(row.captureReason || 'Displayed plan unavailable.')
+        return row.displayed
+      })
+      if (result.status === 'saved') {
+        try { router.push({ pathname: './processing-session', params: { sessionid: result.session.id } }) }
+        catch { setRecordMessage({ id: row.recipe.id, unavailable: false, text: 'Draft saved. Retry opening this same draft, or open it from Recent sessions.' }) }
+      } else if (result.status !== 'busy') {
+        if (result.status === 'unavailable') recordings.current.delete(row.recipe.id)
+        setRecordMessage({ id: row.recipe.id, unavailable: result.status === 'unavailable', text: `${result.status === 'unavailable' ? 'Initial plan unavailable' : 'Draft save not verified — retry keeps the same captured plan'}: ${result.reason}` })
+      }
+    } finally { recordingLock.current = false; setRecording(null) }
+  }
+  const abandonRecording = (recipeId: string) => {
+    if (recordingLock.current) return
+    const action = recordings.current.get(recipeId)
+    if (!action?.abandon()) return
+    recordings.current.delete(recipeId)
+    setRecordMessage({ id: recipeId, unavailable: false, text: 'Pending capture abandoned. A saved draft may still exist in Recent sessions; it has not been deleted or changed. Record actual session will create a new draft from the current display.' })
+  }
   const refresh = () => { pace.refresh(); market.refresh(); averages.refresh() }
   const text = { color: p.ink }
   const muted = { color: p.muted }
@@ -184,13 +229,25 @@ export function ProcessingLab () {
           {!!r.paceReason && <Text style={muted}>{r.paceReason} Curated rate retained.</Text>}
           {!r.summary?.sampleCount && <Text style={muted}>No eligible saved samples for this exact snapshot in the last 30 days. Curated rate retained; unfinished, unconfirmed, and unknown-action sessions do not qualify.</Text>}
           {r.recipe.actionsPerHour == null && <Text style={muted}>No curated rate: recorded pace is informational; session sizing remains unavailable.</Text>}
-          {r.recipe.actionsPerHour != null && r.summary?.actionsPerHour != null && <Pressable accessibilityRole="button" onPress={() => pace.setChoices(previous => {
-            const next = { ...previous }
-            if (next[r.paceKey] !== undefined) delete next[r.paceKey]
-            else next[r.paceKey] = r.summary!.actionsPerHour!
-            return next
-          })}><Text style={{ color: p.brand }}>{pace.choices[r.paceKey] !== undefined ? 'Use curated rate' : 'Use recorded pace for this recipe'} · reranks current comparison</Text></Pressable>}
-          {recorderUnavailableReason(r.recipe) ? <Text style={muted}>{recorderUnavailableReason(r.recipe)}</Text> : <Link href={{ pathname: './processing-session', params: { recipeid: r.recipe.id, method: r.method.key } }} style={{ color: p.brand, paddingVertical: 12, fontWeight: '600' }}>Record actual session</Link>}
+          {r.recipe.actionsPerHour != null && r.summary?.actionsPerHour != null && <Pressable accessibilityRole="button" onPress={() => {
+            const selected = pace.choices[r.paceKey] !== undefined
+            if (!selected) setRateEvidence(previous => ({ ...previous, [r.paceKey]: { source: 'recorded-explicit', actionsPerHour: r.summary!.actionsPerHour!, recordedEvidence: { recipeKey: r.paceKey, computedAtMs: pace.now, lookbackDays: 30, sampleCount: r.summary!.sampleCount, totalActions: r.summary!.totalActions, totalActiveMs: r.summary!.totalActiveMs } } }))
+            pace.setChoices(previous => {
+              const next = { ...previous }
+              if (selected) delete next[r.paceKey]
+              else next[r.paceKey] = r.summary!.actionsPerHour!
+              return next
+            })
+          }}><Text style={{ color: p.brand }}>{pace.choices[r.paceKey] !== undefined ? 'Use curated rate' : 'Use recorded pace for this recipe'} · reranks current comparison</Text></Pressable>}
+          {recorderUnavailableReason(r.recipe) ? <Text style={muted}>{recorderUnavailableReason(r.recipe)}</Text> : <>
+            <Text style={muted}>{recordings.current.has(r.recipe.id) ? 'Retry keeps the originally captured plan and reserved draft, even if the displayed quotes or choices have changed. Abandon pending capture to record the current display instead. A saved draft may already exist in Recent sessions; abandoning does not delete or change it.' : 'Creates an unstarted draft with this displayed quote plan. Quotes are estimates, not fills; enter all actual quantities and costs yourself.'}</Text>
+            <Pressable accessibilityRole="button" accessibilityState={{ disabled: recording !== null }} disabled={recording !== null} onPress={() => { void record(r) }} style={{ paddingVertical: 12 }}><Text style={{ color: p.brand, fontWeight: '600' }}>{recording === r.recipe.id ? 'Saving draft…' : recordings.current.has(r.recipe.id) ? 'Retry save / open captured draft' : 'Record actual session'}</Text></Pressable>
+            {recordings.current.has(r.recipe.id) && <Pressable accessibilityRole="button" accessibilityState={{ disabled: recording !== null }} disabled={recording !== null} onPress={() => abandonRecording(r.recipe.id)} style={{ paddingVertical: 12 }}><Text style={{ color: p.brand }}>Abandon pending capture</Text></Pressable>}
+            {recordMessage?.id === r.recipe.id && <>
+              <Text accessibilityRole="alert" style={muted}>{recordMessage.text}</Text>
+              {recordMessage.unavailable && <Link href={{ pathname: './processing-session', params: { recipeid: r.recipe.id, method: r.method.key } }} style={{ color: p.brand, paddingVertical: 12 }}>Record manually without an initial plan</Link>}
+            </>}
+          </>}
           </>}
           {isBlueScale(r.recipe) && <>
             <Text style={muted}>Each action consumes 1 blue dragon scale (243) and produces 1 dragon scale dust (241). Fee: {r.recipe.coinCost} GP per scale. Manual uses an owned, retained pestle and mortar; Wesley is in Nardah with no diary gate. Members only; tool acquisition, access and travel costs/time excluded.</Text>

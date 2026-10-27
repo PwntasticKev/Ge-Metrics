@@ -5,6 +5,8 @@ export interface ProcessingSale {
   taxGp: number; taxBasis: 'engine' | 'player_confirmed'; taxRuleVersion: string | null
 }
 export interface ProcessingSession {
+  /** Opaque durable evidence; only processingPlan interprets supported versions. */
+  initialPlan?: unknown
   id: string
   status: 'draft' | 'processing' | 'processed' | 'settled'
   recipe: {

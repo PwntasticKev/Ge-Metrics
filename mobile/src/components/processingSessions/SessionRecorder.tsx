@@ -8,6 +8,8 @@ import { gpFull } from '../../lib/format'
 import { pendingSessions, recoveryDrafts, processingSessionRepository } from './repository'
 import { asRecorder, interruptTimer, completeQuantities, confirmActuals, makeId, parseWhole, transition, type Actuals, type RecorderSession, type TimerAction } from './model'
 
+import { InitialPlan } from './InitialPlan'
+import { isInitiallyUnsaved } from './planLifecycle'
 import { ProfitExplanation } from './ProfitExplanation'
 import { canExplainCommitted, committedExplanationSnapshot } from './explanationSelection'
 import { canRetryRecovery, chooseRecovery, recoveryFor, recoverySnapshot, type Recovery } from './recovery'
@@ -122,7 +124,7 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
   const lock = useRef(false)
   const recoveryGeneration = useRef(0)
   const current = useRef(session)
-  const [unsaved, setUnsaved] = useState(pendingSessions.has(initial.id) || initial.status === 'draft' && !initial.processingStartedAt)
+  const [unsaved, setUnsaved] = useState(isInitiallyUnsaved(initial, explanationSnapshot, pendingSessions.has(initial.id)))
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [panel, setPanel] = useState('')
@@ -135,7 +137,7 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
       const result = await processingSessionRepository.upsert(next)
       if (!result.ok) throw result.error
       setExplanationCommitted(committedExplanationSnapshot(result, next.id))
-      const saved = result.sessions.find(s => s.id === next.id)
+      const saved = committedExplanationSnapshot(result, next.id)
       if (!saved) throw new Error('Saved session could not be verified.')
       if (generation !== recoveryGeneration.current) {
         const recovered = { ...asRecorder(saved), elapsedTimeConfirmed: false }
@@ -156,9 +158,9 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
     try {
       const result = await processingSessionRepository.load()
       if (!result.ok) throw result.error
-      const found = result.sessions.find(s => s.id === initial.id)
+      const found = committedExplanationSnapshot(result, initial.id)
       if (!found) throw new Error('No readable committed snapshot is available. The unsaved draft is retained.')
-      const next = recoveryFor(draft, asRecorder(found))
+      const next = recoveryFor(draft, asRecorder(result.sessions.find(s => s.id === initial.id)!))
       setRecovery(next); setInspectDraft(true); setError('')
       setUnsaved(true); pendingSessions.set(draft.id, draft)
       setNotice('Latest committed snapshot loaded. Choose which snapshot to edit; no changes have been saved.')
@@ -175,9 +177,9 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
     setUnsaved(editing === 'draft'); setError(''); setPanel(''); setConfirmDiscard(false)
   }
   useEffect(() => {
-    if (pendingSessions.has(initial.id) || initial.status === 'draft') pendingSessions.set(initial.id, initial)
+    if (isInitiallyUnsaved(initial, explanationSnapshot, pendingSessions.has(initial.id))) pendingSessions.set(initial.id, initial)
     if (committed && pendingSessions.has(initial.id) && !recoveryDrafts.has(initial.id)) recoveryDrafts.set(initial.id, initial)
-  }, [initial, committed])
+  }, [initial, committed, explanationSnapshot])
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer) }, [])
   const interrupt = useCallback(() => {
     const s = current.current
@@ -238,6 +240,7 @@ export function SessionRecorder({ initial, committed, explanationSnapshot }: { i
       <Text style={{ color: p.ink }}>Recorded pace: {d.actionsPerHour === null ? 'Unknown' : `${d.actionsPerHour.toFixed(1)} actions / active hour`}</Text>
       {session.recorder.outputs.map(o => <Text key={o.id} style={{ color: p.muted }}>{o.item.name}: {o.producedQty === null || d.activeMs === null || d.activeMs === 0 ? 'Unknown output pace' : `${(o.producedQty * 3_600_000 / d.activeMs).toFixed(1)} / active hour`}</Text>)}
     </View>
+    {canExplainCommitted(session, explanationCommitted, { busy, unsaved, recovery: !!recovery, error: !!error, editing: !!panel }) ? <InitialPlan key={`plan:${session.id}:${session.revision}`} session={explanationCommitted!} now={now} /> : <Text style={{ color: p.muted }}>Initial quote plan evidence is hidden while this snapshot is unsaved, being edited, or in recovery. Save and review the committed snapshot first.</Text>}
     <View style={[styles.card, { backgroundColor: p.card }]}>
       <Text style={[styles.heading, { color: p.ink }]}>Cash and inventory</Text>
       {!complete && <Text style={{ color: p.muted }}>Input / output quantities are unconfirmed. Confirm them in actuals before inventory, outlay or final profit can be resolved.</Text>}

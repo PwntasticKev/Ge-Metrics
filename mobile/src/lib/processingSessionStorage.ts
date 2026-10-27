@@ -1,3 +1,4 @@
+import { assertPlanJson, processingRecipeExecutionKey, validateNewInitialPlan } from './processingPlan.ts'
 import { deriveProcessingSession, type ProcessingSession } from './processingSessions.ts'
 
 import { validateRecorderExtension } from '../components/processingSessions/validation.ts'
@@ -106,7 +107,7 @@ function mergeRetainedFields(previous: unknown, edited: unknown): unknown {
 /** Share one repository per storage key. All reads and read/modify/writes are serialized.
  * A failed write never advances local state; the next operation reads durable storage again.
  */
-export function createProcessingSessionRepository(storage: AsyncStringStorage) {
+export function createProcessingSessionRepository(storage: AsyncStringStorage, now: () => number = Date.now) {
   let queue: Promise<unknown> = Promise.resolve()
   function serialize<T>(operation: () => Promise<T>): Promise<T> {
     const result = queue.then(operation)
@@ -124,6 +125,11 @@ export function createProcessingSessionRepository(storage: AsyncStringStorage) {
       // Snapshot before queueing so later caller mutations cannot change a pending save.
       let snapshot: RevisionedProcessingSession
       try {
+        if (Object.hasOwn(session, 'initialPlan')) {
+          const property = Object.getOwnPropertyDescriptor(session, 'initialPlan')!
+          if (!('value' in property) || !property.enumerable) throw new Error('Plan accessors are forbidden')
+          assertPlanJson(property.value, false)
+        }
         snapshot = JSON.parse(JSON.stringify(session))
         deriveProcessingSession(snapshot)
         validateRevision(snapshot)
@@ -141,6 +147,16 @@ export function createProcessingSessionRepository(storage: AsyncStringStorage) {
         if (matches.some(({ record }) => !sameRawRecord(matches[0].record, record))) return failure(new ProcessingSessionConflictError('saved copies with this ID differ'))
         const existing = loaded.sessions.find(s => s.id === snapshot.id)
         if (existing && revisionOf(existing) !== revisionOf(snapshot) || !existing && revisionOf(snapshot) !== 0) return failure(new ProcessingSessionConflictError())
+        // Guard raw committed evidence before retained-field projection can hide deletion.
+        const previous = matches[0]?.record as RevisionedProcessingSession | undefined
+        if (previous) {
+          if (Object.hasOwn(previous, 'initialPlan') !== Object.hasOwn(snapshot, 'initialPlan')
+            || !sameRawRecord(previous.initialPlan, snapshot.initialPlan)) return failure(new ProcessingSessionConflictError('initial plan is immutable'))
+          if (Object.hasOwn(previous, 'initialPlan') && processingRecipeExecutionKey(previous.recipe) !== processingRecipeExecutionKey(snapshot.recipe)) return failure(new ProcessingSessionConflictError('planned recipe is immutable'))
+        } else if (Object.hasOwn(snapshot, 'initialPlan')) {
+          try { validateNewInitialPlan(snapshot.initialPlan, snapshot.recipe, now()) }
+          catch (error) { return failure(error) }
+        }
         const nextRevision = revisionOf(existing ?? snapshot) + 1
         if (!Number.isSafeInteger(nextRevision)) return failure(new Error('Session revision exhausted'))
         let replaced = false
@@ -150,12 +166,19 @@ export function createProcessingSessionRepository(storage: AsyncStringStorage) {
           if (!invalidIndexes.has(index) && (record as RevisionedProcessingSession).id === snapshot.id) {
             if (!replaced) {
               committed = { ...mergeRetainedFields(record, snapshot) as RevisionedProcessingSession, revision: nextRevision }
+              // Never recursively merge evidence, including unknown nested versions/keys.
+              if (Object.hasOwn(record as object, 'initialPlan')) committed.initialPlan = (record as RevisionedProcessingSession).initialPlan
               records.push(committed)
             }
             replaced = true
           } else records.push(record)
         })
         if (!replaced) records.push(committed)
+        try {
+          deriveProcessingSession(committed)
+          validateRevision(committed)
+          validateRecorderExtension(committed)
+        } catch (error) { return failure(error) }
         const raw = JSON.stringify({ ...loaded.document, sessions: records })
         try {
           await storage.setItem(PROCESSING_SESSIONS_KEY, raw)
