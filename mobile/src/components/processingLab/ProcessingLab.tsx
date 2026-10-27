@@ -8,6 +8,7 @@ import { NumberField } from '../NumberField'
 import { ErrorState, LoadingState } from '../ListStates'
 import { Pills } from '../Tabs'
 import { BLUE_SCALE_RECIPES, blueScaleQuoteAgeSec, isBlueScale } from '../../lib/blueScale'
+import { UNICORN_GRINDING_RECIPES, isUnicornGrinding } from '../../lib/unicornGrinding'
 import { PROCESSING_METHODS, type MethodDef } from '../../lib/methods'
 import { batchWait, labMarket, recipeLimit, sizeProcessingBatch, type PriceMode } from '../../lib/processingLab'
 import { processingPriceCeilings, type PriceCeilingReason } from '../../lib/processingPriceCeilings'
@@ -26,6 +27,8 @@ import { createPlanRecording, displayedQuotes } from './recordDisplayedPlan'
 import { processingSessionRepository } from '../processingSessions/repository'
 import type { DisplayedPlanInput, PlanSizing } from '../../lib/processingPlan'
 
+const isLabOnlyConversion = (recipe: ProcessRecipe) => isBlueScale(recipe) || isUnicornGrinding(recipe)
+
 // Keep these per-action conversions out of shared tools and rankings.
 const LAB_METHODS: readonly MethodDef[] = [...PROCESSING_METHODS, {
   key: 'blue-scale', title: 'Blue dragon scale grinding · manual / Wesley',
@@ -34,6 +37,13 @@ const LAB_METHODS: readonly MethodDef[] = [...PROCESSING_METHODS, {
   source: 'https://oldschool.runescape.wiki/w/Blue_dragon_scale',
   group: 'processing', sorts: [{ value: 'profit', label: 'GP/action' }], defaultSort: 'profit',
   recipes: () => BLUE_SCALE_RECIPES
+}, {
+  key: 'unicorn-grinding', title: 'Unicorn horn grinding · manual / Wesley',
+  blurb: 'One unicorn horn becomes one unicorn horn dust.',
+  requirements: 'Members; manual: owned, retained pestle and mortar; Wesley: Nardah, noted items accepted, no diary gate. Tool acquisition and travel costs/time excluded.',
+  source: 'https://oldschool.runescape.wiki/w/Wesley',
+  group: 'processing', sorts: [{ value: 'profit', label: 'GP/action' }], defaultSort: 'profit',
+  recipes: () => UNICORN_GRINDING_RECIPES
 }]
 
 const MODES = [{ value: 'instant', label: 'Instant' }, { value: 'patient', label: 'Patient' }] as const
@@ -90,6 +100,7 @@ export function ProcessingLab () {
     const source = market.market
     if (!source) return []
     return LAB_METHODS.flatMap(method => method.recipes(source).map(recipe => {
+      if (isLabOnlyConversion(recipe)) return { method, recipe, paceKey: '', paceReason: '', summary: null }
       try {
         const snapshot = snapshotRecipe(recipe, method.key, source)
         return { method, recipe, paceKey: recordedPaceRecipeKey(snapshot), paceReason: '', summary: history.summary(snapshot) }
@@ -109,12 +120,12 @@ export function ProcessingLab () {
       const recorded = recipe.actionsPerHour != null && summary?.actionsPerHour != null ? pace.choices[paceKey] : undefined
       const rate = recorded ?? recipe.actionsPerHour ?? null
       const rateSource = recorded !== undefined ? 'Recorded (explicit choice)' : rate !== null ? 'Curated' : 'No curated rate'
-      const limit = isBlueScale(recipe) ? null : recipeLimit(recipe, source)
+      const limit = isLabOnlyConversion(recipe) ? null : recipeLimit(recipe, source)
       const batch = sizeProcessingBatch({ cost: flip.cost, profit: flip.profit, tax: flip.tax, cash: cashValue, minutes: minutesValue, actionsPerHour: rate, limitActions: limit })
       const unknownLimit = recipe.inputs.some(e => !source.get(e.id)?.limit)
       let displayed: DisplayedPlanInput | null = null
       let captureReason = ''
-      try {
+      if (!isLabOnlyConversion(recipe)) try {
         const snapshot = snapshotRecipe(recipe, method.key, source)
         const selectedRate = recorded !== undefined ? rateEvidence[paceKey] : rate === null ? null : { source: 'curated' as const, actionsPerHour: rate, recordedEvidence: null }
         if (recorded !== undefined && (!selectedRate || selectedRate.actionsPerHour !== recorded)) throw new Error('Selected recorded-rate evidence is unavailable. Choose the rate again before capturing.')
@@ -124,7 +135,7 @@ export function ProcessingLab () {
       } catch (error) { captureReason = error instanceof Error ? error.message : String(error) }
       return [{ method, recipe, flip, batch, limit, unknownLimit, paceKey, paceReason, summary, rate, rateSource, displayed, captureReason }]
     }).filter(r => Boolean(r.batch.actions === null) === untimed)
-      .filter(r => `${r.method.title} ${r.flip.name} ${isBlueScale(r.recipe) ? 'blue scale pestle mortar Nardah' : ''}`.toLowerCase().includes(query.toLowerCase()))
+      .filter(r => `${r.method.title} ${r.flip.name} ${isBlueScale(r.recipe) ? 'blue scale pestle mortar Nardah' : isUnicornGrinding(r.recipe) ? 'unicorn horn dust Wesley pestle mortar Nardah' : ''}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => (b.batch.earnings ?? b.flip.profit) - (a.batch.earnings ?? a.flip.profit))
   }, [catalog, market.market, valid, inputs, outputs, averages.h24, settings, cashValue, minutesValue, untimed, query, pace.choices, rateEvidence, market.updatedAt, averages.h24UpdatedAt])
   const record = async (row: typeof rows[number]) => {
@@ -161,7 +172,7 @@ export function ProcessingLab () {
     const quoted = labMarket(market.market, buy, sell, averages.h24)
     const f = computeProcessFlip(recipe, quoted)
     if (!f) return 'Missing traded prices'
-    const b = sizeProcessingBatch({ cost: f.cost, profit: f.profit, tax: f.tax, cash: cashValue, minutes: minutesValue, actionsPerHour: rate, limitActions: recipeLimit(recipe, market.market) })
+    const b = sizeProcessingBatch({ cost: f.cost, profit: f.profit, tax: f.tax, cash: cashValue, minutes: minutesValue, actionsPerHour: rate, limitActions: isLabOnlyConversion(recipe) ? null : recipeLimit(recipe, market.market) })
     return b.earnings === null ? `${gpFull(f.profit)} GP/action · no rate` : `${gpFull(b.earnings)} GP · ${b.actions} actions`
   }
   return <FlatList
@@ -192,7 +203,7 @@ export function ProcessingLab () {
       {(market.error || averages.refreshError) && <Text style={muted}>Refresh failed for some data. Available cached prices remain visible; missing prices are excluded.</Text>}
       <TextInput accessibilityLabel="Search processing recipes" placeholder="Search method or recipe" placeholderTextColor={p.muted} value={query} onChangeText={setQuery} style={[styles.search, text, { backgroundColor: p.well }]} />
       <Pills options={[{ value: 'timed', label: 'Session earnings' }, { value: 'untimed', label: 'No trusted rate' }]} value={untimed ? 'untimed' : 'timed'} onChange={v => setUntimed(v === 'untimed')} />
-      <Text style={muted}>Blue dragon scale manual grinding and Wesley service: select No trusted rate, then search blue scale, dust or Wesley. Per-action only; no batch or GP/hour.</Text>
+      <Text style={muted}>Blue scale and unicorn horn manual / Wesley comparisons: select No trusted rate, then search scale, horn, dust or Wesley. Per-action only.</Text>
       <Text style={muted}>{rows.length} recipes · {untimed ? 'ranked by GP/action' : 'ranked by modeled batch earnings'} · tap to compare all four assumptions</Text>
     </View>}
     ListEmptyComponent={market.isLoading ? <LoadingState /> : !market.market && market.error ? <ErrorState message="Prices unavailable" onRetry={refresh} /> : <Text style={[muted, styles.empty]}>No recipes match with the available prices and current stale/fluke/member settings. Patient pricing needs traded daily averages.</Text>}
@@ -220,7 +231,7 @@ export function ProcessingLab () {
           <Text style={muted}>{r.batch.actions === null ? 'No trusted rate: no session or hourly estimate' : `${r.batch.actions.toLocaleString()} actions · ${gpShort(r.batch.capital)} GP upfront · ${r.batch.bottlenecks.join(' + ')} capped`}</Text>
         </Pressable>
         {expanded && <View style={styles.detail}>
-          {!isBlueScale(r.recipe) && <>
+          {!isLabOnlyConversion(r.recipe) && <>
           <Text style={text}>Recorded pace · exact recipe snapshot · past 30 days</Text>
           {r.summary && <>
             <Text style={muted}>{new Date(r.summary.windowStartedAt).toLocaleDateString()} – {new Date(r.summary.windowEndedAt).toLocaleDateString()} · {r.summary.sampleCount} samples · {r.summary.totalActions.toLocaleString()} total actions · {(r.summary.totalActiveMs / 60_000).toFixed(1)} active minutes.</Text>
@@ -249,8 +260,12 @@ export function ProcessingLab () {
             </>}
           </>}
           </>}
-          {isBlueScale(r.recipe) && <>
-            <Text style={muted}>Each action consumes 1 blue dragon scale (243) and produces 1 dragon scale dust (241). Fee: {r.recipe.coinCost} GP per scale. Manual uses an owned, retained pestle and mortar; Wesley is in Nardah with no diary gate. Members only; tool acquisition, access and travel costs/time excluded.</Text>
+          {isLabOnlyConversion(r.recipe) && <>
+            {isBlueScale(r.recipe) && <Text style={muted}>Each action consumes 1 blue dragon scale (243) and produces 1 dragon scale dust (241). Fee: {r.recipe.coinCost} GP per scale. Manual uses an owned, retained pestle and mortar; Wesley is in Nardah with no diary gate. Members only; tool acquisition, access and travel costs/time excluded.</Text>}
+            {isUnicornGrinding(r.recipe) && <>
+              <Text style={muted}>Each action consumes 1 unicorn horn (237) and produces 1 unicorn horn dust (235). Fee: {r.recipe.coinCost} GP per horn. Members only. Manual uses an owned, retained pestle and mortar; Wesley in Nardah accepts noted items with no diary gate. Tool acquisition and travel costs/time excluded.</Text>
+              <Text style={muted}>At identical quotes, Wesley costs exactly 50 GP/action more than manual. This comparison does not recommend either route or establish attainable earnings.</Text>
+            </>}
             <Text style={muted}>Unknown processing rate: no GP/hour or batch estimate. No service capacity, available inventory or remaining purchase allowance is inferred.</Text>
             {[...r.recipe.inputs, ...r.recipe.outputs].map(entry => {
               const item = market.market?.get(entry.id)
@@ -325,13 +340,13 @@ export function ProcessingLab () {
             })}
             <Text style={muted}>Each floor is independent, not simultaneous suggested asks. These are arithmetic thresholds, not fills; headroom does not establish achievable earnings.</Text>
           </View>}
-          {!isBlueScale(r.recipe) && <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>}
-          <Text style={muted}>{r.rate ? `${r.rateSource}: ${r.rate.toLocaleString()} actions/h. Modeled active processing: ${((r.batch.actions ?? 0) / r.rate * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>
+          {!isLabOnlyConversion(r.recipe) && <Text style={muted}>Buy-limit cap: {r.limit === null ? 'unknown; quantity may be overstated' : `${r.limit.toLocaleString()} actions per unused window`}{r.unknownLimit && r.limit !== null ? '; some input limits unknown, quantity may be overstated' : ''}.</Text>}
+          {!isUnicornGrinding(r.recipe) && <Text style={muted}>{r.rate ? `${r.rateSource}: ${r.rate.toLocaleString()} actions/h. Modeled active processing: ${((r.batch.actions ?? 0) / r.rate * 60).toFixed(1)} minutes. ` : ''}Extra GE wait: {wait === null ? 'unknown' : !Number.isFinite(wait) ? 'no modeled flow' : `${(wait * 60).toFixed(0)} min`}. Offers may require several free GE slots.</Text>}
           <Text style={muted}>{r.flip.stale ? 'Stale quotes. ' : ''}{r.flip.suspicious ? 'Unusually large margin. ' : ''}Daily averages can lag the market; instant depth is unknown.</Text>
           {SCENARIOS.map(([buy, sell]) => <Text key={`${buy}-${sell}`} style={text}>{buy} in / {sell} out: {scenario(r.recipe, buy, sell, r.rate)}</Text>)}
           <Text style={muted}>Requires: {r.method.requirements || 'See method guide'}</Text>
-          {!isBlueScale(r.recipe) && <Link href={`/tools/${r.method.key}`} style={{ color: p.brand }}>Open recipe tool</Link>}
-          {r.method.source && <Link href={r.method.source as `https://${string}`} style={{ color: p.brand }}>{isBlueScale(r.recipe) ? 'Wiki conversion mechanics (no measured rate)' : 'Wiki mechanics and rate source'}</Link>}
+          {!isLabOnlyConversion(r.recipe) && <Link href={`/tools/${r.method.key}`} style={{ color: p.brand }}>Open recipe tool</Link>}
+          {r.method.source && <Link href={r.method.source as `https://${string}`} style={{ color: p.brand }}>{isLabOnlyConversion(r.recipe) ? 'Wiki conversion mechanics (no measured rate)' : 'Wiki mechanics and rate source'}</Link>}
         </View>}
       </View>
     }}
