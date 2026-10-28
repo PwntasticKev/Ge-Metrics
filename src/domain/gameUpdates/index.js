@@ -25,3 +25,33 @@ export {
   toChartEvents,
   parseGameUpdatesPayload
 } from './filters.js'
+export { CONFIDENCE, findDateMentions, parseDayCell, resolveYear, addDays, daysBetween, toIsoDate } from './releaseDates.js'
+export { releasesFromPost, releaseFromPostTitle, releasesFromHeadings, subjectBefore } from './releaseCandidates.js'
+export {
+  MAJOR_UPDATE_TITLE,
+  RELEASED_TITLE,
+  isBigRelease,
+  cleanReleaseTitle,
+  isUsableTitle,
+  titleTokens,
+  titlesMatch
+} from './releaseTitles.js'
+export {
+  parseScheduleTable,
+  parseUpcomingProse,
+  parseUpcomingPage,
+  citedSource,
+  latestCitationDate,
+  UPCOMING_PAGE_TITLE,
+  UPCOMING_PAGE_URL
+} from './upcomingPage.js'
+export {
+  buildUpcomingReleases,
+  candidateFromPage,
+  candidatesFromPost,
+  mergeCandidates,
+  releasedBy,
+  parseUpcomingReleasesPayload,
+  POST_LOOKBACK_DAYS,
+  KEEP_AFTER_DAYS
+} from './upcomingFeed.js'

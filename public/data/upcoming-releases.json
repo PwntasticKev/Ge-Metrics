@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-10-27T01:33:34.633Z",
+  "upcoming": [
+    {
+      "title": "2026 Halloween event",
+      "expectedDate": "2026-10-28",
+      "confidence": "explicit",
+      "sourcePost": "Reddit: Mod Goblin",
+      "sourceUrl": "https://www.reddit.com/r/2007scape/comments/1x5n084/more_gathering_efficiencies/pgnplsa/",
+      "big": true,
+      "items": [],
+      "announcedOn": "2026-10-14",
+      "evidence": "October 28th: 2026 Halloween event"
+    },
+    {
+      "title": "Hardcore Worlds",
+      "expectedDate": "2026-11-04",
+      "confidence": "explicit",
+      "sourcePost": "Hardcore Worlds Are Coming On November 4th",
+      "sourceUrl": "https://secure.runescape.com/m=news/hardcore-worlds-are-coming-on-november-4th?oldschool=1",
+      "big": false,
+      "items": [],
+      "announcedOn": "2026-10-22",
+      "evidence": "Hardcore Worlds Are Coming On November 4th"
+    },
+    {
+      "title": "Full transition to Jagex Accounts",
+      "expectedDate": "2026-11-17",
+      "confidence": "explicit",
+      "sourcePost": "Jagex Accounts: Migration Begins Nov 17",
+      "sourceUrl": "https://secure.runescape.com/m=news/jagex-accounts-migration-begins-nov-17?oldschool=1",
+      "big": false,
+      "items": [],
+      "announcedOn": "2026-10-16",
+      "evidence": "November 17th: Full transition to Jagex Accounts"
+    }
+  ]
+}
