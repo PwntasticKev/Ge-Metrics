@@ -13,6 +13,8 @@ import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GrandExchangeOfferChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
@@ -82,6 +84,7 @@ public class GeMetricsPlugin extends Plugin
 	private Gson gson;
 
 	private GeMetricsPanel panel;
+	private boolean usernameDetected;
 	private NavigationButton navButton;
 
 	@Override
@@ -124,8 +127,8 @@ public class GeMetricsPlugin extends Plugin
 		ensureClientIdSaved();
 		tradeSyncService.initialize();
 		
-		// Detect OSRS username from RuneLite client
-		detectOsrsUsername();
+		// OSRS username is detected on the first game tick after login
+		usernameDetected = false;
 		
 		// Update panel with auth status
 		panel.getAccountPanel().checkLoginStatus();
@@ -154,6 +157,8 @@ public class GeMetricsPlugin extends Plugin
 
 		// Sync any pending trades before shutdown
 		tradeSyncService.flushPendingTrades();
+		tradeSyncService.stop();
+		authService.stop();
 	}
 
 	@Subscribe
@@ -170,7 +175,26 @@ public class GeMetricsPlugin extends Plugin
 		tradeSyncService.handleTradeEvent(offer);
 	}
 
-	private void detectOsrsUsername()
+	@Subscribe
+	public void onGameTick(GameTick tick)
+	{
+		if (!usernameDetected)
+		{
+			usernameDetected = detectOsrsUsername();
+		}
+	}
+
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged event)
+	{
+		// Re-detect after logout in case the player switches accounts
+		if (event.getGameState() == GameState.LOGIN_SCREEN)
+		{
+			usernameDetected = false;
+		}
+	}
+
+	private boolean detectOsrsUsername()
 	{
 		try
 		{
@@ -183,6 +207,7 @@ public class GeMetricsPlugin extends Plugin
 				{
 					log.info("Detected OSRS username: {}", playerName);
 					tradeSyncService.setOsrsUsername(playerName);
+					return true;
 				}
 			}
 		}
@@ -190,6 +215,7 @@ public class GeMetricsPlugin extends Plugin
 		{
 			log.warn("Failed to detect OSRS username: {}", e.getMessage());
 		}
+		return false;
 	}
 
 	private void ensureClientIdSaved()

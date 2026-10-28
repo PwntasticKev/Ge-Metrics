@@ -8,7 +8,6 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.config.ConfigManager;
 import okhttp3.*;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -18,6 +17,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -46,16 +46,19 @@ public class TradeSyncService
 	private final Gson gson;
 	private final Queue<TradeEvent> pendingTrades;
 	private final ScheduledExecutorService executorService;
+	private ScheduledFuture<?> syncTask;
 	private String runeliteClientId;
 	private String accessToken;
 	private String osrsUsername;
 	private int consecutiveFailures;
 	private static final int MAX_RETRY_ATTEMPTS = 5;
 
-	public TradeSyncService()
+	@Inject
+	public TradeSyncService(OkHttpClient httpClient, Gson gson)
 	{
-		this.httpClient = new OkHttpClient();
-		this.gson = new GsonBuilder().create();
+		// RuneLite's shared client and Gson (required for Plugin Hub)
+		this.httpClient = httpClient;
+		this.gson = gson;
 		this.pendingTrades = new ConcurrentLinkedQueue<>();
 		this.executorService = Executors.newSingleThreadScheduledExecutor(r -> {
 			Thread thread = new Thread(r, "GeMetrics-Sync");
@@ -82,15 +85,26 @@ public class TradeSyncService
 		// Clean up old trades (older than 7 days)
 		localStorage.cleanupOldTrades(7);
 		
-		// Start periodic sync
+		// Start periodic sync (replacing any task from a previous start)
+		stop();
 		if (config.autoSync())
 		{
-			executorService.scheduleAtFixedRate(
+			syncTask = executorService.scheduleAtFixedRate(
 				this::syncPendingTrades,
 				0,
-				config.syncInterval(),
+				Math.max(5, config.syncInterval()),
 				TimeUnit.SECONDS
 			);
+		}
+	}
+
+	/** Cancels periodic sync; {@link #initialize()} can start it again. */
+	public void stop()
+	{
+		if (syncTask != null)
+		{
+			syncTask.cancel(false);
+			syncTask = null;
 		}
 	}
 

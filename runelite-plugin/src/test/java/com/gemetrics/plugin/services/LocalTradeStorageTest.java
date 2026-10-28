@@ -155,6 +155,22 @@ class LocalTradeStorageTest
 		assertThat(storage.getPendingTradeCount()).isEqualTo(0);
 	}
 
+	@Test
+	void shouldPersistAcrossRestarts()
+	{
+		// Given
+		storage.savePendingTrade(createTestTradeEvent("survivor"));
+		storage.saveSetting("k", "v");
+		storage.shutdown();
+
+		// When - a new instance reads the same file
+		LocalTradeStorage reopened = new TestLocalTradeStorage(tempDir);
+
+		// Then
+		assertThat(reopened.loadPendingTrades()).extracting(TradeEvent::getRuneliteEventId).containsExactly("survivor");
+		assertThat(reopened.loadSetting("k")).isEqualTo("v");
+	}
+
 	private TradeEvent createTestTradeEvent()
 	{
 		return createTestTradeEvent("test-trade-id");
@@ -181,7 +197,7 @@ class LocalTradeStorageTest
 	{
 		TestLocalTradeStorage(Path tempDir)
 		{
-			super(tempDir.resolve("test-trades.db").toFile());
+			super(tempDir.resolve("test-trades.json").toFile());
 		}
 	}
 }

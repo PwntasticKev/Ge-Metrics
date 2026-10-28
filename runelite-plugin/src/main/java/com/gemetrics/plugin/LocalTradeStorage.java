@@ -2,446 +2,209 @@ package com.gemetrics.plugin;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
 
-import javax.inject.Singleton;
-import java.io.File;
-import java.sql.*;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
-
+/**
+ * Persists trades that haven't synced yet, plus a few plugin settings, as one JSON file
+ * in the RuneLite directory. Plain JSON (rather than SQLite) keeps the plugin free of
+ * native dependencies, which the Plugin Hub requires.
+ */
 @Slf4j
 @Singleton
 public class LocalTradeStorage
 {
-	private static final String DB_NAME = "ge-metrics-trades.db";
-	private static final int CURRENT_SCHEMA_VERSION = 1;
-	
+	private static final String FILE_NAME = "ge-metrics-trades.json";
+
 	private final Gson gson;
-	private final ReentrantLock dbLock;
-	private Connection connection;
-	private final File dbFile;
+	private final File file;
+	private State state;
 
 	public LocalTradeStorage()
 	{
-		// Store database in RuneLite's config directory
-		this(new File(RuneLite.RUNELITE_DIR, DB_NAME));
+		this(new File(RuneLite.RUNELITE_DIR, FILE_NAME));
 	}
 
-	/** Uses the given database file; tests pass a temp file. */
-	protected LocalTradeStorage(File dbFile)
+	/** Uses the given file; tests pass a temp file. */
+	protected LocalTradeStorage(File file)
 	{
 		this.gson = new GsonBuilder().create();
-		this.dbLock = new ReentrantLock();
-		this.dbFile = dbFile;
-		initializeDatabase();
+		this.file = file;
+		this.state = read();
 	}
 
-	private void initializeDatabase()
+	public synchronized void savePendingTrade(TradeEvent trade)
 	{
-		try
+		if (trade == null)
 		{
-			// Create connection
-			String dbUrl = "jdbc:sqlite:" + dbFile.getAbsolutePath();
-			connection = DriverManager.getConnection(dbUrl);
-			connection.setAutoCommit(false);
-			
-			log.info("Connected to SQLite database: {}", dbFile.getAbsolutePath());
-			
-			// Create tables if they don't exist
-			createTables();
-			
-			// Run migrations if needed
-			runMigrations();
-			
+			return;
 		}
-		catch (SQLException e)
-		{
-			log.error("Failed to initialize database", e);
-			throw new RuntimeException("Database initialization failed", e);
-		}
+		state.pendingTrades.removeIf(p -> idOf(p) != null && idOf(p).equals(trade.getRuneliteEventId()));
+		state.pendingTrades.add(new PendingTrade(trade, Instant.now().getEpochSecond()));
+		write();
 	}
 
-	private void createTables() throws SQLException
+	/** Trades due for (re)sending: never failed, or past their retry time. Oldest first. */
+	public synchronized List<TradeEvent> loadPendingTrades()
 	{
-		dbLock.lock();
-		try
-		{
-			// Pending trades table
-			String createPendingTradesTable = "CREATE TABLE IF NOT EXISTS pending_trades ( id INTEGER PRIMARY KEY AUTOINCREMENT, trade_data TEXT NOT NULL, created_at INTEGER NOT NULL, retry_count INTEGER DEFAULT 0, last_error TEXT, next_retry_at INTEGER )";
-			
-			// Plugin settings table
-			String createSettingsTable = "CREATE TABLE IF NOT EXISTS plugin_settings ( key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL )";
-			
-			// Schema version table
-			String createSchemaTable = "CREATE TABLE IF NOT EXISTS schema_version ( version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL )";
-
-			try (Statement stmt = connection.createStatement())
-			{
-				stmt.execute(createPendingTradesTable);
-				stmt.execute(createSettingsTable);
-				stmt.execute(createSchemaTable);
-				connection.commit();
-			}
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
+		long now = Instant.now().getEpochSecond();
+		return state.pendingTrades.stream()
+			.filter(p -> p.nextRetryAt == null || p.nextRetryAt <= now)
+			.sorted((a, b) -> Long.compare(a.createdAt, b.createdAt))
+			.map(p -> p.trade)
+			.collect(Collectors.toList());
 	}
 
-	private void runMigrations() throws SQLException
+	public synchronized void removePendingTrade(String runeliteEventId)
 	{
-		int currentVersion = getSchemaVersion();
-		
-		if (currentVersion < CURRENT_SCHEMA_VERSION)
+		if (runeliteEventId != null && state.pendingTrades.removeIf(p -> runeliteEventId.equals(idOf(p))))
 		{
-			log.info("Running database migrations from version {} to {}", currentVersion, CURRENT_SCHEMA_VERSION);
-			
-			// Add future migrations here
-			// For now, just update the version
-			setSchemaVersion(CURRENT_SCHEMA_VERSION);
+			write();
 		}
 	}
 
-	private int getSchemaVersion() throws SQLException
+	public synchronized void updateTradeRetryInfo(String runeliteEventId, int retryCount, String lastError, Instant nextRetryAt)
 	{
-		String query = "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1";
-		
-		try (Statement stmt = connection.createStatement();
-			 ResultSet rs = stmt.executeQuery(query))
+		for (PendingTrade p : state.pendingTrades)
 		{
-			if (rs.next())
+			if (runeliteEventId != null && runeliteEventId.equals(idOf(p)))
 			{
-				return rs.getInt("version");
-			}
-			else
-			{
-				return 0; // No version set, assume initial
+				p.retryCount = retryCount;
+				p.lastError = lastError;
+				p.nextRetryAt = nextRetryAt == null ? null : nextRetryAt.getEpochSecond();
 			}
 		}
+		write();
 	}
 
-	private void setSchemaVersion(int version) throws SQLException
+	public synchronized void saveSetting(String key, String value)
 	{
-		String insert = "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?, ?)";
-		
-		try (PreparedStatement stmt = connection.prepareStatement(insert))
+		if (key == null || value == null)
 		{
-			stmt.setInt(1, version);
-			stmt.setLong(2, Instant.now().getEpochSecond());
-			stmt.executeUpdate();
-			connection.commit();
+			return;
 		}
+		state.settings.put(key, value);
+		write();
 	}
 
-	public void savePendingTrade(TradeEvent trade)
+	public synchronized String loadSetting(String key)
 	{
-		if (trade == null) return;
-		
-		dbLock.lock();
-		try
-		{
-			String tradeJson = gson.toJson(trade);
-			String insert = "INSERT INTO pending_trades (trade_data, created_at) VALUES (?, ?)";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(insert))
-			{
-				stmt.setString(1, tradeJson);
-				stmt.setLong(2, Instant.now().getEpochSecond());
-				stmt.executeUpdate();
-				connection.commit();
-				
-				log.debug("Saved pending trade to database: {}", trade.getRuneliteEventId());
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to save pending trade", e);
-			try
-			{
-				connection.rollback();
-			}
-			catch (SQLException rollbackEx)
-			{
-				log.error("Failed to rollback transaction", rollbackEx);
-			}
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
+		return key == null ? null : state.settings.get(key);
 	}
 
-	public List<TradeEvent> loadPendingTrades()
+	public synchronized void cleanupOldTrades(int maxAgeDays)
 	{
-		List<TradeEvent> trades = new ArrayList<>();
-		
-		dbLock.lock();
-		try
+		long cutoff = Instant.now().getEpochSecond() - maxAgeDays * 24L * 60 * 60;
+		int before = state.pendingTrades.size();
+		state.pendingTrades.removeIf(p -> p.createdAt < cutoff);
+		if (state.pendingTrades.size() != before)
 		{
-			String query = "SELECT trade_data, retry_count, next_retry_at FROM pending_trades WHERE next_retry_at IS NULL OR next_retry_at <= ? ORDER BY created_at ASC";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(query))
-			{
-				stmt.setLong(1, Instant.now().getEpochSecond());
-				
-				try (ResultSet rs = stmt.executeQuery())
-				{
-					while (rs.next())
-					{
-						String tradeJson = rs.getString("trade_data");
-						TradeEvent trade = gson.fromJson(tradeJson, TradeEvent.class);
-						trades.add(trade);
-					}
-				}
-			}
-			
-			log.debug("Loaded {} pending trades from database", trades.size());
+			log.info("Cleaned up {} old trades", before - state.pendingTrades.size());
+			write();
 		}
-		catch (SQLException e)
-		{
-			log.error("Failed to load pending trades", e);
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
-		
-		return trades;
 	}
 
-	public void removePendingTrade(String runeliteEventId)
+	public synchronized int getPendingTradeCount()
 	{
-		if (runeliteEventId == null) return;
-		
-		dbLock.lock();
-		try
-		{
-			String delete = "DELETE FROM pending_trades WHERE json_extract(trade_data, '$.runeliteEventId') = ?";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(delete))
-			{
-				stmt.setString(1, runeliteEventId);
-				int deleted = stmt.executeUpdate();
-				connection.commit();
-				
-				if (deleted > 0)
-				{
-					log.debug("Removed pending trade from database: {}", runeliteEventId);
-				}
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to remove pending trade", e);
-			try
-			{
-				connection.rollback();
-			}
-			catch (SQLException rollbackEx)
-			{
-				log.error("Failed to rollback transaction", rollbackEx);
-			}
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
+		return state.pendingTrades.size();
 	}
 
-	public void updateTradeRetryInfo(String runeliteEventId, int retryCount, String lastError, Instant nextRetryAt)
-	{
-		dbLock.lock();
-		try
-		{
-			String update = "UPDATE pending_trades SET retry_count = ?, last_error = ?, next_retry_at = ? WHERE json_extract(trade_data, '$.runeliteEventId') = ?";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(update))
-			{
-				stmt.setInt(1, retryCount);
-				stmt.setString(2, lastError);
-				stmt.setLong(3, nextRetryAt != null ? nextRetryAt.getEpochSecond() : null);
-				stmt.setString(4, runeliteEventId);
-				stmt.executeUpdate();
-				connection.commit();
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to update trade retry info", e);
-			try
-			{
-				connection.rollback();
-			}
-			catch (SQLException rollbackEx)
-			{
-				log.error("Failed to rollback transaction", rollbackEx);
-			}
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
-	}
-
-	public void saveSetting(String key, String value)
-	{
-		if (key == null || value == null) return;
-		
-		dbLock.lock();
-		try
-		{
-			String upsert = "INSERT OR REPLACE INTO plugin_settings (key, value, updated_at) VALUES (?, ?, ?)";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(upsert))
-			{
-				stmt.setString(1, key);
-				stmt.setString(2, value);
-				stmt.setLong(3, Instant.now().getEpochSecond());
-				stmt.executeUpdate();
-				connection.commit();
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to save setting", e);
-			try
-			{
-				connection.rollback();
-			}
-			catch (SQLException rollbackEx)
-			{
-				log.error("Failed to rollback transaction", rollbackEx);
-			}
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
-	}
-
-	public String loadSetting(String key)
-	{
-		if (key == null) return null;
-		
-		dbLock.lock();
-		try
-		{
-			String query = "SELECT value FROM plugin_settings WHERE key = ?";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(query))
-			{
-				stmt.setString(1, key);
-				
-				try (ResultSet rs = stmt.executeQuery())
-				{
-					if (rs.next())
-					{
-						return rs.getString("value");
-					}
-				}
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to load setting", e);
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
-		
-		return null;
-	}
-
-	public void cleanupOldTrades(int maxAgeDays)
-	{
-		dbLock.lock();
-		try
-		{
-			long cutoffTime = Instant.now().getEpochSecond() - (maxAgeDays * 24 * 60 * 60);
-			String delete = "DELETE FROM pending_trades WHERE created_at < ?";
-			
-			try (PreparedStatement stmt = connection.prepareStatement(delete))
-			{
-				stmt.setLong(1, cutoffTime);
-				int deleted = stmt.executeUpdate();
-				connection.commit();
-				
-				if (deleted > 0)
-				{
-					log.info("Cleaned up {} old pending trades", deleted);
-				}
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to cleanup old trades", e);
-			try
-			{
-				connection.rollback();
-			}
-			catch (SQLException rollbackEx)
-			{
-				log.error("Failed to rollback transaction", rollbackEx);
-			}
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
-	}
-
-	public int getPendingTradeCount()
-	{
-		dbLock.lock();
-		try
-		{
-			String query = "SELECT COUNT(*) FROM pending_trades";
-			
-			try (Statement stmt = connection.createStatement();
-				 ResultSet rs = stmt.executeQuery(query))
-			{
-				if (rs.next())
-				{
-					return rs.getInt(1);
-				}
-			}
-		}
-		catch (SQLException e)
-		{
-			log.error("Failed to get pending trade count", e);
-		}
-		finally
-		{
-			dbLock.unlock();
-		}
-		
-		return 0;
-	}
-
+	/** Every change is written immediately, so there is nothing to flush. */
 	public void shutdown()
 	{
-		dbLock.lock();
+	}
+
+	private static String idOf(PendingTrade p)
+	{
+		return p.trade == null ? null : p.trade.getRuneliteEventId();
+	}
+
+	private State read()
+	{
+		if (!file.exists())
+		{
+			return new State();
+		}
+		try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8))
+		{
+			State loaded = gson.fromJson(reader, State.class);
+			return loaded == null ? new State() : loaded.withDefaults();
+		}
+		catch (IOException | RuntimeException e)
+		{
+			log.error("Could not read {}, starting with empty trade storage", file, e);
+			return new State();
+		}
+	}
+
+	/** Writes to a temp file then swaps it in, so a crash never leaves a half-written file. */
+	private void write()
+	{
+		File tmp = new File(file.getPath() + ".tmp");
 		try
 		{
-			if (connection != null && !connection.isClosed())
+			File dir = file.getParentFile();
+			if (dir != null)
 			{
-				connection.close();
-				log.info("Database connection closed");
+				Files.createDirectories(dir.toPath());
 			}
+			try (Writer writer = Files.newBufferedWriter(tmp.toPath(), StandardCharsets.UTF_8))
+			{
+				gson.toJson(state, writer);
+			}
+			Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
-		catch (SQLException e)
+		catch (IOException e)
 		{
-			log.error("Error closing database connection", e);
+			log.error("Failed to save trade storage to {}", file, e);
 		}
-		finally
+	}
+
+	private static class State
+	{
+		List<PendingTrade> pendingTrades = new ArrayList<>();
+		Map<String, String> settings = new HashMap<>();
+
+		State withDefaults()
 		{
-			dbLock.unlock();
+			if (pendingTrades == null)
+			{
+				pendingTrades = new ArrayList<>();
+			}
+			if (settings == null)
+			{
+				settings = new HashMap<>();
+			}
+			return this;
+		}
+	}
+
+	private static class PendingTrade
+	{
+		TradeEvent trade;
+		long createdAt;
+		int retryCount;
+		String lastError;
+		Long nextRetryAt;
+
+		PendingTrade(TradeEvent trade, long createdAt)
+		{
+			this.trade = trade;
+			this.createdAt = createdAt;
 		}
 	}
 }

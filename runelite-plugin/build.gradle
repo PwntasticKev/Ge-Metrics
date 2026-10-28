@@ -24,9 +24,6 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok:1.18.30'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-	// SQLite for local persistence
-	implementation 'org.xerial:sqlite-jdbc:3.41.0.0'
-
 	// Modern testing framework (JUnit 5)
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
 	testImplementation 'org.mockito:mockito-core:5.1.1'
