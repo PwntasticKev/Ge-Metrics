@@ -13,7 +13,7 @@ import { viewAt } from '../view.js'
 import { type FamilyReport, type OosStats, evaluateFamily } from './evaluate.js'
 import { type Fold, makeFolds, tradesPlacedIn, windowProfit } from './folds.js'
 import type { Family } from './grid.js'
-import { REGIME_LOOKBACK_HOURS, moodsAt } from './regime.js'
+import { GATE_LOOKBACK_HOURS, REGIME_LOOKBACK_HOURS, moodsAt } from './regime.js'
 
 export interface WalkForwardConfig extends BacktestConfig {
   readonly trainDays: number
@@ -30,7 +30,7 @@ export function walkForwardTimeline (config: WalkForwardConfig, strategies: read
   const longest = Math.max(...DUMP_AFTER_HOURS, config.rules?.maxHoldHours ?? DEFAULT_RULES.maxHoldHours)
   const t = timeline({ ...config, rules: { ...config.rules, maxHoldHours: longest } }, strategies, nowSec)
   const first = t.decisions[0] ?? t.endT
-  const earliest = Math.min(t.hourWindows[0] ?? first, first - REGIME_LOOKBACK_HOURS * HOUR_SEC)
+  const earliest = Math.min(t.hourWindows[0] ?? first, first - Math.max(REGIME_LOOKBACK_HOURS, GATE_LOOKBACK_HOURS) * HOUR_SEC)
   return { ...t, hourWindows: windowStarts(earliest, t.endT - HOUR_SEC, HOUR_SEC) }
 }
 

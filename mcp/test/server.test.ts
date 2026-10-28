@@ -57,12 +57,49 @@ const snapshotStore = (cached: boolean): NonNullable<ToolDeps['snapshots']> => (
   mapping: async () => MAPPING
 })
 
+// NOW is 07:33 UTC; a release dated today goes live at 12:00, inside the 1-day pre-release window.
+const today = new Date(NOW * 1000).toISOString().slice(0, 10)
+// No big release in the update feed.
+const quietDeps = (): ToolDeps => ({ ...deps(), updates: { list: async () => ({ source: 'ge-metrics dataset', updates: [] }), find: async () => null } })
+
 describe('MCP server', () => {
+  it('market_regime: stands aside after a big release in the feed, or before an announced one', async () => {
+    const recent = (await call(await connect(deps()), 'market_regime', {})).data
+    expect(recent).toMatchObject({ state: 'stand-aside', size: 0, signals: { lastMajorUpdate: { title: 'The Fractured Archive - Out Today' } } })
+    expect(recent.reasons[0]).toMatch(/Fractured Archive.*5\.8d ago/)
+    const client = await connect(quietDeps())
+    const calm = (await call(client, 'market_regime', {})).data
+    expect(calm).toMatchObject({ state: 'trade', size: 1, reasons: [], rules: ['update -1d/+7d kw', 'risk-off x0.5'], warnings: [] })
+    const near = (await call(client, 'market_regime', { upcoming: [{ date: today, title: 'Sailing launch' }] })).data
+    expect(near).toMatchObject({ state: 'stand-aside', size: 0, signals: { nextMajorUpdate: { date: today, title: 'Sailing launch' } } })
+    expect(near.reasons[0]).toMatch(/Sailing launch/)
+    expect((await call(client, 'market_regime', { upcoming: [{ date: 'soon', title: 'x' }] })).isError).toBe(true)
+    const down = await connect({ ...deps(), updates: { list: async () => { throw new Error('feed down') }, find: async () => null } })
+    const blind = (await call(down, 'market_regime', {})).data
+    expect(blind).toMatchObject({ state: 'trade' })
+    expect(blind.warnings[0]).toMatch(/update feed unavailable/)
+  })
+
+  it('plan_flips / top_flips report the regime and apply it only when asked', async () => {
+    const client = await connect(quietDeps())
+    const upcoming = [{ date: today, title: 'Big release' }]
+    const plain = (await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 0, max_fill_hours: 8 })).data
+    const info = (await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 0, max_fill_hours: 8, upcoming })).data
+    expect(info).toMatchObject({ regime: { state: 'stand-aside', applied: false } })
+    expect(info.slotsPlan).toEqual(plain.slotsPlan)
+    expect(info.standAside).toBeUndefined()
+    const applied = (await call(client, 'plan_flips', { cash: 50_000_000, min_volume: 0, max_fill_hours: 8, upcoming, apply_regime: true })).data
+    expect(applied).toMatchObject({ standAside: true, slotsPlan: [], regime: { applied: true } })
+    const top = (await call(client, 'top_flips', { min_volume: 0, upcoming, apply_regime: true })).data
+    expect(top).toMatchObject({ standAside: true, flips: [] })
+    expect((await call(client, 'top_flips', { min_volume: 0 })).data.regime).toMatchObject({ state: 'trade', applied: false })
+  })
+
   it('lists every tool, the prompt and the guide resource', async () => {
     const client = await connect(deps())
     const { tools } = await client.listTools()
     expect(tools.map(t => t.name).sort()).toEqual([
-      'backtest', 'best_trade_hours', 'coming_up', 'fill_estimate', 'find_dips', 'game_updates', 'get_item', 'margin_scan', 'market_breadth', 'plan_flips', 'price_history',
+      'backtest', 'best_trade_hours', 'coming_up', 'fill_estimate', 'find_dips', 'game_updates', 'get_item', 'margin_scan', 'market_breadth', 'market_regime', 'plan_flips', 'price_history',
       'processing_methods', 'pump_dump_scan', 'search_items', 'sell_or_hold', 'set_arbitrage', 'top_flips', 'trend_scan', 'update_impact'
     ])
     expect(tools.every(t => (t.description ?? '').length > 40)).toBe(true)

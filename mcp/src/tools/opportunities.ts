@@ -8,6 +8,7 @@ import { guarded } from './result.js'
 import { READ_ONLY, budget, flipSort, includeDemoted, includeStale, limit, maxFillHours, maxFillHoursWithDefault } from './schemas.js'
 import { loadFillData, tax } from './fillData.js'
 import { seriesFor } from './series.js'
+import { applyRegimeSchema, liveRegime, upcomingSchema } from './regime.js'
 import { bulkRows, flipRowJson, rankRows, refineRows } from '../analysis/fills/flipRows.js'
 import { demotedSummary } from '../analysis/fills/metrics.js'
 import { dipFill, scanFillJson } from '../analysis/fills/scanFills.js'
@@ -25,7 +26,8 @@ export const TOP_MAX_FILL_HOURS = 2
 
 const TAX_NOTE = 'All profits are after the 2% GE tax (capped at 5M/item; items under 50gp and the official exemption list are untaxed).'
 
-export function registerOpportunityTools (server: McpServer, { prices }: ToolDeps): void {
+export function registerOpportunityTools (server: McpServer, deps: ToolDeps): void {
+  const { prices } = deps
   const flipsInput = z.object({
     min_volume: z.number().int().min(0).default(TOP_MIN_VOLUME).describe(`Minimum daily GE volume (default ${TOP_MIN_VOLUME}: in backtests thinner items were often dumped at a loss)`),
     max_price: z.number().int().positive().optional().describe('Maximum buy price per item in gp'),
@@ -36,7 +38,9 @@ export function registerOpportunityTools (server: McpServer, { prices }: ToolDep
     include_demoted: includeDemoted,
     members: z.boolean().default(true).describe('Include members items'),
     include_stale: includeStale,
-    limit: limit(100, 20)
+    limit: limit(100, 20),
+    apply_regime: applyRegimeSchema,
+    upcoming: upcomingSchema
   })
   server.registerTool('top_flips', {
     title: 'Top item flips',
@@ -44,7 +48,9 @@ export function registerOpportunityTools (server: McpServer, { prices }: ToolDep
     inputSchema: flipsInput,
     annotations: READ_ONLY
   }, guarded('top_flips', async (a: z.infer<typeof flipsInput>) => {
-    const [market, data] = await Promise.all([prices.market(), loadFillData(prices)])
+    const [market, data, regime] = await Promise.all([prices.market(), loadFillData(prices), liveRegime(deps, a.upcoming ?? [])])
+    const regimeJson = { ...regime, applied: a.apply_regime }
+    if (a.apply_regime && regime.size <= 0) return { regime: regimeJson, sort: a.sort, maxFillHours: a.max_fill_hours, count: 0, flips: [], standAside: true }
     const live = topFlips(market, {
       minVolume: a.min_volume, maxPrice: a.max_price, budget: a.budget, sort: a.sort === 'gp_per_hour' ? 'profit_per_limit' : a.sort,
       limit: Number.MAX_SAFE_INTEGER, includeMembers: a.members, includeStale: a.include_stale
@@ -56,6 +62,7 @@ export function registerOpportunityTools (server: McpServer, { prices }: ToolDep
     const ranked = rankRows(refineRows(first, series, ctx), a.sort)
     const flips = (a.include_demoted ? ranked : ranked.filter(r => !r.demotedReason)).slice(0, a.limit).map(flipRowJson)
     return {
+      regime: regimeJson,
       sort: a.sort,
       maxFillHours: a.max_fill_hours,
       count: flips.length,

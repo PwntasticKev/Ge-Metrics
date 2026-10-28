@@ -8,6 +8,7 @@ import { loadFillData, tax } from './fillData.js'
 import { guarded } from './result.js'
 import { READ_ONLY, maxFillHoursWithDefault } from './schemas.js'
 import { seriesFor } from './series.js'
+import { applyRegimeSchema, liveRegime, upcomingSchema } from './regime.js'
 
 /** Candidates re-priced from their own hourly series before planning (throttled requests). */
 const PLAN_POOL = 24
@@ -26,13 +27,16 @@ export const PLAN_MIN_VOLUME = 10_000
 // 50% queue share. Longer horizons add slow sellers that get dumped.
 export const PLAN_MAX_FILL_HOURS = 2
 
-export function registerPlanTools (server: McpServer, { prices }: ToolDeps): void {
+export function registerPlanTools (server: McpServer, deps: ToolDeps): void {
+  const { prices } = deps
   const planInput = z.object({
     cash: z.number().positive().max(MAX_CASH).describe('Cash stack in gp to spread across GE slots'),
     slots: z.number().int().min(1).max(MEMBERS_SLOTS).optional().describe('Free GE slots (default 8 for members, 3 for free-to-play)'),
     max_fill_hours: maxFillHoursWithDefault(PLAN_MAX_FILL_HOURS),
     members: z.boolean().default(true).describe('Include members items'),
-    min_volume: z.number().int().min(0).default(PLAN_MIN_VOLUME).describe('Minimum daily GE volume per item. Default 10000: backtests (14 days, then a 60-day walk-forward) showed thinner items often never sold at the ask and were dumped at a loss. Lower it only if you will babysit slow, expensive flips.')
+    min_volume: z.number().int().min(0).default(PLAN_MIN_VOLUME).describe('Minimum daily GE volume per item. Default 10000: backtests (14 days, then a 60-day walk-forward) showed thinner items often never sold at the ask and were dumped at a loss. Lower it only if you will babysit slow, expensive flips.'),
+    apply_regime: applyRegimeSchema,
+    upcoming: upcomingSchema
   })
   server.registerTool('plan_flips', {
     title: 'Plan flips for a cash stack',
@@ -41,9 +45,12 @@ export function registerPlanTools (server: McpServer, { prices }: ToolDeps): voi
     annotations: READ_ONLY
   }, guarded('plan_flips', async (a: z.infer<typeof planInput>) => {
     const slots = a.slots ?? (a.members ? MEMBERS_SLOTS : F2P_SLOTS)
-    const [market, data] = await Promise.all([prices.market(), loadFillData(prices)])
+    const [market, data, regime] = await Promise.all([prices.market(), loadFillData(prices), liveRegime(deps, a.upcoming ?? [])])
+    const cash = a.apply_regime ? Math.floor(a.cash * regime.size) : a.cash
+    const regimeJson = { ...regime, applied: a.apply_regime }
+    if (cash <= 0) return { regime: regimeJson, cash: a.cash, slots, slotsPlan: [], standAside: true, howToRead: 'Stand aside: the market regime says open no new flips now (see regime.reasons). Re-run later, or set apply_regime=false to plan anyway.' }
     const live = topFlips(market, {
-      minVolume: a.min_volume, budget: a.cash, sort: 'profit_per_limit', limit: Number.MAX_SAFE_INTEGER, includeMembers: a.members, includeStale: false
+      minVolume: a.min_volume, budget: cash, sort: 'profit_per_limit', limit: Number.MAX_SAFE_INTEGER, includeMembers: a.members, includeStale: false
     })
     const pool = live
       .filter(f => !data.pumps.has(f.id))
@@ -52,15 +59,16 @@ export function registerPlanTools (server: McpServer, { prices }: ToolDeps): voi
         const c = entry ? bulkCandidate(entry, data.bulk, tax) : null
         return c ? [c] : []
       })
-      .map(c => ({ c, value: planValue(c, a.cash, a.max_fill_hours) }))
+      .map(c => ({ c, value: planValue(c, cash, a.max_fill_hours) }))
       .filter(x => x.value > 0)
       .sort((x, y) => y.value - x.value)
       .slice(0, PLAN_POOL)
       .map(x => x.c)
     const series = await seriesFor(prices, pool.map(c => c.entry.id), '1h')
     const refined: Candidate[] = pool.map(c => refineCandidate(c, series.get(c.entry.id), tax))
-    const options = { cash: a.cash, slots, maxFillHours: a.max_fill_hours }
+    const options = { cash, slots, maxFillHours: a.max_fill_hours }
     return {
+      regime: regimeJson,
       ...planJson(planFlips(refined, options), options),
       candidatesConsidered: refined.length,
       pumpsExcluded: live.filter(f => data.pumps.has(f.id)).length,

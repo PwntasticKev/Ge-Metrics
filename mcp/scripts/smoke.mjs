@@ -35,6 +35,7 @@ const calls = [
   ['game_updates', { item: 'dragon bones', limit: 2 }],
   ['update_impact', { item: 'twisted bow', update: 'Fractured Archive', window_days: 3 }],
   ['market_breadth', {}],
+  ['market_regime', {}],
   ['pump_dump_scan', { limit: 3 }],
   ['margin_scan', { limit: 3 }],
   ['trend_scan', { direction: 'both', limit: 3 }],

@@ -20,7 +20,7 @@ const CHECK_SPREADS = 25
 const CHECK_CANDIDATES = 20
 
 
-async function loadMoves (prices: PriceSource, nowSec: number): Promise<Move[]> {
+export async function loadMoves (prices: PriceSource, nowSec: number): Promise<Move[]> {
   const [mapping, hour, day, hourDayAgo, hourWeekAgo] = await Promise.all([
     prices.mapping(), prices.averages('1h'), prices.averages('24h'),
     prices.averagesAt('1h', hourStartAgo(nowSec, 24)), prices.averagesAt('1h', hourStartAgo(nowSec, 24 * 7))
