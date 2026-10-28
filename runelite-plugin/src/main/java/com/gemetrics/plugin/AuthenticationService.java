@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
 import okhttp3.*;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -15,6 +14,7 @@ import java.util.Map;
 import java.util.Base64;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +35,7 @@ public class AuthenticationService
 	private final Gson gson;
 	private final ReentrantLock authLock;
 	private final ScheduledExecutorService executorService;
+	private ScheduledFuture<?> refreshTask;
 	
 	private String accessToken;
 	private String refreshToken;
@@ -42,10 +43,12 @@ public class AuthenticationService
 	private boolean isRefreshing;
 	private static final long TOKEN_REFRESH_BUFFER_MINUTES = 5;
 
-	public AuthenticationService()
+	@Inject
+	public AuthenticationService(OkHttpClient httpClient, Gson gson)
 	{
-		this.httpClient = new OkHttpClient();
-		this.gson = new GsonBuilder().create();
+		// RuneLite's shared client and Gson (required for Plugin Hub)
+		this.httpClient = httpClient;
+		this.gson = gson;
 		this.authLock = new ReentrantLock();
 		this.executorService = Executors.newSingleThreadScheduledExecutor(r -> {
 			Thread thread = new Thread(r, "GeMetrics-Auth");
@@ -60,8 +63,19 @@ public class AuthenticationService
 		// Load saved tokens from config
 		loadSavedTokens();
 		
-		// Schedule periodic token validation
-		executorService.scheduleAtFixedRate(this::checkAndRefreshToken, 1, 1, TimeUnit.MINUTES);
+		// Schedule periodic token validation (replacing any task from a previous start)
+		stop();
+		refreshTask = executorService.scheduleAtFixedRate(this::checkAndRefreshToken, 1, 1, TimeUnit.MINUTES);
+	}
+
+	/** Cancels periodic work; {@link #initialize()} can start it again. */
+	public void stop()
+	{
+		if (refreshTask != null)
+		{
+			refreshTask.cancel(false);
+			refreshTask = null;
+		}
 	}
 
 	public boolean login(String email, String password) throws IOException
@@ -71,16 +85,10 @@ public class AuthenticationService
 		request.setPassword(password);
 
 		// tRPC HTTP format: POST /trpc/{router}.{procedure}
-		// Body format: { "input": {...} }
-		Map<String, Object> trpcRequest = new HashMap<>();
-		trpcRequest.put("input", request);
+		// tRPC v11: the POST body is the raw procedure input
+		String json = gson.toJson(request);
 		
-		String json = gson.toJson(trpcRequest);
-		
-		RequestBody body = RequestBody.create(
-			json,
-			MediaType.parse("application/json; charset=utf-8")
-		);
+		RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
 
 		Request httpRequest = new Request.Builder()
 			.url(config.apiUrl() + "/trpc/auth.login")
@@ -136,15 +144,10 @@ public class AuthenticationService
 		request.setName(name);
 
 		// tRPC HTTP format
-		Map<String, Object> trpcRequest = new HashMap<>();
-		trpcRequest.put("input", request);
+		// tRPC v11: the POST body is the raw procedure input
+		String json = gson.toJson(request);
 		
-		String json = gson.toJson(trpcRequest);
-		
-		RequestBody body = RequestBody.create(
-			json,
-			MediaType.parse("application/json; charset=utf-8")
-		);
+		RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
 
 		Request httpRequest = new Request.Builder()
 			.url(config.apiUrl() + "/trpc/auth.register")
@@ -320,11 +323,9 @@ public class AuthenticationService
 			RefreshTokenRequest request = new RefreshTokenRequest();
 			request.setRefreshToken(refreshToken);
 			
-			Map<String, Object> trpcRequest = new HashMap<>();
-			trpcRequest.put("input", request);
-			
-			String json = gson.toJson(trpcRequest);
-			RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
+			// tRPC v11: the POST body is the raw procedure input
+			String json = gson.toJson(request);
+			RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
 			
 			Request httpRequest = new Request.Builder()
 				.url(config.apiUrl() + "/trpc/auth.refresh")

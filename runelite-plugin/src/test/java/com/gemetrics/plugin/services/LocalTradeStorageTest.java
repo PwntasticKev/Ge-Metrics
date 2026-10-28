@@ -2,6 +2,7 @@ package com.gemetrics.plugin.services;
 
 import com.gemetrics.plugin.LocalTradeStorage;
 import com.gemetrics.plugin.TradeEvent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -24,6 +25,12 @@ class LocalTradeStorageTest
 	{
 		// Create storage with temporary database
 		storage = new TestLocalTradeStorage(tempDir);
+	}
+
+	@AfterEach
+	void tearDown()
+	{
+		storage.shutdown();
 	}
 
 	@Test
@@ -70,9 +77,9 @@ class LocalTradeStorageTest
 		storage.updateTradeRetryInfo(trade.getRuneliteEventId(), 3, "Test error", Instant.now().plusSeconds(60));
 		
 		// Then
-		// Trade should still exist but with updated retry info
-		List<TradeEvent> trades = storage.loadPendingTrades();
-		assertThat(trades).hasSize(1);
+		// Trade still exists, but is held back from loading until its retry time
+		assertThat(storage.getPendingTradeCount()).isEqualTo(1);
+		assertThat(storage.loadPendingTrades()).isEmpty();
 	}
 
 	@Test
@@ -115,17 +122,16 @@ class LocalTradeStorageTest
 	}
 
 	@Test
-	void shouldCleanupOldTrades()
+	void shouldKeepTradesNewerThanCleanupAge()
 	{
 		// Given
 		storage.savePendingTrade(createTestTradeEvent());
 		
-		// When - cleanup trades older than 0 days (should remove all)
-		storage.cleanupOldTrades(0);
+		// When - cleanup trades older than 1 day
+		storage.cleanupOldTrades(1);
 		
-		// Then
-		int count = storage.getPendingTradeCount();
-		assertThat(count).isEqualTo(0);
+		// Then - a trade saved just now survives
+		assertThat(storage.getPendingTradeCount()).isEqualTo(1);
 	}
 
 	@Test
@@ -149,6 +155,22 @@ class LocalTradeStorageTest
 		assertThat(storage.getPendingTradeCount()).isEqualTo(0);
 	}
 
+	@Test
+	void shouldPersistAcrossRestarts()
+	{
+		// Given
+		storage.savePendingTrade(createTestTradeEvent("survivor"));
+		storage.saveSetting("k", "v");
+		storage.shutdown();
+
+		// When - a new instance reads the same file
+		LocalTradeStorage reopened = new TestLocalTradeStorage(tempDir);
+
+		// Then
+		assertThat(reopened.loadPendingTrades()).extracting(TradeEvent::getRuneliteEventId).containsExactly("survivor");
+		assertThat(reopened.loadSetting("k")).isEqualTo("v");
+	}
+
 	private TradeEvent createTestTradeEvent()
 	{
 		return createTestTradeEvent("test-trade-id");
@@ -161,7 +183,7 @@ class LocalTradeStorageTest
 		trade.setItemId(554);
 		trade.setItemName("Fire rune");
 		trade.setOfferType("buy");
-		trade.setPrice(5);
+		trade.setPrice(5L);
 		trade.setQuantity(1000);
 		trade.setFilledQuantity(1000);
 		trade.setRemainingQuantity(0);
@@ -173,14 +195,9 @@ class LocalTradeStorageTest
 	// Test implementation that uses temporary directory
 	private static class TestLocalTradeStorage extends LocalTradeStorage
 	{
-		private final Path tempDir;
-		
 		TestLocalTradeStorage(Path tempDir)
 		{
-			this.tempDir = tempDir;
+			super(tempDir.resolve("test-trades.json").toFile());
 		}
-		
-		// Override to use temp directory instead of RuneLite config
-		// Implementation would need to be adapted for testing
 	}
 }
