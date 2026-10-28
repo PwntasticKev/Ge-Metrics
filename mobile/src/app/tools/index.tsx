@@ -171,6 +171,7 @@ export default function ToolsHub () {
         <FeaturedCard href="/tools/high-alchemy" title="High Alchemy" blurb="Buy at the GE, cast High Level Alchemy, keep the coins. Nature rune included." icon="Nature rune.png" best={null} />
 
         <Text style={[styles.section, { color: palette.muted }]}>Processing</Text>
+        <FeaturedCard href="/tools/processing-lab" title="Processing profit lab" blurb="Compare what your cash and active time can earn across methods. Try instant and patient prices, and see the bottleneck." icon="Coins 10000.png" best={null} />
         <View style={[styles.group, { backgroundColor: palette.card, borderColor: palette.rule }]}>
           {processing.map((p, i) => <MethodRow key={p.method.key} method={p.method} best={p.best} last={i === processing.length - 1} />)}
         </View>
