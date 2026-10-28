@@ -25,6 +25,8 @@ export interface Settings {
   miniAutoStart: boolean
   /** Picks and scanner rows whose sell takes longer than this go to "Slow to fill". */
   maxSellHours: number
+  /** Pause Next 4 hours and Plan from a day before to a week after big game releases (lib/regime). */
+  regimeGate: boolean
   /** Stored settings version (lib/settingsMigration); absent in older installs. */
   version: number
 }
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   miniSource: 'watchlist',
   miniAutoStart: false,
   maxSellHours: DEFAULT_MAX_SELL_HOURS,
+  regimeGate: true,
   version: SETTINGS_VERSION
 }
 
@@ -69,7 +72,8 @@ export function SettingsProvider ({ children }: { children: ReactNode }) {
       const miniSource = isMiniSource(stored.miniSource) ? stored.miniSource : DEFAULT_SETTINGS.miniSource
       const miniAutoStart = stored.miniAutoStart === true
       const maxSellHours = isMaxSellHours(stored.maxSellHours) ? stored.maxSellHours : DEFAULT_MAX_SELL_HOURS
-      const next: Settings = { ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours }
+      const regimeGate = stored.regimeGate !== false
+      const next: Settings = { ...DEFAULT_SETTINGS, ...stored, budget, orientation, miniSource, miniAutoStart, maxSellHours, regimeGate }
       if (changed && !fresh) saveJson(KEY, next)
       setSettings(next)
     })

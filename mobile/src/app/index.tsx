@@ -1,21 +1,22 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
-import { StyleSheet, Text } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useAverages } from '../api/useAverages'
 import { useMarket, type MarketState } from '../api/useMarket'
-import { useMarketMood } from '../api/useMarketMood'
+import { useMarketRegime } from '../api/useMarketRegime'
 import { FlipListScreen } from '../components/FlipListScreen'
 import { PickRow } from '../components/PickRow'
+import { RegimeBanner, STAND_ASIDE_OPACITY } from '../components/RegimeBanner'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SlowHeader, SlowRow } from '../components/SlowToFill'
 import { SlotsCard } from '../components/slots/SlotsCard'
 import { Pills, Tabs } from '../components/Tabs'
-import { riskOffNote } from '../lib/breadth'
 import { pickSlowText } from '../lib/fillText'
 import { gpShort, minutesAgo, signed } from '../lib/format'
 import { PICK_HORIZON_HOURS, type OfferPick, type SlowPick } from '../lib/pickFill'
 import { planTotals, REFINE_TOP, usePickLists, type PickMode } from '../lib/picks'
 import { pickRates, sortByRate, type PickSort } from '../lib/pickTiming'
+import { regimeForMode, resizePicks } from '../lib/regime'
 import { useSettings } from '../state/settings'
 import { useTheme } from '../theme/ThemeProvider'
 
@@ -78,7 +79,11 @@ export default function BuyNowScreen () {
   const [openId, setOpenId] = useState<number | null>(null)
   const [slowOpen, setSlowOpen] = useState(params.slow === '1')
   const lists = usePickLists(prices.market, averages.h1, averages.h24, mode)
-  const picks = lists?.picks ?? null
+  const regime = regimeForMode(useMarketRegime(prices.market), mode)
+  const [shownAnyway, setShownAnyway] = useState(false)
+  const dimmed = regime.state === 'stand-aside' && !shownAnyway
+  // Caution halves quick amounts; dimmed stand-aside picks show what "Show anyway" would size.
+  const picks = useMemo(() => (lists ? resizePicks(lists.picks, regime.sizeIfShown) : null), [lists, regime.sizeIfShown])
   const rates = useMemo(() => (picks ? pickRates(picks) : new Map()), [picks])
   const sortable = SORTABLE.has(mode)
   const bySpeed = sortable && sortBy === 'rate'
@@ -86,10 +91,12 @@ export default function BuyNowScreen () {
   const onToggle = useCallback((id: number) => setOpenId(prev => (prev === id ? null : id)), [])
   const rows = useMemo(() => listRows(shown, lists?.slow ?? [], slowOpen), [shown, lists, slowOpen])
   const horizon = Math.min(settings.maxSellHours, PICK_HORIZON_HOURS[mode])
-  const riskOff = riskOffNote(useMarketMood(prices.market), mode)
 
   const renderRow = (r: Row) => {
-    if ('pick' in r) return <PickRow pick={r.pick} mode={mode} rate={rates.get(r.pick.id) ?? null} bySpeed={bySpeed} expanded={openId === r.pick.id} onToggle={onToggle} />
+    if ('pick' in r) {
+      const row = <PickRow pick={r.pick} mode={mode} rate={rates.get(r.pick.id) ?? null} bySpeed={bySpeed} expanded={openId === r.pick.id} onToggle={onToggle} />
+      return dimmed ? <View style={{ opacity: STAND_ASIDE_OPACITY }}>{row}</View> : row
+    }
     if ('slow' in r) {
       const { pick, reason, rate } = r.slow
       return <SlowRow id={pick.id} name={pick.name} icon={pick.icon} value={signed(pick.potential)} valueCaption={`if ${pick.maxQty.toLocaleString('en-US')} filled`} reason={reason} maxHours={horizon} text={pick.offer.slowText ?? pickSlowText(rate, PICK_HORIZON_HOURS[mode])} detail={`Buy ${pick.buyAt.toLocaleString('en-US')}, sell ${pick.sellAt.toLocaleString('en-US')}, ${signed(pick.profit)} each after tax.`} expanded={openId === pick.id} onToggle={onToggle} />
@@ -117,13 +124,13 @@ export default function BuyNowScreen () {
         <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
           <SlotsCard />
           <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null); setSlowOpen(false) }} />
-          {riskOff ? <Text style={[styles.warn, { color: palette.ink, backgroundColor: palette.well }]} accessibilityRole="alert">{riskOff}</Text> : null}
+          <RegimeBanner regime={regime} shownAnyway={shownAnyway} onToggleShown={() => setShownAnyway(s => !s)} />
           {sortable ? <Pills options={SORTS} value={sortBy} onChange={value => { setSortBy(value); setOpenId(null) }} /> : null}
         </ScreenHeader>
       }
       data={rows}
       keyOf={r => r.key}
-      extraData={`${openId}:${mode}:${bySpeed}:${slowOpen}`}
+      extraData={`${openId}:${mode}:${bySpeed}:${slowOpen}:${dimmed}`}
       renderRow={renderRow}
       empty={mode === 'plan' && !settings.budget
         ? { title: 'Set your cash stack first', body: 'Tools, Settings, Cash stack. The plan splits it across your GE slots.' }
@@ -134,6 +141,5 @@ export default function BuyNowScreen () {
 }
 
 const styles = StyleSheet.create({
-  note: { fontSize: 12.5, textAlign: 'center', padding: 20, lineHeight: 18 },
-  warn: { fontSize: 13, lineHeight: 18, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, overflow: 'hidden' }
+  note: { fontSize: 12.5, textAlign: 'center', padding: 20, lineHeight: 18 }
 })

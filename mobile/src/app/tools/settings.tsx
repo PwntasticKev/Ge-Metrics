@@ -58,7 +58,7 @@ function Row ({ label, detail, right, below, onPress, last = false }: { label: s
   return onPress ? <Pressable onPress={onPress} accessibilityRole="button">{content}</Pressable> : content
 }
 
-function Toggle ({ setting }: { setting: 'hideStale' | 'hideFlukes' | 'membersItems' }) {
+function Toggle ({ setting }: { setting: 'hideStale' | 'hideFlukes' | 'membersItems' | 'regimeGate' }) {
   const { settings, update } = useSettings()
   const { palette } = useTheme()
   return (
@@ -151,6 +151,9 @@ export default function SettingsScreen () {
         <Section title="Your cash">
           <Row label="Cash stack" detail="Only show what you can afford, and cap 4h profit to it" below={<BudgetPicker />} />
           <Row label="Slowest sell to show" detail="Picks and scanner rows that would take longer to sell move to Slow to fill. 30m is the default: in a 60-day out-of-sample test it lost less often than 1h" below={<SellHoursPicker />} last />
+        </Section>
+        <Section title="Buy now">
+          <Row label="Pause quick flips around big updates" detail="Next 4 hours and Plan stand aside from a day before to a week after a big game release. In a three-period backtest this cut the worst period's loss by about 70%" right={<Toggle setting="regimeGate" />} last />
         </Section>
         <Section title="Prices">
           <Row label="Hide stale prices" detail="Older than 6 hours" right={<Toggle setting="hideStale" />} />
