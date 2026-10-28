@@ -6,24 +6,24 @@ repositories {
 	mavenLocal()
 	maven {
 		url = 'https://repo.runelite.net'
+		content {
+			includeGroupByRegex("net\\.runelite.*")
+		}
 	}
 	mavenCentral()
 }
 
 def runeLiteVersion = 'latest.release'
+def pluginMainClass = 'com.gemetrics.plugin.GeMetricsPluginTest'
 
 dependencies {
 	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
 
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+	testCompileOnly 'org.projectlombok:lombok:1.18.30'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-	// HTTP client for API calls
-	implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-	
-	// JSON serialization
-	implementation 'com.google.code.gson:gson:2.10.1'
-	
 	// SQLite for local persistence
 	implementation 'org.xerial:sqlite-jdbc:3.41.0.0'
 
@@ -32,42 +32,62 @@ dependencies {
 	testImplementation 'org.mockito:mockito-core:5.1.1'
 	testImplementation 'org.mockito:mockito-junit-jupiter:5.1.1'
 	testImplementation 'org.assertj:assertj-core:3.24.2'
-	
+
 	// HTTP mocking for API tests
 	testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
-	
-	// RuneLite test dependencies
+
+	// RuneLite test dependencies (also used by `./gradlew run` to launch the dev client)
 	testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
 }
 
 group = 'com.gemetrics'
-version = '1.0.0'
+version = '1.1.0'
 
-java {
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
-}
-
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
-}
-
-tasks.withType(JavaCompile) {
 	options.release.set(11)
 }
 
-// Enable JUnit 5
 test {
 	useJUnitPlatform()
-	
-	// Test configuration
 	testLogging {
 		events "passed", "skipped", "failed"
 		showStandardStreams = false
 	}
-	
-	// JVM arguments for tests
-	jvmArgs '-XX:MaxPermSize=256m'
 }
 
+// Launches the RuneLite developer client with this plugin loaded: ./gradlew run
+tasks.register('run', JavaExec) {
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = pluginMainClass
+
+	jvmArgs "-ea"
+	args "--developer-mode", "--debug"
+}
+
+tasks.register('shadowJar', Jar) {
+	dependsOn configurations.testRuntimeClasspath
+	manifest {
+		attributes('Main-Class': pluginMainClass, 'Multi-Release': true)
+	}
+
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	from sourceSets.main.output
+	from sourceSets.test.output
+	from {
+		configurations.testRuntimeClasspath.collect { file ->
+			file.isDirectory() ? file : zipTree(file)
+		}
+	}
+
+	exclude 'META-INF/INDEX.LIST'
+	exclude 'META-INF/*.SF'
+	exclude 'META-INF/*.DSA'
+	exclude 'META-INF/*.RSA'
+	exclude '**/module-info.class'
+
+	group = BasePlugin.BUILD_GROUP
+	archiveClassifier.set('shadow')
+	archiveFileName.set("${rootProject.name}-${project.version}-all.jar")
+}

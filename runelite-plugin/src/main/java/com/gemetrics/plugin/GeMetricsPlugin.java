@@ -1,12 +1,24 @@
 package com.gemetrics.plugin;
 
+import com.gemetrics.plugin.buy.BuyRequestFactory;
+import com.gemetrics.plugin.buy.GeBuyAssist;
+import com.gemetrics.plugin.prices.PriceService;
+import com.gemetrics.plugin.sets.GeTax;
+import com.gemetrics.plugin.sets.ItemSetRepository;
+import com.gemetrics.plugin.sets.SetFlipCalculator;
+import com.gemetrics.plugin.ui.GeMetricsPanel;
+import com.gemetrics.plugin.ui.ItemNames;
+import com.google.gson.Gson;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GrandExchangeOfferChanged;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -20,7 +32,7 @@ import java.awt.image.BufferedImage;
 	name = "GE Metrics Trade Tracker",
 	description = "Automatically tracks Grand Exchange trades and syncs to GE-Metrics.com for advanced profit analysis, FIFO matching, and trading insights. Works offline with local storage.",
 	tags = {"grand-exchange", "trading", "flipping", "profit", "analytics", "tracking", "ge-metrics"},
-	enabledByDefault = false
+	enabledByDefault = true
 )
 public class GeMetricsPlugin extends Plugin
 {
@@ -42,6 +54,33 @@ public class GeMetricsPlugin extends Plugin
 	@Inject
 	private ConfigManager configManager;
 
+	@Inject
+	private NotificationService notificationService;
+
+	@Inject
+	private PriceService priceService;
+
+	@Inject
+	private GeBuyAssist buyAssist;
+
+	@Inject
+	private BuyRequestFactory buyRequestFactory;
+
+	@Inject
+	private ItemNames itemNames;
+
+	@Inject
+	private ItemManager itemManager;
+
+	@Inject
+	private EventBus eventBus;
+
+	@Inject
+	private KeyManager keyManager;
+
+	@Inject
+	private Gson gson;
+
 	private GeMetricsPanel panel;
 	private NavigationButton navButton;
 
@@ -51,13 +90,16 @@ public class GeMetricsPlugin extends Plugin
 		log.info("GE Metrics plugin started!");
 		
 		// Create panel
-		panel = new GeMetricsPanel(authService, config);
+		SetFlipCalculator calculator = new SetFlipCalculator(new GeTax(ItemSetRepository.loadTaxExemptIds(gson)));
+		panel = new GeMetricsPanel(authService, config, priceService, itemManager, itemNames,
+			buyRequestFactory, buyAssist, ItemSetRepository.loadSets(gson), calculator);
+		notificationService.setPanel(panel.getAccountPanel());
 		
 		// Create navigation button (try to load icon, use default if fails)
 		BufferedImage icon;
 		try
 		{
-			icon = ImageUtil.loadImageResource(getClass(), "/icon.png");
+			icon = ImageUtil.loadImageResource(GeMetricsPlugin.class, "nav-icon.png");
 		}
 		catch (Exception e)
 		{
@@ -86,7 +128,12 @@ public class GeMetricsPlugin extends Plugin
 		detectOsrsUsername();
 		
 		// Update panel with auth status
-		panel.checkLoginStatus();
+		panel.getAccountPanel().checkLoginStatus();
+
+		// Live prices + GE buy assist
+		priceService.start();
+		eventBus.register(buyAssist);
+		keyManager.registerKeyListener(buyAssist);
 	}
 
 	@Override
@@ -100,6 +147,11 @@ public class GeMetricsPlugin extends Plugin
 			clientToolbar.removeNavigation(navButton);
 		}
 		
+		priceService.stop();
+		eventBus.unregister(buyAssist);
+		keyManager.unregisterKeyListener(buyAssist);
+		buyAssist.clear();
+
 		// Sync any pending trades before shutdown
 		tradeSyncService.flushPendingTrades();
 	}

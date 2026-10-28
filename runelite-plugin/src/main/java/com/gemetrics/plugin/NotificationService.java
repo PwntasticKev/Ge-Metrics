@@ -1,5 +1,7 @@
 package com.gemetrics.plugin;
 
+import com.gemetrics.plugin.ui.AccountPanel;
+
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.Notifier;
 import net.runelite.client.ui.ClientToolbar;
@@ -80,7 +82,7 @@ public class NotificationService
 	private ClientToolbar clientToolbar;
 
 	private final ConcurrentLinkedQueue<Notification> recentNotifications;
-	private GeMetricsPanel panel;
+	private AccountPanel panel;
 	private static final int MAX_RECENT_NOTIFICATIONS = 50;
 
 	public NotificationService()
@@ -88,7 +90,7 @@ public class NotificationService
 		this.recentNotifications = new ConcurrentLinkedQueue<>();
 	}
 
-	public void setPanel(GeMetricsPanel panel)
+	public void setPanel(AccountPanel panel)
 	{
 		this.panel = panel;
 	}
@@ -141,8 +143,8 @@ public class NotificationService
 		}
 		
 		// Show RuneLite notification for important messages
-		if (notification.getType() == NotificationType.ERROR || 
-			notification.getType() == NotificationType.SUCCESS)
+		if (runeliteNotifier != null && (notification.getType() == NotificationType.ERROR ||
+			notification.getType() == NotificationType.SUCCESS))
 		{
 			String fullMessage = notification.getTitle() + ": " + notification.getMessage();
 			runeliteNotifier.notify(fullMessage);

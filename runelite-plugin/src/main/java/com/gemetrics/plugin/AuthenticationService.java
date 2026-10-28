@@ -71,16 +71,10 @@ public class AuthenticationService
 		request.setPassword(password);
 
 		// tRPC HTTP format: POST /trpc/{router}.{procedure}
-		// Body format: { "input": {...} }
-		Map<String, Object> trpcRequest = new HashMap<>();
-		trpcRequest.put("input", request);
+		// tRPC v11: the POST body is the raw procedure input
+		String json = gson.toJson(request);
 		
-		String json = gson.toJson(trpcRequest);
-		
-		RequestBody body = RequestBody.create(
-			json,
-			MediaType.parse("application/json; charset=utf-8")
-		);
+		RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
 
 		Request httpRequest = new Request.Builder()
 			.url(config.apiUrl() + "/trpc/auth.login")
@@ -136,15 +130,10 @@ public class AuthenticationService
 		request.setName(name);
 
 		// tRPC HTTP format
-		Map<String, Object> trpcRequest = new HashMap<>();
-		trpcRequest.put("input", request);
+		// tRPC v11: the POST body is the raw procedure input
+		String json = gson.toJson(request);
 		
-		String json = gson.toJson(trpcRequest);
-		
-		RequestBody body = RequestBody.create(
-			json,
-			MediaType.parse("application/json; charset=utf-8")
-		);
+		RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
 
 		Request httpRequest = new Request.Builder()
 			.url(config.apiUrl() + "/trpc/auth.register")
@@ -320,11 +309,9 @@ public class AuthenticationService
 			RefreshTokenRequest request = new RefreshTokenRequest();
 			request.setRefreshToken(refreshToken);
 			
-			Map<String, Object> trpcRequest = new HashMap<>();
-			trpcRequest.put("input", request);
-			
-			String json = gson.toJson(trpcRequest);
-			RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
+			// tRPC v11: the POST body is the raw procedure input
+			String json = gson.toJson(request);
+			RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
 			
 			Request httpRequest = new Request.Builder()
 				.url(config.apiUrl() + "/trpc/auth.refresh")

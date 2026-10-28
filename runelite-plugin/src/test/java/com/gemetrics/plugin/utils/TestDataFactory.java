@@ -3,13 +3,15 @@ package com.gemetrics.plugin.utils;
 import com.gemetrics.plugin.TradeEvent;
 import net.runelite.api.GrandExchangeOffer;
 import net.runelite.api.GrandExchangeOfferState;
-import net.runelite.api.GrandExchangeOfferType;
 
 import java.time.Instant;
 import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import org.mockito.quality.Strictness;
 
 /**
  * Factory for creating test data objects
@@ -28,7 +30,7 @@ public class TestDataFactory
 		trade.setItemId(554);
 		trade.setItemName("Fire rune");
 		trade.setOfferType("buy");
-		trade.setPrice(5);
+		trade.setPrice((long) 5);
 		trade.setQuantity(1000);
 		trade.setFilledQuantity(1000);
 		trade.setRemainingQuantity(0);
@@ -42,7 +44,7 @@ public class TestDataFactory
 		TradeEvent trade = createTradeEvent();
 		trade.setItemName(itemName);
 		trade.setOfferType("buy");
-		trade.setPrice(price);
+		trade.setPrice((long) price);
 		trade.setQuantity(quantity);
 		trade.setFilledQuantity(quantity);
 		trade.setRemainingQuantity(0);
@@ -54,7 +56,7 @@ public class TestDataFactory
 		TradeEvent trade = createTradeEvent();
 		trade.setItemName(itemName);
 		trade.setOfferType("sell");
-		trade.setPrice(price);
+		trade.setPrice((long) price);
 		trade.setQuantity(quantity);
 		trade.setFilledQuantity(quantity);
 		trade.setRemainingQuantity(0);
@@ -86,22 +88,20 @@ public class TestDataFactory
 	 * Create a mock GrandExchangeOffer for testing
 	 */
 	public static GrandExchangeOffer createMockOffer(
-		GrandExchangeOfferType type, 
 		GrandExchangeOfferState state,
 		int itemId,
 		int price,
 		int totalQuantity,
 		int quantitySold)
 	{
-		GrandExchangeOffer offer = mock(GrandExchangeOffer.class);
+		GrandExchangeOffer offer = mock(GrandExchangeOffer.class, withSettings().strictness(Strictness.LENIENT));
 		
-		when(offer.getType()).thenReturn(type);
 		when(offer.getState()).thenReturn(state);
 		when(offer.getItemId()).thenReturn(itemId);
-		when(offer.getPrice()).thenReturn(price);
+		when(offer.getPrice()).thenReturn((long) price);
 		when(offer.getTotalQuantity()).thenReturn(totalQuantity);
 		when(offer.getQuantitySold()).thenReturn(quantitySold);
-		when(offer.getSpent()).thenReturn(price * quantitySold);
+		when(offer.getSpent()).thenReturn((long) price * quantitySold);
 		
 		return offer;
 	}
@@ -109,7 +109,6 @@ public class TestDataFactory
 	public static GrandExchangeOffer createCompletedBuyOffer(int itemId, int price, int quantity)
 	{
 		return createMockOffer(
-			GrandExchangeOfferType.BUY,
 			GrandExchangeOfferState.BOUGHT,
 			itemId,
 			price,
@@ -121,7 +120,6 @@ public class TestDataFactory
 	public static GrandExchangeOffer createCompletedSellOffer(int itemId, int price, int quantity)
 	{
 		return createMockOffer(
-			GrandExchangeOfferType.SELL,
 			GrandExchangeOfferState.SOLD,
 			itemId,
 			price,
@@ -133,7 +131,6 @@ public class TestDataFactory
 	public static GrandExchangeOffer createPartiallyFilledOffer(int itemId, int price, int totalQuantity, int filledQuantity)
 	{
 		return createMockOffer(
-			GrandExchangeOfferType.BUY,
 			GrandExchangeOfferState.BUYING,
 			itemId,
 			price,
@@ -145,7 +142,6 @@ public class TestDataFactory
 	public static GrandExchangeOffer createCancelledOffer(int itemId, int price, int quantity)
 	{
 		return createMockOffer(
-			GrandExchangeOfferType.BUY,
 			GrandExchangeOfferState.CANCELLED_BUY,
 			itemId,
 			price,

@@ -27,13 +27,16 @@ public class LocalTradeStorage
 
 	public LocalTradeStorage()
 	{
+		// Store database in RuneLite's config directory
+		this(new File(RuneLite.RUNELITE_DIR, DB_NAME));
+	}
+
+	/** Uses the given database file; tests pass a temp file. */
+	protected LocalTradeStorage(File dbFile)
+	{
 		this.gson = new GsonBuilder().create();
 		this.dbLock = new ReentrantLock();
-		
-		// Store database in RuneLite's config directory
-		File runeliteDir = RuneLite.RUNELITE_DIR;
-		this.dbFile = new File(runeliteDir, DB_NAME);
-		
+		this.dbFile = dbFile;
 		initializeDatabase();
 	}
 
@@ -68,33 +71,13 @@ public class LocalTradeStorage
 		try
 		{
 			// Pending trades table
-			String createPendingTradesTable = """
-				CREATE TABLE IF NOT EXISTS pending_trades (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					trade_data TEXT NOT NULL,
-					created_at INTEGER NOT NULL,
-					retry_count INTEGER DEFAULT 0,
-					last_error TEXT,
-					next_retry_at INTEGER
-				)
-			""";
+			String createPendingTradesTable = "CREATE TABLE IF NOT EXISTS pending_trades ( id INTEGER PRIMARY KEY AUTOINCREMENT, trade_data TEXT NOT NULL, created_at INTEGER NOT NULL, retry_count INTEGER DEFAULT 0, last_error TEXT, next_retry_at INTEGER )";
 			
 			// Plugin settings table
-			String createSettingsTable = """
-				CREATE TABLE IF NOT EXISTS plugin_settings (
-					key TEXT PRIMARY KEY,
-					value TEXT NOT NULL,
-					updated_at INTEGER NOT NULL
-				)
-			""";
+			String createSettingsTable = "CREATE TABLE IF NOT EXISTS plugin_settings ( key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL )";
 			
 			// Schema version table
-			String createSchemaTable = """
-				CREATE TABLE IF NOT EXISTS schema_version (
-					version INTEGER PRIMARY KEY,
-					applied_at INTEGER NOT NULL
-				)
-			""";
+			String createSchemaTable = "CREATE TABLE IF NOT EXISTS schema_version ( version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL )";
 
 			try (Statement stmt = connection.createStatement())
 			{
@@ -163,10 +146,7 @@ public class LocalTradeStorage
 		try
 		{
 			String tradeJson = gson.toJson(trade);
-			String insert = """
-				INSERT INTO pending_trades (trade_data, created_at)
-				VALUES (?, ?)
-			""";
+			String insert = "INSERT INTO pending_trades (trade_data, created_at) VALUES (?, ?)";
 			
 			try (PreparedStatement stmt = connection.prepareStatement(insert))
 			{
@@ -203,12 +183,7 @@ public class LocalTradeStorage
 		dbLock.lock();
 		try
 		{
-			String query = """
-				SELECT trade_data, retry_count, next_retry_at 
-				FROM pending_trades
-				WHERE next_retry_at IS NULL OR next_retry_at <= ?
-				ORDER BY created_at ASC
-			""";
+			String query = "SELECT trade_data, retry_count, next_retry_at FROM pending_trades WHERE next_retry_at IS NULL OR next_retry_at <= ? ORDER BY created_at ASC";
 			
 			try (PreparedStatement stmt = connection.prepareStatement(query))
 			{
@@ -283,11 +258,7 @@ public class LocalTradeStorage
 		dbLock.lock();
 		try
 		{
-			String update = """
-				UPDATE pending_trades 
-				SET retry_count = ?, last_error = ?, next_retry_at = ?
-				WHERE json_extract(trade_data, '$.runeliteEventId') = ?
-			""";
+			String update = "UPDATE pending_trades SET retry_count = ?, last_error = ?, next_retry_at = ? WHERE json_extract(trade_data, '$.runeliteEventId') = ?";
 			
 			try (PreparedStatement stmt = connection.prepareStatement(update))
 			{
@@ -324,10 +295,7 @@ public class LocalTradeStorage
 		dbLock.lock();
 		try
 		{
-			String upsert = """
-				INSERT OR REPLACE INTO plugin_settings (key, value, updated_at)
-				VALUES (?, ?, ?)
-			""";
+			String upsert = "INSERT OR REPLACE INTO plugin_settings (key, value, updated_at) VALUES (?, ?, ?)";
 			
 			try (PreparedStatement stmt = connection.prepareStatement(upsert))
 			{

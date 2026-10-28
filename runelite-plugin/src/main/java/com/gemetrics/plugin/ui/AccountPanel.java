@@ -1,7 +1,11 @@
-package com.gemetrics.plugin;
+package com.gemetrics.plugin.ui;
+
+import com.gemetrics.plugin.AuthenticationService;
+import com.gemetrics.plugin.GeMetricsConfig;
+import com.gemetrics.plugin.NotificationService;
 
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.ui.PluginPanel;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,7 +13,7 @@ import java.awt.*;
 import java.io.IOException;
 
 @Slf4j
-public class GeMetricsPanel extends PluginPanel
+public class AccountPanel extends JPanel
 {
 	private final AuthenticationService authService;
 	private final GeMetricsConfig config;
@@ -25,7 +29,7 @@ public class GeMetricsPanel extends PluginPanel
 	private JButton logoutButton;
 	private boolean isLoggedIn = false;
 
-	public GeMetricsPanel(AuthenticationService authService, GeMetricsConfig config)
+	public AccountPanel(AuthenticationService authService, GeMetricsConfig config)
 	{
 		this.authService = authService;
 		this.config = config;
@@ -44,7 +48,7 @@ public class GeMetricsPanel extends PluginPanel
 		mainPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
 		// Title
-		JLabel titleLabel = new JLabel("<html><h2>GE Metrics Trade Tracker</h2></html>");
+		JLabel titleLabel = new JLabel("<html><b>Account <html><h2>GE Metrics Trade Tracker</h2></html>amp; trade tracking</b></html>");
 		titleLabel.setBorder(new EmptyBorder(0, 0, 20, 0));
 		mainPanel.add(titleLabel);
 
@@ -271,7 +275,7 @@ public class GeMetricsPanel extends PluginPanel
 					{
 						setStatus("Login successful!", Color.GREEN);
 						isLoggedIn = true;
-						updateUI();
+						refreshVisibility();
 					}
 					else
 					{
@@ -317,7 +321,7 @@ public class GeMetricsPanel extends PluginPanel
 					{
 						setStatus("Registration successful! Logged in.", Color.GREEN);
 						isLoggedIn = true;
-						updateUI();
+						refreshVisibility();
 					}
 					else
 					{
@@ -343,16 +347,16 @@ public class GeMetricsPanel extends PluginPanel
 		authService.logout();
 		isLoggedIn = false;
 		setStatus("Logged out", Color.GRAY);
-		updateUI();
+		refreshVisibility();
 	}
 
-	private void checkLoginStatus()
+	public void checkLoginStatus()
 	{
 		isLoggedIn = authService.isAuthenticated();
-		updateUI();
+		refreshVisibility();
 	}
 
-	private void updateUI()
+	private void refreshVisibility()
 	{
 		Component[] components = getComponents();
 		for (Component comp : components)
@@ -403,5 +407,14 @@ public class GeMetricsPanel extends PluginPanel
 		statusLabel.setText(message);
 		statusLabel.setForeground(color);
 	}
-}
 
+	public void updateNotificationStatus(NotificationService.Notification notification)
+	{
+		setStatus(notification.getTitle() + ": " + notification.getMessage(), notification.getType().getColor());
+	}
+
+	public void clearNotifications()
+	{
+		setStatus("", Color.GRAY);
+	}
+}

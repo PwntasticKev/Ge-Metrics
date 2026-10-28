@@ -9,7 +9,7 @@ public class TradeEvent
 	private Integer itemId;
 	private String itemName;
 	private String offerType; // "buy" or "sell"
-	private Integer price;
+	private Long price;
 	private Integer quantity;
 	private Integer filledQuantity;
 	private Integer remainingQuantity;
