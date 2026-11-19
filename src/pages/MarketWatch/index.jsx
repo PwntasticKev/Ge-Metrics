@@ -12,7 +12,8 @@ import {
   SimpleGrid,
   Divider,
   SegmentedControl,
-  Tooltip
+  Tooltip,
+  useMantineTheme
 } from '@mantine/core'
 import { IconClock, IconTrendingUp, IconTrendingDown, IconActivity, IconPercentage } from '@tabler/icons-react'
 import { Line } from 'react-chartjs-2'
@@ -34,7 +35,9 @@ import {
   herbsFilter,
   runesFilter,
   logsFilter,
-  oresAndBarsFilter
+  oresAndBarsFilter,
+  raidsFilter,
+  botFarmFilter
 } from '../../utils/market-watch-filters.js'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
@@ -79,11 +82,23 @@ const marketWatchIndexes = {
     color: 'orange',
     filter: logsFilter
   },
-  metal: {
-    name: 'Metal Index',
+  metals: {
+    name: 'Metals Index',
     description: 'Tracks the value of primary ores and bars.',
     color: 'gray',
     filter: oresAndBarsFilter
+  },
+  raids: {
+    name: 'Raids Index',
+    description: 'Tracks the major unique drops from the Chambers of Xeric, Theatre of Blood and Tombs of Amascut.',
+    color: 'red',
+    filter: raidsFilter
+  },
+  'bot-farm': {
+    name: 'Bot Farm Index',
+    description: 'Tracks heavily botted resources. Sharp drops here often follow ban waves ending or new bot farms starting.',
+    color: 'yellow',
+    filter: botFarmFilter
   }
 }
 
@@ -94,6 +109,9 @@ export default function MarketWatchIndex ({ indexType }) {
   const [chartView, setChartView] = useState('price') // 'price', 'volume', or 'profit'
 
   const indexConfig = marketWatchIndexes[indexType] || marketWatchIndexes.food
+  // Chart.js draws on a canvas, which can't resolve CSS variables: use real colors.
+  const theme = useMantineTheme()
+  const palette = theme.colors[indexConfig.color] ?? theme.colors.blue
 
   useEffect(() => {
     if (priceStatus === 'success') {
@@ -222,16 +240,16 @@ export default function MarketWatchIndex ({ indexType }) {
         {
           label: getChartLabel(),
           data: sortedItems.map(getChartData),
-          borderColor: `var(--mantine-color-${indexConfig.color}-5)`,
-          backgroundColor: `var(--mantine-color-${indexConfig.color}-1)`,
+          borderColor: palette[5],
+          backgroundColor: `${palette[5]}33`,
           fill: true,
           tension: 0.4,
           pointRadius: 3, // Add points to the line
-          pointBackgroundColor: `var(--mantine-color-${indexConfig.color}-7)`
+          pointBackgroundColor: palette[7]
         }
       ]
     }
-  }, [indexItems, indexConfig.color, chartView])
+  }, [indexItems, palette, chartView])
 
   if (mapStatus === 'loading' || priceStatus === 'loading') {
     return (

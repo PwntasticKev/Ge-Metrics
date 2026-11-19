@@ -15,6 +15,11 @@ export default defineConfig({
       '@emotion/styled': path.resolve(__dirname, 'node_modules/@emotion/styled')
     }
   },
+  // Production builds drop console.log/info/debug (pages log per row and per
+  // fetch); warnings and errors are kept. Only takes effect when minifying.
+  esbuild: {
+    pure: ['console.log', 'console.info', 'console.debug']
+  },
   optimizeDeps: {
     include: [
       'react',

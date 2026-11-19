@@ -130,3 +130,30 @@ describe('createWikiItemsService', () => {
     vi.useRealTimers()
   })
 })
+
+describe('createWikiItemsService mapping persistence', () => {
+  const store = (saved = null) => ({ readFresh: vi.fn(() => saved), write: vi.fn() })
+
+  it('uses a fresh saved mapping instead of downloading it', async () => {
+    const fetchImpl = fakeFetch()
+    const saved = [{ id: 1, name: 'Saved' }]
+    const service = createWikiItemsService({ fetchImpl, mappingStore: store(saved) })
+    expect(await service.getMapping()).toBe(saved)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('downloads and saves the mapping when nothing fresh is saved', async () => {
+    const fetchImpl = fakeFetch()
+    const mappingStore = store(null)
+    const service = createWikiItemsService({ fetchImpl, mappingStore })
+    expect(await service.getMapping()).toEqual(FIXTURES['/mapping'])
+    expect(mappingStore.write).toHaveBeenCalledWith('mapping', FIXTURES['/mapping'])
+  })
+
+  it('shares one in-flight /mapping request between callers', async () => {
+    const fetchImpl = fakeFetch()
+    const service = createWikiItemsService({ fetchImpl, mappingStore: store(null) })
+    await Promise.all([service.getMapping(), service.getMapping(), service.getMapping()])
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+})

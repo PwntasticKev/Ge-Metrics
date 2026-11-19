@@ -1,37 +1,34 @@
 import {
-  LATEST_PRICES_URL,
-  MAPPING_URL,
   TIMESERIES_URL,
   VOLUMES_URL
 } from '../utils/constants.js'
 import { safeFetch } from '../utils/safeJsonParser.js'
+import { wikiItemsService } from '../services/wiki/wikiItemsService.js'
+
+// /latest and /mapping go through the shared wiki service, so the header
+// search, the tRPC-backed pages and ItemData reuse one request (and one saved
+// mapping) instead of each downloading the same ~2 MB.
 
 // Fetches the latest price data for all items
 export const getPricingData = async () => {
-  console.log('[RSWikiAPI] Fetching pricing data from:', LATEST_PRICES_URL)
-  const result = await safeFetch(LATEST_PRICES_URL, {}, {})
-  
-  if (!result.success) {
-    console.error('Failed to fetch pricing data:', result.error)
-    return { success: false, error: result.error }
+  try {
+    const data = await wikiItemsService.getLatest()
+    return { success: true, data: { data } }
+  } catch (error) {
+    console.error('Failed to fetch pricing data:', error)
+    return { success: false, error }
   }
-  
-  return { success: true, data: result.data }
 }
 
-// Fetches the item mapping data
+// Fetches the item mapping data. Returns [] on failure so callers never crash.
 export const getMappingData = async () => {
-  console.log('[RSWikiAPI] Fetching mapping data from:', MAPPING_URL)
-  const result = await safeFetch(MAPPING_URL, {}, [])
-  
-  if (!result.success) {
-    console.error('Failed to fetch mapping data:', result.error)
-    // Return an empty array on error to prevent crashes downstream.
+  try {
+    const mapping = await wikiItemsService.getMapping()
+    return Array.isArray(mapping) ? mapping : []
+  } catch (error) {
+    console.error('Failed to fetch mapping data:', error)
     return []
   }
-  
-  // Ensure we always return an array, even if the API call fails or returns unexpected data.
-  return Array.isArray(result.data) ? result.data : []
 }
 
 // Fetches the 24-hour volume data for all items
