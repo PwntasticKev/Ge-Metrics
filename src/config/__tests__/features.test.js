@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BACKEND_ENABLED, isBackendOnlyPath, isPathAvailable } from '../features.js'
+import { BACKEND_ENABLED, DEFAULT_PATH, isBackendOnlyPath, isPathAvailable, staticRedirectFor } from '../features.js'
 
 describe('isBackendOnlyPath', () => {
   it.each(['/login', '/billing', '/admin', '/admin/user-management', '/profile/12', '/settings'])(
@@ -19,6 +19,23 @@ describe('isBackendOnlyPath', () => {
 
   it('ignores non-string input', () => {
     expect(isBackendOnlyPath(undefined)).toBe(false)
+  })
+})
+
+describe('staticRedirectFor', () => {
+  it('sends pages with a static equivalent to /recipes', () => {
+    expect(staticRedirectFor('/global-recipes')).toBe('/recipes')
+    expect(staticRedirectFor('/Money-Making-Methods/')).toBe('/recipes?method=money-makers')
+    expect(staticRedirectFor('/global-money-making-methods')).toBe('/recipes?method=money-makers')
+  })
+
+  it('sends everything else to the default page', () => {
+    expect(staticRedirectFor('/billing')).toBe(DEFAULT_PATH)
+    expect(staticRedirectFor(undefined)).toBe(DEFAULT_PATH)
+  })
+
+  it('keeps /recipes available without a backend', () => {
+    expect(isBackendOnlyPath('/recipes')).toBe(false)
   })
 })
 

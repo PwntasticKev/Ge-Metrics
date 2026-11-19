@@ -12,7 +12,7 @@ import { useAuth } from './hooks/useAuth'
 import { TRPCProvider } from './utils/trpc.jsx' // Import the central provider
 import AuthProvider from './components/auth/AuthProvider'
 import AdminRoute from './components/auth/AdminRoute'
-import { BACKEND_ENABLED, DEFAULT_PATH, isPathAvailable } from './config/features.js'
+import { BACKEND_ENABLED, isPathAvailable, staticRedirectFor } from './config/features.js'
 
 // Trial system imports
 import { TrialProvider, useTrialContext } from './contexts/TrialContext'
@@ -40,10 +40,7 @@ const AdminPanel = lazy(() => import('./pages/Admin'))
 const AdminDashboard = lazy(() => import('./pages/Admin/AdminDashboard'))
 const AccessDenied = lazy(() => import('./pages/AccessDenied'))
 const CombinationItems = lazy(() => import('./pages/CombinationItems'))
-const MoneyMaking = lazy(() => import('./pages/MoneyMaking'))
 const Profile = lazy(() => import('./pages/Profile'))
-const Herbs = lazy(() => import('./pages/Herbs'))
-const DeathsCoffer = lazy(() => import('./pages/DeathsCoffer'))
 const Faq = lazy(() => import('./pages/Faq'))
 const FoodIndex = lazy(() => import('./pages/MarketWatch/FoodIndex.jsx'))
 const LogsIndex = lazy(() => import('./pages/MarketWatch/LogsIndex.jsx'))
@@ -82,6 +79,8 @@ const EnchantingJewelry = lazy(() => import('./pages/EnchantingJewelry/index.jsx
 const BarrowsRepair = lazy(() => import('./pages/BarrowsRepair/index.jsx'))
 const SuggestedItems = lazy(() => import('./pages/SuggestedItems/index.jsx'))
 const Recipes = lazy(() => import('./pages/Recipes/index.jsx'))
+// Static mode: wiki recipes priced live + recipes saved in the browser.
+const RecipesHub = lazy(() => import('./pages/RecipesHub/index.jsx'))
 const GlobalRecipes = lazy(() => import('./pages/GlobalRecipes/index.jsx'))
 const AdminGlobalRecipes = lazy(() => import('./pages/Admin/GlobalRecipes.jsx'))
 const AdminMoneyMakingMethods = lazy(() => import('./pages/Admin/MoneyMakingMethods.jsx'))
@@ -264,7 +263,7 @@ function RequireAuth ({ children }) {
 function StaticModeGuard ({ children }) {
   const location = useLocation()
   if (!isPathAvailable(location.pathname)) {
-    return <Navigate to={DEFAULT_PATH} replace />
+    return <Navigate to={staticRedirectFor(location.pathname)} replace />
   }
   return children
 }
@@ -391,16 +390,17 @@ function AppContent () {
               <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}><h2>Market Watch Overview</h2><p>Coming Soon - Comprehensive market analysis dashboard</p></div>} />
               <Route path="/future-items" element={<FutureItems />} />
               <Route path="/ai-predictions" element={<AIPredictions />} />
-              <Route path="/money-making" element={<MoneyMaking />} />
+              <Route path="/money-making" element={<Navigate to="/recipes?method=money-makers" replace />} />
               <Route path="/combination-items" element={<CombinationItems />} />
-              <Route path="/recipes" element={<Recipes />} />
+              <Route path="/recipes" element={BACKEND_ENABLED ? <Recipes /> : <RecipesHub />} />
               <Route path="/global-recipes" element={<GlobalRecipes />} />
               <Route path="/money-making-methods" element={<MoneyMakingMethods />} />
               <Route path="/global-money-making-methods" element={<GlobalMoneyMakingMethods />} />
               <Route path="/potion-combinations" element={<PotionCombinations />} />
-              <Route path="/herbs" element={<Herbs />} />
+              <Route path="/herbs" element={<Navigate to="/herb-cleaning" replace />} />
               <Route path="/nightmare-zone" element={<NightmareZone />} />
-              <Route path="/deaths-coffer" element={<DeathsCoffer />} />
+              {/* Death's Coffer value needs the GE guide price, which the wiki prices API doesn't provide. */}
+              <Route path="/deaths-coffer" element={<ComingSoon />} />
               <Route path="/community" element={<CommunityLeaderboard />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/faq" element={<Faq />} />
@@ -411,7 +411,7 @@ function AppContent () {
               <Route path="/plank-make" element={<PlankMake />} />
               <Route path="/high-alchemy" element={<HighAlchemy />} />
               <Route path="/make-potions" element={<ComingSoon />} />
-              <Route path="/unfinished-potions" element={<ComingSoon />} />
+              <Route path="/unfinished-potions" element={<Navigate to="/recipes?method=unfinished-potions" replace />} />
               <Route path="/magic-tablets" element={<MagicTablets />} />
               <Route path="/enchanting-bolts" element={<EnchantingBolts />} />
               <Route path="/enchanting-jewelry" element={<EnchantingJewelry />} />

@@ -147,7 +147,7 @@ export const oresAndBarsFilter = (item) => {
   const include = [' ore', ' bar']
   const exclude = [
     'cannonball', 'key', 'certificate', 'armour', 'arrowtips', 'javelin heads',
-    'dart tip', 'bolts (unf)', ' পেরেক', 'crossbow limb', 'grapple' // Excludes nails, limbs, etc.
+    'dart tip', 'bolts (unf)', ' nails', 'crossbow limb', 'grapple' // Excludes nails, limbs, etc.
   ]
 
   if (exclude.some(keyword => name.includes(keyword))) {
@@ -160,3 +160,33 @@ export const oresAndBarsFilter = (item) => {
 
   return false
 }
+
+// Exact-name indexes. Names are checked against the wiki /mapping; matching is
+// case-insensitive so a wiki capitalisation change doesn't silently empty them.
+const exactNameFilter = names => {
+  const wanted = new Set(names.map(n => n.toLowerCase()))
+  return item => Boolean(item?.name) && wanted.has(item.name.toLowerCase())
+}
+
+// Major raid uniques: Chambers of Xeric, Theatre of Blood, Tombs of Amascut.
+export const RAIDS_INDEX_ITEMS = Object.freeze([
+  'Twisted bow', 'Kodai insignia', 'Elder maul', 'Dragon claws', 'Ancestral hat',
+  'Ancestral robe top', 'Ancestral robe bottom', "Dinh's bulwark", 'Dragon hunter crossbow',
+  'Twisted buckler', 'Dexterous prayer scroll', 'Arcane prayer scroll',
+  'Scythe of Vitur (uncharged)', 'Ghrazi rapier', 'Sanguinesti staff (uncharged)',
+  'Justiciar faceguard', 'Justiciar chestguard', 'Justiciar legguards', 'Avernic defender hilt',
+  "Tumeken's shadow (uncharged)", "Osmumten's fang", 'Lightbearer', "Elidinis' ward",
+  'Masori mask', 'Masori body', 'Masori chaps'
+])
+
+// Resources that are farmed heavily by bots.
+export const BOT_FARM_INDEX_ITEMS = Object.freeze([
+  "Zulrah's scales", 'Blue dragonhide', 'Green dragonhide', 'Black dragonhide', 'Dragon bones',
+  'Wine of Zamorak', 'Yew logs', 'Magic logs', 'Raw shark', 'Raw anglerfish', 'Raw karambwan',
+  'Raw lobster', 'Coal', 'Iron ore', 'Gold ore', 'Runite ore', 'Amethyst', 'Red chinchompa',
+  'Black chinchompa', 'Snape grass', 'Limpwurt root', 'Cowhide', 'Flax', 'Bow string',
+  'Pure essence', 'Grimy ranarr weed', 'Grimy snapdragon', 'Big bones', 'Feather'
+])
+
+export const raidsFilter = exactNameFilter(RAIDS_INDEX_ITEMS)
+export const botFarmFilter = exactNameFilter(BOT_FARM_INDEX_ITEMS)

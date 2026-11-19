@@ -2,8 +2,12 @@
 // Fetches from the public OSRS Wiki prices API and returns the same shapes
 // the server used to return, so existing pages keep working unchanged.
 
+import { pricesCache } from '../local/pricesCache.js'
+
 const WIKI_BASE_URL = 'https://prices.runescape.wiki/api/v1/osrs'
-const PRICES_TTL_MS = 60 * 1000
+// Shorter than the pages' 60s refresh so each refresh sees new prices, while
+// every component that mounts together still shares one request.
+const PRICES_TTL_MS = 30 * 1000
 const MAPPING_TTL_MS = 6 * 60 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 15 * 1000
 // After a failure with nothing cached, wait this long before hitting the wiki again.
@@ -86,7 +90,8 @@ export function buildVolumeMap (dailyBody, hourlyBody, lastUpdatedAt) {
   )
 }
 
-export function createWikiItemsService ({ fetchImpl = (...args) => fetch(...args), now = () => Date.now() } = {}) {
+// `mappingStore` (optional) keeps /mapping between visits: { readFresh(name), write(name, data) }.
+export function createWikiItemsService ({ fetchImpl = (...args) => fetch(...args), now = () => Date.now(), mappingStore = null } = {}) {
   // Map of key -> { value, expiresAt, pending, error, retryAt }
   let cache = new Map()
 
@@ -121,8 +126,14 @@ export function createWikiItemsService ({ fetchImpl = (...args) => fetch(...args
   const getLatest = () => cached('latest', PRICES_TTL_MS, async () =>
     requireDataMap(await fetchJson(fetchImpl, '/latest'), '/latest').data)
 
-  const getMapping = () => cached('mapping', MAPPING_TTL_MS, async () =>
-    requireArray(await fetchJson(fetchImpl, '/mapping'), '/mapping'))
+  // /mapping is ~1.7 MB and only changes with game updates: reuse a fresh saved copy.
+  const getMapping = () => cached('mapping', MAPPING_TTL_MS, async () => {
+    const saved = mappingStore?.readFresh('mapping')
+    if (saved) return saved
+    const mapping = requireArray(await fetchJson(fetchImpl, '/mapping'), '/mapping')
+    mappingStore?.write('mapping', mapping)
+    return mapping
+  })
 
   const getVolumes = () => cached('volumes', PRICES_TTL_MS, async () => {
     const [daily, hourly] = await Promise.all([
@@ -141,4 +152,4 @@ export function createWikiItemsService ({ fetchImpl = (...args) => fetch(...args
   return { getLatest, getMapping, getVolumes, getVolumesLastUpdated }
 }
 
-export const wikiItemsService = createWikiItemsService()
+export const wikiItemsService = createWikiItemsService({ mappingStore: pricesCache })

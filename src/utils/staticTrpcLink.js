@@ -1,17 +1,23 @@
 // Terminating tRPC link used when the site runs without a backend.
 // `items.*` price/mapping/volume procedures are served in the browser from the
-// OSRS Wiki API, and `favorites.*` from localStorage. Every other procedure fails fast with a clear error instead of
+// OSRS Wiki API, and `favorites.*` / `recipes.*` (user recipes) from localStorage. Every other procedure fails fast with a clear error instead of
 // hitting a server that does not exist.
 
 import { observable } from '@trpc/server/observable'
 import { TRPCClientError } from '@trpc/client'
 import { wikiItemsService } from '../services/wiki/wikiItemsService.js'
 import { localFavoritesStore } from '../services/local/localFavoritesStore.js'
+import { localRecipesStore } from '../services/local/localRecipesStore.js'
 
 export const BACKEND_UNAVAILABLE_MESSAGE = 'This feature needs an account and is not available right now.'
 
-export function createStaticHandlers (service, favorites) {
+export function createStaticHandlers (service, favorites, recipes = localRecipesStore) {
   return {
+    'recipes.getUserRecipes': input => recipes.getUserRecipes(input),
+    'recipes.getUserRecipeCount': () => recipes.getUserRecipeCount(),
+    'recipes.createRecipe': input => recipes.createRecipe(input),
+    'recipes.updateRecipe': input => recipes.updateRecipe(input),
+    'recipes.deleteRecipe': input => recipes.deleteRecipe(input),
     'favorites.getAll': input => favorites.getAll(input),
     'favorites.add': input => favorites.add(input),
     'favorites.remove': input => favorites.remove(input),
@@ -25,8 +31,8 @@ export function createStaticHandlers (service, favorites) {
   }
 }
 
-export function staticTrpcLink ({ service = wikiItemsService, favorites = localFavoritesStore } = {}) {
-  const handlers = createStaticHandlers(service, favorites)
+export function staticTrpcLink ({ service = wikiItemsService, favorites = localFavoritesStore, recipes = localRecipesStore } = {}) {
+  const handlers = createStaticHandlers(service, favorites, recipes)
 
   return () => ({ op }) => observable(observer => {
     const handler = handlers[op.path]

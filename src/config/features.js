@@ -19,7 +19,6 @@ export const BACKEND_ONLY_PATH_PREFIXES = [
   '/billing',
   '/admin',
   '/profile',
-  '/recipes',
   '/global-recipes',
   '/money-making-methods',
   '/global-money-making-methods',
@@ -31,6 +30,21 @@ export const BACKEND_ONLY_PATH_PREFIXES = [
 ]
 
 export const DEFAULT_PATH = '/all-items'
+
+// Backend-only pages that have a static-mode equivalent: send them there
+// instead of the default page. /recipes serves wiki recipes and browser-saved
+// user recipes without an account.
+export const STATIC_REDIRECTS = Object.freeze({
+  '/global-recipes': '/recipes',
+  '/money-making-methods': '/recipes?method=money-makers',
+  '/global-money-making-methods': '/recipes?method=money-makers'
+})
+
+// Where an unavailable path should go in static mode.
+export function staticRedirectFor (path) {
+  const normalized = typeof path === 'string' ? path.toLowerCase().replace(/\/+$/, '') : ''
+  return STATIC_REDIRECTS[normalized] ?? DEFAULT_PATH
+}
 
 export function isBackendOnlyPath (path) {
   if (typeof path !== 'string') return false

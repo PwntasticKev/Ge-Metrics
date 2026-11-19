@@ -44,10 +44,13 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
   const isPremiumUser = user?.role === 'premium' || user?.role === 'admin' || isSubscribed
 
 
-  // Fetch items for search
-  const { data: itemMapping } = trpc.items.getItemMapping.useQuery()
+  // Fetch items for search only once the search box is used: the mapping is
+  // ~1.7 MB, and pages that don't show prices (FAQ, terms...) shouldn't pay for it.
+  const [searchActive, setSearchActive] = useState(false)
+  const { data: itemMapping } = trpc.items.getItemMapping.useQuery(undefined, { enabled: searchActive })
   const { data: allItems } = trpc.items.getAllItems.useQuery(undefined, {
-    refetchInterval: 60000,
+    enabled: searchActive,
+    refetchInterval: searchActive ? 60000 : false,
     staleTime: 0
   })
 
@@ -234,6 +237,7 @@ export default function HeaderNav ({ opened, setOpened, user, onLogout }) {
               placeholder="Search items... (⌘K or Ctrl+K)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchActive(true)}
               onKeyDown={handleKeyDown}
               icon={<IconSearch size={16} />}
               styles={{
