@@ -1,3 +1,5 @@
+import { geTax } from '../domain/flipping/geTax.js'
+
 let items = []
 
 // Utility functions for safe number operations
@@ -36,10 +38,12 @@ export const formatPercentage = (value) => {
   return `${value.toFixed(2)}%`
 }
 
-export const calculateGETax = (price) => {
-  if (price === null || price === undefined || isNaN(price)) return 0
-  const tax = Math.floor(price * 0.02) // 2% tax
-  return Math.min(tax, 5000000)
+// GE tax via the shared engine: 2% floored, 5M cap, nothing under 50 gp, and
+// the wiki's exempt items (bonds, teleport tablets...) when itemId is given.
+export const calculateGETax = (price, itemId) => {
+  const value = Number(price)
+  if (price === null || price === undefined || !Number.isFinite(value)) return 0
+  return geTax(value, itemId)
 }
 
 export const allItems = (mapItems, pricesById, volumesById = {}) => {
@@ -129,6 +133,9 @@ export const getItemSetProfit = (
     }
   }
 
+  // An unpriced ingredient is not free: leave the row out instead.
+  if (totalPrice === null) return undefined
+
   const originalItem = allItems.find(item => item.id === itemSet)
   //
   const itemAsSet = getModifiedItem(originalItem, totalPrice, itemsToCreateSet, allItems, itemQuantities)
@@ -152,10 +159,10 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems, it
     return null
   }).filter(Boolean)
 
-  if (item) {
+  if (item && highPrice > 0) {
     const setName = itemsToCreateSet.length > 1 ? `${item.name} (set)` : item.name
 
-    const tax = calculateGETax(highPrice)
+    const tax = calculateGETax(highPrice, item.id)
     return {
       id: item.id,
       background: true,
@@ -164,7 +171,8 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems, it
       img: `https://oldschool.runescape.wiki/images/${item.icon}`.replace(/ /g, '_'),
       high: formatter.format(highPrice),
       sellPrice: highPrice, // Use the highest price for the item set
-      profit: Math.floor(highPrice - totalPrice - tax)
+      profit: Math.floor(highPrice - totalPrice - tax),
+      tax
     }
   }
 
@@ -172,18 +180,17 @@ export const getModifiedItem = (item, totalPrice, itemsToCreateSet, allItems, it
 }
 
 export const totalPriceConverted = (itemSet, itemIdsToCreate, conversionCost, qty = null, allItems, itemQuantities = {}) => {
-  let total = 0
-  const itemForQty = qty && getItemById(qty.id, allItems)
-  const qtyItemLow = safeParseFloat(itemForQty?.low, 0)
+  // Returns null when any ingredient has no buy price (never priced at 0 gp).
+  const priceOf = itemId => safeParseFloat(getItemById(itemId, allItems)?.low, 0)
+  const extraQty = qty && qty.qty ? qty.qty - 1 : 0
+  if (extraQty > 0 && priceOf(qty.id) <= 0) return null
+  if (itemIdsToCreate.some(itemId => priceOf(itemId) <= 0)) return null
 
-  const qtyCost = qtyItemLow * (qty && qty.qty ? qty.qty - 1 : 0)
-
-  itemIdsToCreate.forEach(itemId => {
-    const item = getItemById(itemId, allItems)
-    const lowPrice = safeParseFloat(item?.low, 0)
-    const quantity = itemQuantities[itemId] || 1 // Use quantity from map, default to 1
-    total += lowPrice * quantity
-  })
+  const qtyCost = extraQty > 0 ? priceOf(qty.id) * extraQty : 0
+  const total = itemIdsToCreate.reduce(
+    (sum, itemId) => sum + priceOf(itemId) * (itemQuantities[itemId] || 1), // quantity from map, default 1
+    0
+  )
   return total + qtyCost + conversionCost
 }
 

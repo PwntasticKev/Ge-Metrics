@@ -33,16 +33,19 @@ describe('legacy Combination Sets rows (before shared engine)', () => {
     ['blowpipe', 'Toxic blowpipe (empty)', 9_194_767, 159_863, [8_851_009]],
     ['venatorBow', 'Venator bow (uncharged)', 66_000_000, 1_424_995, [12_651_001]],
     ['twoBlades', 'Armadyl godsword (set)', 6_185_056, -329_980, [5_488_891, 451_222, 451_222]],
-    ['withFee', 'Armadyl godsword (set)', 6_185_056, 71_242, [5_488_891, 451_222]],
-    // Missing prices count as 0 gp, so these rows show made-up profits.
-    ['unpricedSet', 'Unpriced set', 0, -18_111, [18_111]],
-    ['unpricedPart', 'Set with an unpriced part (set)', 1_000_000, 961_889, [18_111, 0]]
+    ['withFee', 'Armadyl godsword (set)', 6_185_056, 71_242, [5_488_891, 451_222]]
   ])('%s', (recipeName, name, sellPrice, profit, partLows) => {
     const row = legacySetRow(RECIPES.find(r => r.name === recipeName))
     expect(row).toMatchObject({ name, sellPrice, profit, background: true })
     expect(row.items.map(p => p.low)).toEqual(partLows)
     // Parts never carry a quantity label for these recipes.
     expect(row.items.every(p => p.qty === undefined)).toBe(true)
+  })
+
+  // Missing prices used to count as 0 gp, showing made-up profits. The legacy
+  // helper (still used by processing pages) now leaves those rows out.
+  test.each(['unpricedSet', 'unpricedPart'])('%s is left out instead of priced at 0 gp', recipeName => {
+    expect(legacySetRow(RECIPES.find(r => r.name === recipeName))).toBeUndefined()
   })
 
   test('Partyhat & specs listed itself as a part: buy price included the set itself', () => {

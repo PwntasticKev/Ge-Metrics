@@ -98,6 +98,10 @@ const useStyles = createStyles((theme) => ({
   }
 }))
 
+// Daily traded volume thresholds for the volume filter.
+const LOW_DAILY_VOLUME = 1_000
+const HIGH_DAILY_VOLUME = 10_000
+
 // Enhanced filter data function with advanced filtering
 function filterData (data, filters) {
   const {
@@ -164,11 +168,11 @@ function filterData (data, filters) {
       }
     }
 
-    // Volume filter (based on buy limit as proxy for volume)
+    // Volume filter: items traded per day (wiki /volumes)
     if (volumeFilter) {
-      const limit = parseInt(String(item.limit ?? '0').replace(/,/g, ''))
-      if (volumeFilter === 'low' && limit >= 100) return false
-      if (volumeFilter === 'high' && limit < 1000) return false
+      const daily = Number(item.volume) || 0
+      if (volumeFilter === 'low' && daily >= LOW_DAILY_VOLUME) return false
+      if (volumeFilter === 'high' && daily < HIGH_DAILY_VOLUME) return false
     }
 
     // Volume rank filter (top/bottom 10% by limit)
@@ -240,6 +244,9 @@ function sortData (data, payload) {
 
 // Risk classification helper
 function classifyRisk (row) {
+  // Flags from the shared engine come first.
+  if (row.suspicious) return { label: 'Fluke?', color: 'red', reason: 'Margin over 25% of the price: usually a one-off trade, not a real spread.' }
+  if (row.stale) return { label: 'Stale', color: 'orange', reason: 'At least one price is over 6 hours old.' }
   // Parse numbers
   const profit = Number(String(row.profit ?? '0').replace(/,/g, ''))
   const high = Number(String(row.high ?? '0').replace(/,/g, ''))
@@ -478,6 +485,10 @@ export function AllItemsTable ({
         }}>
           {new Intl.NumberFormat().format(row.profit)}
         </td>
+        <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>
+          {Number.isFinite(row.potential) ? new Intl.NumberFormat().format(row.potential) : '-'}
+          {Number.isFinite(row.maxQty) && <Text size="xs" color="dimmed">× {new Intl.NumberFormat().format(row.maxQty)}</Text>}
+        </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.limit}</td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{buyVol ? new Intl.NumberFormat().format(buyVol) : '-'}</td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{sellVol ? new Intl.NumberFormat().format(sellVol) : '-'}</td>
@@ -605,8 +616,8 @@ export function AllItemsTable ({
                   onChange={(value) => setVolumeFilter(value ?? '')}
                   data={[
                     { value: '', label: 'All Volumes' },
-                    { value: 'low', label: 'Low Volume (≤ 100 limit)' },
-                    { value: 'high', label: 'High Volume (≥ 1000 limit)' }
+                    { value: 'low', label: 'Low volume (< 1,000 traded/day)' },
+                    { value: 'high', label: 'High volume (≥ 10,000 traded/day)' }
                   ]}
                 />
                 <Select
@@ -717,10 +728,15 @@ export function AllItemsTable ({
             <tr>
               {showId && <th style={{ textAlign: 'center' }}>Id</th>}
               <th colSpan={1} style={{ textAlign: 'center' }}>Img</th>
-              <th style={{ textAlign: 'center' }}>Name</th>
-              <th colSpan={2} style={{ textAlign: 'center' }}>Items</th>
+              <th colSpan={2} style={{ textAlign: 'center' }}>Name</th>
+              <th style={{ textAlign: 'center' }}>Buy Price</th>
               <th style={{ textAlign: 'center' }}>Sell Price</th>
-              <th style={{ textAlign: 'center' }}>Profit</th>
+              <th style={{ textAlign: 'center' }}>Profit each</th>
+              <th style={{ textAlign: 'center' }}>
+                <Tooltip label="Profit from one 4h buy-limit window, capped by ~1/6 of daily traded volume" withArrow multiline width={220}>
+                  <span>4h profit</span>
+                </Tooltip>
+              </th>
               <th style={{ textAlign: 'center' }}>Buy Limit</th>
               <th style={{ textAlign: 'center' }}>Buy Vol ({volumeWindow})</th>
               <th style={{ textAlign: 'center' }}>Sell Vol ({volumeWindow})</th>

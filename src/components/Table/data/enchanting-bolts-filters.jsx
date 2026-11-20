@@ -13,6 +13,7 @@ const DEATH_RUNE_ID = 560
 const NATURE_RUNE_ID = 561
 const LAW_RUNE_ID = 563
 const SOUL_RUNE_ID = 566
+const MIND_RUNE_ID = 558
 
 // Crossbow bolt IDs (unenchanted - base items)
 const OPAL_BOLTS_ID = 879
@@ -38,7 +39,11 @@ const DIAMOND_BOLTS_E_ID = 9243 // Diamond bolts (e)
 const DRAGONSTONE_BOLTS_E_ID = 9244 // Dragonstone bolts (e)
 const ONYX_BOLTS_E_ID = 9245 // Onyx bolts (e)
 
-export const enchantingBoltsRecipes = [
+// Rune costs below are per cast. One cast enchants 10 bolts, so the exported
+// recipes (priced per bolt) charge a tenth of the runes per bolt.
+export const BOLTS_PER_CAST = 10
+
+const perCastRecipes = [
   // Enchant Crossbow Bolt (Opal) - Level 4, 2 Air + 1 Cosmic
   { 
     itemSet: OPAL_BOLTS_E_ID, 
@@ -47,12 +52,12 @@ export const enchantingBoltsRecipes = [
     itemQuantities: { [AIR_RUNE_ID]: 2, [COSMIC_RUNE_ID]: 1 } 
   },
   
-  // Enchant Crossbow Bolt (Sapphire) - Level 7, 1 Water + 1 Cosmic
+  // Enchant Crossbow Bolt (Sapphire) - Level 7, 1 Water + 1 Mind + 1 Cosmic
   { 
     itemSet: SAPPHIRE_BOLTS_E_ID, 
-    itemsToCreateSet: [SAPPHIRE_BOLTS_ID, WATER_RUNE_ID, COSMIC_RUNE_ID], 
+    itemsToCreateSet: [SAPPHIRE_BOLTS_ID, WATER_RUNE_ID, MIND_RUNE_ID, COSMIC_RUNE_ID], 
     conversionCost: 0, 
-    itemQuantities: { [WATER_RUNE_ID]: 1, [COSMIC_RUNE_ID]: 1 } 
+    itemQuantities: { [WATER_RUNE_ID]: 1, [MIND_RUNE_ID]: 1, [COSMIC_RUNE_ID]: 1 } 
   },
   
   // Enchant Crossbow Bolt (Jade) - Level 14, 2 Earth + 1 Cosmic
@@ -120,3 +125,9 @@ export const enchantingBoltsRecipes = [
   }
 ]
 
+export const enchantingBoltsRecipes = perCastRecipes.map(recipe => ({
+  ...recipe,
+  itemQuantities: Object.fromEntries(
+    Object.entries(recipe.itemQuantities).map(([runeId, qty]) => [runeId, qty / BOLTS_PER_CAST])
+  )
+}))

@@ -42,13 +42,19 @@ describe('All Items rows', () => {
     })
   })
 
-  test('keeps every other field and builds the wiki image url', () => {
+  test('keeps every other field, builds the wiki image url and adds the 4h estimate', () => {
     const whip = ITEMS.find(i => i.id === 4151)
-    expect(toAllItemsRow(whip)).toEqual({
+    expect(toAllItemsRow(whip, { nowSec: whip.highTime })).toEqual({
       ...whip,
       profit: 20_000,
       tax: 30_000,
-      img: 'https://oldschool.runescape.wiki/images/Abyssal_whip.png'
+      img: 'https://oldschool.runescape.wiki/images/Abyssal_whip.png',
+      roi: 20_000 / whip.low,
+      // min(buy limit 70, 1/6 of 1,000 traded a day = 166)
+      maxQty: 70,
+      potential: 1_400_000,
+      stale: false,
+      suspicious: false
     })
   })
 
@@ -62,12 +68,17 @@ describe('All Items rows', () => {
 describe('Combination Sets rows', () => {
   const priced = RECIPES.filter(r => !r.name.startsWith('unpriced'))
 
-  test.each(priced.map(r => [r.name, r]))('%s matches the legacy row exactly', (_, recipe) => {
+  test.each(priced.map(r => [r.name, r]))('%s keeps the legacy money figures', (_, recipe) => {
     const [row] = buildCombinationRows([recipe], ITEMS)
     const legacy = legacySetRow(recipe)
-    expect(row).toEqual({ ...legacy, tax: calculateGETax(legacy.sellPrice) })
-    // Each part still shows its own buy price, in recipe order.
-    expect(row.items.map(p => p.low)).toEqual(legacy.items.map(p => p.low))
+    expect(row).toMatchObject({
+      id: legacy.id, name: legacy.name, img: legacy.img, high: legacy.high,
+      sellPrice: legacy.sellPrice, profit: legacy.profit, tax: calculateGETax(legacy.sellPrice), direction: 'combine'
+    })
+    // The buy lines (repeated parts are now one line with a quantity) add up
+    // to the cost behind the profit.
+    const cost = row.items.reduce((sum, p) => sum + p.low * (p.qty ?? 1), 0)
+    expect(cost + (recipe.conversionCost ?? 0)).toBe(row.sellPrice - row.profit - row.tax)
   })
 
   test('rows with an unpriced set or part are dropped instead of pricing it at 0 gp', () => {

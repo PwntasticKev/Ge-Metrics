@@ -80,3 +80,25 @@ export function unfinishedPotionRecipes (items) {
       : []
   })
 }
+
+export const NATURE_RUNE_ID = 561
+// High Level Alchemy casts take 5 ticks (3s): 1,200 casts an hour at most.
+export const HIGH_ALCH_CASTS_PER_HOUR = 1200
+
+// Item + nature rune -> the item's high alch value in coins. Coins aren't sold
+// on the GE, so no tax. Rank with { buyQuote: 'high' } to price instant buys.
+export function highAlchRecipes (items) {
+  if (!items.some(item => item.id === NATURE_RUNE_ID)) return []
+  return items.flatMap(item => (item.highalch > 0 && item.id !== NATURE_RUNE_ID
+    ? [{
+        id: `alch:${item.id}`,
+        method: 'high-alchemy',
+        name: item.name,
+        inputs: [{ id: item.id, qty: 1 }, { id: NATURE_RUNE_ID, qty: 1 }],
+        outputs: [],
+        coinCost: 0,
+        coinRevenue: item.highalch,
+        actionsPerHour: HIGH_ALCH_CASTS_PER_HOUR
+      }]
+    : []))
+}

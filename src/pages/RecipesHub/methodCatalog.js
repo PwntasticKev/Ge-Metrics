@@ -5,6 +5,7 @@
 import {
   decantingRecipes,
   herbCleaningRecipes,
+  highAlchRecipes,
   moneyMakingRecipes,
   processingMethods,
   rankProcessFlips,
@@ -31,6 +32,17 @@ const perMarket = build => {
 }
 
 const LIVE_METHODS = [
+  {
+    key: 'high-alchemy',
+    group: 'Magic',
+    title: 'High alchemy',
+    blurb: 'Buy an item instantly, cast High Level Alchemy (1 nature rune), keep the coins. No GE tax. Capped at 1,200 casts an hour.',
+    sorts: PER_HOUR_SORTS,
+    defaultSort: 'perHour',
+    // Alching is done in bulk right away: price inputs at the instant-buy price.
+    buyQuote: 'high',
+    recipes: perMarket(highAlchRecipes)
+  },
   {
     key: 'money-makers',
     group: 'Money making',
@@ -95,9 +107,12 @@ export const recipeMeta = id => moneyMakerMeta.get(id)
 
 export const MAX_ROWS = 200
 
-export function rankMethod (market, method, { sortBy = method.defaultSort, query = '', includeSuspicious = false, membersItems = true } = {}) {
+// Stale prices (over 6h old) are left out unless asked for: their margins
+// usually aren't there any more.
+export function rankMethod (market, method, { sortBy = method.defaultSort, query = '', includeSuspicious = false, includeStale = false, membersItems = true } = {}) {
   const q = query.trim().toLowerCase()
-  return rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious })
+  return rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious, buyQuote: method.buyQuote ?? 'low' })
+    .filter(f => includeStale || !f.stale)
     .filter(f => membersItems || recipeMeta(f.id)?.members !== true)
     .filter(f => !q || f.name.toLowerCase().includes(q))
 }

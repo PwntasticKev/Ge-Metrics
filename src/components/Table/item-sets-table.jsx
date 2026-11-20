@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  Badge,
   Center,
   createStyles,
   Flex,
@@ -130,9 +131,13 @@ function sortData (data, payload) {
       let bValue = b[sortBy]
 
       // Handle profit specifically for numeric sorting
-      if (sortBy === 'profit' || sortBy === 'sellPrice') {
-        aValue = parseFloat(String(aValue ?? '0').replace(/,/g, '')) || 0
-        bValue = parseFloat(String(bValue ?? '0').replace(/,/g, '')) || 0
+      if (sortBy === 'profit' || sortBy === 'sellPrice' || sortBy === 'potential') {
+        aValue = parseFloat(String(aValue ?? '').replace(/,/g, ''))
+        bValue = parseFloat(String(bValue ?? '').replace(/,/g, ''))
+        // Unknown values (no 4h estimate) always sort last.
+        aValue = Number.isFinite(aValue) ? aValue : (reversed ? -Infinity : Infinity)
+        bValue = Number.isFinite(bValue) ? bValue : (reversed ? -Infinity : Infinity)
+        if (aValue === bValue) return 0
       }
 
       // Handle numeric comparisons
@@ -148,6 +153,8 @@ function sortData (data, payload) {
 export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraphInfo, items, sellPriceLabel = 'Sell Price' }) {
   const theme = useMantineTheme()
   const location = useLocation()
+  // Rows from the shared engine carry a 4h estimate (buy limit and volume capped).
+  const showPotential = data.some(row => row && 'potential' in row)
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   const { classes, cx } = useStyles()
@@ -217,6 +224,8 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                     <Link to={`/item/${row.id}`} style={{ textDecoration: 'none' }}>
                         {row.name} {row.qty ? `(${row.qty})` : null}
                     </Link>
+                    {row.stale && <Badge size="xs" color="orange" variant="light" ml="xs">Stale price</Badge>}
+                    {row.suspicious && <Badge size="xs" color="red" variant="light" ml="xs">Fluke?</Badge>}
                     </div>
                 </td>
                 <td colSpan={2} style={{ verticalAlign: 'middle' }}>
@@ -278,8 +287,16 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                 }}>
                     {new Intl.NumberFormat().format(row?.profit) ?? 'N/A'}
                 </td>
+                {showPotential && (
+                  <td style={{ verticalAlign: 'middle' }}>
+                    {Number.isFinite(row.potential) ? new Intl.NumberFormat().format(row.potential) : '-'}
+                    {Number.isFinite(row.maxQty) && (
+                      <Text size="xs" color="dimmed">× {new Intl.NumberFormat().format(row.maxQty)}</Text>
+                    )}
+                  </td>
+                )}
                 <td style={{ verticalAlign: 'middle', padding: '8px' }}>
-                  <MiniChart itemId={row.id} width={120} height={40} currentPrice={row.sellPrice} />
+                  <MiniChart itemId={row.id} width={120} height={40} currentPrice={'chartPrice' in row ? row.chartPrice : row.sellPrice} />
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>
                   <Flex gap="xs">
@@ -341,6 +358,15 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                         >
                             Profit
                         </Th>
+                        {showPotential && (
+                          <Th
+                              sorted={sortBy === 'potential'}
+                              reversed={reverseSortDirection}
+                              onSort={() => setSorting('potential')}
+                          >
+                              4h profit
+                          </Th>
+                        )}
                         <th>Chart</th>
                         <th>Settings</th>
                     </tr>

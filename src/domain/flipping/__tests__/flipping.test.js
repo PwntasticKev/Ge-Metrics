@@ -144,8 +144,14 @@ describe('computeSetFlip', () => {
     expect(computeSetFlip(recipe, market).maxSets).toBe(10)
   })
 
-  it('returns null when any price is missing', () => {
+  it('only needs the quotes the chosen direction uses', () => {
+    // No Helm buy price: combining is impossible, splitting still works.
     const market = createMarket([item(1, 'Set', 9000, 10_000), item(2, 'Helm', null, 2100), item(3, 'G', 1, 2)], { nowSec: NOW })
+    expect(computeSetFlip(recipe, market).direction).toBe('split')
+  })
+
+  it('returns null when neither direction is fully priced', () => {
+    const market = createMarket([item(1, 'Set', null, 10_000), item(2, 'Helm', null, 2100), item(3, 'G', 1, 2)], { nowSec: NOW })
     expect(computeSetFlip(recipe, market)).toBeNull()
   })
 })

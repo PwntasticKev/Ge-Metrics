@@ -12,8 +12,9 @@ import React, { useState, useEffect } from 'react'
 import ItemSetsTable from '../../components/Table/item-sets-table.jsx'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
-import { buildCombinationRows } from '../../utils/flipRows.js'
-import { itemRecipes } from '../../components/Table/data/item-set-filters.jsx'
+import { COMBINATION_RECIPES, DEFAULT_ROW_SORT, buildCombinationRows } from '../../utils/flipRows.js'
+import RankControls from '../../components/Table/RankControls.jsx'
+import { useBudget } from '../../hooks/useBudget.js'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
@@ -23,6 +24,8 @@ export default function CombinationItems () {
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [itemSets, setItemSets] = useState([])
+  const [sortBy, setSortBy] = useState(DEFAULT_ROW_SORT)
+  const [budget, setBudget] = useBudget()
   const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites()
 
@@ -36,10 +39,11 @@ export default function CombinationItems () {
     if (priceStatus === 'success' && items.length > 0) {
       // Prices painted from the saved copy show their real age.
       setLastFetchTime(pricesUpdatedAt ? new Date(pricesUpdatedAt) : new Date())
-      // Shared flipping engine (same as the app); sorted by profit, highest first.
-      setItemSets(buildCombinationRows(itemRecipes, items))
+      // Shared flipping engine (same as the app): GE item sets both ways +
+      // crafted combinations, best direction picked after buy-limit/volume caps.
+      setItemSets(buildCombinationRows(COMBINATION_RECIPES, items, { sortBy, budget }))
     }
-  }, [priceStatus, items, pricesUpdatedAt])
+  }, [priceStatus, items, pricesUpdatedAt, sortBy, budget])
 
   // Update current time every second for live ticker
   useEffect(() => {
@@ -67,7 +71,7 @@ export default function CombinationItems () {
               <div>
                 <Text size="xl" weight={700} color="white">Arbitrage Tracker</Text>
                 <Text size="sm" color="rgba(255, 255, 255, 0.7)">
-                  Monitor arbitrage opportunities between individual items and their combination sets. Setup alerts and execute trades.
+                  Buy the parts and combine them into the set, or buy the set and split it into parts, whichever makes more. Ranked by profit from one 4h buy-limit window, capped by trade volume.
                 </Text>
               </div>
               <Group spacing="md">
@@ -107,8 +111,11 @@ export default function CombinationItems () {
             </Group>
           </Card>
 
+          <RankControls sortBy={sortBy} onSortChange={setSortBy} budget={budget} onBudgetChange={setBudget} />
+
           {priceStatus === 'success' && itemSets && itemSets.length > 0 && (
             <ItemSetsTable
+              key={`${sortBy}:${budget ?? ''}`}
               data={itemSets}
               items={items}
               favoriteItems={favoriteItemIds}

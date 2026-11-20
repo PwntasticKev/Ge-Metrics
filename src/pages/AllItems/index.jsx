@@ -4,7 +4,9 @@ import { IconClock } from '@tabler/icons-react'
 import { useState, useEffect, useMemo } from 'react'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
-import { toAllItemsRow } from '../../utils/flipRows.js'
+import { DEFAULT_ROW_SORT, sortRows, toAllItemsRow } from '../../utils/flipRows.js'
+import RankControls from '../../components/Table/RankControls.jsx'
+import { useBudget } from '../../hooks/useBudget.js'
 import { trpc } from '../../utils/trpc.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 
@@ -12,6 +14,8 @@ export default function AllItems () {
   const { items, mapStatus, priceStatus, pricesUpdatedAt } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [sortBy, setSortBy] = useState(DEFAULT_ROW_SORT)
+  const [budget, setBudget] = useBudget()
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
 
   // Volume map (24h + 1h) for items
@@ -45,13 +49,15 @@ export default function AllItems () {
     toggleFavorite(itemId, 'item')
   }
 
-  // Profit and tax come from the shared flipping engine (same as the app).
-  // Don't limit here - let pagination handle display
-  // Keep ALL items available for filtering/searching
-  const processedItems = useMemo(
-    () => items.map(toAllItemsRow).sort((a, b) => b.profit - a.profit),
-    [items]
-  )
+  // Profit, tax and the 4h estimate come from the shared flipping engine (same
+  // as the app). Default: GP from one 4h buy-limit window, capped by volume, so a
+  // huge margin you can only fill a few times doesn't outrank a steady earner.
+  // Stale prices and fluke margins sink below everything recommendable but stay
+  // listed for search.
+  const processedItems = useMemo(() => {
+    const nowSec = Math.floor(Date.now() / 1000)
+    return sortRows(items.map(item => toAllItemsRow(item, { nowSec, budget })), sortBy)
+  }, [items, sortBy, budget])
 
   // Don't let favorites loading block the entire page
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading'
@@ -86,6 +92,8 @@ export default function AllItems () {
                         <Badge color="green" variant="light">Live Data</Badge>
                       </Group>
                     </Card>
+
+                    <RankControls sortBy={sortBy} onSortChange={setSortBy} budget={budget} onBudgetChange={setBudget} />
 
                     <AllItemsTable
                       data={processedItems}

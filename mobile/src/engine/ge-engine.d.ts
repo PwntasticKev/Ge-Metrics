@@ -149,13 +149,18 @@ declare module '@ge/engine' {
     readonly maxActions: number | null
     readonly potential: number | null
     readonly perHour: number | null
+    readonly buyQuote: 'low' | 'high'
     readonly ageSec: number | null
     readonly stale: boolean
     readonly suspicious: boolean
   }
 
-  export function computeProcessFlip (recipe: ProcessRecipe, market: Market, options?: { staleAfterSec?: number; actionsPerHour?: number | null }): ProcessFlip | null
-  export function rankProcessFlips (recipes: readonly ProcessRecipe[], market: Market, options?: Omit<RankOptions, 'sortBy'> & { sortBy?: SortMetric | 'perHour' }): ProcessFlip[]
+  // buyQuote: 'low' = patient buy offers (default), 'high' = buy instantly.
+  export function computeProcessFlip (recipe: ProcessRecipe, market: Market, options?: { staleAfterSec?: number; actionsPerHour?: number | null; buyQuote?: 'low' | 'high' }): ProcessFlip | null
+  export function rankProcessFlips (recipes: readonly ProcessRecipe[], market: Market, options?: Omit<RankOptions, 'sortBy'> & { sortBy?: SortMetric | 'perHour'; buyQuote?: 'low' | 'high' }): ProcessFlip[]
+  export const NATURE_RUNE_ID: number
+  export const HIGH_ALCH_CASTS_PER_HOUR: number
+  export function highAlchRecipes (items: readonly MarketItem[]): ProcessRecipe[]
   export function decantingRecipes (items: readonly MarketItem[]): ProcessRecipe[]
   export function herbCleaningRecipes (items: readonly MarketItem[]): ProcessRecipe[]
   export function unfinishedPotionRecipes (items: readonly MarketItem[]): ProcessRecipe[]
@@ -179,8 +184,10 @@ declare module '@ge/engine' {
   ): Market
   export function computeItemFlip (item: MarketItem, options?: { nowSec?: number; staleAfterSec?: number }): ItemFlip | null
   export function rankItemFlips (market: Market, options?: RankOptions): ItemFlip[]
-  export function computeSetFlip (recipe: Recipe, market: Market, options?: { staleAfterSec?: number }): SetFlip | null
-  export function rankSetFlips (recipes: readonly Recipe[], market: Market, options?: RankOptions): SetFlip[]
+  // Picks combine or split by `pickBy` after buy-limit, volume and budget caps.
+  export function computeSetFlip (recipe: Recipe, market: Market, options?: { staleAfterSec?: number; pickBy?: SortMetric; budget?: number | null; minProfit?: number; includeSuspicious?: boolean }): SetFlip | null
+  export function computeSetFlipOptions (recipe: Recipe, market: Market, options?: { staleAfterSec?: number }): SetFlip[] | null
+  export function rankSetFlips (recipes: readonly Recipe[], market: Market, options?: RankOptions & { budget?: number | null }): SetFlip[]
   export function buildRecipes (legacyRecipes?: LegacyRecipe[]): Recipe[]
   export const craftedRecipes: LegacyRecipe[]
 
