@@ -192,14 +192,16 @@ describe('council round 3 regressions', () => {
   // Combine (parts low + set high) is fresh; split (set low + parts high) is stale and bigger.
   const market = createMarket([
     item(1, 'Set', 9_000, 10_300, { lowTime: OLD, limit: 1_000 }),
-    item(2, 'Top', 4_800, 6_000, { highTime: OLD, limit: 10 }),
-    item(3, 'Legs', 4_800, 6_000, { highTime: OLD, limit: 10 })
+    item(2, 'Top', 4_800, 5_500, { highTime: OLD, limit: 10 }),
+    item(3, 'Legs', 4_800, 5_500, { highTime: OLD, limit: 10 })
   ], { nowSec: NOW })
 
   it('ages each direction on its own quotes', () => {
     const [combine, split] = computeSetFlipOptions(recipe, market)
     expect(combine.stale).toBe(false)
     expect(split.stale).toBe(true)
+    // Not a fluke: only freshness decides between them.
+    expect(split.suspicious).toBe(false)
     expect(split.potential).toBeGreaterThan(combine.potential)
   })
 

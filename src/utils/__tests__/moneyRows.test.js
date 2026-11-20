@@ -56,6 +56,18 @@ describe('Combination rows', () => {
     expect(row).toMatchObject({ direction: 'split', name: 'Set → parts', sellPrice: 9_900, maxQty: 1_000 })
     expect(row.items.map(p => [p.id, p.low])).toEqual([[1, 9_700]])
     expect(row.potential).toBe(row.profit * 1_000)
+    expect(row.chartPrice).toBe(10_300)
+  })
+
+  it('charts a split-only set at its own low price, not the parts revenue', () => {
+    const recipe = { id: 'ge:1', kind: 'ge-set', setId: 1, parts: [{ id: 2, qty: 1 }, { id: 3, qty: 1 }], conversionCost: 0, reversible: true }
+    const items = [
+      item(1, 'Set', 9_000, null),
+      item(2, 'Top', 4_800, 5_500),
+      item(3, 'Legs', 4_800, 5_500)
+    ]
+    const [row] = buildCombinationRows([recipe], items, { nowSec: NOW })
+    expect(row).toMatchObject({ direction: 'split', sellPrice: 11_000, chartPrice: 9_000 })
   })
 })
 
