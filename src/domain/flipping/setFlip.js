@@ -115,14 +115,16 @@ const isEligible = (flip, { minProfit = 1, includeSuspicious = false } = {}) =>
 
 // Picks the direction (combine or split) that is best by `pickBy` *after*
 // buy-limit, liquidity and budget caps, preferring directions that pass the
-// ranking filters. A big unit margin you can only do a few times shouldn't
-// beat a smaller one you can do thousands of times.
+// ranking filters, and fresh prices over stale ones (so a stale direction can't
+// hide a fresh alternative). A big unit margin you can only do a few times
+// shouldn't beat a smaller one you can do thousands of times.
 export function computeSetFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC, pickBy = 'potential', budget, minProfit, includeSuspicious } = {}) {
   const options = computeSetFlipOptions(recipe, market, { staleAfterSec })
   if (!options) return null
   const capped = options.map(flip => applyBudget(flip, budget))
   const eligible = capped.filter(flip => isEligible(flip, { minProfit, includeSuspicious }))
-  const pool = eligible.length ? eligible : capped
+  const fresh = eligible.filter(flip => !flip.stale)
+  const pool = fresh.length ? fresh : eligible.length ? eligible : capped
   return [...pool].sort((a, b) => byMetric(pickBy)(a, b) || b.profit - a.profit)[0]
 }
 

@@ -185,3 +185,37 @@ describe('council round 2 regressions', () => {
     expect(computeSetFlip(recipe, market)).toMatchObject({ direction: 'combine', cost: 9_600 })
   })
 })
+
+describe('council round 3 regressions', () => {
+  const recipe = { id: 'ge:1', kind: 'ge-set', setId: 1, parts: [{ id: 2, qty: 1 }, { id: 3, qty: 1 }], conversionCost: 0, reversible: true }
+  const OLD = NOW - 86_400
+  // Combine (parts low + set high) is fresh; split (set low + parts high) is stale and bigger.
+  const market = createMarket([
+    item(1, 'Set', 9_000, 10_300, { lowTime: OLD, limit: 1_000 }),
+    item(2, 'Top', 4_800, 6_000, { highTime: OLD, limit: 10 }),
+    item(3, 'Legs', 4_800, 6_000, { highTime: OLD, limit: 10 })
+  ], { nowSec: NOW })
+
+  it('ages each direction on its own quotes', () => {
+    const [combine, split] = computeSetFlipOptions(recipe, market)
+    expect(combine.stale).toBe(false)
+    expect(split.stale).toBe(true)
+    expect(split.potential).toBeGreaterThan(combine.potential)
+  })
+
+  it('prefers a fresh direction over a bigger stale one', () => {
+    expect(computeSetFlip(recipe, market).direction).toBe('combine')
+    const ranked = rankSetFlips([recipe], market).filter(f => !f.stale)
+    expect(ranked.map(f => f.direction)).toEqual(['combine'])
+  })
+
+  it('still returns the stale direction when it is the only one', () => {
+    const oneWay = { ...recipe, reversible: true }
+    const staleOnly = createMarket([
+      item(1, 'Set', 9_000, null, { lowTime: OLD }),
+      item(2, 'Top', 4_800, 6_000, { highTime: OLD }),
+      item(3, 'Legs', 4_800, 6_000, { highTime: OLD })
+    ], { nowSec: NOW })
+    expect(computeSetFlip(oneWay, staleOnly)).toMatchObject({ direction: 'split', stale: true })
+  })
+})

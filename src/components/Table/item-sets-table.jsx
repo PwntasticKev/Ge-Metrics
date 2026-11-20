@@ -296,7 +296,7 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                   </td>
                 )}
                 <td style={{ verticalAlign: 'middle', padding: '8px' }}>
-                  <MiniChart itemId={row.id} width={120} height={40} currentPrice={row.chartPrice ?? row.sellPrice} />
+                  <MiniChart itemId={row.id} width={120} height={40} currentPrice={'chartPrice' in row ? row.chartPrice : row.sellPrice} />
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>
                   <Flex gap="xs">
