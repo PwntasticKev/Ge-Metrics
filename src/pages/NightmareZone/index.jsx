@@ -67,6 +67,11 @@ const rewardItems = [
   { name: 'Potato Cactus', points: 15, value: '~180 gp' }
 ]
 
+const HERB_BOX_POINTS = 9_500
+const HERB_BOXES_PER_DAY = 15
+// Rough average value of a herb box's contents (estimate, not live-priced).
+const HERB_BOX_VALUE_ESTIMATE = 15_000
+
 export default function NightmareZone () {
   const { items, mapStatus, priceStatus } = ItemData()
   const [lastFetchTime, setLastFetchTime] = useState(new Date())
@@ -93,8 +98,9 @@ export default function NightmareZone () {
   }, [])
 
   const calculateProfit = () => {
-    const herbBoxes = Math.floor((pointsPerHour * hoursPerDay) / 9500)
-    const herbBoxProfit = herbBoxes * 15000 // ~15k per herb box
+    // Herb boxes cost 9,500 points each and you can only buy 15 a day.
+    const herbBoxes = Math.min(Math.floor((pointsPerHour * hoursPerDay) / HERB_BOX_POINTS), HERB_BOXES_PER_DAY)
+    const herbBoxProfit = herbBoxes * HERB_BOX_VALUE_ESTIMATE
     const dailyProfit = herbBoxProfit
     const weeklyProfit = dailyProfit * 7
     const monthlyProfit = dailyProfit * 30

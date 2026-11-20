@@ -116,7 +116,8 @@ function sortByVolume (data) {
   })
 }
 
-export function HighVolumesTable ({ data }) {
+// keepOrder: the caller already ranked the rows (e.g. by 4h profit).
+export function HighVolumesTable ({ data, keepOrder = false }) {
   const theme = useMantineTheme()
   const location = useLocation()
 
@@ -144,13 +145,13 @@ export function HighVolumesTable ({ data }) {
 
     try {
       // Sort by volume first, then apply search filter
-      const volumeSortedData = sortByVolume(data)
+      const volumeSortedData = keepOrder ? data.filter(item => (Number(item.volume) || 0) > 0) : sortByVolume(data)
       setSortedData(sortData(volumeSortedData, { sortBy, reversed: reverseSortDirection, search }))
     } catch (error) {
       console.error('Error processing volume data:', error)
       setSortedData([])
     }
-  }, [data, sortBy, reverseSortDirection, search])
+  }, [data, keepOrder, sortBy, reverseSortDirection, search])
 
   const setGraphInfo = (id) => {
     setGraphModal(true)
@@ -168,7 +169,7 @@ export function HighVolumesTable ({ data }) {
     }
 
     try {
-      const volumeSortedData = sortByVolume(data)
+      const volumeSortedData = keepOrder ? data.filter(item => (Number(item.volume) || 0) > 0) : sortByVolume(data)
       setSortedData(sortData(volumeSortedData, { sortBy, reversed: reverseSortDirection, search: searchValue }))
     } catch (error) {
       console.error('Error filtering data:', error)
@@ -254,7 +255,10 @@ export function HighVolumesTable ({ data }) {
                   fontWeight: 'bold',
                   verticalAlign: 'middle'
                 }}>
-                    {row.profit || 'N/A'}
+                    {Number.isFinite(profitValue) ? new Intl.NumberFormat().format(profitValue) : 'N/A'}
+                    {Number.isFinite(row.potential) && (
+                      <Text size="xs" color="dimmed" weight={400}>4h: {new Intl.NumberFormat().format(row.potential)} (× {new Intl.NumberFormat().format(row.maxQty)})</Text>
+                    )}
                 </td>
                 <td style={{ verticalAlign: 'middle' }}>{row.limit || 'N/A'}</td>
                 <td style={{ verticalAlign: 'middle', padding: '8px' }}>

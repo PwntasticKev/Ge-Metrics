@@ -38,7 +38,11 @@ const DIAMOND_BOLTS_E_ID = 9243 // Diamond bolts (e)
 const DRAGONSTONE_BOLTS_E_ID = 9244 // Dragonstone bolts (e)
 const ONYX_BOLTS_E_ID = 9245 // Onyx bolts (e)
 
-export const enchantingBoltsRecipes = [
+// Rune costs below are per cast. One cast enchants 10 bolts, so the exported
+// recipes (priced per bolt) charge a tenth of the runes per bolt.
+export const BOLTS_PER_CAST = 10
+
+const perCastRecipes = [
   // Enchant Crossbow Bolt (Opal) - Level 4, 2 Air + 1 Cosmic
   { 
     itemSet: OPAL_BOLTS_E_ID, 
@@ -120,3 +124,9 @@ export const enchantingBoltsRecipes = [
   }
 ]
 
+export const enchantingBoltsRecipes = perCastRecipes.map(recipe => ({
+  ...recipe,
+  itemQuantities: Object.fromEntries(
+    Object.entries(recipe.itemQuantities).map(([runeId, qty]) => [runeId, qty / BOLTS_PER_CAST])
+  )
+}))

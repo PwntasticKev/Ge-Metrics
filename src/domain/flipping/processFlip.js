@@ -25,14 +25,19 @@ function resolve (entries, market) {
   return resolved.every(r => r.item) ? resolved : null
 }
 
-export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC, actionsPerHour = recipe.actionsPerHour ?? null } = {}) {
+// A leg whose own high/low gap is this wide is probably a one-off trade.
+const legSpread = item => (item.low > 0 ? (item.high - item.low) / item.low : 0)
+
+// buyAt: 'low' = patient buy offers (default), 'high' = buy instantly.
+export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC, actionsPerHour = recipe.actionsPerHour ?? null, buyAt = 'low' } = {}) {
   const inputs = resolve(recipe.inputs, market)
   const outputs = resolve(recipe.outputs, market)
   if (!inputs || !outputs) return null
   if (!inputs.length || (!outputs.length && !recipe.coinRevenue)) return null
-  if (!inputs.every(r => r.item.low) || !outputs.every(r => r.item.high)) return null
+  const buyPrice = item => (buyAt === 'high' ? item.high : item.low)
+  if (!inputs.every(r => buyPrice(r.item)) || !outputs.every(r => r.item.high)) return null
 
-  const buy = inputs.map(({ item, qty }) => line(item, qty, item.low))
+  const buy = inputs.map(({ item, qty }) => line(item, qty, buyPrice(item)))
   const sell = outputs.map(({ item, qty }) => line(item, qty, item.high))
   const coinCost = recipe.coinCost ?? 0
   const cost = sum(buy.map(l => l.total)) + coinCost
@@ -48,7 +53,9 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
     const fillable = fillablePer4h(item.dailyVolume)
     return fillable === null ? null : Math.floor(fillable / qty)
   }))
-  const maxActions = minKnown([limitCap, liquidityCap])
+  // When the action rate is known, 4h of work is a hard cap too.
+  const timeCap = actionsPerHour ? Math.floor(actionsPerHour * 4) : null
+  const maxActions = minKnown([limitCap, liquidityCap, timeCap])
   const ageSec = oldestAgeSec(market.nowSec, [...inputs, ...outputs].flatMap(({ item }) => [item.highTime, item.lowTime]))
   const main = (outputs[0] ?? inputs[0]).item
 
@@ -68,11 +75,14 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
     roi,
     maxActions,
     potential: maxActions === null ? null : profit * maxActions,
-    // You can't do more actions per hour than the buy limit lets you buy.
-    perHour: actionsPerHour ? profit * Math.min(actionsPerHour, maxActions === null ? actionsPerHour : maxActions / 4) : null,
+    // Sustained over the 4h window: no faster than you can act, buy or fill.
+    perHour: actionsPerHour ? profit * (maxActions === null ? actionsPerHour : maxActions / 4) : null,
+    buyAt,
     ageSec,
     stale: ageSec !== null && ageSec > staleAfterSec,
-    suspicious: roi > MAX_PLAUSIBLE_ROI
+    // Labour can earn a high return legitimately; only distrust it when one
+    // of the quotes it rests on is itself an implausible spread.
+    suspicious: roi > MAX_PLAUSIBLE_ROI && [...inputs, ...outputs].some(({ item }) => legSpread(item) > MAX_PLAUSIBLE_ROI)
   })
 }
 

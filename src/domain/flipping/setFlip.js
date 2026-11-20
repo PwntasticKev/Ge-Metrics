@@ -9,6 +9,7 @@
 import { geTax } from './geTax.js'
 import { DEFAULT_STALE_AFTER_SEC, MAX_PLAUSIBLE_ROI, buyLimitOf, fillablePer4h, oldestAgeSec } from './market.js'
 import { byMetric } from './itemFlip.js'
+import { applyBudget } from './budget.js'
 
 const sum = values => values.reduce((total, v) => total + v, 0)
 const minKnown = values => {
@@ -74,7 +75,8 @@ function finish (plan, { recipe, set, liquidityCap, ageSec, staleAfterSec }) {
   })
 }
 
-export function computeSetFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC } = {}) {
+// Every legal direction for a recipe, fully computed, or null if unpriced.
+export function computeSetFlipOptions (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC } = {}) {
   const set = market.get(recipe.setId)
   const parts = recipe.parts.map(p => ({ item: market.get(p.id), qty: p.qty }))
   if (!set || parts.some(p => !p.item)) return null
@@ -95,17 +97,30 @@ export function computeSetFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_
     ageSec: oldestAgeSec(market.nowSec, everything.flatMap(({ item }) => [item.highTime, item.lowTime]))
   }
 
-  const options = [combine(set, parts, recipe.conversionCost)]
-  if (recipe.reversible) options.push(split(set, parts, recipe.conversionCost))
-
-  return options
-    .map(plan => finish(plan, context))
-    .sort((a, b) => b.profit - a.profit)[0]
+  const plans = [combine(set, parts, recipe.conversionCost)]
+  if (recipe.reversible) plans.push(split(set, parts, recipe.conversionCost))
+  return plans.map(plan => finish(plan, context))
 }
 
-export function rankSetFlips (recipes, market, { minProfit = 1, sortBy = 'potential', includeSuspicious = false, ...options } = {}) {
+const isEligible = (flip, { minProfit = 1, includeSuspicious = false } = {}) =>
+  flip.profit >= minProfit && flip.maxSets !== 0 && (includeSuspicious || !flip.suspicious)
+
+// Picks the direction (combine or split) that is best by `pickBy` *after*
+// buy-limit, liquidity and budget caps, preferring directions that pass the
+// ranking filters. A big unit margin you can only do a few times shouldn't
+// beat a smaller one you can do thousands of times.
+export function computeSetFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC, pickBy = 'potential', budget, minProfit, includeSuspicious } = {}) {
+  const options = computeSetFlipOptions(recipe, market, { staleAfterSec })
+  if (!options) return null
+  const capped = options.map(flip => applyBudget(flip, budget))
+  const eligible = capped.filter(flip => isEligible(flip, { minProfit, includeSuspicious }))
+  const pool = eligible.length ? eligible : capped
+  return [...pool].sort((a, b) => byMetric(pickBy)(a, b) || b.profit - a.profit)[0]
+}
+
+export function rankSetFlips (recipes, market, { minProfit = 1, sortBy = 'potential', includeSuspicious = false, budget, ...options } = {}) {
   return recipes
-    .map(recipe => computeSetFlip(recipe, market, options))
-    .filter(flip => flip && flip.profit >= minProfit && flip.maxSets !== 0 && (includeSuspicious || !flip.suspicious))
+    .map(recipe => computeSetFlip(recipe, market, { ...options, pickBy: sortBy, budget, minProfit, includeSuspicious }))
+    .filter(flip => flip && isEligible(flip, { minProfit, includeSuspicious }) && flip.affordable !== false)
     .sort(byMetric(sortBy))
 }

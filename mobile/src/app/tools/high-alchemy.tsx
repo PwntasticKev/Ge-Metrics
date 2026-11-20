@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
-import type { Market } from '@ge/engine'
+import type { ProcessFlip } from '@ge/engine'
 import { useMarket } from '../../api/useMarket'
+import { rankHighAlch } from '../../lib/highAlch'
+import { useSettings } from '../../state/settings'
 import { PriceLine } from '../../components/DetailLines'
 import { FlipListScreen } from '../../components/FlipListScreen'
 import { FlipRow } from '../../components/FlipRow'
@@ -10,65 +12,42 @@ import { gpFull, signed } from '../../lib/format'
 import { useTheme } from '../../theme/ThemeProvider'
 import { space } from '../../theme/tokens'
 
-const NATURE_RUNE_ID = 561
-const MIN_DAILY_VOLUME = 2000
-const MAX_ROWS = 60
 const WEBSITE = 'https://ge-metrics.vercel.app'
-
-interface AlchRow {
-  id: number
-  name: string
-  icon: string | null
-  buyAt: number
-  alch: number
-  nature: number
-  profit: number
-  limit: number | null
-}
-
-// High alchemy: buy at the insta-buy price, cast, and the coins are yours.
-// No GE tax because nothing is sold on the exchange.
-function rankHighAlch (market: Market): { rows: AlchRow[]; nature: number | null } {
-  const nature = market.get(NATURE_RUNE_ID)?.high ?? null
-  if (!nature) return { rows: [], nature }
-  const rows = market.all()
-    .flatMap(i => (i.highalch && i.high && (i.dailyVolume ?? 0) >= MIN_DAILY_VOLUME
-      ? [{ id: i.id, name: i.name, icon: i.icon, buyAt: i.high, alch: i.highalch, nature, profit: i.highalch - i.high - nature, limit: i.limit }]
-      : []))
-    .filter(r => r.profit > 0)
-    .sort((a, b) => b.profit - a.profit)
-    .slice(0, MAX_ROWS)
-  return { rows, nature }
-}
 
 export default function ToolsScreen () {
   const market = useMarket()
   const { palette } = useTheme()
-  const [openId, setOpenId] = useState<number | null>(null)
-  const { rows, nature } = useMemo(() => (market.market ? rankHighAlch(market.market) : { rows: [], nature: null }), [market.market])
-  const toggle = useCallback((id: number) => setOpenId(prev => (prev === id ? null : id)), [])
+  const { settings } = useSettings()
+  const [openId, setOpenId] = useState<string | null>(null)
+  const { rows, nature } = useMemo(
+    () => (market.market
+      ? rankHighAlch(market.market, { budget: settings.budget, hideFlukes: settings.hideFlukes, hideStale: settings.hideStale })
+      : { rows: [], nature: null }),
+    [market.market, settings.budget, settings.hideFlukes, settings.hideStale]
+  )
+  const toggle = useCallback((id: string) => setOpenId(prev => (prev === id ? null : id)), [])
 
   return (
-    <FlipListScreen<AlchRow>
+    <FlipListScreen<ProcessFlip>
       market={market}
       header={<ScreenHeader inset={false} meta={nature ? `Nature rune ${gpFull(nature)}` : undefined} />}
       data={rows}
-      keyOf={r => String(r.id)}
+      keyOf={r => r.id}
       extraData={openId}
       renderRow={r => (
         <FlipRow
           icon={r.icon}
           name={r.name}
-          meta={r.limit ? `Limit ${r.limit}, ${signed(r.profit * r.limit)} per 4h` : 'Limit unknown'}
-          value={signed(r.profit)}
-          valueCaption="per cast"
+          meta={`${signed(r.profit)} per cast${r.maxActions !== null ? `, ${signed(r.potential ?? 0)} per 4h (${r.maxActions} casts)` : ''}`}
+          value={r.perHour !== null ? signed(r.perHour) : signed(r.profit)}
+          valueCaption={r.perHour !== null ? 'per hour' : 'per cast'}
           expanded={openId === r.id}
           onToggle={() => toggle(r.id)}
         >
-          <PriceLine tag="Buy" label="at" price={r.buyAt} />
-          <PriceLine tag="Buy" icon="Nature rune.png" label="nature rune" price={r.nature} />
+          <PriceLine tag="Buy" label="at" price={r.buy[0].price} />
+          <PriceLine tag="Buy" icon="Nature rune.png" label="nature rune" price={r.buy[1]?.price ?? nature ?? 0} />
           <View style={[styles.alch, { borderTopColor: palette.rule }]}>
-            <Text style={{ color: palette.muted, fontSize: 13 }}>Alch value {gpFull(r.alch)}</Text>
+            <Text style={{ color: palette.muted, fontSize: 13 }}>Alch value {gpFull(r.coinRevenue)}</Text>
             <Text style={{ color: palette.profit, fontSize: 14, fontWeight: '700' }}>{signed(r.profit)}</Text>
           </View>
         </FlipRow>

@@ -13,7 +13,8 @@ export function useRankedSets (market: Market | null, sortBy: SortMetric, kind: 
   const { settings } = useSettings()
   return useMemo(() => {
     if (!market) return []
-    return withBudget(rankSetFlips(RECIPES, market, { sortBy, includeSuspicious: !settings.hideFlukes }), settings.budget, sortBy)
+    // Budget goes into the ranking so combine-vs-split is chosen on what you can afford.
+    return withBudget(rankSetFlips(RECIPES, market, { sortBy, includeSuspicious: !settings.hideFlukes, budget: settings.budget }), settings.budget, sortBy)
       .filter(f => kind === 'all' || f.kind === kind)
       .filter(f => !settings.hideStale || !f.stale)
       .filter(f => settings.membersItems || !market.get(f.setId)?.members)
