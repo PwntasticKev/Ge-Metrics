@@ -91,8 +91,10 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
     ageSec,
     stale: ageSec !== null && ageSec > staleAfterSec,
     // Labour can earn a high return legitimately; only distrust it when one
-    // of the quotes it rests on is itself an implausible spread.
-    suspicious: roi > MAX_PLAUSIBLE_ROI && [...inputs, ...outputs].some(({ item }) => legSpread(item) > MAX_PLAUSIBLE_ROI)
+    // of the quotes it rests on is itself an implausible spread. A quote that is
+    // inverted that far (instant-buy well below instant-sell) is never trusted.
+    suspicious: [...inputs, ...outputs].some(({ item }) =>
+      legSpread(item) > MAX_PLAUSIBLE_ROI && (roi > MAX_PLAUSIBLE_ROI || item.high < item.low))
   })
 }
 

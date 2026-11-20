@@ -155,3 +155,33 @@ describe('council round 1 regressions', () => {
     expect(computeProcessFlip(recipe, oldLow, { buyQuote: 'low' }).stale).toBe(true)
   })
 })
+
+describe('council round 2 regressions', () => {
+  it('flags a materially inverted quote even when the recipe return is modest', () => {
+    const market = createMarket([
+      item(561, 'Nature rune', 100, 110),
+      item(1, 'Inverted', 15_000, 10_000, { highalch: 11_000 })
+    ], { nowSec: NOW })
+    const flip = computeProcessFlip(highAlchRecipes(market.all())[0], market, { buyQuote: 'high' })
+    expect(flip.roi).toBeLessThan(0.25)
+    expect(flip.suspicious).toBe(true)
+  })
+
+  it('ages outputs on their sell (high) quote only', () => {
+    const recipe = { id: 'p', method: 'x', inputs: [{ id: 1, qty: 1 }], outputs: [{ id: 2, qty: 1 }], coinCost: 0 }
+    const oldOutputLow = createMarket([item(1, 'In', 100, 101), item(2, 'Out', 120, 121, { lowTime: NOW - 86_400 })], { nowSec: NOW })
+    const oldOutputHigh = createMarket([item(1, 'In', 100, 101), item(2, 'Out', 120, 121, { highTime: NOW - 86_400 })], { nowSec: NOW })
+    expect(computeProcessFlip(recipe, oldOutputLow).stale).toBe(false)
+    expect(computeProcessFlip(recipe, oldOutputHigh).stale).toBe(true)
+  })
+
+  it('a one-way craft is priced without the set\'s buy quote', () => {
+    const recipe = { id: 'combo:1', kind: 'combine', setId: 1, parts: [{ id: 2, qty: 1 }, { id: 3, qty: 1 }], conversionCost: 0, reversible: false }
+    const market = createMarket([
+      item(1, 'Godsword', null, 10_300),
+      item(2, 'Hilt', 4_800, 4_950),
+      item(3, 'Blade', 4_800, 4_950)
+    ], { nowSec: NOW })
+    expect(computeSetFlip(recipe, market)).toMatchObject({ direction: 'combine', cost: 9_600 })
+  })
+})

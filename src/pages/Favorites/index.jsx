@@ -26,6 +26,7 @@ import { useFavorites } from '../../hooks/useFavorites.js'
 import { useTrashScoring } from '../../hooks/useTrashScoring.js'
 import { getRelativeTime } from '../../utils/utils'
 import { COMBINATION_RECIPES, buildCombinationRows } from '../../utils/flipRows.js'
+import { useBudget } from '../../hooks/useBudget.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
@@ -40,9 +41,11 @@ export default function Favorites () {
     isOpen: false
   })
 
+  // Same cash stack as Combination Items, so a saved set shows the same direction.
+  const [budget] = useBudget()
   const combinationRows = useMemo(
-    () => (items.length ? buildCombinationRows(COMBINATION_RECIPES, items) : []),
-    [items]
+    () => (items.length ? buildCombinationRows(COMBINATION_RECIPES, items, { budget }) : []),
+    [items, budget]
   )
 
   const filterFavorites = (type) => {

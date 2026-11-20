@@ -86,7 +86,7 @@ export const NATURE_RUNE_ID = 561
 export const HIGH_ALCH_CASTS_PER_HOUR = 1200
 
 // Item + nature rune -> the item's high alch value in coins. Coins aren't sold
-// on the GE, so no tax. Rank with { buyAt: 'high' } to price instant buys.
+// on the GE, so no tax. Rank with { buyQuote: 'high' } to price instant buys.
 export function highAlchRecipes (items) {
   if (!items.some(item => item.id === NATURE_RUNE_ID)) return []
   return items.flatMap(item => (item.highalch > 0 && item.id !== NATURE_RUNE_ID

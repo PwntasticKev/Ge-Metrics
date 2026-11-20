@@ -24,6 +24,7 @@ function combine (set, parts, conversionCost) {
   const sell = [line(set, 1, set.high)]
   return {
     direction: 'combine',
+    quoteTimes: [set.highTime, ...parts.map(({ item }) => item.lowTime)],
     buy,
     sell,
     tax: geTax(set.high, set.id),
@@ -37,6 +38,7 @@ function split (set, parts, conversionCost) {
   const sell = parts.map(({ item, qty }) => line(item, qty, item.high))
   return {
     direction: 'split',
+    quoteTimes: [set.lowTime, ...parts.map(({ item }) => item.highTime)],
     buy,
     sell,
     tax: sum(parts.map(({ item, qty }) => geTax(item.high, item.id) * qty)),
@@ -45,7 +47,9 @@ function split (set, parts, conversionCost) {
   }
 }
 
-function finish (plan, { recipe, set, liquidityCap, ageSec, staleAfterSec }) {
+function finish (plan, { recipe, set, liquidityCap, nowSec, staleAfterSec }) {
+  // Freshness of the quotes this direction actually trades on.
+  const ageSec = oldestAgeSec(nowSec, plan.quoteTimes)
   const cost = sum(plan.buy.map(l => l.total)) + plan.conversionCost
   const revenue = sum(plan.sell.map(l => l.total))
   const profit = revenue - cost - plan.tax
@@ -81,8 +85,11 @@ export function computeSetFlipOptions (recipe, market, { staleAfterSec = DEFAULT
   const parts = recipe.parts.map(p => ({ item: market.get(p.id), qty: p.qty }))
   if (!set || parts.some(p => !p.item)) return null
 
-  const priced = item => item.high && item.low
-  if (!priced(set) || !parts.every(p => priced(p.item))) return null
+  // Each direction needs only its own quotes: combine buys parts low and sells
+  // the set high; split buys the set low and sells parts high.
+  const canCombine = Boolean(set.high) && parts.every(p => p.item.low)
+  const canSplit = Boolean(recipe.reversible && set.low) && parts.every(p => p.item.high)
+  if (!canCombine && !canSplit) return null
 
   const everything = [{ item: set, qty: 1 }, ...parts]
   const context = {
@@ -94,11 +101,12 @@ export function computeSetFlipOptions (recipe, market, { staleAfterSec = DEFAULT
       const fillable = fillablePer4h(item.dailyVolume)
       return fillable === null ? null : Math.floor(fillable / qty)
     })),
-    ageSec: oldestAgeSec(market.nowSec, everything.flatMap(({ item }) => [item.highTime, item.lowTime]))
+    nowSec: market.nowSec
   }
 
-  const plans = [combine(set, parts, recipe.conversionCost)]
-  if (recipe.reversible) plans.push(split(set, parts, recipe.conversionCost))
+  const plans = []
+  if (canCombine) plans.push(combine(set, parts, recipe.conversionCost))
+  if (canSplit) plans.push(split(set, parts, recipe.conversionCost))
   return plans.map(plan => finish(plan, context))
 }
 
