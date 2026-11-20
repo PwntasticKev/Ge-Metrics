@@ -4,6 +4,7 @@ import { Box, Center, Group, Loader, Tabs, Text } from '@mantine/core'
 import { IconChefHat } from '@tabler/icons-react'
 import { DEFAULT_METHOD_KEY, METHODS } from './methodCatalog.js'
 import WikiMethods from './WikiMethods.jsx'
+import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 // The custom-recipe editor is big (modals, item pickers); only load it on its tab.
 const UserRecipes = lazy(() => import('../Recipes/index.jsx'))
@@ -38,7 +39,10 @@ export default function RecipesHub () {
           <Tabs.Tab value={TAB_MINE}>My recipes</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value={TAB_WIKI}>
-          <WikiMethods methodKey={methodKey} onMethodChange={key => update({ method: key })} />
+          {/* Same access policy as the premium calculator pages it includes (e.g. High Alchemy). */}
+          <PremiumPageWrapper>
+            <WikiMethods methodKey={methodKey} onMethodChange={key => update({ method: key })} />
+          </PremiumPageWrapper>
         </Tabs.Panel>
         <Tabs.Panel value={TAB_MINE}>
           <Text size="xs" color="dimmed" mb="sm">Your recipes are saved in this browser only.</Text>

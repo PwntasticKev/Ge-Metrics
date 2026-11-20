@@ -1,11 +1,13 @@
 import { Box, Text } from '@mantine/core'
 import WikiMethods from '../RecipesHub/WikiMethods.jsx'
+import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
 // High Alchemy uses the shared processing engine (same numbers as Recipes and
 // the app): items and nature runes bought at the instant-buy price, coins
 // untaxed, ranked by GP/hour capped at 1,200 casts an hour, buy limits and volume.
 export default function HighAlchemy () {
   return (
+    <PremiumPageWrapper>
     <Box sx={{ py: 4 }}>
       <Text size="xl" weight={700}>High Alchemy Profit</Text>
       <Text size="sm" color="dimmed" mb="md">
@@ -13,5 +15,6 @@ export default function HighAlchemy () {
       </Text>
       <WikiMethods methodKey="high-alchemy" lockMethod />
     </Box>
+    </PremiumPageWrapper>
   )
 }

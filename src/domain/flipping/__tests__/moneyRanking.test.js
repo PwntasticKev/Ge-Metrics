@@ -9,7 +9,8 @@ import {
   createMarket,
   highAlchRecipes,
   rankProcessFlips,
-  rankSetFlips
+  rankSetFlips,
+  withBudget
 } from '../index.js'
 
 const NOW = 1_800_000_000
@@ -106,8 +107,8 @@ describe('high alchemy', () => {
   })
 
   it('prices instant buys, pays no tax and caps by the buy limit', () => {
-    const flip = computeProcessFlip(recipes[0], market, { buyAt: 'high' })
-    expect(flip).toMatchObject({ cost: 38_500 + 110, revenue: 39_000, tax: 0, profit: 390, buyAt: 'high', maxActions: 70 })
+    const flip = computeProcessFlip(recipes[0], market, { buyQuote: 'high' })
+    expect(flip).toMatchObject({ cost: 38_500 + 110, revenue: 39_000, tax: 0, profit: 390, buyQuote: 'high', maxActions: 70 })
     expect(flip.perHour).toBe(390 * 70 / 4)
   })
 
@@ -117,5 +118,40 @@ describe('high alchemy', () => {
 
   it('needs a nature rune price', () => {
     expect(highAlchRecipes(market.all().filter(i => i.id !== 561))).toEqual([])
+  })
+})
+
+describe('council round 1 regressions', () => {
+  const market = createMarket([
+    item(561, 'Nature rune', 100, 110, { limit: 18_000 }),
+    item(1, 'Rune platebody', 38_000, 38_500, { highalch: 39_000, limit: 70 })
+  ], { nowSec: NOW })
+  const [alch] = highAlchRecipes(market.all())
+
+  it('a cash stack caps processing flips instead of dropping them', () => {
+    const flips = rankProcessFlips([alch], market, { buyQuote: 'high', sortBy: 'perHour' })
+    // 2 casts at 38,610 each fit in 80,000 gp.
+    const [capped] = withBudget(flips, 80_000, 'perHour')
+    expect(capped).toMatchObject({ maxActions: 2, potential: 390 * 2, affordable: true })
+  })
+
+  it('flags an inverted quote (instant-buy far below instant-sell)', () => {
+    const inverted = createMarket([
+      item(561, 'Nature rune', 100, 110),
+      item(1, 'Glitch', 10_000, 1, { highalch: 10_000 })
+    ], { nowSec: NOW })
+    const flip = computeProcessFlip(highAlchRecipes(inverted.all())[0], inverted, { buyQuote: 'high' })
+    expect(flip.suspicious).toBe(true)
+    expect(rankProcessFlips(highAlchRecipes(inverted.all()), inverted, { buyQuote: 'high' })).toEqual([])
+  })
+
+  it('judges freshness on the quotes actually used', () => {
+    const oldLow = createMarket([
+      item(561, 'Nature rune', 100, 110, { lowTime: NOW - 86_400 }),
+      item(1, 'Rune platebody', 38_000, 38_500, { highalch: 39_000, lowTime: NOW - 86_400 })
+    ], { nowSec: NOW })
+    const recipe = highAlchRecipes(oldLow.all())[0]
+    expect(computeProcessFlip(recipe, oldLow, { buyQuote: 'high' }).stale).toBe(false)
+    expect(computeProcessFlip(recipe, oldLow, { buyQuote: 'low' }).stale).toBe(true)
   })
 })

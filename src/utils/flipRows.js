@@ -74,6 +74,8 @@ function toCombinationRow (recipe, market, itemsById, sortBy, budget) {
     img: wikiImage(set.icon),
     high: formatGp.format(revenue),
     sellPrice: revenue,
+    // The set's own price, for its chart (a split sells parts, not the set).
+    chartPrice: Number(set.high) || revenue,
     profit: flip.profit,
     tax: flip.tax,
     roi: flip.roi,

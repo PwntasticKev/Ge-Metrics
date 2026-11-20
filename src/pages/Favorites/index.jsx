@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Box,
   Tabs,
@@ -25,6 +25,7 @@ import { trpc } from '../../utils/trpc.jsx'
 import { useFavorites } from '../../hooks/useFavorites.js'
 import { useTrashScoring } from '../../hooks/useTrashScoring.js'
 import { getRelativeTime } from '../../utils/utils'
+import { COMBINATION_RECIPES, buildCombinationRows } from '../../utils/flipRows.js'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
 import PremiumPageWrapper from '../../components/PremiumPageWrapper'
 
@@ -39,6 +40,11 @@ export default function Favorites () {
     isOpen: false
   })
 
+  const combinationRows = useMemo(
+    () => (items.length ? buildCombinationRows(COMBINATION_RECIPES, items) : []),
+    [items]
+  )
+
   const filterFavorites = (type) => {
     const favoriteIdSet = new Set(
       favoriteItems
@@ -47,6 +53,10 @@ export default function Favorites () {
     )
     if (type === 'item') {
       return items.filter(item => favoriteIdSet.has(item.id))
+    }
+    // Same rows as Combination Items (GE sets both ways + crafted combos).
+    if (type === 'combination') {
+      return combinationRows.filter(row => favoriteIdSet.has(row.id))
     }
     return itemSets.filter(item => favoriteIdSet.has(item.id))
   }

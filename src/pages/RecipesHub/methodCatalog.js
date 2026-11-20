@@ -40,7 +40,7 @@ const LIVE_METHODS = [
     sorts: PER_HOUR_SORTS,
     defaultSort: 'perHour',
     // Alching is done in bulk right away: price inputs at the instant-buy price.
-    buyAt: 'high',
+    buyQuote: 'high',
     recipes: perMarket(highAlchRecipes)
   },
   {
@@ -111,7 +111,7 @@ export const MAX_ROWS = 200
 // usually aren't there any more.
 export function rankMethod (market, method, { sortBy = method.defaultSort, query = '', includeSuspicious = false, includeStale = false, membersItems = true } = {}) {
   const q = query.trim().toLowerCase()
-  return rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious, buyAt: method.buyAt ?? 'low' })
+  return rankProcessFlips(method.recipes(market), market, { sortBy, includeSuspicious, buyQuote: method.buyQuote ?? 'low' })
     .filter(f => includeStale || !f.stale)
     .filter(f => membersItems || recipeMeta(f.id)?.members !== true)
     .filter(f => !q || f.name.toLowerCase().includes(q))

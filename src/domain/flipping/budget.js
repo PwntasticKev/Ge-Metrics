@@ -6,7 +6,8 @@ const QTY_FIELDS = ['maxQty', 'maxSets', 'maxActions']
 
 export function applyBudget (flip, budget) {
   if (!flip || !Number.isFinite(budget) || budget <= 0) return flip
-  const unitCost = flip.buyAt ?? flip.cost
+  // Item flips cost their buy price each; set and processing flips their cost.
+  const unitCost = Number.isFinite(flip.buyAt) ? flip.buyAt : flip.cost
   if (!Number.isFinite(unitCost) || unitCost <= 0) return flip
   const field = QTY_FIELDS.find(f => f in flip)
   if (!field) return flip

@@ -25,16 +25,21 @@ function resolve (entries, market) {
   return resolved.every(r => r.item) ? resolved : null
 }
 
-// A leg whose own high/low gap is this wide is probably a one-off trade.
-const legSpread = item => (item.low > 0 ? (item.high - item.low) / item.low : 0)
+// A leg whose own high/low gap (either way round) is this wide is probably a
+// one-off trade: an inverted quote (instant-buy far below instant-sell) too.
+const legSpread = item => {
+  if (!(item.high > 0) || !(item.low > 0)) return 0
+  return Math.abs(item.high - item.low) / Math.min(item.high, item.low)
+}
 
-// buyAt: 'low' = patient buy offers (default), 'high' = buy instantly.
-export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC, actionsPerHour = recipe.actionsPerHour ?? null, buyAt = 'low' } = {}) {
+// buyQuote: 'low' = patient buy offers (default), 'high' = buy instantly.
+export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_STALE_AFTER_SEC, actionsPerHour = recipe.actionsPerHour ?? null, buyQuote = 'low' } = {}) {
   const inputs = resolve(recipe.inputs, market)
   const outputs = resolve(recipe.outputs, market)
   if (!inputs || !outputs) return null
   if (!inputs.length || (!outputs.length && !recipe.coinRevenue)) return null
-  const buyPrice = item => (buyAt === 'high' ? item.high : item.low)
+  const instant = buyQuote === 'high'
+  const buyPrice = item => (instant ? item.high : item.low)
   if (!inputs.every(r => buyPrice(r.item)) || !outputs.every(r => r.item.high)) return null
 
   const buy = inputs.map(({ item, qty }) => line(item, qty, buyPrice(item)))
@@ -56,7 +61,12 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
   // When the action rate is known, 4h of work is a hard cap too.
   const timeCap = actionsPerHour ? Math.floor(actionsPerHour * 4) : null
   const maxActions = minKnown([limitCap, liquidityCap, timeCap])
-  const ageSec = oldestAgeSec(market.nowSec, [...inputs, ...outputs].flatMap(({ item }) => [item.highTime, item.lowTime]))
+  // Freshness of the quotes actually used: the chosen buy side of each input
+  // and the high (sell) side of each output.
+  const ageSec = oldestAgeSec(market.nowSec, [
+    ...inputs.map(({ item }) => (instant ? item.highTime : item.lowTime)),
+    ...outputs.map(({ item }) => item.highTime)
+  ])
   const main = (outputs[0] ?? inputs[0]).item
 
   return Object.freeze({
@@ -77,7 +87,7 @@ export function computeProcessFlip (recipe, market, { staleAfterSec = DEFAULT_ST
     potential: maxActions === null ? null : profit * maxActions,
     // Sustained over the 4h window: no faster than you can act, buy or fill.
     perHour: actionsPerHour ? profit * (maxActions === null ? actionsPerHour : maxActions / 4) : null,
-    buyAt,
+    buyQuote,
     ageSec,
     stale: ageSec !== null && ageSec > staleAfterSec,
     // Labour can earn a high return legitimately; only distrust it when one

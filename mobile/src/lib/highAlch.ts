@@ -12,7 +12,7 @@ export function rankHighAlch (market: Market, { budget = null, hideFlukes = true
   const nature = market.get(NATURE_RUNE_ID)?.high ?? null
   if (!nature) return { rows: [], nature }
   if (cache?.market !== market) {
-    cache = { market, flips: rankProcessFlips(highAlchRecipes(market.all()), market, { sortBy: 'perHour', buyAt: 'high', includeSuspicious: true }) }
+    cache = { market, flips: rankProcessFlips(highAlchRecipes(market.all()), market, { sortBy: 'perHour', buyQuote: 'high', includeSuspicious: true }) }
   }
   const rows = withBudget(cache.flips, budget, 'perHour')
     .filter(f => !hideFlukes || !f.suspicious)

@@ -38,6 +38,7 @@ export default function ToolsScreen () {
         <FlipRow
           icon={r.icon}
           name={r.name}
+          badges={[...(r.stale ? ['Stale'] : []), ...(r.suspicious ? ['Fluke?'] : [])]}
           meta={`${signed(r.profit)} per cast${r.maxActions !== null ? `, ${signed(r.potential ?? 0)} per 4h (${r.maxActions} casts)` : ''}`}
           value={r.perHour !== null ? signed(r.perHour) : signed(r.profit)}
           valueCaption={r.perHour !== null ? 'per hour' : 'per cast'}

@@ -13,6 +13,7 @@ const DEATH_RUNE_ID = 560
 const NATURE_RUNE_ID = 561
 const LAW_RUNE_ID = 563
 const SOUL_RUNE_ID = 566
+const MIND_RUNE_ID = 558
 
 // Crossbow bolt IDs (unenchanted - base items)
 const OPAL_BOLTS_ID = 879
@@ -51,12 +52,12 @@ const perCastRecipes = [
     itemQuantities: { [AIR_RUNE_ID]: 2, [COSMIC_RUNE_ID]: 1 } 
   },
   
-  // Enchant Crossbow Bolt (Sapphire) - Level 7, 1 Water + 1 Cosmic
+  // Enchant Crossbow Bolt (Sapphire) - Level 7, 1 Water + 1 Mind + 1 Cosmic
   { 
     itemSet: SAPPHIRE_BOLTS_E_ID, 
-    itemsToCreateSet: [SAPPHIRE_BOLTS_ID, WATER_RUNE_ID, COSMIC_RUNE_ID], 
+    itemsToCreateSet: [SAPPHIRE_BOLTS_ID, WATER_RUNE_ID, MIND_RUNE_ID, COSMIC_RUNE_ID], 
     conversionCost: 0, 
-    itemQuantities: { [WATER_RUNE_ID]: 1, [COSMIC_RUNE_ID]: 1 } 
+    itemQuantities: { [WATER_RUNE_ID]: 1, [MIND_RUNE_ID]: 1, [COSMIC_RUNE_ID]: 1 } 
   },
   
   // Enchant Crossbow Bolt (Jade) - Level 14, 2 Earth + 1 Cosmic

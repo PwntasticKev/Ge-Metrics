@@ -290,7 +290,7 @@ export function HighVolumesTable ({ data, keepOrder = false }) {
                     High Volume Items ({sortedData.length} items)
                   </Text>
                   <Text size="xs" color="dimmed">
-                    Showing items with active trading volume, sorted by highest volume first
+                    {keepOrder ? 'Showing items with active trading volume, in the order chosen above' : 'Showing items with active trading volume, sorted by highest volume first'}
                   </Text>
                 </div>
                 <TextInput

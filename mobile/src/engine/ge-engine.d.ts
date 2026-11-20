@@ -149,15 +149,15 @@ declare module '@ge/engine' {
     readonly maxActions: number | null
     readonly potential: number | null
     readonly perHour: number | null
-    readonly buyAt: 'low' | 'high'
+    readonly buyQuote: 'low' | 'high'
     readonly ageSec: number | null
     readonly stale: boolean
     readonly suspicious: boolean
   }
 
-  // buyAt: 'low' = patient buy offers (default), 'high' = buy instantly.
-  export function computeProcessFlip (recipe: ProcessRecipe, market: Market, options?: { staleAfterSec?: number; actionsPerHour?: number | null; buyAt?: 'low' | 'high' }): ProcessFlip | null
-  export function rankProcessFlips (recipes: readonly ProcessRecipe[], market: Market, options?: Omit<RankOptions, 'sortBy'> & { sortBy?: SortMetric | 'perHour'; buyAt?: 'low' | 'high' }): ProcessFlip[]
+  // buyQuote: 'low' = patient buy offers (default), 'high' = buy instantly.
+  export function computeProcessFlip (recipe: ProcessRecipe, market: Market, options?: { staleAfterSec?: number; actionsPerHour?: number | null; buyQuote?: 'low' | 'high' }): ProcessFlip | null
+  export function rankProcessFlips (recipes: readonly ProcessRecipe[], market: Market, options?: Omit<RankOptions, 'sortBy'> & { sortBy?: SortMetric | 'perHour'; buyQuote?: 'low' | 'high' }): ProcessFlip[]
   export const NATURE_RUNE_ID: number
   export const HIGH_ALCH_CASTS_PER_HOUR: number
   export function highAlchRecipes (items: readonly MarketItem[]): ProcessRecipe[]

@@ -78,6 +78,8 @@ describe('recipe data fixes', () => {
   it('charges a tenth of a cast of runes per enchanted bolt', () => {
     const opal = enchantingBoltsRecipes.find(r => r.itemSet === 9236)
     expect(opal.itemQuantities).toEqual({ 556: 0.2, 564: 0.1 })
+    const sapphire = enchantingBoltsRecipes.find(r => r.itemSet === 9240)
+    expect(sapphire.itemQuantities).toEqual({ 555: 0.1, 558: 0.1, 564: 0.1 })
   })
 
   it('makes teak and mahogany planks from teak and mahogany logs', () => {
