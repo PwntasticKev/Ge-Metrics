@@ -82,16 +82,6 @@ export const itemRecipes = [
     qty: { id: 27269, qty: 1 }
   },
   {
-    name: 'masoriPlateF',
-    itemSet: 27238,
-    itemsToCreateSet: [27229, 11828]
-  },
-  {
-    name: 'masoriChapsF',
-    itemSet: 27241,
-    itemsToCreateSet: [27232, 11830]
-  },
-  {
     name: 'masoriSetF',
     itemSet: 27355,
     itemsToCreateSet: [27235, 27238, 27241]
@@ -127,16 +117,6 @@ export const itemRecipes = [
     itemSet: 26382,
     itemsToCreateSet: [26376, 26394],
     qty: { id: 26394, qty: 1 }
-  },
-  {
-    name: 'torvaLegs',
-    itemSet: 26386,
-    itemsToCreateSet: [26380, 11834]
-  },
-  {
-    name: 'torvaPlate',
-    itemSet: 26384,
-    itemsToCreateSet: [26378, 11832]
   },
   {
     name: 'toxicStaff',

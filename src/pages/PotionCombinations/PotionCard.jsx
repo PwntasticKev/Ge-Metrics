@@ -3,6 +3,7 @@ import { Card, Image, Badge, Text, Group, Tooltip, ActionIcon, Stack, Loader } f
 import { Link } from 'react-router-dom'
 import { IconChartLine, IconHeart, IconHeartFilled } from '@tabler/icons-react'
 import GraphModal from '../../shared/modals/graph-modal.jsx'
+import { geTax } from '../../domain/flipping/geTax.js'
 
 export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profit', volumeData, isFavorite, onToggleFavorite, isDecantMode = false }) {
   const [graphInfo, setGraphInfo] = useState({ open: false, item: null })
@@ -141,7 +142,7 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
                               marginTop: '-2px'
                             }}
                           >
-                            (-{new Intl.NumberFormat().format(Math.floor(Number(combo.high.toString().replace(/,/g, '')) * 0.02))} tax)
+                            (-{new Intl.NumberFormat().format(geTax(Number(combo.high.toString().replace(/,/g, '')), combo.itemId))} tax)
                           </Text>
                         )}
                       </div>
@@ -229,7 +230,7 @@ export function PotionCard ({ recipe, item, allItems, filterMode = 'volume+profi
                       pointerEvents: 'none'
                     }}
                   >
-                    (-{new Intl.NumberFormat().format(Math.floor(Number(item4.high.toString().replace(/,/g, '')) * 0.02))} tax)
+                    (-{new Intl.NumberFormat().format(geTax(Number(item4.high.toString().replace(/,/g, '')), item4.id))} tax)
                   </Text>
                 )}
               </div>

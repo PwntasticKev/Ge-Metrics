@@ -72,7 +72,8 @@ describe('Combination Sets rows', () => {
     const [row] = buildCombinationRows([recipe], ITEMS)
     const legacy = legacySetRow(recipe)
     expect(row).toMatchObject({
-      id: legacy.id, name: legacy.name, img: legacy.img, high: legacy.high,
+      // Only real GE item sets get the "(set)" suffix now; a godsword is one item.
+      id: legacy.id, name: legacy.name.replace(/ \(set\)$/, ''), img: legacy.img, high: legacy.high,
       sellPrice: legacy.sellPrice, profit: legacy.profit, tax: calculateGETax(legacy.sellPrice), direction: 'combine'
     })
     // The buy lines (repeated parts are now one line with a quantity) add up

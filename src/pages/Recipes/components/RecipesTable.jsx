@@ -219,7 +219,7 @@ function RecipeRow({ recipe, onEdit, onDelete, isDeleting, allItems, items, onTo
               pointerEvents: 'none' 
             }}
           >
-            (-{new Intl.NumberFormat().format(Math.floor((allItems?.[recipe.outputItemId]?.high || 0) * 0.02))} tax)
+            (-{new Intl.NumberFormat().format(calculateGETax(allItems?.[recipe.outputItemId]?.high || 0, recipe.outputItemId))} tax)
           </Text>
         </div>
       </td>

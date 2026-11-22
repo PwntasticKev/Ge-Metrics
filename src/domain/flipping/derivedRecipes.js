@@ -1,3 +1,4 @@
+import wikiPotions from './data/wikiPotions.js'
 // Recipes generated from item names in the wiki mapping, so new potions and
 // herbs are picked up automatically when Jagex adds them.
 
@@ -79,6 +80,25 @@ export function unfinishedPotionRecipes (items) {
       ? [{ id: `unf:${item.id}`, method: 'unfinished-potions', name: item.name, inputs: [{ id: herb.id, qty: 1 }, { id: vial.id, qty: 1 }], outputs: [{ id: item.id, qty: 1 }], coinCost: 0 }]
       : []
   })
+}
+
+// Finished potions from the wiki's Herblore recipes (unf potion + secondary,
+// barbarian mixes, extended/divine upgrades). The wiki's money making guides
+// put banked potion making at about 2,500 potions an hour.
+export const POTIONS_PER_HOUR = 2500
+
+export function potionRecipes (potions = wikiPotions) {
+  return potions.map((potion, index) => ({
+    id: `potion:${potion.outputs[0].id}:${index}`,
+    method: 'potions',
+    name: potion.name,
+    inputs: potion.inputs,
+    outputs: potion.outputs,
+    coinCost: 0,
+    actionsPerHour: POTIONS_PER_HOUR,
+    skills: potion.skills,
+    source: potion.source
+  }))
 }
 
 export const NATURE_RUNE_ID = 561

@@ -164,6 +164,8 @@ declare module '@ge/engine' {
   export function decantingRecipes (items: readonly MarketItem[]): ProcessRecipe[]
   export function herbCleaningRecipes (items: readonly MarketItem[]): ProcessRecipe[]
   export function unfinishedPotionRecipes (items: readonly MarketItem[]): ProcessRecipe[]
+  export const POTIONS_PER_HOUR: number
+  export function potionRecipes (): ProcessRecipe[]
   export const moneyMakingRecipes: ProcessRecipe[]
   export interface ProcessingMethod {
     key: string
