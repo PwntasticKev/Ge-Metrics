@@ -14,7 +14,8 @@ import { riskOffNote } from '../lib/breadth'
 import { pickSlowText } from '../lib/fillText'
 import { gpShort, minutesAgo, signed } from '../lib/format'
 import { PICK_HORIZON_HOURS, type OfferPick, type SlowPick } from '../lib/pickFill'
-import { planTotals, REFINE_TOP, usePickLists, type PickMode } from '../lib/picks'
+import { planOf, planTotals, REFINE_TOP, usePickLists, type PickMode } from '../lib/picks'
+import { overnightFooter, usableTonight } from '../lib/overnightText'
 import { pickRates, sortByRate, type PickSort } from '../lib/pickTiming'
 import { useSettings } from '../state/settings'
 import { useTheme } from '../theme/ThemeProvider'
@@ -38,11 +39,15 @@ const RATE_FOOTER = ' GP/h per slot: profit on the amount, divided by the expect
 
 const FILL_FOOTER = ` Amounts are cut to what the fill-time model expects to buy and then sell in time (you get a share of each side's trades, more if you outbid); items that can't fill even one in time are under Slow to fill. Items trading under 10K a day are left out: in a 14-day backtest they lost money. The first ${REFINE_TOP} rows are then refined with each item's hourly history (prices from the last 6 hours that traded with volume), the same offer the item sheet shows; rows marked est. are still from the hour and day averages.`
 
-const FOOTERS: Record<PickMode, string> = {
+// Overnight's footer depends on the sell setting (overnightFooter).
+const FOOTERS: Record<Exclude<PickMode, 'overnight'>, string> = {
   quick: 'Prices are the more careful of live and recent traded prices (the last hour where it traded with volume, else the day), so one odd trade can\'t fake a margin. Amounts are sized so each side of the market trades at least 6 times your amount a day, and so the buy and the sell both fill within 2 hours: in a 60-day out-of-sample test, sizing for 2 hours instead of 4 made more and cut losing picks from 22% to 16%.',
   dips: 'Liquid items whose price fell at least 5% under the day\'s typical low over the last hour, while buyers still pay the usual price. Buy the dip, sell back at the day\'s middle, sized to fill within 4 hours.',
-  plan: 'Your whole cash stack split across your GE slots for the most profit you can actually make in the next 4 hours: the same picks as Next 4 hours, each cut to what buys and sells within 2 hours.',
-  overnight: 'Offers at the typical low and high of the last 24 hours, sized to buy and sell within 8 hours. Items that moved away from those prices in the last hour, or trade less than once an hour, are left out.'
+  plan: 'Your whole cash stack split across your GE slots for the most profit you can actually make in the next 4 hours: the same picks as Next 4 hours, each cut to what buys and sells within 2 hours.'
+}
+
+function footerFor (mode: PickMode, maxSellHours: number): string {
+  return mode === 'overnight' ? overnightFooter(PICK_HORIZON_HOURS.overnight, maxSellHours) : FOOTERS[mode]
 }
 
 type Row =
@@ -57,10 +62,15 @@ function listRows (picks: readonly OfferPick[], slow: readonly SlowPick[], slowO
   return [...fast, header, ...(slowOpen ? slow.map(s => ({ key: `slow${s.pick.id}`, slow: s })) : [])]
 }
 
-function headerMeta (mode: PickMode, picks: readonly OfferPick[], budget: number | null, updatedAt: number | null): string {
+function headerMeta (mode: PickMode, picks: readonly OfferPick[], budget: number | null, members: boolean, updatedAt: number | null): string {
   if (mode === 'plan' && budget && picks.length) {
     const { cost, profit } = planTotals(picks)
     return `Uses ${gpShort(cost)} of ${gpShort(budget)}, ${signed(profit)}`
+  }
+  // Overnight offers are placed once, so say how much of the stack the night can use.
+  if (mode === 'overnight' && budget && picks.length) {
+    const { cost, profit } = planTotals(planOf(picks, budget, members))
+    return usableTonight(cost, profit, budget)
   }
   return `${budget ? `With ${gpShort(budget)}, ` : ''}${minutesAgo(updatedAt)}`
 }
@@ -114,7 +124,7 @@ export default function BuyNowScreen () {
     <FlipListScreen<Row>
       market={market}
       header={
-        <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, prices.updatedAt) : undefined}>
+        <ScreenHeader title="Buy now" meta={picks ? headerMeta(mode, picks, settings.budget, settings.membersItems, prices.updatedAt) : undefined}>
           <SlotsCard />
           <Tabs options={MODES} value={mode} onChange={value => { setMode(value); setOpenId(null); setSlowOpen(false) }} />
           {riskOff ? <Text style={[styles.warn, { color: palette.ink, backgroundColor: palette.well }]} accessibilityRole="alert">{riskOff}</Text> : null}
@@ -128,7 +138,7 @@ export default function BuyNowScreen () {
       empty={mode === 'plan' && !settings.budget
         ? { title: 'Set your cash stack first', body: 'Tools, Settings, Cash stack. The plan splits it across your GE slots.' }
         : { title: 'Nothing worth buying right now', body: 'Prices move all day. Pull down to refresh.' }}
-      footer={<Text style={[styles.note, { color: palette.muted }]}>{FOOTERS[mode]}{mode === 'plan' ? '' : FILL_FOOTER}{sortable ? RATE_FOOTER : ''}</Text>}
+      footer={<Text style={[styles.note, { color: palette.muted }]}>{footerFor(mode, settings.maxSellHours)}{mode === 'plan' ? '' : FILL_FOOTER}{sortable ? RATE_FOOTER : ''}</Text>}
     />
   )
 }

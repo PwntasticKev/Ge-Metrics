@@ -45,7 +45,7 @@ function contextOf (market: Market, h1: Averages, h24: Averages, budget: number 
 }
 
 /** The cash plan over the fill-sized picks; each planned row's offer is resized to its share. */
-function planOf (picks: readonly OfferPick[], budget: number | null, members: boolean): OfferPick[] {
+export function planOf (picks: readonly OfferPick[], budget: number | null, members: boolean): OfferPick[] {
   if (!budget) return []
   const plan = planCashStack(picks, { cash: budget, slots: members ? MEMBERS_SLOTS : F2P_SLOTS }) as OfferPick[]
   return plan.map(p => pickFromOffer(p, p.offer, p.maxQty))

@@ -39,13 +39,13 @@ export interface SimResult {
   readonly equity: readonly EquityPoint[]
 }
 
-interface Purchase { readonly ts: number; readonly qty: number }
-type Ledger = ReadonlyMap<number, readonly Purchase[]>
+export interface Purchase { readonly ts: number; readonly qty: number }
+export type Ledger = ReadonlyMap<number, readonly Purchase[]>
 
 const LAST_LOW_LOOKBACK_HOURS = 24
 
 /** The simulator's view of real trading: an item's hour, and its last instant-sell price. */
-function itemMarket (history: History, id: number): Market {
+export function itemMarket (history: History, id: number): Market {
   return {
     hour: ts => history.hour(ts).get(id),
     lastLow: ts => {
@@ -58,7 +58,7 @@ function itemMarket (history: History, id: number): Market {
   }
 }
 
-function limitLeft (ledger: Ledger, id: number, limit: number, w: number): number {
+export function limitLeft (ledger: Ledger, id: number, limit: number, w: number): number {
   const recent = (ledger.get(id) ?? []).filter(p => p.ts > w - BUY_LIMIT_HOURS * HOUR_SEC)
   return Math.max(0, limit - recent.reduce((s, p) => s + p.qty, 0))
 }

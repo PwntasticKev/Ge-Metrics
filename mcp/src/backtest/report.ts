@@ -5,7 +5,7 @@ import type { Summary } from './metrics.js'
 import type { BacktestConfig, Timeline } from './run.js'
 import { DEFAULT_RULES } from './simulate.js'
 
-const gp = (n: number) => {
+export const gp = (n: number): string => {
   const abs = Math.abs(n)
   const sign = n < 0 ? '-' : ''
   if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`
