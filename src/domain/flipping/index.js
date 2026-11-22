@@ -8,7 +8,7 @@ export { computeSetFlip, computeSetFlipOptions, rankSetFlips } from './setFlip.j
 export { buildRecipes, geSetRecipes, normalizeLegacyRecipe } from './recipes.js'
 export { itemRecipes as craftedRecipes } from './data/craftedRecipes.js'
 export { computeProcessFlip, rankProcessFlips } from './processFlip.js'
-export { HIGH_ALCH_CASTS_PER_HOUR, NATURE_RUNE_ID, decantingRecipes, herbCleaningRecipes, highAlchRecipes, unfinishedPotionRecipes } from './derivedRecipes.js'
+export { HIGH_ALCH_CASTS_PER_HOUR, NATURE_RUNE_ID, POTIONS_PER_HOUR, potionRecipes, decantingRecipes, herbCleaningRecipes, highAlchRecipes, unfinishedPotionRecipes } from './derivedRecipes.js'
 export { default as moneyMakingRecipes } from './data/moneyMakingRecipes.js'
 export { default as processingMethods } from './data/processingMethods.js'
 export { applyBudget, withBudget } from './budget.js'

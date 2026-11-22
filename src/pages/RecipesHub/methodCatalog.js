@@ -7,6 +7,7 @@ import {
   herbCleaningRecipes,
   highAlchRecipes,
   moneyMakingRecipes,
+  potionRecipes,
   processingMethods,
   rankProcessFlips,
   unfinishedPotionRecipes
@@ -60,6 +61,15 @@ const LIVE_METHODS = [
     sorts: PER_4H_SORTS,
     defaultSort: 'potential',
     recipes: perMarket(decantingRecipes)
+  },
+  {
+    key: 'potions',
+    group: 'Herblore',
+    title: 'Making potions',
+    blurb: 'Unfinished potion + secondary into a finished potion, plus barbarian mixes and extended/divine upgrades. About 2,500 potions an hour.',
+    sorts: PER_HOUR_SORTS,
+    defaultSort: 'perHour',
+    recipes: (() => { const recipes = potionRecipes(); return () => recipes })()
   },
   {
     key: 'unfinished-potions',

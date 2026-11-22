@@ -226,6 +226,7 @@ export function ItemSetsTable ({ data, favoriteItems, onToggleFavorite, setGraph
                     </Link>
                     {row.stale && <Badge size="xs" color="orange" variant="light" ml="xs">Stale price</Badge>}
                     {row.suspicious && <Badge size="xs" color="red" variant="light" ml="xs">Fluke?</Badge>}
+                    {row.how && <Text size="xs" color="dimmed">{row.how}</Text>}
                     </div>
                 </td>
                 <td colSpan={2} style={{ verticalAlign: 'middle' }}>

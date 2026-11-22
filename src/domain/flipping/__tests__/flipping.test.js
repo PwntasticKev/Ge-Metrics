@@ -171,7 +171,8 @@ describe('recipes', () => {
   it('prefers GE sets over duplicate crafted recipes', () => {
     const recipes = buildRecipes(
       [{ name: 'Dup', itemSet: 100, itemsToCreateSet: [1, 2] }, { name: 'Godsword', itemSet: 200, itemsToCreateSet: [3, 4] }],
-      [{ setId: 100, name: 'Set', parts: [{ id: 1, qty: 1 }, { id: 2, qty: 1 }] }]
+      [{ setId: 100, name: 'Set', parts: [{ id: 1, qty: 1 }, { id: 2, qty: 1 }] }],
+      []
     )
     expect(recipes.map(r => [r.setId, r.kind, r.reversible])).toEqual([[100, 'ge-set', true], [200, 'combine', false]])
   })
@@ -217,7 +218,7 @@ describe('review regressions', () => {
       { name: 'Pirate Hat', itemSet: 8928, itemsToCreateSet: [1, 2] },
       { name: 'Pirate hat & patch', itemSet: 8928, itemsToCreateSet: [3, 2] },
       { name: 'Solo', itemSet: 9000, itemsToCreateSet: [4] }
-    ], [])
+    ], [], [])
     expect(recipes.map(r => r.variant ?? null)).toEqual(['Pirate Hat', 'Pirate hat & patch', null])
   })
 })

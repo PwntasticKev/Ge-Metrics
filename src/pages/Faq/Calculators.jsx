@@ -15,9 +15,7 @@ import {
 } from '@mantine/core'
 import { IconCalculator, IconCoins, IconTrendingUp, IconFlame } from '@tabler/icons-react'
 import ItemData from '../../utils/item-data'
-
-// Grand Exchange Tax Rate
-const GE_TAX_RATE = 0.02
+import { geTax } from '../../domain/flipping/geTax.js'
 
 // Nature Rune Price (use live data if available, otherwise estimate)
 const NATURE_RUNE_PRICE = 150
@@ -30,7 +28,8 @@ export function FlippingProfitCalculator () {
   const { totalProfit, profitPerItem, taxAmount } = useMemo(() => {
     const revenue = (sellPrice || 0) * (quantity || 0)
     const cost = (buyPrice || 0) * (quantity || 0)
-    const tax = Math.floor(revenue * GE_TAX_RATE)
+    // Tax is per item sold: 2%, capped at 5M each.
+    const tax = geTax(sellPrice || 0) * (quantity || 0)
     const profit = revenue - cost - tax
     const perItem = (quantity || 0) > 0 ? profit / (quantity || 0) : 0
     return {

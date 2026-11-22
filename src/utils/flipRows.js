@@ -52,6 +52,18 @@ export function sortRows (rows, sortBy = DEFAULT_ROW_SORT) {
 // GE item sets (both directions) + crafted combinations, like the app.
 export const COMBINATION_RECIPES = buildRecipes(craftedRecipes)
 
+const formatFee = gp => gp >= 1_000_000 ? `${+(gp / 1_000_000).toFixed(2)}M` : gp >= 1_000 ? `${+(gp / 1_000).toFixed(1)}k` : `${gp}`
+
+// "Madam Sikaro · 500k fee · Smithing 90": where it's made and what it needs.
+export function describeHow (recipe) {
+  const bits = [
+    recipe.via,
+    recipe.conversionCost > 0 ? `${formatFee(recipe.conversionCost)} fee` : null,
+    recipe.skills
+  ].filter(Boolean)
+  return bits.length ? bits.join(' · ') : null
+}
+
 const toRecipe = recipe => (recipe.parts ? recipe : normalizeLegacyRecipe(recipe))
 
 function toCombinationRow (recipe, market, itemsById, sortBy, budget) {
@@ -67,8 +79,9 @@ function toCombinationRow (recipe, market, itemsById, sortBy, budget) {
   return {
     id: set.id,
     background: true,
-    name: split ? `${set.name} → parts` : (normalized.parts.length > 1 ? `${set.name} (set)` : set.name),
+    name: split ? `${set.name} → parts` : (normalized.kind === 'ge-set' ? `${set.name} (set)` : set.name),
     direction: flip.direction,
+    how: describeHow(normalized),
     // What you buy, with the engine's quantities and the price it was priced at.
     items: flip.buy.map(l => ({ ...itemsById.get(l.id), img: wikiImage(l.icon), qty: l.qty > 1 ? l.qty : undefined, low: l.price })),
     img: wikiImage(set.icon),

@@ -36,6 +36,7 @@ import MiniChart from '../../../components/charts/MiniChart.jsx'
 import { useMediaQuery } from '@mantine/hooks'
 import LazyLoad from '../../../components/LazyLoad/index.jsx'
 import { useTrashScoring } from '../../../hooks/useTrashScoring.js'
+import { geTax } from '../../../domain/flipping/geTax.js'
 
 const useStyles = createStyles((theme) => ({
   tableHeader: {
@@ -303,7 +304,7 @@ export default function SuggestedItemsTable({
                 pointerEvents: 'none' 
               }}
             >
-              (-{new Intl.NumberFormat().format(Math.floor((row.sellPrice || 0) * 0.02))} tax)
+              (-{new Intl.NumberFormat().format(geTax(row.sellPrice || 0, row.id))} tax)
             </Text>
           </div>
           {row.manipulationWarning && (

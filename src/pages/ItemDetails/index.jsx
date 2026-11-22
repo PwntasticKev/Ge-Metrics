@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { geTax } from '../../domain/flipping/geTax.js'
 import LineChart from '../../shared/line-chart.jsx'
 import {
   Accordion,
@@ -121,11 +122,8 @@ export default function ItemDetails () {
     return { isManipulated: false, severity: 'normal' }
   }
 
-  // Calculate taxes (2% GE tax)
-  const calculateTaxes = (sellPrice) => {
-    const price = safeParsePrice(sellPrice)
-    return Math.floor(price * 0.02)
-  }
+  // GE tax: 2%, capped at 5M, none under 50 gp or on exempt items (shared engine).
+  const calculateTaxes = (sellPrice) => geTax(safeParsePrice(sellPrice), Number(id))
 
   // Get helpful related items - REMOVED FOR BETTER UX
   // const getHelpfulItems = (currentItem) => {
@@ -182,7 +180,7 @@ export default function ItemDetails () {
           )
         },
         {
-          title: 'After Tax (2%)',
+          title: 'After Tax',
           data: new Intl.NumberFormat().format(sellPriceAfterTax),
           props: {
             color: theme.colors.yellow[7],

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { decantingRecipes, moneyMakingRecipes, processingMethods, rankProcessFlips, withBudget, type Market, type ProcessFlip, type ProcessRecipe } from '@ge/engine'
+import { decantingRecipes, moneyMakingRecipes, potionRecipes, processingMethods, rankProcessFlips, withBudget, type Market, type ProcessFlip, type ProcessRecipe } from '@ge/engine'
 import { useSettings, type Settings } from '../state/settings'
 
 export type ProcessSort = 'perHour' | 'potential' | 'profit' | 'roi'
@@ -49,6 +49,22 @@ const DECANTING: MethodDef = {
   }
 }
 
+// Finished potions from the wiki's Herblore recipes, ~2,500 an hour.
+const POTION_RECIPES: ProcessRecipe[] = potionRecipes()
+const POTIONS: MethodDef = {
+  key: 'potions',
+  group: 'live',
+  title: 'Making potions',
+  blurb: 'Unfinished potion + secondary into a finished potion, plus barbarian mixes and extended/divine upgrades. About 2,500 potions an hour.',
+  sorts: [
+    { value: 'perHour', label: 'GP/hour' },
+    { value: 'profit', label: 'Each' },
+    { value: 'potential', label: '4h profit' }
+  ],
+  defaultSort: 'perHour',
+  recipes: () => POTION_RECIPES
+}
+
 const PER_HOUR_SORTS = [
   { value: 'perHour', label: 'GP/hour' },
   { value: 'profit', label: 'Each' },
@@ -79,12 +95,12 @@ const PROCESSING: MethodDef[] = processingMethods.map((m, i) => ({
 }))
 
 export const METHODS: Record<string, MethodDef> = Object.fromEntries(
-  [MONEY_MAKERS, DECANTING, ...PROCESSING].map(m => [m.key, m])
+  [MONEY_MAKERS, POTIONS, DECANTING, ...PROCESSING].map(m => [m.key, m])
 )
 export const PROCESSING_METHODS = PROCESSING
 
 const recipeById = new Map<string, ProcessRecipe>(
-  [...moneyMakingRecipes, ...PROCESSING_RECIPES.flat()].map(r => [r.id, r])
+  [...moneyMakingRecipes, ...POTION_RECIPES, ...PROCESSING_RECIPES.flat()].map(r => [r.id, r])
 )
 export const recipeMeta = (id: string): ProcessRecipe | undefined => recipeById.get(id)
 

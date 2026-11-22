@@ -51,6 +51,7 @@ import {
 import ItemData from '../../utils/item-data.jsx'
 import tradeService from '../../services/tradeService.js'
 import { showNotification } from '@mantine/notifications'
+import { geTax } from '../../domain/flipping/geTax.js'
 
 // Ranking system configuration
 const RANKING_TIERS = [
@@ -687,7 +688,7 @@ export default function CommunityLeaderboard () {
                                     pointerEvents: 'none' 
                                   }}
                                 >
-                                  (-{new Intl.NumberFormat().format(Math.floor((item.high || 0) * 0.02))} tax)
+                                  (-{new Intl.NumberFormat().format(geTax(item.high || 0, item.id))} tax)
                                 </Text>
                               )}
                             </div>

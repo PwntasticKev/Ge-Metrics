@@ -387,7 +387,7 @@ function AppContent () {
               <Route path="/suggested-items" element={<SuggestedItems />} />
               <Route path="/watchlist" element={<Watchlist />} />
               <Route path="/favorites" element={<Favorites />} />
-              <Route path="/market-watch" element={<div style={{ padding: '20px', textAlign: 'center' }}><h2>Market Watch Overview</h2><p>Coming Soon - Comprehensive market analysis dashboard</p></div>} />
+              <Route path="/market-watch" element={<Navigate to="/market-watch/food" replace />} />
               <Route path="/future-items" element={<FutureItems />} />
               <Route path="/ai-predictions" element={<AIPredictions />} />
               <Route path="/money-making" element={<Navigate to="/recipes?method=money-makers" replace />} />
@@ -410,7 +410,7 @@ function AppContent () {
               <Route path="/herb-cleaning" element={<HerbCleaning />} />
               <Route path="/plank-make" element={<PlankMake />} />
               <Route path="/high-alchemy" element={<HighAlchemy />} />
-              <Route path="/make-potions" element={<ComingSoon />} />
+              <Route path="/make-potions" element={<Navigate to="/recipes?method=potions" replace />} />
               <Route path="/unfinished-potions" element={<Navigate to="/recipes?method=unfinished-potions" replace />} />
               <Route path="/magic-tablets" element={<MagicTablets />} />
               <Route path="/enchanting-bolts" element={<EnchantingBolts />} />
