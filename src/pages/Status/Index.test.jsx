@@ -323,7 +323,8 @@ describe('Status Component Logic', () => {
 
       const result = await checkEndpoint('https://example.com/api', 'test')
 
-      expect(result.latency).toBeGreaterThanOrEqual(100)
+      // Timers can fire a millisecond or two early against Date.now().
+      expect(result.latency).toBeGreaterThanOrEqual(95)
       expect(result.latency).toBeLessThan(200) // Allow some margin for test execution
     })
 
