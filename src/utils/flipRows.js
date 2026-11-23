@@ -3,7 +3,9 @@
 // app agree on tax (2%, floored, 5M cap, wiki exemptions), margins, buy-limit
 // and volume caps.
 
-import { applyBudget, buildRecipes, computeItemFlip, computeSetFlip, craftedRecipes, createMarket, geTax, normalizeLegacyRecipe } from '../domain/flipping/index.js'
+import { applyBudget, buildRecipes, computeItemFlip, computeSetFlip, craftedRecipes, createMarket, GE_TAX_EXEMPT_IDS, geTax, normalizeLegacyRecipe } from '../domain/flipping/index.js'
+
+export const NATURE_RUNE_ID = 561
 
 const WIKI_IMAGE_BASE = 'https://oldschool.runescape.wiki/images/'
 const wikiImage = icon => `${WIKI_IMAGE_BASE}${icon}`.replace(/ /g, '_')
@@ -22,7 +24,10 @@ export const DEFAULT_ROW_SORT = 'potential'
 // Single-item flip: buy at low, sell at high. Items missing either price show
 // 0 profit and no 4h estimate. ItemData calls the daily volume `volume`.
 // budget (gp, optional) caps the 4h quantity to what you can afford.
-export function toAllItemsRow (item, { nowSec = nowInSec(), budget = null } = {}) {
+// taxFree: on the wiki's GE tax exemption list, so the whole margin is kept.
+// alchFloor: high alching it (minus a nature rune) pays back at least the buy
+// price, so a flip that won't sell can't lose more than the time.
+export function toAllItemsRow (item, { nowSec = nowInSec(), budget = null, natureRunePrice = null } = {}) {
   const flip = applyBudget(computeItemFlip({ ...item, dailyVolume: item.dailyVolume ?? item.volume }, { nowSec }), budget)
   return {
     ...item,
@@ -33,7 +38,10 @@ export function toAllItemsRow (item, { nowSec = nowInSec(), budget = null } = {}
     maxQty: flip ? flip.maxQty : null,
     potential: flip ? flip.potential : null,
     stale: flip ? flip.stale : false,
-    suspicious: flip ? flip.suspicious : false
+    suspicious: flip ? flip.suspicious : false,
+    taxFree: GE_TAX_EXEMPT_IDS.has(item.id),
+    alchFloor: Number(item.highalch) > 0 && Number(item.low) > 0 && Number.isFinite(natureRunePrice) &&
+      Number(item.highalch) - natureRunePrice >= Number(item.low)
   }
 }
 

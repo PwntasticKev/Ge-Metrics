@@ -1,10 +1,10 @@
 import AllItemsTable from '../../components/Table/all-items-table.jsx'
-import { Badge, Box, Card, Center, Group, Loader, Text } from '@mantine/core'
+import { Badge, Box, Card, Center, Chip, Group, Loader, Text } from '@mantine/core'
 import { IconClock } from '@tabler/icons-react'
 import { useState, useEffect, useMemo } from 'react'
 import ItemData from '../../utils/item-data.jsx'
 import { getRelativeTime } from '../../utils/utils.jsx'
-import { DEFAULT_ROW_SORT, sortRows, toAllItemsRow } from '../../utils/flipRows.js'
+import { DEFAULT_ROW_SORT, NATURE_RUNE_ID, sortRows, toAllItemsRow } from '../../utils/flipRows.js'
 import RankControls from '../../components/Table/RankControls.jsx'
 import { useBudget } from '../../hooks/useBudget.js'
 import { trpc } from '../../utils/trpc.jsx'
@@ -16,6 +16,8 @@ export default function AllItems () {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [sortBy, setSortBy] = useState(DEFAULT_ROW_SORT)
   const [budget, setBudget] = useBudget()
+  // Optional tags to narrow the list: 'taxFree', 'alchFloor'.
+  const [tags, setTags] = useState([])
   const { favoriteItems, toggleFavorite, isLoadingFavorites } = useFavorites('item')
 
   // Volume map (24h + 1h) for items
@@ -56,8 +58,11 @@ export default function AllItems () {
   // listed for search.
   const processedItems = useMemo(() => {
     const nowSec = Math.floor(Date.now() / 1000)
-    return sortRows(items.map(item => toAllItemsRow(item, { nowSec, budget })), sortBy)
-  }, [items, sortBy, budget])
+    const natureRunePrice = items.find(i => i.id === NATURE_RUNE_ID)?.high || null
+    const rows = items.map(item => toAllItemsRow(item, { nowSec, budget, natureRunePrice }))
+      .filter(row => tags.every(tag => row[tag]))
+    return sortRows(rows, sortBy)
+  }, [items, sortBy, budget, tags])
 
   // Don't let favorites loading block the entire page
   const isLoading = mapStatus === 'loading' || priceStatus === 'loading'
@@ -94,6 +99,12 @@ export default function AllItems () {
                     </Card>
 
                     <RankControls sortBy={sortBy} onSortChange={setSortBy} budget={budget} onBudgetChange={setBudget} />
+                    <Chip.Group multiple value={tags} onChange={setTags} mb="sm">
+                      <Group spacing="xs">
+                        <Chip size="xs" value="taxFree">Tax-free only</Chip>
+                        <Chip size="xs" value="alchFloor">Alch floor only</Chip>
+                      </Group>
+                    </Chip.Group>
 
                     <AllItemsTable
                       data={processedItems}

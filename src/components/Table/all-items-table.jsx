@@ -454,6 +454,8 @@ export function AllItemsTable ({
                 {Math.round(row.trashPercentage)}% trash
               </Badge>
             )}
+            {row.taxFree && <Badge size="xs" color="teal" variant="light" ml="xs" title="No GE tax on this item">Tax-free</Badge>}
+            {row.alchFloor && <Badge size="xs" color="grape" variant="light" ml="xs" title="High alch (minus a nature rune) pays back the buy price">Alch floor</Badge>}
           </div>
         </td>
         <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{new Intl.NumberFormat().format(row.low)}</td>
