@@ -3,7 +3,9 @@
 // --slots 8 --strategy all --every 4 --out <file> --now <ISO time or unix sec>.
 // `--walk-forward` instead tunes on rolling training windows and scores on the
 // following unseen ones (walkforward/): --days 60 --train 7 --test 2 --step 2
-// --grid full|smoke.
+// --grid full|smoke. `--overnight` places the Overnight list once per night
+// and scores it after the night (overnight/): --days 60 --evening 22,2
+// --night-hours 10 --night-variants 8,12.
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -20,6 +22,8 @@ import { sensitivitySection } from './sensitivity.js'
 import { diagnosticsSection } from './diagnostics.js'
 import { WF_DEFAULTS } from './walkforward/run.js'
 import { walkForwardMain } from './walkforward/main.js'
+import { overnightMain } from './overnight/main.js'
+import { OVERNIGHT_DEFAULTS } from './overnight/run.js'
 
 const SENSITIVITY_PARTICIPATION = [0.1, 0.5] as const
 
@@ -27,6 +31,14 @@ function positive (name: string, raw: string): number {
   const v = Number(raw)
   if (!Number.isFinite(v) || v <= 0) throw new Error(`--${name} must be a positive number (got "${raw}")`)
   return v
+}
+
+function numberList (name: string, raw: string): number[] {
+  return raw.split(',').map(x => x.trim()).filter(Boolean).map(x => {
+    const v = Number(x)
+    if (!Number.isFinite(v) || v < 0) throw new Error(`--${name} must be comma-separated non-negative numbers (got "${raw}")`)
+    return v
+  })
 }
 
 function nowFrom (raw: string | undefined): number {
@@ -45,6 +57,10 @@ async function main (): Promise<void> {
       days: { type: 'string' },
       now: { type: 'string' },
       'walk-forward': { type: 'boolean', default: false },
+      overnight: { type: 'boolean', default: false },
+      evening: { type: 'string', default: '22,2' },
+      'night-hours': { type: 'string', default: String(OVERNIGHT_DEFAULTS.nightHours) },
+      'night-variants': { type: 'string', default: '8,12' },
       train: { type: 'string', default: String(WF_DEFAULTS.trainDays) },
       test: { type: 'string', default: String(WF_DEFAULTS.testDays) },
       step: { type: 'string', default: String(WF_DEFAULTS.stepDays) },
@@ -57,6 +73,17 @@ async function main (): Promise<void> {
     }
   })
   const nowSec = nowFrom(values.now)
+  if (values.overnight) {
+    return overnightMain({
+      days: positive('days', values.days ?? String(OVERNIGHT_DEFAULTS.days)),
+      evenings: numberList('evening', values.evening),
+      nightHours: positive('night-hours', values['night-hours']),
+      nightHourVariants: numberList('night-variants', values['night-variants']).filter(h => h > 0),
+      slots: Math.min(8, Math.floor(positive('slots', values.slots))),
+      nowSec,
+      out: values.out
+    })
+  }
   if (values['walk-forward']) {
     if (values.grid !== 'full' && values.grid !== 'smoke') throw new Error(`--grid must be full or smoke (got "${values.grid}")`)
     return walkForwardMain({

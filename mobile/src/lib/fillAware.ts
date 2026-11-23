@@ -22,7 +22,10 @@ import type { SideAverages } from './scanMath.ts'
  * favoured 30 minutes over 1h out of sample: +7.7M for Next 4 hours (at its
  * 2h sizing) and +10.6M for Overnight (losing picks 7% to 4%), -0.7M for
  * Dips. Confidence is moderate (Overnight won 16/26 windows), so it stays a
- * setting.
+ * setting. A 180-night place-once Overnight backtest (offers set once in the
+ * evening, checked 10h later; mcp/reports/overnight-place-once-2026-11-22.md)
+ * also kept 30 minutes: 1h-10h caps and 12h sizing made less at 50M and
+ * 200M stacks, and the gains at 10M came with worse worst nights.
  */
 export const DEFAULT_MAX_SELL_HOURS = 0.5
 export const MAX_SELL_HOUR_OPTIONS = [0.5, 1, 2, 4, 8] as const
