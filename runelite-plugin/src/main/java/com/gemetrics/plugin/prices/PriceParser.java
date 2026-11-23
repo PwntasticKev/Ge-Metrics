@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Parses price maps shaped {@code {"<itemId>": {"high", "highTime", "low", "lowTime"}}}.
- * Accepts the GE Metrics tRPC envelope ({@code {"result":{"data":{...}}}}) and the
- * OSRS Wiki envelope ({@code {"data":{...}}}). Malformed entries are skipped.
+ * Parses the OSRS Wiki {@code /latest} response:
+ * {@code {"data":{"<itemId>":{"high","highTime","low","lowTime"}}}}.
+ * Null prices become 0 (unpriced); malformed entries are skipped.
  */
 public final class PriceParser
 {
@@ -43,10 +43,6 @@ public final class PriceParser
 
 	private static JsonObject unwrap(JsonObject root)
 	{
-		if (root.has("result") && root.get("result").isJsonObject())
-		{
-			root = root.getAsJsonObject("result");
-		}
 		if (root.has("data") && root.get("data").isJsonObject())
 		{
 			return root.getAsJsonObject("data");

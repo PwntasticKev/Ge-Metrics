@@ -1,6 +1,5 @@
 package com.gemetrics.plugin.ui;
 
-import com.gemetrics.plugin.AuthenticationService;
 import com.gemetrics.plugin.GeMetricsConfig;
 import com.gemetrics.plugin.buy.BuyRequestFactory;
 import com.gemetrics.plugin.buy.GeBuyAssist;
@@ -24,17 +23,16 @@ import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
 
-/** Side panel: queued buy, then Prices / Sets / Account tabs. */
+/** Side panel: price status, queued buy, then Prices / Sets tabs. */
 public class GeMetricsPanel extends PluginPanel
 {
 	private final PriceService priceService;
 	private final PriceSearchPanel pricesTab;
 	private final ItemSetsPanel setsTab;
-	private final AccountPanel accountTab;
 	private final QueuedBuyBar queuedBar;
 	private final JLabel sourceLabel = new JLabel();
 
-	public GeMetricsPanel(AuthenticationService authService, GeMetricsConfig config, PriceService priceService,
+	public GeMetricsPanel(GeMetricsConfig config, PriceService priceService,
 		ItemManager itemManager, ItemNames itemNames, BuyRequestFactory buyRequests, GeBuyAssist buyAssist,
 		List<ItemSet> sets, SetFlipCalculator calculator)
 	{
@@ -46,7 +44,6 @@ public class GeMetricsPanel extends PluginPanel
 
 		pricesTab = new PriceSearchPanel(itemManager, itemNames, priceService, buyRequests, buyAssist);
 		setsTab = new ItemSetsPanel(itemManager, itemNames, priceService, buyRequests, buyAssist, sets, calculator);
-		accountTab = new AccountPanel(authService, config);
 		queuedBar = new QueuedBuyBar(buyAssist, config);
 
 		JPanel display = new JPanel(new BorderLayout());
@@ -55,7 +52,6 @@ public class GeMetricsPanel extends PluginPanel
 		MaterialTab prices = new MaterialTab("Prices", tabs, pricesTab);
 		tabs.addTab(prices);
 		tabs.addTab(new MaterialTab("Sets", tabs, setsTab));
-		tabs.addTab(new MaterialTab("Account", tabs, accountTab));
 		tabs.select(prices);
 
 		JPanel top = new JPanel(new BorderLayout(0, 6));
@@ -69,11 +65,6 @@ public class GeMetricsPanel extends PluginPanel
 		priceService.addListener(() -> SwingUtilities.invokeLater(this::onPricesUpdated));
 		buyAssist.addListener(() -> SwingUtilities.invokeLater(queuedBar::refresh));
 		onPricesUpdated();
-	}
-
-	public AccountPanel getAccountPanel()
-	{
-		return accountTab;
 	}
 
 	private JPanel statusRow()

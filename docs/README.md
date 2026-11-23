@@ -6,7 +6,7 @@
 - [setup/](setup/) - Initial setup and installation guides
   - `EMAIL_SETUP_GUIDE.md` - Email service configuration
   - `STRIPE_SETUP.md` - Payment processing setup
-  - `RUNELITE_PLUGIN_SETUP_COMPLETE.md` - Game plugin setup
+  - RuneLite plugin: see `runelite-plugin/README.md`
   - `SIGNUP_SETUP_CHECKLIST.md` - User registration flow
 
 ### References

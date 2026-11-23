@@ -12,7 +12,6 @@ public class PriceSnapshot
 	public enum Source
 	{
 		NONE("not loaded"),
-		GE_METRICS("GE Metrics"),
 		OSRS_WIKI("OSRS Wiki");
 
 		private final String label;

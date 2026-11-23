@@ -84,6 +84,12 @@ public class GeBuyAssist implements KeyListener
 		listeners.add(listener);
 	}
 
+	/** Called on plugin shutdown so a rebuilt panel doesn't leave stale listeners behind. */
+	public void removeAllListeners()
+	{
+		listeners.clear();
+	}
+
 	private void notifyListeners()
 	{
 		listeners.forEach(Runnable::run);
