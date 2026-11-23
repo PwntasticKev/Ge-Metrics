@@ -54,7 +54,9 @@ describe('All Items rows', () => {
       maxQty: 70,
       potential: 1_400_000,
       stale: false,
-      suspicious: false
+      suspicious: false,
+      taxFree: false,
+      alchFloor: false
     })
   })
 
@@ -62,6 +64,25 @@ describe('All Items rows', () => {
     const item = { ...ITEMS[0] }
     toAllItemsRow(item)
     expect(item).toEqual(ITEMS[0])
+  })
+})
+
+describe('All Items tags', () => {
+  const rune = { id: 4131, name: 'Rune boots', icon: 'x.png', limit: 70, high: 12_000, low: 11_500, highalch: 12_000 }
+
+  test('alch floor when high alch minus a nature rune covers the buy price', () => {
+    expect(toAllItemsRow(rune, { natureRunePrice: 100 }).alchFloor).toBe(true)
+    expect(toAllItemsRow({ ...rune, low: 11_950 }, { natureRunePrice: 100 }).alchFloor).toBe(false)
+  })
+
+  test('no alch floor without a nature rune price or an alch value', () => {
+    expect(toAllItemsRow(rune).alchFloor).toBe(false)
+    expect(toAllItemsRow({ ...rune, highalch: undefined }, { natureRunePrice: 100 }).alchFloor).toBe(false)
+  })
+
+  test('tax-free items are tagged', () => {
+    expect(toAllItemsRow(ITEMS.find(i => i.id === 13190)).taxFree).toBe(true)
+    expect(toAllItemsRow(ITEMS.find(i => i.id === 4151)).taxFree).toBe(false)
   })
 })
 
